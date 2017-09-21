@@ -11,9 +11,8 @@ function transform!(H::AbstractMatrix, U, G::Givens, imax::Int = size(H,1), jmin
 end
 
 # Single QR step
-function qrstep!(H::AbstractMatrix, U, σ::T = zero(T), start::Int = 1, stop::Int = size(H,2))
+function qrstep!(H::AbstractMatrix{T}, U, σ::T = zero(T), start::Int = 1, stop::Int = size(H,2)) where {T}
     # H[start:stop,start:stop] is assumed to be of Hessenberg format
-    T = eltype(H)
     @inbounds begin
         i = start
         # Initial Givens rotations determined from shift
@@ -29,9 +28,8 @@ function qrstep!(H::AbstractMatrix, U, σ::T = zero(T), start::Int = 1, stop::In
 end
 
 # Double QR step
-function qrdoublestep!(H::AbstractMatrix, U, s::T, t::T, start::Int = 1, stop::Int = size(H,2))
+function qrdoublestep!(H::AbstractMatrix{T}, U, s::T, t::T, start::Int = 1, stop::Int = size(H,2)) where {T}
     # H[start:stop,start:stop] is assumed to be of Hessenberg format
-    T = eltype(H)
     @inbounds begin
         i = start
         # Initial Givens rotation determined from shifts
