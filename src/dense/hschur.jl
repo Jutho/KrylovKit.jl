@@ -11,8 +11,9 @@ function transform!(H::AbstractMatrix, U, G::Givens, imax::Int = size(H,1), jmin
 end
 
 # Single QR step
-function qrstep!{T}(H::AbstractMatrix{T}, U, σ::T = zero(T), start::Int = 1, stop::Int = size(H,2))
+function qrstep!(H::AbstractMatrix, U, σ::T = zero(T), start::Int = 1, stop::Int = size(H,2))
     # H[start:stop,start:stop] is assumed to be of Hessenberg format
+    T = eltype(H)
     @inbounds begin
         i = start
         # Initial Givens rotations determined from shift
@@ -28,8 +29,9 @@ function qrstep!{T}(H::AbstractMatrix{T}, U, σ::T = zero(T), start::Int = 1, st
 end
 
 # Double QR step
-function qrdoublestep!{T}(H::AbstractMatrix{T}, U, s::T, t::T, start::Int = 1, stop::Int = size(H,2))
+function qrdoublestep!(H::AbstractMatrix, U, s::T, t::T, start::Int = 1, stop::Int = size(H,2))
     # H[start:stop,start:stop] is assumed to be of Hessenberg format
+    T = eltype(H)
     @inbounds begin
         i = start
         # Initial Givens rotation determined from shifts
@@ -62,7 +64,7 @@ function qrdoublestep!{T}(H::AbstractMatrix{T}, U, s::T, t::T, start::Int = 1, s
 end
 
 """
-    hschur!{T}(H::AbstractMatrix{T}, U = novecs)
+    hschur!(H::AbstractMatrix, U = novecs)
 
 Transforms the Hessenberg matrix `H` into Schur form (upper triangular in the
 complex case and quasi upper triangular in the real case) using a series of
@@ -70,8 +72,9 @@ Givens rotations which are multiplied onto `U`. Initialize `U` as the identity
 matrix in order to obtain the Schur vectors upon return. If `U` is initialized as
 `novecs` (the default), the corresponding basis change is discarded.
 """
-function hschur!{T}(H::AbstractMatrix{T}, U = novecs)
+function hschur!(H::AbstractMatrix, U = novecs)
     n = checksquare(H)
+    T = eltype(H)
     ϵ = eps(real(T))
     TC = complex(T)
     values = Vector{TC}(n)

@@ -30,7 +30,7 @@ end
 # generate Householder vector based on vector v, such that applying the reflection
 # to v yields a vector with single non-zero element on position i and with
 # positive value equal to norm(v)
-function _householder!{T}(v::AbstractVector{T}, i::Int)
+function _householder!(v::AbstractVector{T}, i::Int) where {T}
     β::T = zero(T)
     @inbounds begin
         σ = abs2(zero(T))

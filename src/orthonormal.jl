@@ -59,13 +59,13 @@ end
 # Orthogonalization of a vector against a given OrthonormalBasis
 orthogonalize(v, args...) = orthogonalize!(copy(v), args...)
 
-function orthogonalize!{T}(v::T, b::OrthonormalBasis{T}, alg::Orthogonalizer)
+function orthogonalize!(v::T, b::OrthonormalBasis{T}, alg::Orthogonalizer) where {T}
     S = promote_type(eltype(v), eltype(T))
     c = Vector{S}(length(b))
     orthogonalize!(v, b, c, alg)
 end
 
-function orthogonalize!{T}(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::ClassicalGramSchmidt)
+function orthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::ClassicalGramSchmidt) where {T}
     for (i, q) = enumerate(b)
         x[i] = vecdot(q, v)
     end
@@ -74,7 +74,7 @@ function orthogonalize!{T}(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::Cl
     end
     return (v, x)
 end
-function reorthogonalize!{T}(v::T, b::OrthonormalBasis, x::AbstractVector, ::ClassicalGramSchmidt)
+function reorthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::ClassicalGramSchmidt) where {T}
     s = similar(x) ## EXTRA ALLOCATION
     for (i, q) = enumerate(b)
         s[i] = vecdot(q, v)
@@ -85,11 +85,11 @@ function reorthogonalize!{T}(v::T, b::OrthonormalBasis, x::AbstractVector, ::Cla
     end
     return (v, x)
 end
-function orthogonalize!{T}(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::ClassicalGramSchmidt2)
+function orthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::ClassicalGramSchmidt2) where {T}
     (v, x) = orthogonalize!(v, b, x, ClassicalGramSchmidt())
     return reorthogonalize!(v, b, x, ClassicalGramSchmidt())
 end
-function orthogonalize!{T}(v::T, b::OrthonormalBasis{T}, x::AbstractVector, alg::ClassicalGramSchmidtIR)
+function orthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, alg::ClassicalGramSchmidtIR) where {T}
     nold = vecnorm(v)
     orthogonalize!(v, b, x, ClassicalGramSchmidt())
     nnew = vecnorm(v)
@@ -101,7 +101,7 @@ function orthogonalize!{T}(v::T, b::OrthonormalBasis{T}, x::AbstractVector, alg:
     return (v, x)
 end
 
-function orthogonalize!{T}(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::ModifiedGramSchmidt)
+function orthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::ModifiedGramSchmidt) where {T}
     for (i, q) = enumerate(b)
         s = vecdot(q, v)
         Base.LinAlg.axpy!(-s, q, v)
@@ -109,7 +109,7 @@ function orthogonalize!{T}(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::Mo
     end
     return (v, x)
 end
-function reorthogonalize!{T}(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::ModifiedGramSchmidt)
+function reorthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::ModifiedGramSchmidt) where {T}
     for (i, q) = enumerate(b)
         s = vecdot(q, v)
         Base.LinAlg.axpy!(-s, q, v)
@@ -117,11 +117,11 @@ function reorthogonalize!{T}(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::
     end
     return (v, x)
 end
-function orthogonalize!{T}(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::ModifiedGramSchmidt2)
+function orthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::ModifiedGramSchmidt2) where {T}
     (v, x) = orthogonalize!(v, b, x, ModifiedGramSchmidt())
     return reorthogonalize!(v, b, x, ModifiedGramSchmidt())
 end
-function orthogonalize!{T}(v::T, b::OrthonormalBasis{T}, x::AbstractVector, alg::ModifiedGramSchmidtIR)
+function orthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, alg::ModifiedGramSchmidtIR) where {T}
     nold = vecnorm(v)
     orthogonalize!(v, b, x, ModifiedGramSchmidt())
     nnew = vecnorm(v)
@@ -134,19 +134,19 @@ function orthogonalize!{T}(v::T, b::OrthonormalBasis{T}, x::AbstractVector, alg:
 end
 
 # Orthogonalization of a vector against a given normalized vector
-function orthogonalize!{T}(v::T, q::T, alg::Union{ClassicalGramSchmidt,ModifiedGramSchmidt})
+function orthogonalize!(v::T, q::T, alg::Union{ClassicalGramSchmidt,ModifiedGramSchmidt}) where {T}
     s = vecdot(q,v)
     Base.LinAlg.axpy!(-s, q, v)
     return (v, s)
 end
-function orthogonalize!{T}(v::T, q::T, alg::Union{ClassicalGramSchmidt2,ModifiedGramSchmidt2})
+function orthogonalize!(v::T, q::T, alg::Union{ClassicalGramSchmidt2,ModifiedGramSchmidt2}) where {T}
     s = vecdot(q,v)
     Base.LinAlg.axpy!(-s, q, v)
     ds = vecdot(q,v)
     Base.LinAlg.axpy!(-ds, q, v)
     return (v, s+ds)
 end
-function orthogonalize!{T}(v::T, q::T, alg::Union{ClassicalGramSchmidtIR,ModifiedGramSchmidtIR})
+function orthogonalize!(v::T, q::T, alg::Union{ClassicalGramSchmidtIR,ModifiedGramSchmidtIR}) where {T}
     nold = vecnorm(v)
     s = vecdot(q,v)
     Base.LinAlg.axpy!(-s, q, v)
