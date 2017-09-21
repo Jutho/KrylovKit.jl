@@ -58,12 +58,12 @@ end
 abstract type EigenSolver end
 
 abstract type RestartStrategy end
-immutable NoRestart <: RestartStrategy
+struct NoRestart <: RestartStrategy
 end
-immutable ExplicitRestart <: RestartStrategy
+struct ExplicitRestart <: RestartStrategy
     maxiter::Int
 end
-immutable ImplicitRestart <: RestartStrategy
+struct ImplicitRestart <: RestartStrategy
     maxiter::Int
 end
 const norestart = NoRestart()

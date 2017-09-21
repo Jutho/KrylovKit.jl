@@ -10,7 +10,7 @@ struct ArnoldiIterator{F,T,S,Sr<:Real,O<:Orthogonalizer}
     orth::O
 end
 
-type ArnoldiFact{T,S} # S = eltype(T)
+mutable struct ArnoldiFact{T,S} # S = eltype(T)
     k::Int # current Krylov dimension
     V::OrthonormalBasis{T} # basis of length k+1
     H::Matrix{S} # matrix of Hessenberg form: (m+1) x m with m maximal krylov dimension

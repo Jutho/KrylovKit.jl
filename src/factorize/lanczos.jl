@@ -11,7 +11,7 @@ struct LanczosIterator{F,T,S,Sr<:Real,O<:Orthogonalizer}
     keepvecs::Bool
 end
 
-type LanczosFact{T, S<:Real} # S = real(eltype(T))
+mutable struct LanczosFact{T, S<:Real} # S = real(eltype(T))
     k::Int # current Krylov dimension
     V::OrthonormalBasis{T} # basis of length k+1
     αs::Vector{S}

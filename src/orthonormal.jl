@@ -1,5 +1,5 @@
 # Definition of an orthonormal basis
-type OrthonormalBasis{T} <: Basis{T}
+mutable struct OrthonormalBasis{T} <: Basis{T}
     basis::Vector{T}
 end
 (::Type{OrthonormalBasis{T}}){T}() = OrthonormalBasis{T}(Vector{T}())
