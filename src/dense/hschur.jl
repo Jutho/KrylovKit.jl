@@ -95,7 +95,7 @@ function hschur!(H::AbstractMatrix, U = novecs)
             # Wilkinson shifts
             s = H[q,q]+H[p,p]
             t = H[q,q]*H[p,p] - H[q,p]*H[p,q]
-            IterativeToolbox.qrdoublestep!(H, U, s, t, i, p)
+            qrdoublestep!(H, U, s, t, i, p)
         end
     end
     return H, U, values
