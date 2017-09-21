@@ -107,9 +107,10 @@ function schur2rightvecs(H::AbstractMatrix, select::AbstractVector{Bool})
 end
 schur2rightvecs(H::AbstractMatrix, select::Int) = vec(schur2eigvecs(H, [select]))
 
-function schur2rightvecs{T<:Real}(H::AbstractMatrix{T}, select::AbstractVector{Int} = 1:size(H,1))
+function schur2rightvecs(H::AbstractMatrix{<:Real}, select::AbstractVector{Int} = 1:size(H,1))
     # real schur, H is quasi upper triangular
     # based on naivesub! from Julia (base/linalg/triangular.jl)
+    T = eltype(H)
     n = checksquare(H)
     selected = sort!(collect(select))
     (minimum(selected) < 1 || maximum(selected) > n) && throw(ArgumentError("invalid input select"))
@@ -160,8 +161,9 @@ function schur2rightvecs{T<:Real}(H::AbstractMatrix{T}, select::AbstractVector{I
     return V
 end
 
-function schur2rightvecs{T<:Complex}(H::AbstractMatrix{T}, select::AbstractVector{Int}=1:size(H,1))
+function schur2rightvecs(H::AbstractMatrix{<:Complex}, select::AbstractVector{Int}=1:size(H,1))
     # complex schur, H is upper triangular
+    T = eltype(H)
     n = checksquare(H)
     V = zeros(T,n,length(select))
     @inbounds for (ind, k) in enumerate(select)
@@ -174,7 +176,7 @@ function schur2rightvecs{T<:Complex}(H::AbstractMatrix{T}, select::AbstractVecto
     return V
 end
 
-function reorderschur!{T}(H::AbstractMatrix{T}, select::AbstractVector{Bool}, U = novecs)
+function reorderschur!(H::AbstractMatrix, select::AbstractVector{Bool}, U = novecs)
     n = size(H,2)
     n == length(select) || throw(ArgumentError("select has wrong length"))
     p = Vector{Int}(n)
@@ -192,7 +194,8 @@ function reorderschur!{T}(H::AbstractMatrix{T}, select::AbstractVector{Bool}, U 
     reorderschur!(H, p, U)
 end
 
-function reorderschur!{T}(H::AbstractMatrix{T}, p::AbstractVector{Int}, U = novecs)
+function reorderschur!(H::AbstractMatrix, p::AbstractVector{Int}, U = novecs)
+    T = eltype(H)
     n = checksquare(H)
     (n == length(p) && isperm(p)) || throw(ArgumentError("invalid reordering"))
     order = collect(p)
@@ -246,7 +249,8 @@ end
 # AUXILIARY ROUTINES: Unsafe for direct use, assumed to be inbounds
 
 # Bring 2x2 block on rows i and i+1 into normal form
-function qrnormalform!{T<:Real}(H::AbstractMatrix{T}, i, U)
+function qrnormalform!(H::AbstractMatrix{<:Real}, i, U)
+    T = eltype(H)
     j = i+1
     @inbounds begin
         H[j,i] == zero(H[j,i]) && return complex(H[i,i]), complex(H[j,j])
@@ -267,7 +271,7 @@ function qrnormalform!{T<:Real}(H::AbstractMatrix{T}, i, U)
                 b = halftr+sqrt(d)-H[i,i]
                 G, = givens(a, b, i, j)
             end
-            IterativeToolbox.transform!(H, U, G, j, i)
+            transform!(H, U, G, j, i)
             H[j,i] = zero(T)
             return complex(H[i,i]), complex(H[j,j])
         else # bring into standard form
@@ -283,7 +287,8 @@ function qrnormalform!{T<:Real}(H::AbstractMatrix{T}, i, U)
     end
 end
 
-function qrnormalform!{T<:Complex}(H::AbstractMatrix{T}, i, U)
+function qrnormalform!(H::AbstractMatrix{<:Complex}, i, U)
+    T = eltype(H)
     j = i+1
     @inbounds begin
         H[j,i] == zero(H[j,i]) && return H[i,i], H[j,j]
