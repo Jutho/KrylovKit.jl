@@ -11,7 +11,7 @@ export eigsolve, SimpleArnoldi, RestartedArnoldi
 
 include("algorithms.jl")
 
-abstract Basis{T}
+abstract type Basis{T} end
 
 include("orthonormal.jl")
 include("factorize/lanczos.jl")
@@ -28,7 +28,7 @@ include("linsolve/gmres.jl")
 include("eigsolve/eigsolve.jl")
 include("eigsolve/arnoldi.jl")
 
-immutable ConvergenceInfo{S,T}
+struct ConvergenceInfo{S,T}
     converged::Int
     normres::S
     residual::T

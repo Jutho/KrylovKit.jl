@@ -1,7 +1,7 @@
 # arnoldi.jl
 #
 # Arnoldi iteration for constructing the orthonormal basis of a Krylov subspace.
-immutable ArnoldiIterator{F,T,S,Sr<:Real,O<:Orthogonalizer}
+struct ArnoldiIterator{F,T,S,Sr<:Real,O<:Orthogonalizer}
     operator::F
     v₀::T
     eltype::Type{S}
@@ -21,7 +21,7 @@ matrix(F::ArnoldiFact) = view(F.H, 1:F.k, 1:F.k)
 normres(F::ArnoldiFact) = abs(F.H[F.k+1,F.k])
 residual(F::ArnoldiFact) = normres(F)*F.V[F.k+1]
 
-function arnoldi{S}(A, v₀, orth=orthdefault, ::Type{S} = eltype(v₀); krylovdim = length(v₀), tol = abs(zero(S)))
+function arnoldi(A, v₀, orth=orthdefault, ::Type{S} = eltype(v₀); krylovdim = length(v₀), tol = abs(zero(S))) where {S}
     @assert krylovdim > 0
     tolerance::real(S) = tol
     krylovdimension::Int = min(krylovdim, length(v₀))

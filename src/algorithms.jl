@@ -5,29 +5,29 @@
 
 
 # Orthogonalization and orthonormalization
-abstract Orthogonalizer
-abstract Reorthogonalizer <: Orthogonalizer
+abstract type Orthogonalizer end
+abstract type Reorthogonalizer <: Orthogonalizer end
 
 # Simple
-immutable ClassicalGramSchmidt <: Orthogonalizer
+struct ClassicalGramSchmidt <: Orthogonalizer
 end
 
-immutable ModifiedGramSchmidt <: Orthogonalizer
+struct ModifiedGramSchmidt <: Orthogonalizer
 end
 
 # A single reorthogonalization always
-immutable ClassicalGramSchmidt2 <: Reorthogonalizer
+struct ClassicalGramSchmidt2 <: Reorthogonalizer
 end
 
-immutable ModifiedGramSchmidt2 <: Reorthogonalizer
+struct ModifiedGramSchmidt2 <: Reorthogonalizer
 end
 
 # Iterative reorthogonalization
-immutable ClassicalGramSchmidtIR{S<:Real} <: Reorthogonalizer
+struct ClassicalGramSchmidtIR{S<:Real} <: Reorthogonalizer
     η::S
 end
 
-immutable ModifiedGramSchmidtIR{S<:Real} <: Reorthogonalizer
+struct ModifiedGramSchmidtIR{S<:Real} <: Reorthogonalizer
     η::S
 end
 
@@ -43,26 +43,26 @@ const mgsr = ModifiedGramSchmidtIR(η₀)
 const orthdefault = mgsr # conservative choice
 
 # Partial factorization: preliminary step for some linear or eigenvalue solvers
-abstract Factorizer
+abstract type Factorizer end
 
-immutable LanczosIteration <: Factorizer
+struct LanczosIteration <: Factorizer
     krylovdim::Int
     tol::Real
 end
-immutable ArnoldiIteration <: Factorizer
+struct ArnoldiIteration <: Factorizer
     krylovdim::Int
     tol::Real
 end
 
 # Solving linear systems or eigenvalue problems
-immutable SimpleLanczos{O}
+struct SimpleLanczos{O}
     krylovdim::Int
     tol::Real
     orth::O
 end
 SimpleLanczos(orth::Orthogonalizer = orthdefault; krylovdim=30, tol=1e-12) = SimpleLanczos(krylovdim, tol, orth)
 
-immutable RestartedLanczos{O}
+struct RestartedLanczos{O}
     krylovdim::Int
     maxiter::Int
     tol::Real
@@ -71,14 +71,14 @@ end
 RestartedLanczos(orth::Orthogonalizer = orthdefault; krylovdim=30, maxiter=100, tol=1e-12) =
     RestartedLanczos(krylovdim, maxiter, tol, orth)
 
-immutable SimpleArnoldi{O}
+struct SimpleArnoldi{O}
     krylovdim::Int
     tol::Real
     orth::O
 end
 SimpleArnoldi(orth::Orthogonalizer = orthdefault; krylovdim=30, tol=1e-12) = SimpleArnoldi(krylovdim, tol, orth)
 
-immutable RestartedArnoldi{O}
+struct RestartedArnoldi{O}
     krylovdim::Int
     maxiter::Int
     tol::Real
@@ -88,23 +88,23 @@ RestartedArnoldi(orth::Orthogonalizer = orthdefault; krylovdim=30, maxiter=100, 
     RestartedArnoldi(krylovdim, maxiter, tol, orth)
 
 # Solving linear systems specifically
-immutable CG
+struct CG
     maxiter::Int
     tol::Real
     reltol::Real
 end
-immutable SYMMLQ
+struct SYMMLQ
     maxiter::Int
     tol::Real
     reltol::Real
 end
-immutable MINRES
+struct MINRES
     maxiter::Int
     tol::Real
     reltol::Real
 end
 
-immutable GMRES{O<:Orthogonalizer}
+struct GMRES{O<:Orthogonalizer}
     krylovdim::Int
     maxiter::Int
     tol::Real

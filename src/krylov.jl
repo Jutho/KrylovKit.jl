@@ -1,4 +1,4 @@
-abstract AbstractKrylovFactorization{T}
+abstract type AbstractKrylovFactorization{T} end
 
 type KrylovFactorization{T, M<:AbstractMatrix} <: AbstractKrylovFactorization{T}
     k::Int # current Krylov dimension

@@ -1,6 +1,6 @@
 # Elementary Householder reflection
 
-immutable Householder{T,V<:AbstractVector,R<:Range}
+struct Householder{T,V<:AbstractVector,R<:Range}
     β::T
     v::V
     r::R

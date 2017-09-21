@@ -1,7 +1,7 @@
 # lanczos.jl
 #
 # Lanczos iteration for constructing the orthonormal basis of a Krylov subspace.
-immutable LanczosIterator{F,T,S,Sr<:Real,O<:Orthogonalizer}
+struct LanczosIterator{F,T,S,Sr<:Real,O<:Orthogonalizer}
     operator::F
     v₀::T
     eltype::Type{S}
@@ -23,7 +23,7 @@ matrix(F::LanczosFact) = SymTridiagonal(F.αs, F.βs)
 normres(F::LanczosFact) = F.βs[F.k]
 residual(F::LanczosFact) = normres(F)*F.V[F.k+1]
 
-function lanczos{S}(A, v₀, orth = orthdefault, ::Type{S} = eltype(v); krylovdim = length(v), tol=abs(zero(S)), keepvecs=true)
+function lanczos(A, v₀, orth = orthdefault, ::Type{S} = eltype(v); krylovdim = length(v), tol=abs(zero(S)), keepvecs=true) where {S}
     @assert krylovdim > 0
     if !keepvecs && isa(orth, Reorthogonalizer)
         error("Cannot use reorthogonalization without keeping all Krylov vectors")

@@ -61,7 +61,7 @@ function qrdoublestep!{T}(H::AbstractMatrix{T}, U, s::T, t::T, start::Int = 1, s
     end
 end
 
-doc"""
+"""
     hschur!{T}(H::AbstractMatrix{T}, U = novecs)
 
 Transforms the Hessenberg matrix `H` into Schur form (upper triangular in the

@@ -42,7 +42,7 @@ function rmulc!(b::OrthonormalBasis, G::Givens)
 end
 
 # New types for discarding or for storing successive Givens transformations
-immutable NoVecs
+struct NoVecs
 end
 const novecs = NoVecs()
 rmulc!(::NoVecs, ::Any) = novecs

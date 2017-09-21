@@ -1,6 +1,4 @@
-include("IterativeToolbox.jl")
-
-using IterativeToolbox
+using KrylovKit
 
 
 for T in (Float32, Float64, Complex64, Complex128)
@@ -29,15 +27,15 @@ function cpmap(A,ρ)
     return σ
 end
 
-const D = 100
-const d = 2
-const A = reshape(qr(randn(D*d,D))[1], (D,d,D))
+D = 100
+d = 2
+A = reshape(qr(randn(D*d,D))[1], (D,d,D))
 
 X = randn(D,D)
 ρ₀ = X*X'
 scale!(ρ₀, 1/vecnorm(ρ₀))
 
-alg = GMRES(krylovdim = 30, abstol = 1e-12)
+alg = GMRES(krylovdim = 30, tol = 1e-12)
 linsolve(x->cpmap(A,x), cpmap(A, ρ₀), alg)
 
 
