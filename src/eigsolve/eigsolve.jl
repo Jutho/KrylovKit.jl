@@ -10,11 +10,22 @@ eigsolve(f, n::Int, k::Int = 1, which::Symbol = :LM, T::Type = Float64; kwargs..
 function eigsolve(f, x0::VecOrMat, k::Int = 1, which::Symbol = :LM, T::Type = eltype(x0); issymmetric = false, ishermitian = issymmetric, method = none)
     if method != none
         return eigsolve(f, x0, k, which, method)
-    elseif T<:Real
+    end
+    if T<:Real
         (which == :LI || which == :SI) && throw(ArgumentError("work in complex domain to find eigenvalues with largest or smallest imaginary part"))
-        # eigsolve(f, real(x0), k, which, issym ? ImplicitlyRestartedLanczos : ImplicitlyRestartedArnoldi)
+    end
+    if k == 1
+        if (T<:Real && issymmetric) || ishermitian
+            return eigsolve(f, x0, k, which, Lanczos(ExplicitRestart(100)))
+        else
+            return eigsolve(f, x0, k, which, Arnoldi(ExplicitRestart(100)))
+        end
     else
-        # eigsolve(f, x0, k, which, ishermitian ? ImplicitlyRestartedLanczos : ImplicitlyRestartedArnoldi)
+        if (T<:Real && issymmetric) || ishermitian
+            return eigsolve(f, x0, k, which, Lanczos(ImplicitRestart(100)))
+        else
+            return eigsolve(f, x0, k, which, Arnoldi(ImplicitRestart(100)))
+        end
     end
 end
 

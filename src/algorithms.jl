@@ -54,57 +54,58 @@ struct ArnoldiIteration <: Factorizer
     tol::Real
 end
 
-# Solving linear systems or eigenvalue problems
-struct SimpleLanczos{O}
-    krylovdim::Int
-    tol::Real
-    orth::O
-end
-SimpleLanczos(orth::Orthogonalizer = orthdefault; krylovdim=30, tol=1e-12) = SimpleLanczos(krylovdim, tol, orth)
+# Solving eigenvalue problems
+abstract type EigenSolver end
 
-struct RestartedLanczos{O}
-    krylovdim::Int
+abstract type RestartStrategy end
+immutable NoRestart <: RestartStrategy
+end
+immutable ExplicitRestart <: RestartStrategy
     maxiter::Int
-    tol::Real
-    orth::O
 end
-RestartedLanczos(orth::Orthogonalizer = orthdefault; krylovdim=30, maxiter=100, tol=1e-12) =
-    RestartedLanczos(krylovdim, maxiter, tol, orth)
-
-struct SimpleArnoldi{O}
-    krylovdim::Int
-    tol::Real
-    orth::O
-end
-SimpleArnoldi(orth::Orthogonalizer = orthdefault; krylovdim=30, tol=1e-12) = SimpleArnoldi(krylovdim, tol, orth)
-
-struct RestartedArnoldi{O}
-    krylovdim::Int
+immutable ImplicitRestart <: RestartStrategy
     maxiter::Int
-    tol::Real
-    orth::O
 end
-RestartedArnoldi(orth::Orthogonalizer = orthdefault; krylovdim=30, maxiter=100, tol=1e-12) =
-    RestartedArnoldi(krylovdim, maxiter, tol, orth)
+const norestart = NoRestart()
+
+struct Lanczos{R,O} <: EigenSolver
+    restart::R
+    orth::O
+    krylovdim::Int
+    tol::Real
+end
+Lanczos(restart::RestartStrategy = ExplicitRestart(100), orth::Orthogonalizer = orthdefault; krylovdim=30, tol=1e-12) =
+    Lanczos(restart, orth, krylovdim, tol)
+
+struct Arnoldi{R,O} <: EigenSolver
+    restart::R
+    orth::O
+    krylovdim::Int
+    tol::Real
+end
+Arnoldi(restart::RestartStrategy = ExplicitRestart(100), orth::Orthogonalizer = orthdefault; krylovdim=30, tol=1e-12) =
+    Arnoldi(restart, orth, krylovdim, tol)
 
 # Solving linear systems specifically
-struct CG
+abstract type LinearSolver end
+
+struct CG <: LinearSolver
     maxiter::Int
     tol::Real
     reltol::Real
 end
-struct SYMMLQ
+struct SYMMLQ <: LinearSolver
     maxiter::Int
     tol::Real
     reltol::Real
 end
-struct MINRES
+struct MINRES <: LinearSolver
     maxiter::Int
     tol::Real
     reltol::Real
 end
 
-struct GMRES{O<:Orthogonalizer}
+struct GMRES{O<:Orthogonalizer} <: LinearSolver
     krylovdim::Int
     maxiter::Int
     tol::Real

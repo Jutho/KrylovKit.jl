@@ -1,5 +1,5 @@
 # Arnoldi methods for eigenvalue problems
-function eigsolve(A, x₀, which::Symbol, howmany::Int, alg::SimpleArnoldi)
+function eigsolve(A, x₀, howmany::Int, which::Symbol, alg::Arnoldi{NoRestart})
     krylovdim = min(alg.krylovdim, length(x₀))
     if eltype(x₀) <: Real
         howmany < krylovdim-1 || error("krylov dimension $(krylovdim) too small to compute $howmany eigenvalues")
@@ -50,11 +50,13 @@ function eigsolve(A, x₀, which::Symbol, howmany::Int, alg::SimpleArnoldi)
     return values, vectors, T, ConvergenceInfo(converged, nres, residuals, 1, numops)
 end
 
-function eigsolve(A, x₀, which::Symbol, howmany::Int, alg::RestartedArnoldi)
+function eigsolve(A, x₀, howmany::Int, which::Symbol, alg::Arnoldi{ImplicitRestart})
     krylovdim = min(alg.krylovdim, length(x₀))
     dk = eltype(x₀) <: Real ? 2 : 1
     howmany + dk <= krylovdim || error("krylov dimension $(krylovdim) too small to compute $k eigenvalues")
     by, rev = eigsort(which)
+
+    maxiter = alg.restart.maxiter
 
     # Compute arnoldi factorization
     iter = arnoldi(A, x₀, alg.orth; krylovdim = krylovdim)
@@ -67,7 +69,7 @@ function eigsolve(A, x₀, which::Symbol, howmany::Int, alg::RestartedArnoldi)
     numconverged = 0
     residuals = similar(fact.V.basis, 0)
     sizehint!(residuals, howmany)
-    while numiter < alg.maxiter
+    while numiter < maxiter
         numiter += 1
         # Expand arnoldi factorization
         while fact.k != krylovdim
@@ -112,7 +114,7 @@ function eigsolve(A, x₀, which::Symbol, howmany::Int, alg::RestartedArnoldi)
 
         # Check stopping criterion
         numconverged >= howmany && break
-        numiter == alg.maxiter && break
+        numiter == maxiter && break
 
         # Determine how many to keep
         keep = max(numconverged+dk, krylovdim >>1) # strictly smaller than krylovdim
