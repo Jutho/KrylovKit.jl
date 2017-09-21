@@ -2,11 +2,11 @@
 mutable struct OrthonormalBasis{T} <: Basis{T}
     basis::Vector{T}
 end
-(::Type{OrthonormalBasis{T}}){T}() = OrthonormalBasis{T}(Vector{T}())
+OrthonormalBasis{T}() where {T} = OrthonormalBasis{T}(Vector{T}())
 
 # Iterator methods for OrthonormalBasis
 Base.length(b::OrthonormalBasis) = length(b.basis)
-Base.eltype{T}(b::OrthonormalBasis{T}) = T
+Base.eltype(b::OrthonormalBasis{T}) where {T} = T
 
 Base.start(b::OrthonormalBasis) = start(b.basis)
 Base.next(b::OrthonormalBasis, state)  = next(b.basis, state)
@@ -21,7 +21,7 @@ Base.last(b::OrthonormalBasis) = last(b.basis)
 
 Base.shift!(b::OrthonormalBasis) = shift!(b.basis)
 Base.pop!(b::OrthonormalBasis) = pop!(b.basis)
-Base.push!{T}(b::OrthonormalBasis{T}, q::T) = (push!(b.basis, q); return b)
+Base.push!(b::OrthonormalBasis{T}, q::T) where {T} = (push!(b.basis, q); return b)
 Base.empty!(b::OrthonormalBasis) = (empty!(b.basis); return b)
 Base.sizehint!(b::OrthonormalBasis, k::Int) = (sizehint!(b.basis, k); return b)
 Base.resize!(b::OrthonormalBasis, k::Int) = (resize!(b.basis, k); return b)
