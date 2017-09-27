@@ -1,5 +1,5 @@
 # Definition of an orthonormal basis
-mutable struct OrthonormalBasis{T} <: Basis{T}
+struct OrthonormalBasis{T} <: Basis{T}
     basis::Vector{T}
 end
 OrthonormalBasis{T}() where {T} = OrthonormalBasis{T}(Vector{T}())

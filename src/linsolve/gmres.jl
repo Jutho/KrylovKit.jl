@@ -1,23 +1,22 @@
-linsolve(operator, b, alg::GMRES; kwargs...) =
-    linsolve(operator, b, zero(b), alg; kwargs...)
+linsolve(operator, b, alg::GMRES, a₀ = 0, a₁ = 1) =
+    linsolve(operator, b, zero(b), alg, a₀, a₁)
 
-function linsolve(operator, b, x₀, alg::GMRES; a₀ = zero(eltype(b)), a₁ = one(eltype(b)))
-    # Initial function operation defines number type
-    r = apply(operator,x₀)
-    T = eltype(r) # number type
+function linsolve(operator, b, x₀, alg::GMRES, a₀ = 0, a₁ = 1)
+    # Initial function operation and division defines number type
+    y₀ = apply(operator, x₀)
+    T = typeof(vecdot(b, y₀)/vecnorm(b)*one(a₀)*one(a₁))
     α₀::T = a₀
     α₁::T = a₁
     # Continue computing r = b - a₀ * x₀ - a₁ * operator(x₀)
-    axpy!(+1,b,scale!(-α₁,r))
-    α₀ != 0 && axpy!(-α₀, x₀, r)
+    r = b - α₀*x₀ - α₁*y₀
     x = copy!(similar(r), x₀)
     β = vecnorm(r)
-    Tr = typeof(β) # real number type for norms and tolerances
+    S = typeof(β)
 
     # Algorithm parameters
     maxiter = alg.maxiter
     krylovdim = alg.krylovdim
-    tol::Tr = max(alg.tol, vecnorm(b)*alg.reltol)
+    tol::S = max(alg.tol, vecnorm(b)*alg.reltol)
 
     # Check for early return
     β < tol && return (x, ConvergenceInfo(1, β, r, 0, 1))
@@ -27,16 +26,25 @@ function linsolve(operator, b, x₀, alg::GMRES; a₀ = zero(eltype(b)), a₁ = 
     gs = Vector{Givens{T}}(krylovdim)
     R = zeros(T, (krylovdim,krylovdim))
     numiter = 0
-    numops = 1
+    numops = 1 # operator has been applied once to determine T
 
-    iter = arnoldi(operator, r, alg.orth; krylovdim = krylovdim)
+    iter = ArnoldiIterator(operator, r, alg.orth; krylovdim = krylovdim)
     fact = start(iter)
+    numops += 1 # start applies operator once
     while numiter < maxiter # restart loop
         numiter += 1
-        k = 0
-        y[k+1] = β
+        y[1] = β
+        k = 1
+        H = fact.H
+        R[1,1] = α₀ + α₁ * fact.H[1,1]
+        gs[1], R[1,1] = givens(R[1,1], α₁*H[2,1], 1, 2)
+        y[2] = zero(T)
+        lmul!(y, gs[1])
+        β = convert(S, abs(y[2]))
+        # info("iter $numiter, step $k : normres = $β")
+
         while β > tol && !done(iter, fact) # inner arnoldi loop
-            next!(iter, fact)
+            fact = next!(iter, fact)
             numops += 1 # next! applies the operator once
             k = fact.k
             H = fact.H
@@ -58,40 +66,39 @@ function linsolve(operator, b, x₀, alg::GMRES; a₀ = zero(eltype(b)), a₁ = 
             lmul!(y, gs[k])
 
             # New error
-            β = abs(y[k+1])::Tr
+            β = convert(S, abs(y[k+1]))
+            # info("iter $numiter, step $k : normres = $β")
         end
 
         # Solve upper triangular system
-        V = fact.V
-        # r1 = y[k+1]*(gs[k].c*V[k]-gs[k].s*V[k+1])
-        utldiv!(R, y, 1:k)
-
+        ldiv!(UpperTriangular(R), y, 1:k)
 
         # Update x
+        V = fact.V
         @inbounds for i = 1:k
             axpy!(y[i], fact.V[i], x)
         end
 
-
-        # Recompute residual without reevaluating operator
-        for i = 1:k
-            rmulc!(V,gs[i])
+        if β > tol
+            # Recompute residual without reevaluating operator
+            for i = 1:k
+                rmulc!(V, gs[i])
+            end
+            scale!(r, y[k+1], V[k+1])
+        else
+            # Recompute residual and its norm explicitly, to ensure that no
+            # numerical errors have accumulated
+            scale!(r, -α₁, apply(operator, x))
+            axpy!(+1, b, r)
+            α₀ != 0 && axpy!(-α₀, x, r) # r = b - a₀ * x - a₁ * operator(x)
+            numops += 1
+            β = vecnorm(r)
+            β < tol && return (x, ConvergenceInfo(1, β, r, numiter, numops))
         end
-        scale!(r, y[k+1], V[k+1])
 
-        # Recompute residual. Could be done without operator evaluation, but
-        # here we prevent growth of small numerical errors.
-        # scale!(r, -α₁, apply(operator,x))
-        # axpy!(+1, b, r)
-        # α₀ != 0 && axpy!(-α₀, x, r) # r = b - a₀ * x - a₁ * operator(x)
-        # numops += 1
-
-        β = vecnorm(r)
-        β < tol && return (x, ConvergenceInfo(1, β, r, numiter, numops))
-
-        # Restart Arnoldi factorization
-        iter = arnoldi(operator, r, alg.orth; krylovdim = krylovdim)
-        start!(iter, fact)
+        # Restart Arnoldi factorization with new r
+        iter = ArnoldiIterator(operator, r, alg.orth; krylovdim = krylovdim)
+        fact = start!(iter, fact)
     end
     return (x, ConvergenceInfo(0, β, r, numiter, numops))
 end

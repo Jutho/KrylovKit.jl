@@ -40,18 +40,13 @@ const mgs2 = ModifiedGramSchmidt2()
 const cgsr = ClassicalGramSchmidtIR(η₀)
 const mgsr = ModifiedGramSchmidtIR(η₀)
 
-const orthdefault = mgsr # conservative choice
-
-# Partial factorization: preliminary step for some linear or eigenvalue solvers
-abstract type Factorizer end
-
-struct LanczosIteration <: Factorizer
-    krylovdim::Int
-    tol::Real
-end
-struct ArnoldiIteration <: Factorizer
-    krylovdim::Int
-    tol::Real
+# Default values
+module Defaults
+    using ..KrylovKit
+    const orth = KrylovKit.ModifiedGramSchmidtIR(1/sqrt(2)) # conservative choice
+    const krylovdim = 30
+    const maxiter = 100
+    const tol = 1e-12
 end
 
 # Solving eigenvalue problems
@@ -68,22 +63,22 @@ struct ImplicitRestart <: RestartStrategy
 end
 const norestart = NoRestart()
 
-struct Lanczos{R,O} <: EigenSolver
+struct Lanczos{R<:RestartStrategy, O<:Orthogonalizer} <: EigenSolver
     restart::R
     orth::O
     krylovdim::Int
     tol::Real
 end
-Lanczos(restart::RestartStrategy = ExplicitRestart(100), orth::Orthogonalizer = orthdefault; krylovdim=30, tol=1e-12) =
+Lanczos(restart::RestartStrategy = ExplicitRestart(Defaults.maxiter), orth::Orthogonalizer = Defaults.orth; krylovdim = Defaults.krylovdim, tol = Defaults.tol) =
     Lanczos(restart, orth, krylovdim, tol)
 
-struct Arnoldi{R,O} <: EigenSolver
+struct Arnoldi{R<:RestartStrategy, O<:Orthogonalizer} <: EigenSolver
     restart::R
     orth::O
     krylovdim::Int
     tol::Real
 end
-Arnoldi(restart::RestartStrategy = ExplicitRestart(100), orth::Orthogonalizer = orthdefault; krylovdim=30, tol=1e-12) =
+Arnoldi(restart::RestartStrategy = ExplicitRestart(Defaults.maxiter), orth::Orthogonalizer = Defaults.orth; krylovdim = Defaults.krylovdim, tol = Defaults.tol) =
     Arnoldi(restart, orth, krylovdim, tol)
 
 # Solving linear systems specifically
@@ -106,12 +101,12 @@ struct MINRES <: LinearSolver
 end
 
 struct GMRES{O<:Orthogonalizer} <: LinearSolver
-    krylovdim::Int
+    orth::O
     maxiter::Int
+    krylovdim::Int
     tol::Real
     reltol::Real
-    orth::O
 end
 
-GMRES(orth::Orthogonalizer = orthdefault; tol=1e-12, reltol=1e-12, krylovdim=30, maxiter=100) =
-    GMRES(krylovdim, maxiter, tol, reltol, orth)
+GMRES(orth::Orthogonalizer = Defaults.orth; tol = Defaults.tol, reltol = Defaults.tol, krylovdim = Defaults.krylovdim, maxiter = Defaults.maxiter) =
+    GMRES(orth, maxiter, krylovdim, tol, reltol)

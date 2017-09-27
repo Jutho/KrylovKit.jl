@@ -1,6 +1,7 @@
 # Elementary Givens rotation
 import Base.LinAlg: Givens
 
+# for reference: Julia Base.LinAlg.Givens
 # immutable Givens{T} <: AbstractRotation{T}
 #     i1::Int
 #     i2::Int

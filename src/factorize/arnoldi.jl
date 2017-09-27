@@ -1,16 +1,15 @@
 # arnoldi.jl
 #
 # Arnoldi iteration for constructing the orthonormal basis of a Krylov subspace.
-struct ArnoldiIterator{F,T,S,Sr<:Real,O<:Orthogonalizer}
+struct ArnoldiIterator{F,T,O<:Orthogonalizer}
     operator::F
     v₀::T
-    eltype::Type{S}
     krylovdim::Int
-    tol::Sr
+    tol::Real
     orth::O
 end
 
-mutable struct ArnoldiFact{T,S} # S = eltype(T)
+struct ArnoldiFact{T,S} <: KrylovFactorization{T}
     k::Int # current Krylov dimension
     V::OrthonormalBasis{T} # basis of length k+1
     H::Matrix{S} # matrix of Hessenberg form: (m+1) x m with m maximal krylov dimension
@@ -21,54 +20,59 @@ matrix(F::ArnoldiFact) = view(F.H, 1:F.k, 1:F.k)
 normres(F::ArnoldiFact) = abs(F.H[F.k+1,F.k])
 residual(F::ArnoldiFact) = normres(F)*F.V[F.k+1]
 
-function arnoldi(A, v₀, orth=orthdefault, ::Type{S} = eltype(v₀); krylovdim = length(v₀), tol = abs(zero(S))) where {S}
+function ArnoldiIterator(A, v₀, orth = Defaults.orth; krylovdim::Int = length(v₀), tol::Real = 0)
     @assert krylovdim > 0
-    tolerance::real(S) = tol
-    krylovdimension::Int = min(krylovdim, length(v₀))
-
-    ArnoldiIterator(A, v₀, S, krylovdimension, tolerance, orth)
+    return ArnoldiIterator(A, v₀, min(krylovdim, length(v₀)), tol, orth)
 end
 
 function Base.start(iter::ArnoldiIterator)
     m = iter.krylovdim
-    v₀ = iter.v₀
-    S = iter.eltype
-    v = scale!(similar(v₀, S), v₀, 1/vecnorm(v₀))
-    V = sizehint!(OrthonormalBasis([v]), m+1)
-    H = zeros(S, (m+1,m))
-    return ArnoldiFact(0, V, H)
+    v = iter.v₀ / vecnorm(iter.v₀) # division might change eltype
+    w₁ = apply(iter.operator, v) # applying the operator might change eltype
+    w₀ = copy!(similar(w₁), v)
+    w₁, β, α = orthonormalize!(w₁, w₀, iter.orth)
+
+    V = sizehint!(OrthonormalBasis([w₀, w₁]), m+1)
+    H = zeros(typeof(α), (m+1, m))
+    H[1,1] = α
+    H[2,1] = β
+    return ArnoldiFact(1, V, H)
 end
 function start!(iter::ArnoldiIterator, state::ArnoldiFact) # recylcle existing fact
     m = iter.krylovdim
     v₀ = iter.v₀
-    S = iter.eltype
-    @assert eltype(state.H) == S
-    @assert eltype(state.V[1]) == S
-    @assert size(state.H) == (m+1, m)
-
-    state.k = 0
-    scale!(state.V[1], v₀, 1/vecnorm(v₀))
-    while length(state.V) > 1
-        pop!(state.V)
-    end
-    fill!(state.H, 0)
-    return state
-end
-
-function Base.done(iter::ArnoldiIterator, state::ArnoldiFact)
-    k = state.k
-    @inbounds return k >= iter.krylovdim || (k > 0 && normres(state) < iter.tol)
-end
-
-Base.next(iter::ArnoldiIterator, state::ArnoldiFact) = next!(iter, deepcopy(state))
-function next!(iter::ArnoldiIterator, state::ArnoldiFact)
     V = state.V
     H = state.H
-    k = (state.k += 1)
-    w, β = arnoldirecurrence!(iter.operator, V, view(H,1:k,k), iter.orth)
+    @assert size(H) == (m+1,m)
+    while length(V) > 1
+        pop!(V)
+    end
+    fill!(H, 0)
+
+    v = scale!(V[1], v₀, 1/vecnorm(v₀))
+    w = apply(iter.operator, v)
+    w, β, α = orthonormalize!(w, v, iter.orth)
+    push!(V, w)
+    H[1,1] = α
+    H[2,1] = β
+    return ArnoldiFact(1, V, H)
+end
+
+# return type declatation required because iter.tol is Real
+Base.done(iter::ArnoldiIterator, state::ArnoldiFact)::Bool = state.k >= iter.krylovdim || normres(state) < iter.tol
+
+function Base.next(iter::ArnoldiIterator, state::ArnoldiFact)
+    state = next!(iter, deepcopy(state))
+    return state, state
+end
+function next!(iter::ArnoldiIterator, state::ArnoldiFact)
+    k = state.k + 1
+    V = state.V
+    H = state.H
+    w, β = arnoldirecurrence!(iter.operator, V, view(H, 1:k, k), iter.orth)
     push!(V, w)
     H[k+1,k] = β
-    return state, state
+    return ArnoldiFact(k, V, H)
 end
 
 # Arnoldi recurrence: simply use provided orthonormalization routines
