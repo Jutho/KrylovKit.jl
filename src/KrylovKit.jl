@@ -20,6 +20,8 @@ include("factorize/arnoldi.jl")
 
 include("dense/givens.jl")
 include("dense/linalg.jl")
+include("dense/packedhessenberg.jl")
+
 # include("dense/factorizations.jl")
 # include("dense/utldiv.jl")
 # include("dense/hschur.jl")
