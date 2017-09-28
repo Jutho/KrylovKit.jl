@@ -12,9 +12,11 @@ using Base.length, Base.eltype, Base.similar, Base.LinAlg.axpy!, Base.scale!, Ba
 
 export cgs, mgs, cgs2, mgs2, cgsr, mgsr
 export matrix, normres, residual, basis
+export Lanczos, Arnoldi, NoRestart, ExplicitRestart, ImplicitRestart
 export LanczosIterator, ArnoldiIterator
 export linsolve, GMRES
-export eigsolve, Lanczos, Arnoldi, NoRestart, ExplicitRestart, ImplicitRestart
+export eigsolve
+export exponentiate
 export ConvergenceInfo
 
 include("algorithms.jl")
@@ -35,7 +37,7 @@ include("dense/packedhessenberg.jl")
 # include("dense/hschur.jl")
 
 include("linsolve/gmres.jl")
-include("exponentiate/lanczos.jl")
+include("matrixfun/exponentiate.jl")
 
 # include("eigsolve/eigsolve.jl")
 # include("eigsolve/arnoldi.jl")

@@ -20,9 +20,9 @@ function exponentiate(t::Number, A, v, alg::Lanczos{ExplicitRestart})
     Δτ = τ
 
     η = oftype(normres(fact), alg.tol / τ) # tolerance per unit step
-    if η < length(w)*eps(typeof(η))*10
-        η = length(w)*eps(typeof(η))*10
-        warning("tolerance too small, increasing to $(η*τ)")
+    if η < length(w)*eps(typeof(η))
+        η = length(w)*eps(typeof(η))
+        warn("tolerance too small, increasing to $(η*τ)")
     end
     totalerr = zero(η)
     krylovdim = alg.krylovdim
