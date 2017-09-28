@@ -16,6 +16,8 @@ end
 
 basis(F::ArnoldiFact) = F.V
 matrix(F::ArnoldiFact) = PackedHessenberg(F.H, F.k)
+# matrix(F::ArnoldiFact{<:Any,S}) where {S} = copy!(Array{S}(F.k,F.k), PackedHessenberg(F.H, F.k))
+# # TODO: make everything work with PackedHessenberg directly
 normres(F::ArnoldiFact) = abs(F.H[end])
 residual(F::ArnoldiFact) = normres(F)*F.V[F.k+1]
 
@@ -29,7 +31,7 @@ function Base.start(iter::ArnoldiIterator)
     H = [α, β]
     return ArnoldiFact(1, V, H)
 end
-function start!(iter::ArnoldiIterator, state::ArnoldiFact) # recylcle existing fact
+function start!(iter::ArnoldiIterator, state::ArnoldiFact) # recylcle existing state
     v₀ = iter.v₀
     V = state.V
     while length(V) > 1
@@ -40,6 +42,7 @@ function start!(iter::ArnoldiIterator, state::ArnoldiFact) # recylcle existing f
     v = scale!(V[1], v₀, 1/vecnorm(v₀))
     w = apply(iter.operator, v)
     w, β, α = orthonormalize!(w, v, iter.orth)
+
     push!(V, w)
     push!(H, α, β)
     return ArnoldiFact(1, V, H)
@@ -49,8 +52,9 @@ end
 Base.done(iter::ArnoldiIterator, state::ArnoldiFact)::Bool = state.k >= length(iter.v₀)
 
 function Base.next(iter::ArnoldiIterator, state::ArnoldiFact)
+    nr = normres(state)
     state = next!(iter, deepcopy(state))
-    return state, state
+    return nr, state
 end
 function next!(iter::ArnoldiIterator, state::ArnoldiFact)
     k = state.k + 1

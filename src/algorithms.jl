@@ -50,7 +50,7 @@ module Defaults
 end
 
 # Solving eigenvalue problems
-abstract type EigenSolver end
+abstract type Algorithm end
 
 abstract type RestartStrategy end
 struct NoRestart <: RestartStrategy
@@ -58,12 +58,13 @@ end
 struct ExplicitRestart <: RestartStrategy
     maxiter::Int
 end
-struct ImplicitRestart <: RestartStrategy
+struct ImplicitRestart <: RestartStrategy # only meaningful for eigenvalue problems
     maxiter::Int
 end
 const norestart = NoRestart()
 
-struct Lanczos{R<:RestartStrategy, O<:Orthogonalizer} <: EigenSolver
+# General purpose; good for linear systems, eigensystems and matrix functions
+struct Lanczos{R<:RestartStrategy, O<:Orthogonalizer} <: Algorithm
     restart::R
     orth::O
     krylovdim::Int
@@ -72,7 +73,7 @@ end
 Lanczos(restart::RestartStrategy = ExplicitRestart(Defaults.maxiter), orth::Orthogonalizer = Defaults.orth; krylovdim = Defaults.krylovdim, tol = Defaults.tol) =
     Lanczos(restart, orth, krylovdim, tol)
 
-struct Arnoldi{R<:RestartStrategy, O<:Orthogonalizer} <: EigenSolver
+struct Arnoldi{R<:RestartStrategy, O<:Orthogonalizer} <: Algorithm
     restart::R
     orth::O
     krylovdim::Int
@@ -82,7 +83,7 @@ Arnoldi(restart::RestartStrategy = ExplicitRestart(Defaults.maxiter), orth::Orth
     Arnoldi(restart, orth, krylovdim, tol)
 
 # Solving linear systems specifically
-abstract type LinearSolver end
+abstract type LinearSolver <: Algorithm end
 
 struct CG <: LinearSolver
     maxiter::Int
@@ -110,3 +111,9 @@ end
 
 GMRES(orth::Orthogonalizer = Defaults.orth; tol = Defaults.tol, reltol = Defaults.tol, krylovdim = Defaults.krylovdim, maxiter = Defaults.maxiter) =
     GMRES(orth, maxiter, krylovdim, tol, reltol)
+
+# Solving eigenvalue systems specifically
+abstract type EigenSolver <: Algorithm end
+
+struct JacobiDavidson <: EigenSolver
+end

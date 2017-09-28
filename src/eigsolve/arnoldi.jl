@@ -8,7 +8,7 @@ function eigsolve(A, x₀, howmany::Int, which::Symbol, alg::Arnoldi{NoRestart})
     end
 
     # Compute arnoldi factorization
-    iter = arnoldi(A, x₀, alg.orth; krylovdim = krylovdim, tol = alg.tol)
+    iter = ArnoldiIterator(A, x₀, alg.orth; krylovdim = krylovdim, tol = alg.tol)
     fact = start(iter)
     numops = 0
     while !done(iter, fact) || fact.k < howmany

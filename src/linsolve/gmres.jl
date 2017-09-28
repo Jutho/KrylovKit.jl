@@ -50,10 +50,12 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀ = 0, a₁ = 1)
             H = matrix(fact)
 
             # copy Arnoldi Hessenberg matrix into R
-            @inbounds for i=1:k-1
-                R[i,k] = α₁ * matrix(fact)[i,k]
+            @inbounds begin
+                for i=1:k-1
+                    R[i,k] = α₁ * H[i,k]
+                end
+                R[k,k] = α₀ + α₁ * H[k,k]
             end
-            R[k,k] = α₀ + α₁ * H[k,k]
 
             # Apply Givens rotations
             @inbounds for i=1:k-1

@@ -6,14 +6,14 @@
             v = rand(T,(n,))
             A = (A+A')
             iter = LanczosIterator(A, v, orth)
-            s = start(iter)
-            while !done(iter, s)
-                fact, s = next(iter, s)
+            fact = start(iter)
+            while !done(iter, fact)
+                nr, fact = next(iter, fact)
             end
 
-            V = hcat(basis(s)...)[:,1:n]
-            H = matrix(s)
-            @test normres(s) < 10*n*eps(real(T))
+            V = hcat(basis(fact)...)[:,1:n]
+            H = matrix(fact)
+            @test normres(fact) < 10*n*eps(real(T))
             @test V'*V ≈ one(V)
             @test A*V ≈ V*H
         end

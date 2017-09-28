@@ -23,7 +23,8 @@ struct LanczosFact{T, S<:Real} <: KrylovFactorization{T}
 end
 
 basis(F::LanczosFact) = length(F.V) == F.k+1 ? F.V : error("Not keeping vectors during Lanczos factorization")
-matrix(F::LanczosFact) = SymTridiagonal(F.αs, F.βs)
+matrix(F::LanczosFact) = SymTridiagonal(F.αs[1:F.k], F.βs[1:F.k-1])
+# TODO: fix SymTridiagonal to just accept αs and βs of equal length
 @inbounds normres(F::LanczosFact) = F.βs[F.k]
 residual(F::LanczosFact) = normres(F)*F.V[end]
 
@@ -52,11 +53,12 @@ function start!(iter::LanczosIterator, state::LanczosFact)
     βs = empty!(state.βs)
 
     v = scale!(V[1], v₀, 1/vecnorm(v₀))
-    w = iter.operator(v)
+    w = apply(iter.operator, v)
     w, β, α = orthonormalize!(w, v, iter.orth)
     n = hypot(α,β)
     imag(α) <= 10*n || error("operator does not appear to be hermitian: $(imag(α)) vs $n")
 
+    push!(V, w)
     push!(αs, real(α))
     push!(βs, β)
     return LanczosFact(1, V, αs, βs)
@@ -66,8 +68,9 @@ end
 Base.done(iter::LanczosIterator, state::LanczosFact)::Bool = state.k >= length(iter.v₀)
 
 function Base.next(iter::LanczosIterator, state::LanczosFact)
+    nr = normres(state)
     state = next!(iter, deepcopy(state))
-    return state, state
+    return nr, state
 end
 function next!(iter::LanczosIterator, state::LanczosFact)
     k = state.k
