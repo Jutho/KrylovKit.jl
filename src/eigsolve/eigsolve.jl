@@ -15,7 +15,7 @@ function eigsolve(f, x₀, howmany::Int = 1, which::Symbol = :LM, T::Type = elty
     if T<:Real
         (which == :LI || which == :SI) && throw(ArgumentError("work in complex domain to find eigenvalues with largest or smallest imaginary part"))
     end
-    if k == 1
+    if howmany == 1
         if (T<:Real && issymmetric) || ishermitian
             return eigsolve(f, x, k, which, Lanczos(ExplicitRestart(100)))
         else

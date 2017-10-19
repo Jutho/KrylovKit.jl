@@ -8,11 +8,18 @@ struct ArnoldiIterator{F,T,O<:Orthogonalizer}
 end
 ArnoldiIterator(A, v₀) = ArnoldiIterator(A, v₀, Defaults.orth)
 
+Base.iteratorsize(::Type{<:ArnoldiIterator}) = Base.HasLength()
+Base.length(iter::ArnoldiIterator) = length(iter.v₀)
+
 struct ArnoldiFact{T,S} <: KrylovFactorization{T}
     k::Int # current Krylov dimension
     V::OrthonormalBasis{T} # basis of length k+1
     H::Vector{S} # stores the Hessenberg matrix in packed form
 end
+
+Base.length(F::ArnoldiFact) = F.k
+Base.eltype(F::ArnoldiFact) = eltype(typeof(F))
+Base.eltype(::Type{<:ArnoldiFact{<:Any,S}}) where {S} = S
 
 basis(F::ArnoldiFact) = F.V
 matrix(F::ArnoldiFact) = PackedHessenberg(F.H, F.k)
@@ -48,8 +55,7 @@ function start!(iter::ArnoldiIterator, state::ArnoldiFact) # recylcle existing s
     return ArnoldiFact(1, V, H)
 end
 
-# return type declatation required because iter.tol is Real
-Base.done(iter::ArnoldiIterator, state::ArnoldiFact)::Bool = state.k >= length(iter.v₀)
+Base.done(iter::ArnoldiIterator, state::ArnoldiFact) = length(state) == length(iter)
 
 function Base.next(iter::ArnoldiIterator, state::ArnoldiFact)
     nr = normres(state)

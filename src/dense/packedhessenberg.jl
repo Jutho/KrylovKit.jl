@@ -2,7 +2,7 @@ struct PackedHessenberg{T,V<:AbstractVector{T}} <: AbstractMatrix{T}
     data::V
     n::Int
     function PackedHessenberg{T,V}(data::V, n::Int) where {T,V<:AbstractVector{T}}
-        @assert length(data) >= ((n*n + 3*n) >> 1)
+        @assert length(data) >= ((n*n + 3*n - 2) >> 1)
         new{T,V}(data, n)
     end
 end
@@ -21,5 +21,7 @@ function Base.getindex(A::PackedHessenberg{T}, i::Integer, j::Integer) where T
         return A.data[((j*j+j-2) >> 1) + i]
     end
 end
+
+Base.IndexStyle(::Type{<:PackedHessenberg}) = Base.IndexCartesian()
 
 # TODO: add more methods from the AbstractArray interface

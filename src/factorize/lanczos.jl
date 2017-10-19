@@ -15,12 +15,20 @@ struct LanczosIterator{F,T,O<:Orthogonalizer}
 end
 LanczosIterator(operator::F, v₀::T, orth::O = Defaults.orth, keepvecs::Bool = true) where {F,T,O<:Orthogonalizer} = LanczosIterator{F,T,O}(operator, v₀, orth, keepvecs)
 
+Base.iteratorsize(::Type{<:LanczosIterator}) = Base.HasLength()
+Base.length(iter::LanczosIterator) = length(iter.v₀)
+
+
 struct LanczosFact{T, S<:Real} <: KrylovFactorization{T}
     k::Int # current Krylov dimension
     V::OrthonormalBasis{T} # basis of length k+1
     αs::Vector{S}
     βs::Vector{S}
 end
+
+Base.length(F::LanczosFact) = F.k
+Base.eltype(F::LanczosFact) = eltype(typeof(F))
+Base.eltype(::Type{<:LanczosFact{<:Any,S}}) where {S} = S
 
 basis(F::LanczosFact) = length(F.V) == F.k+1 ? F.V : error("Not keeping vectors during Lanczos factorization")
 matrix(F::LanczosFact) = SymTridiagonal(F.αs[1:F.k], F.βs[1:F.k-1])
@@ -34,7 +42,7 @@ function Base.start(iter::LanczosIterator)
     w₀ = copy!(similar(w₁), v)
     w₁, β, α = orthonormalize!(w₁, w₀, iter.orth)
     n = hypot(α,β)
-    imag(α) <= 10*n || error("operator does not appear to be hermitian: $(imag(α)) vs $n")
+    imag(α) <= 10*eps(n) || error("operator does not appear to be hermitian: $(imag(α)) vs $n")
 
     V = OrthonormalBasis([w₀,w₁])
     S = eltype(β)
@@ -56,7 +64,7 @@ function start!(iter::LanczosIterator, state::LanczosFact)
     w = apply(iter.operator, v)
     w, β, α = orthonormalize!(w, v, iter.orth)
     n = hypot(α,β)
-    imag(α) <= 10*n || error("operator does not appear to be hermitian: $(imag(α)) vs $n")
+    imag(α) <= 10*eps(n) || error("operator does not appear to be hermitian: $(imag(α)) vs $n")
 
     push!(V, w)
     push!(αs, real(α))
@@ -65,7 +73,7 @@ function start!(iter::LanczosIterator, state::LanczosFact)
 end
 
 # return type declatation required because iter.tol is Real
-Base.done(iter::LanczosIterator, state::LanczosFact)::Bool = state.k >= length(iter.v₀)
+Base.done(iter::LanczosIterator, state::LanczosFact) = length(state) == length(iter)
 
 function Base.next(iter::LanczosIterator, state::LanczosFact)
     nr = normres(state)

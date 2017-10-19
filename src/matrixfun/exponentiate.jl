@@ -1,8 +1,11 @@
 function exponentiate(t::Number, A, v, alg::Lanczos{ExplicitRestart})
     # process initial vector and determine result type
     β = vecnorm(v)
-    w = one(t)*apply(A,v/one(β)) # used to determine return type
+    Av = apply(A, v) # used to determine return type
     numops = 1
+    T = promote_type(eltype(Av), typeof(β), typeof(t))
+    S = real(T)
+    w = similar(Av, T)
     scale!(w, v, 1/β)
 
     # initialize iterator
@@ -16,10 +19,10 @@ function exponentiate(t::Number, A, v, alg::Lanczos{ExplicitRestart})
 
     # algorithm parameters
     sgn = sign(t)
-    τ = abs(t)
-    Δτ = τ
+    τ::S = abs(t)
+    Δτ::S = τ
 
-    η = oftype(normres(fact), alg.tol / τ) # tolerance per unit step
+    η::S = alg.tol / τ # tolerance per unit step
     if η < length(w)*eps(typeof(η))
         η = length(w)*eps(typeof(η))
         warn("tolerance too small, increasing to $(η*τ)")
@@ -28,8 +31,8 @@ function exponentiate(t::Number, A, v, alg::Lanczos{ExplicitRestart})
     krylovdim = alg.krylovdim
     maxiter = alg.restart.maxiter
 
-    δ = 0.9 # safety factor
-    γ = 1.2
+    δ::S = 0.9 # safety factor
+    # γ = 1.2
 
     # start outer iteration loop
     numiter = 0
@@ -47,14 +50,14 @@ function exponentiate(t::Number, A, v, alg::Lanczos{ExplicitRestart})
 
         # Small matrix exponential and error estimation
         if isa(alg, Lanczos)
-            T = matrix(fact)
-            D, U = eig(T)
+            H = matrix(fact)
+            D, U = eig(H)
 
             # Estimate largest allowed time step
-            ϵ = zero(η)
+            ϵ::S = zero(η)
             while true
-                ϵ₁ = zero(eltype(T))
-                ϵ₂ = zero(eltype(T))
+                ϵ₁ = zero(eltype(H))
+                ϵ₂ = zero(eltype(H))
                 @inbounds for k = 1:K
                     ϵ₁ += U[K,k] * exp(sgn * Δτ/2 * D[k]) * conj(U[1,k])
                     ϵ₂ += U[K,k] * exp(sgn * Δτ * D[k]) * conj(U[1,k])

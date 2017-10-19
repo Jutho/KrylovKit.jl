@@ -39,8 +39,8 @@ include("dense/packedhessenberg.jl")
 include("linsolve/gmres.jl")
 include("matrixfun/exponentiate.jl")
 
-# include("eigsolve/eigsolve.jl")
-# include("eigsolve/arnoldi.jl")
+include("eigsolve/eigsolve.jl")
+include("eigsolve/arnoldi.jl")
 
 struct ConvergenceInfo{S,T}
     converged::Int # how many eigenvalues have converged, 0 or 1 for linear systems, ...
