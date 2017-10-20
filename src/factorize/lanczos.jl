@@ -98,6 +98,16 @@ function next!(iter::LanczosIterator, state::LanczosFact)
     return LanczosFact(k+1, V, αs, βs)
 end
 
+function shrink!(state::LanczosFact, k)
+    length(state) == length(state.V) || error("we cannot shrink LanczosFact without keeping Lanczos vectors")
+    V = state.V
+    while length(V) > k+1
+        pop!(V)
+    end
+    return LanczosFact(k, V, resize!(state.αs, k), resize!(state.βs, k))
+end
+
+
 # Exploit hermiticity to "simplify" orthonormalization process:
 # Lanczos three-term recurrence relation
 function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::Union{ClassicalGramSchmidt,ModifiedGramSchmidt})

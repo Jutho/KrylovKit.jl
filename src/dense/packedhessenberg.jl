@@ -21,6 +21,15 @@ function Base.getindex(A::PackedHessenberg{T}, i::Integer, j::Integer) where T
         return A.data[((j*j+j-2) >> 1) + i]
     end
 end
+function Base.setindex!(A::PackedHessenberg{T}, v, i::Integer, j::Integer) where T
+    @boundscheck checkbounds(A, i, j)
+    if i > j+1 && !iszero(v)
+        throw(ReadOnlyMemoryError())
+    else
+        A.data[((j*j+j-2) >> 1) + i] = v
+    end
+    return v
+end
 
 Base.IndexStyle(::Type{<:PackedHessenberg}) = Base.IndexCartesian()
 

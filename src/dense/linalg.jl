@@ -15,6 +15,7 @@ Base.done(iter::RowIterator, i) = i > size(iter.a, 1)
 
 Base.IteratorSize(::Type{<:RowIterator}) = Base.HasLength()
 Base.length(iter::RowIterator) = size(iter.a, 1)
+Base.getindex(iter::RowIterator, i) = view(iter.a, i, :)
 
 Base.eltype(iter::RowIterator{A}) where {A<:DenseArray} = SubArray{Float64,1,A,Tuple{Int64,Base.Slice{Base.OneTo{Int64}}},true}
 
@@ -30,6 +31,7 @@ Base.done(iter::ColumnIterator, i) = i > size(iter.a, 2)
 
 Base.IteratorSize(::Type{<:ColumnIterator}) = Base.HasLength()
 Base.length(iter::ColumnIterator) = size(iter.a, 2)
+Base.getindex(iter::ColumnIterator, i) = view(iter.a, :, i)
 
 Base.eltype(iter::ColumnIterator{A}) where {A<:DenseArray} = SubArray{Float64,1,A,Tuple{Base.Slice{Base.OneTo{Int64}},Int64},true}
 

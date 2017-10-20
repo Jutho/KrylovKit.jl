@@ -74,6 +74,16 @@ function next!(iter::ArnoldiIterator, state::ArnoldiFact)
     return ArnoldiFact(k, V, H)
 end
 
+function shrink!(state::ArnoldiFact, k)
+    V = state.V
+    H = state.H
+    while length(V) > k+1
+        pop!(V)
+    end
+    resize!(H, (k*k + 3*k) >> 1)
+    return ArnoldiFact(k, V, H)
+end
+
 # Arnoldi recurrence: simply use provided orthonormalization routines
 function arnoldirecurrence!(operator, V::OrthonormalBasis, h::AbstractVector, orth::Orthogonalizer)
     w = apply(operator, last(V))

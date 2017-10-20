@@ -7,6 +7,22 @@ module KrylovKit
 # scale!(w,v,α) -> w = α*v, LinAlg.axpy!(α,v,w) w += α*v : key properties of a vector
 # vecdot(w,v), vecnorm(v) -> inner products and norms
 
+# 0.7.0-DEV.1993
+@static if !isdefined(Base, :EqualTo)
+    struct EqualTo{T} <: Function
+        x::T
+        EqualTo(x::T) where {T} = new{T}(x)
+    end
+    (f::EqualTo)(y) = isequal(f.x, y)
+    const equalto = EqualTo
+    export equalto
+end
+
+if VERSION <= v"0.6.0"
+    const AbstractRange = Base.Range
+else
+    const AbstractRange = Base.AbstractRange
+end
 
 using Base.length, Base.eltype, Base.similar, Base.LinAlg.axpy!, Base.scale!, Base.vecdot, Base.vecnorm
 
@@ -31,6 +47,7 @@ include("factorize/arnoldi.jl")
 include("dense/givens.jl")
 include("dense/linalg.jl")
 include("dense/packedhessenberg.jl")
+include("dense/reflector.jl")
 
 # include("dense/factorizations.jl")
 # include("dense/utldiv.jl")

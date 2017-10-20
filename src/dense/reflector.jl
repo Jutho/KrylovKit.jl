@@ -1,26 +1,26 @@
 # Elementary Householder reflection
-struct Householder{T,V<:AbstractVector,R<:Range}
+struct Householder{T,V<:AbstractVector,R<:AbstractRange{<:Integer}}
     β::T
     v::V
     r::R
 end
 
 function householder(x::AbstractVector, r::Range = indices(x,1), k = first(r))
-    i = findfirst(r, k)
+    i = findfirst(equalto(k), r)
     i == 0 && error("k = $k should be in the range r = $r")
     β, v, ν = _householder!(x[r], i)
     return Householder(β,v,r), ν
 end
 # Householder reflector h that zeros the elements A[r,col] (except for A[k,col]) upon lmul!(A,h)
 function householder(A::AbstractMatrix, r::Range, col::Int, k = first(r))
-    i = findfirst(r, k)
+    i = findfirst(equalto(k), r)
     i == 0 && error("k = $k should be in the range r = $r")
     β, v, ν = _householder!(A[r,col], i)
     return Householder(β,v,r), ν
 end
 # Householder reflector that zeros the elements A[row,r] (except for A[row,k]) upon rmulc!(A,h)
 function householder(A::AbstractMatrix, row::Int, r::Range, k = first(r))
-    i = findfirst(r, k)
+    i = findfirst(equalto(k), r)
     i == 0 && error("k = $k should be in the range r = $r")
     β, v, ν = _householder!(conj!(A[row,r]), i)
     return Householder(β,v,r), ν
