@@ -34,11 +34,9 @@ function rmulc!(A::AbstractMatrix, G::Givens, rows=indices(A,1))
 end
 function rmulc!(b::OrthonormalBasis, G::Givens)
     q1, q2 = b[G.i1], b[G.i2]
-    @inbounds @simd for i in eachindex(q1,q2)
-        a1, a2 = q1[i], q2[i]
-        q1[i] =  a1*G.c + a2*conj(G.s)
-        q2[i] = -a1*G.s + a2*G.c
-    end
+    q1old = copy(q1)
+    axpy!(conj(G.s), q2, scale!(q1, G.c))
+    axpy!(-G.s, q1old, scale!(q2, G.c))
     return b
 end
 

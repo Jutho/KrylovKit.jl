@@ -1,25 +1,31 @@
+if VERSION <= v"0.6.0"
+    const IndexRange{T<:Integer} = Base.Range{T}
+else
+    const IndexRange{T<:Integer} = Base.AbstractRange{T}
+end
+
 # Elementary Householder reflection
-struct Householder{T,V<:AbstractVector,R<:AbstractRange{<:Integer}}
+struct Householder{T,V<:AbstractVector,R<:IndexRange}
     β::T
     v::V
     r::R
 end
 
-function householder(x::AbstractVector, r::Range = indices(x,1), k = first(r))
+function householder(x::AbstractVector, r::IndexRange = indices(x,1), k = first(r))
     i = findfirst(equalto(k), r)
     i == 0 && error("k = $k should be in the range r = $r")
     β, v, ν = _householder!(x[r], i)
     return Householder(β,v,r), ν
 end
 # Householder reflector h that zeros the elements A[r,col] (except for A[k,col]) upon lmul!(A,h)
-function householder(A::AbstractMatrix, r::Range, col::Int, k = first(r))
+function householder(A::AbstractMatrix, r::IndexRange, col::Int, k = first(r))
     i = findfirst(equalto(k), r)
     i == 0 && error("k = $k should be in the range r = $r")
     β, v, ν = _householder!(A[r,col], i)
     return Householder(β,v,r), ν
 end
 # Householder reflector that zeros the elements A[row,r] (except for A[row,k]) upon rmulc!(A,h)
-function householder(A::AbstractMatrix, row::Int, r::Range, k = first(r))
+function householder(A::AbstractMatrix, row::Int, r::IndexRange, k = first(r))
     i = findfirst(equalto(k), r)
     i == 0 && error("k = $k should be in the range r = $r")
     β, v, ν = _householder!(conj!(A[row,r]), i)
@@ -145,18 +151,12 @@ function rmulc!(b::OrthonormalBasis, H::Householder)
     @inbounds begin
         l = 1
         for k in r
-            q = b[k]
-            @simd for i in eachindex(q,w)
-                w[i] += q[i]*v[l]
-            end
+            axpy!(v[l], b[k], w)
             l += 1
         end
         l = 1
         for k in r
-            q = b[k]
-            @simd for i in eachindex(q,w)
-                q[i] -= conj(β)*w[i]*conj(v[l])
-            end
+            axpy!(-conj(v[l])*conj(β), w, b[k])
             l += 1
         end
     end

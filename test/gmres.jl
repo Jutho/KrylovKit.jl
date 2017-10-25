@@ -6,14 +6,14 @@
         alg = GMRES(krylovdim = n, maxiter = 2, reltol = 2*n*eps(real(T)))
         x, hist = @inferred linsolve(A, b, alg)
         @test hist.converged > 0
-        @test x ≈ A\b
+        @test b ≈ A*x
 
         A = rand(T,(n,n))
         α₀ = rand(T)
         α₁ = -rand(T)
         x, hist = @inferred linsolve(A, b, alg, α₀, α₁)
         @test hist.converged > 0
-        @test x ≈ (α₀*I+α₁*A)\b
+        @test b ≈ (α₀*I+α₁*A)*x
     end
 end
 
@@ -26,7 +26,7 @@ end
         alg = GMRES(krylovdim = n, maxiter = 20, reltol = 10*N*eps(real(T)))
         x, hist = @inferred linsolve(A, b, alg)
         @test hist.converged > 0
-        @test x ≈ A\b
+        @test b ≈ A*x
 
         A = rand(T,(N,N)).-one(T)/2
         α₀ = maximum(abs, eigvals(A))
@@ -34,6 +34,6 @@ end
         α₁ *= T(9)/T(10)/abs(α₁)
         x, hist = @inferred linsolve(A, b, alg, α₀, α₁)
         @test hist.converged > 0
-        @test x ≈ (α₀*I+α₁*A)\b
+        @test b ≈ (α₀*I+α₁*A)*x
     end
 end

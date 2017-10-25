@@ -18,12 +18,6 @@ module KrylovKit
     export equalto
 end
 
-if VERSION <= v"0.6.0"
-    const AbstractRange = Base.Range
-else
-    const AbstractRange = Base.AbstractRange
-end
-
 using Base.length, Base.eltype, Base.similar, Base.LinAlg.axpy!, Base.scale!, Base.vecdot, Base.vecnorm
 
 export cgs, mgs, cgs2, mgs2, cgsr, mgsr
