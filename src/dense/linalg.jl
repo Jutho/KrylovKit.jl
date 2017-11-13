@@ -196,8 +196,8 @@ function permuteschur!(T::StridedMatrix{S}, Q::StridedMatrix{S}, perm::AbstractV
     p = collect(perm) # makes copy cause will be overwritten
     isperm(p) && length(p) == n || throw(ArgumentError("not a valid permutation of length $n"))
     @inbounds for i = 1:n
-        ifirst = p[i]
-        ilast = i
+        ifirst::BlasInt = p[i]
+        ilast::BlasInt = i
         T, Q = trexc!(ifirst, ilast, T, Q)
         for k = (i+1):n
             if p[k] < p[i]
