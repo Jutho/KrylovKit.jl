@@ -70,7 +70,7 @@ struct Lanczos{R<:RestartStrategy, O<:Orthogonalizer} <: Algorithm
     krylovdim::Int
     tol::Real
 end
-Lanczos(restart::RestartStrategy = ExplicitRestart(Defaults.maxiter), orth::Orthogonalizer = Defaults.orth; krylovdim = Defaults.krylovdim, tol = Defaults.tol) =
+Lanczos(restart::RestartStrategy = ImplicitRestart(Defaults.maxiter), orth::Orthogonalizer = Defaults.orth; krylovdim = Defaults.krylovdim, tol = Defaults.tol) =
     Lanczos(restart, orth, krylovdim, tol)
 
 struct Arnoldi{R<:RestartStrategy, O<:Orthogonalizer} <: Algorithm
@@ -79,7 +79,7 @@ struct Arnoldi{R<:RestartStrategy, O<:Orthogonalizer} <: Algorithm
     krylovdim::Int
     tol::Real
 end
-Arnoldi(restart::RestartStrategy = ExplicitRestart(Defaults.maxiter), orth::Orthogonalizer = Defaults.orth; krylovdim = Defaults.krylovdim, tol = Defaults.tol) =
+Arnoldi(restart::RestartStrategy = ImplicitRestart(Defaults.maxiter), orth::Orthogonalizer = Defaults.orth; krylovdim = Defaults.krylovdim, tol = Defaults.tol) =
     Arnoldi(restart, orth, krylovdim, tol)
 
 # Solving linear systems specifically
@@ -96,6 +96,16 @@ struct SYMMLQ <: LinearSolver
     reltol::Real
 end
 struct MINRES <: LinearSolver
+    maxiter::Int
+    tol::Real
+    reltol::Real
+end
+struct BiCG <: LinearSolver
+    maxiter::Int
+    tol::Real
+    reltol::Real
+end
+struct BiCGStab <: LinearSolver
     maxiter::Int
     tol::Real
     reltol::Real

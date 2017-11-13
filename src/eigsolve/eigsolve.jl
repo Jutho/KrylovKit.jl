@@ -1,32 +1,24 @@
-eigsolve(A::AbstractMatrix, howmany::Int = 1, which::Symbol = :LM, T::Type = eltype(A); issymmetric = issymmetric(A), ishermitian = ishermitian(A), method = none) =
+eigsolve(A::AbstractMatrix, howmany::Int = 1, which::Symbol = :LM, T::Type = eltype(A); issymmetric = issymmetric(A), ishermitian = ishermitian(A), method = nothing) =
     eigsolve(x->(A*x), size(A,1), howmany, which, T; issymmetric = issymmetric, ishermitian = ishermitian, method)
 
-eigsolve(A::AbstractMatrix, x₀::VecOrMat, howmany::Int = 1, which::Symbol = :LM, T::Type = promote_type(eltype(A), eltype(x₀)); issymmetric = issymmetric(A), ishermitian = ishermitian(A), method = none) =
+eigsolve(A::AbstractMatrix, x₀::VecOrMat, howmany::Int = 1, which::Symbol = :LM, T::Type = promote_type(eltype(A), eltype(x₀)); issymmetric = issymmetric(A), ishermitian = ishermitian(A), method = nothing) =
     eigsolve(x->(A*x), x₀, howmany, which, T; issymmetric = issymmetric, ishermitian = ishermitian, method)
 
 eigsolve(f, n::Int, howmany::Int = 1, which::Symbol = :LM, T::Type = Float64; kwargs...) =
     eigsolve(f, rand(T, n), howmany, which; kwargs...)
 
-function eigsolve(f, x₀, howmany::Int = 1, which::Symbol = :LM, T::Type = eltype(x₀); issymmetric = false, ishermitian = T<:Real && issymmetric, method = none)
+function eigsolve(f, x₀, howmany::Int = 1, which::Symbol = :LM, T::Type = eltype(x₀); issymmetric = false, ishermitian = T<:Real && issymmetric, method = nothing)
     x = eltype(x₀) == T ? x₀ : copy!(similar(x₀, T), x₀)
-    if method != none
+    if method != nothing
         return eigsolve(f, x, k, which, method)
     end
     if T<:Real
         (which == :LI || which == :SI) && throw(ArgumentError("work in complex domain to find eigenvalues with largest or smallest imaginary part"))
     end
-    if howmany == 1
-        if (T<:Real && issymmetric) || ishermitian
-            return eigsolve(f, x, k, which, Lanczos(ExplicitRestart(100)))
-        else
-            return eigsolve(f, x, k, which, Arnoldi(ExplicitRestart(100)))
-        end
+    if (T<:Real && issymmetric) || ishermitian
+        return eigsolve(f, x, k, which, Lanczos(ImplicitRestart(100)))
     else
-        if (T<:Real && issymmetric) || ishermitian
-            return eigsolve(f, x, k, which, Lanczos(ImplicitRestart(100)))
-        else
-            return eigsolve(f, x, k, which, Arnoldi(ImplicitRestart(100)))
-        end
+        return eigsolve(f, x, k, which, Arnoldi(ImplicitRestart(100)))
     end
 end
 
