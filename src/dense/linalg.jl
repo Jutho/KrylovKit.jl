@@ -214,8 +214,8 @@ function permuteschur!(T::StridedMatrix{S}, Q::StridedMatrix{S}, perm::AbstractV
     isperm(p) && length(p) == n || throw(ArgumentError("not a valid permutation of length $n"))
     i = 1
     @inbounds while i <= n
-        ifirst = p[i]
-        ilast = i
+        ifirst::BlasInt = p[i]
+        ilast::BlasInt = i
         if ifirst == n || iszero(T[ifirst+1,ifirst])
             T, Q = trexc!(ifirst, ilast, T, Q)
             @inbounds for k = (i+1):n
