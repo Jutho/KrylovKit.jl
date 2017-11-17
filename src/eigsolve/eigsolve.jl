@@ -7,7 +7,7 @@ eigsolve(A::AbstractMatrix, x₀::VecOrMat, howmany::Int = 1, which::Symbol = :L
 eigsolve(f, n::Int, howmany::Int = 1, which::Symbol = :LM, T::Type = Float64; kwargs...) =
     eigsolve(f, rand(T, n), howmany, which; kwargs...)
 
-function eigsolve(f, x₀, howmany::Int = 1, which::Symbol = :LM, T::Type = eltype(x₀); issymmetric = false, ishermitian = T<:Real && issymmetric, method = nothing)
+function eigsolve(f, x₀, howmany::Int = 1, which::Symbol = :LM, T::Type = eltype(x₀); issymmetric = false, ishermitian = T<:Real && issymmetric, method = nothing, maxiter::Int=Defaults.maxiter, tol::Real=Defaults.tol)
     x = eltype(x₀) == T ? x₀ : copy!(similar(x₀, T), x₀)
     if method != nothing
         return eigsolve(f, x, howmany, which, method)
@@ -16,9 +16,9 @@ function eigsolve(f, x₀, howmany::Int = 1, which::Symbol = :LM, T::Type = elty
         (which == :LI || which == :SI) && throw(ArgumentError("work in complex domain to find eigenvalues with largest or smallest imaginary part"))
     end
     if (T<:Real && issymmetric) || ishermitian
-        return eigsolve(f, x, howmany, which, Lanczos(ImplicitRestart(100)))
+        return eigsolve(f, x, howmany, which, Lanczos(ImplicitRestart(maxiter),Defaults.orth,tol=tol))
     else
-        return eigsolve(f, x, howmany, which, Arnoldi(ImplicitRestart(100)))
+        return eigsolve(f, x, howmany, which, Arnoldi(ImplicitRestart(maxiter),Defaults.orth,tol=tol))
     end
 end
 
