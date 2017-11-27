@@ -162,7 +162,7 @@ function orthogonalize!(v::T, q::T, alg::Union{ClassicalGramSchmidtIR,ModifiedGr
 end
 
 # Orthonormalization: orthogonalization and normalization
-orhonormalize(v, args...) = orthonormalize!(copy(v), args...)
+orthonormalize(v, args...) = orthonormalize!(copy(v), args...)
 
 function orthonormalize!(v, args...)
     out = orthogonalize!(v, args...) # out[1] === v

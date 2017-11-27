@@ -1,4 +1,4 @@
-if VERSION <= v"0.6.0"
+if VERSION <= v"0.6.99"
     const IndexRange{T<:Integer} = Base.Range{T}
 else
     const IndexRange{T<:Integer} = Base.AbstractRange{T}

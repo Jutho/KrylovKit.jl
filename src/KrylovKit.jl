@@ -20,6 +20,7 @@ end
 
 using Base.length, Base.eltype, Base.similar, Base.LinAlg.axpy!, Base.scale!, Base.vecdot, Base.vecnorm
 
+export orthogonalize, orthogonalize!, orthonormalize, orthonormalize!
 export cgs, mgs, cgs2, mgs2, cgsr, mgsr
 export matrix, normres, residual, basis
 export Lanczos, Arnoldi, NoRestart, ExplicitRestart, ImplicitRestart
