@@ -35,7 +35,7 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀ = 0, a₁ = 1)
         numiter += 1
         y[1] = β
         k = 1
-        H = matrix(fact)
+        H = rayleighquotient(fact)
         R[1,1] = α₀ + α₁ * H[1,1]
         gs[1], R[1,1] = givens(R[1,1], α₁*normres(fact), 1, 2)
         y[2] = zero(T)
@@ -47,7 +47,7 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀ = 0, a₁ = 1)
             fact = next!(iter, fact)
             numops += 1 # next! applies the operator once
             k = fact.k
-            H = matrix(fact)
+            H = rayleighquotient(fact)
 
             # copy Arnoldi Hessenberg matrix into R
             @inbounds begin

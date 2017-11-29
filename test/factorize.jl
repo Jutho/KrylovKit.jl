@@ -12,7 +12,7 @@
             end
 
             V = hcat(basis(fact)...)[:,1:n]
-            H = matrix(fact)
+            H = rayleighquotient(fact)
             @test normres(fact) < 10*n*eps(real(T))
             @test V'*V ≈ one(V)
             @test A*V ≈ V*H
@@ -33,7 +33,7 @@ end
             end
 
             V = hcat(basis(s)...)[:,1:n]
-            H = matrix(s)
+            H = rayleighquotient(s)
             factor = (orth == cgs || orth == mgs ? 100 : 10)
             @test normres(s) < factor*n*eps(real(T))
             @test V'*V ≈ one(V)
@@ -60,7 +60,7 @@ end
 
             V = hcat(basis(s)...)
             H = zeros(T,(n+1,n))
-            H[1:n,:] = matrix(s)
+            H[1:n,:] = rayleighquotient(s)
             H[n+1,n] = normres(s)
             @test V[:,1:n]'*V[:,1:n] ≈ eye(T,n)
             @test A*V[:,1:n] ≈ V*H
@@ -85,7 +85,7 @@ end
 
             V = hcat(basis(s)...)
             H = zeros(T,(n+1,n))
-            H[1:n,:] = matrix(s)
+            H[1:n,:] = rayleighquotient(s)
             H[n+1,n] = normres(s)
             @test V[:,1:n]'*V[:,1:n] ≈ eye(T,n)
             @test A*V[:,1:n] ≈ V*H
