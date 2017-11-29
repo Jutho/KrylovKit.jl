@@ -50,7 +50,7 @@ function exponentiate(t::Number, A, v, alg::Lanczos{ExplicitRestart})
 
         # Small matrix exponential and error estimation
         if isa(alg, Lanczos)
-            H = matrix(fact)
+            H = rayleighquotient(fact)
             D, U = eig(H)
 
             # Estimate largest allowed time step
