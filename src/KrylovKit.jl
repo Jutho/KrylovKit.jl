@@ -22,7 +22,7 @@ using Base.length, Base.eltype, Base.similar, Base.LinAlg.axpy!, Base.scale!, Ba
 
 export orthogonalize, orthogonalize!, orthonormalize, orthonormalize!
 export cgs, mgs, cgs2, mgs2, cgsr, mgsr
-export matrix, normres, residual, basis
+export rayleighquotient, normres, residual, basis
 export Lanczos, Arnoldi, NoRestart, ExplicitRestart, ImplicitRestart
 export LanczosIterator, ArnoldiIterator
 export linsolve, GMRES

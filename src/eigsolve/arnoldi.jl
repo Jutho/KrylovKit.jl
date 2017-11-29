@@ -18,7 +18,7 @@ function eigsolve(A, x₀, howmany::Int, which::Symbol, alg::Arnoldi{NoRestart})
     # Process
     # Dense Schur factorization
     β = normres(fact)
-    H = copy(matrix(fact)) # creates a Matrix copy
+    H = copy(rayleighquotient(fact)) # creates a Matrix copy
     T, U, values = hschur!(H, one(H))
     by, rev = eigsort(which)
     p = sortperm(values, by = by, rev = rev)
@@ -81,7 +81,7 @@ function eigsolve(A, x₀, howmany::Int, which::Symbol, alg::Arnoldi{ExplicitRes
     U = view(UU, 1:m, 1:m)
     f = view(HH, m+1, 1:m)
     copy!(U, I)
-    copy!(H, matrix(fact))
+    copy!(H, rayleighquotient(fact))
 
     # compute dense schur factorization
     T, U, values = hschur!(H, U)
@@ -115,7 +115,7 @@ function eigsolve(A, x₀, howmany::Int, which::Symbol, alg::Arnoldi{ExplicitRes
         U = view(UU, 1:m, 1:m)
         f = view(HH, m+1, 1:m)
         copy!(U, I)
-        copy!(H, matrix(fact))
+        copy!(H, rayleighquotient(fact))
 
         # compute dense schur factorization
         T, U, values = hschur!(H, U)
@@ -180,7 +180,7 @@ function eigsolve(A, x₀, howmany::Int, which::Symbol, alg::Arnoldi{ImplicitRes
     U = view(UU, 1:m, 1:m)
     f = view(HH, m+1, 1:m)
     copy!(U, I)
-    copy!(H, matrix(fact))
+    copy!(H, rayleighquotient(fact))
 
     # compute dense schur factorization
     T, U, values = hschur!(H, U)
@@ -227,7 +227,7 @@ function eigsolve(A, x₀, howmany::Int, which::Symbol, alg::Arnoldi{ImplicitRes
             rmulc!(H, h, 1:j)
             rmulc!(B, h)
         end
-        copy!(matrix(fact), H) # copy back into fact
+        copy!(rayleighquotient(fact), H) # copy back into fact
         fact = shrink!(fact, keep)
 
         # Arnoldi factorization: recylce fact
@@ -244,7 +244,7 @@ function eigsolve(A, x₀, howmany::Int, which::Symbol, alg::Arnoldi{ImplicitRes
         U = view(UU, 1:m, 1:m)
         f = view(HH, m+1, 1:m)
         copy!(U, I)
-        copy!(H, matrix(fact))
+        copy!(H, rayleighquotient(fact))
 
         # compute dense schur factorization
         T, U, values = hschur!(H, U)

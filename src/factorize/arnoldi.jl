@@ -22,8 +22,8 @@ Base.eltype(F::ArnoldiFact) = eltype(typeof(F))
 Base.eltype(::Type{<:ArnoldiFact{<:Any,S}}) where {S} = S
 
 basis(F::ArnoldiFact) = F.V
-matrix(F::ArnoldiFact) = PackedHessenberg(F.H, F.k)
-# matrix(F::ArnoldiFact{<:Any,S}) where {S} = copy!(Array{S}(F.k,F.k), PackedHessenberg(F.H, F.k))
+rayleighquotient(F::ArnoldiFact) = PackedHessenberg(F.H, F.k)
+# rayleighquotient(F::ArnoldiFact{<:Any,S}) where {S} = copy!(Array{S}(F.k,F.k), PackedHessenberg(F.H, F.k))
 # # TODO: make everything work with PackedHessenberg directly
 normres(F::ArnoldiFact) = abs(F.H[end])
 residual(F::ArnoldiFact) = normres(F)*F.V[F.k+1]

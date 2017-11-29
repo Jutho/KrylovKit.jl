@@ -31,7 +31,7 @@ Base.eltype(F::LanczosFact) = eltype(typeof(F))
 Base.eltype(::Type{<:LanczosFact{<:Any,S}}) where {S} = S
 
 basis(F::LanczosFact) = length(F.V) == F.k+1 ? F.V : error("Not keeping vectors during Lanczos factorization")
-matrix(F::LanczosFact) = SymTridiagonal(F.αs[1:F.k], F.βs[1:F.k-1])
+rayleighquotient(F::LanczosFact) = SymTridiagonal(F.αs[1:F.k], F.βs[1:F.k-1])
 # TODO: fix SymTridiagonal to just accept αs and βs of equal length
 @inbounds normres(F::LanczosFact) = F.βs[F.k]
 residual(F::LanczosFact) = normres(F)*F.V[end]
