@@ -64,23 +64,21 @@ end
 const norestart = NoRestart()
 
 # General purpose; good for linear systems, eigensystems and matrix functions
-struct Lanczos{R<:RestartStrategy, O<:Orthogonalizer} <: Algorithm
-    restart::R
+struct Lanczos{O<:Orthogonalizer} <: Algorithm
     orth::O
     krylovdim::Int
+    maxiter::Int
     tol::Real
 end
-Lanczos(restart::RestartStrategy = ImplicitRestart(Defaults.maxiter), orth::Orthogonalizer = Defaults.orth; krylovdim = Defaults.krylovdim, tol = Defaults.tol) =
-    Lanczos(restart, orth, krylovdim, tol)
+Lanczos(orth::Orthogonalizer = Defaults.orth; krylovdim = Defaults.krylovdim, maxiter::Int = Defaults.maxiter, tol = Defaults.tol) = Lanczos(orth, krylovdim, maxiter, tol)
 
-struct Arnoldi{R<:RestartStrategy, O<:Orthogonalizer} <: Algorithm
-    restart::R
+struct Arnoldi{O<:Orthogonalizer} <: Algorithm
     orth::O
     krylovdim::Int
+    maxiter::Int
     tol::Real
 end
-Arnoldi(restart::RestartStrategy = ImplicitRestart(Defaults.maxiter), orth::Orthogonalizer = Defaults.orth; krylovdim = Defaults.krylovdim, tol = Defaults.tol) =
-    Arnoldi(restart, orth, krylovdim, tol)
+Arnoldi(orth::Orthogonalizer = Defaults.orth; krylovdim = Defaults.krylovdim, maxiter::Int = Defaults.maxiter, tol = Defaults.tol) = Arnoldi(orth, krylovdim, maxiter, tol)
 
 # Solving linear systems specifically
 abstract type LinearSolver <: Algorithm end

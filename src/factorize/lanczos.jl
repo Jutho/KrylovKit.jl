@@ -18,8 +18,7 @@ LanczosIterator(operator::F, v₀::T, orth::O = Defaults.orth, keepvecs::Bool = 
 Base.iteratorsize(::Type{<:LanczosIterator}) = Base.HasLength()
 Base.length(iter::LanczosIterator) = length(iter.v₀)
 
-
-struct LanczosFact{T, S<:Real} <: KrylovFactorization{T}
+mutable struct LanczosFact{T, S<:Real} <: KrylovFactorization{T}
     k::Int # current Krylov dimension
     V::OrthonormalBasis{T} # basis of length k+1
     αs::Vector{S}
@@ -27,12 +26,16 @@ struct LanczosFact{T, S<:Real} <: KrylovFactorization{T}
 end
 
 Base.length(F::LanczosFact) = F.k
+Base.sizehint!(F::LanczosFact, n) = begin
+    sizehint!(F.αs, n)
+    sizehint!(F.βs, n)
+    return F
+end
 Base.eltype(F::LanczosFact) = eltype(typeof(F))
 Base.eltype(::Type{<:LanczosFact{<:Any,S}}) where {S} = S
 
 basis(F::LanczosFact) = length(F.V) == F.k+1 ? F.V : error("Not keeping vectors during Lanczos factorization")
-rayleighquotient(F::LanczosFact) = SymTridiagonal(F.αs[1:F.k], F.βs[1:F.k-1])
-# TODO: fix SymTridiagonal to just accept αs and βs of equal length
+rayleighquotient(F::LanczosFact) = SymTridiagonal(F.αs, F.βs)
 @inbounds normres(F::LanczosFact) = F.βs[F.k]
 residual(F::LanczosFact) = normres(F)*F.V[end]
 
@@ -69,7 +72,8 @@ function start!(iter::LanczosIterator, state::LanczosFact)
     push!(V, w)
     push!(αs, real(α))
     push!(βs, β)
-    return LanczosFact(1, V, αs, βs)
+    state.k = 1
+    return state
 end
 
 # return type declatation required because iter.tol is Real
@@ -81,21 +85,20 @@ function Base.next(iter::LanczosIterator, state::LanczosFact)
     return nr, state
 end
 function next!(iter::LanczosIterator, state::LanczosFact)
-    k = state.k
-    V = state.V
-
-    βold = last(state.βs)
-    w, α, β = lanczosrecurrence(iter.operator, V, βold, iter.orth)
+    βold = normres(state)
+    w, α, β = lanczosrecurrence(iter.operator, state.V, βold, iter.orth)
     n = hypot(α, β, βold)
     imag(α) <= 10*eps(n) || error("operator does not appear to be hermitian: $(imag(α)) vs $n")
 
     αs = push!(state.αs, real(α))
     βs = push!(state.βs, β)
 
-    !iter.keepvecs && shift!(V) # remove oldest V if not keepvecs
-    push!(V, w)
+    !iter.keepvecs && shift!(state.V) # remove oldest V if not keepvecs
+    push!(state.V, w)
 
-    return LanczosFact(k+1, V, αs, βs)
+    state.k += 1
+
+    return state
 end
 
 function shrink!(state::LanczosFact, k)
@@ -106,7 +109,6 @@ function shrink!(state::LanczosFact, k)
     end
     return LanczosFact(k, V, resize!(state.αs, k), resize!(state.βs, k))
 end
-
 
 # Exploit hermiticity to "simplify" orthonormalization process:
 # Lanczos three-term recurrence relation

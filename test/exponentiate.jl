@@ -6,11 +6,15 @@
             A = (A+A')/2
             V = one(A)
             W = zero(A)
-            alg = Lanczos(ExplicitRestart(1), orth; krylovdim=n, tol = 10*n*eps(real(T)))
+            alg = Lanczos(orth; krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)))
             for k = 1:n
                 W[:,k], = exponentiate(1, A, view(V,:,k), alg)
             end
-            @test W ≈ expm(A)
+            if VERSION <= v"0.6.99"
+                @test W ≈ expm(A)
+            else
+                @test W ≈ exp(A)
+            end
         end
     end
 end
@@ -23,10 +27,14 @@ end
             A = (A+A')/2
             v = rand(T,N)
             t = rand(complex(T))
-            alg = Lanczos(ExplicitRestart(30), orth; krylovdim=n, tol = 10*N*eps(real(T))*abs(t))
+            alg = Lanczos(orth; krylovdim = n, maxiter = 30, tol = 10*N*eps(real(T))*abs(t))
             w, info = exponentiate(t, A, v, alg)
             @test info.converged > 0
-            @test w ≈ expm(t*A)*v
+            if VERSION <= v"0.6.99"
+                @test w ≈ expm(t*A)*v
+            else
+                @test w ≈ exp(t*A)*v
+            end
         end
     end
 end

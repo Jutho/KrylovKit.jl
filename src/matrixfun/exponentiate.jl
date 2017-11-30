@@ -1,4 +1,4 @@
-function exponentiate(t::Number, A, v, alg::Lanczos{ExplicitRestart})
+function exponentiate(t::Number, A, v, alg::Lanczos)
     # process initial vector and determine result type
     β = vecnorm(v)
     Av = apply(A, v) # used to determine return type
@@ -8,83 +8,83 @@ function exponentiate(t::Number, A, v, alg::Lanczos{ExplicitRestart})
     w = similar(Av, T)
     scale!(w, v, 1/β)
 
+    # krylovdim and related allocations
+    krylovdim = min(alg.krylovdim, length(v))
+    Z = Matrix{S}(krylovdim, krylovdim)
+    Y1 = Vector{T}(krylovdim)
+    Y2 = Vector{T}(krylovdim)
+
     # initialize iterator
-    if isa(alg, Lanczos)
-        iter = LanczosIterator(A, w, alg.orth, true)
-    else
-        iter = ArnoldiIterator(A, w, alg.orth)
-    end
+    iter = LanczosIterator(A, w, alg.orth, true)
     fact = start(iter)
     numops += 1
+    sizehint!(fact, krylovdim)
 
-    # algorithm parameters
+    # time step parameters
     sgn = sign(t)
     τ::S = abs(t)
     Δτ::S = τ
 
+    # tolerance
     η::S = alg.tol / τ # tolerance per unit step
     if η < length(w)*eps(typeof(η))
         η = length(w)*eps(typeof(η))
         warn("tolerance too small, increasing to $(η*τ)")
     end
     totalerr = zero(η)
-    krylovdim = alg.krylovdim
-    maxiter = alg.restart.maxiter
 
     δ::S = 0.9 # safety factor
-    # γ = 1.2
 
     # start outer iteration loop
+    maxiter = alg.maxiter
     numiter = 0
     while true
         numiter += 1
         Δτ = numiter == maxiter ? τ : min(Δτ, τ)
 
         # Lanczos or Arnoldi factorization
-        while normres(fact) > η && fact.k < krylovdim
+        while normres(fact) > η && length(fact) < krylovdim
             fact = next!(iter, fact)
             numops += 1
         end
         K = fact.k # current Krylov dimension
         V = basis(fact)
+        m = length(fact)
 
         # Small matrix exponential and error estimation
-        if isa(alg, Lanczos)
-            H = rayleighquotient(fact)
-            D, U = eig(H)
+        U = copy!(view(Z, 1:m, 1:m), I)
+        H = rayleighquotient(fact) # tridiagonal
+        D, U = eig!(H, U)
 
-            # Estimate largest allowed time step
-            ϵ::S = zero(η)
-            while true
-                ϵ₁ = zero(eltype(H))
-                ϵ₂ = zero(eltype(H))
-                @inbounds for k = 1:K
-                    ϵ₁ += U[K,k] * exp(sgn * Δτ/2 * D[k]) * conj(U[1,k])
-                    ϵ₂ += U[K,k] * exp(sgn * Δτ * D[k]) * conj(U[1,k])
-                end
-                ϵ = normres(fact) * ( 2*abs(ϵ₁)/3 + abs(ϵ₂)/6 ) # error per unit time: see Lubich
-
-                if ϵ < δ * η || numiter == maxiter
-                    break
-                else # reduce time step
-                    Δτ = signif(δ * (η / ϵ)^(1/krylovdim) * Δτ, 2)
-                end
+        # Estimate largest allowed time step
+        ϵ::S = zero(η)
+        while true
+            ϵ₁ = zero(eltype(H))
+            ϵ₂ = zero(eltype(H))
+            @inbounds for k = 1:K
+                ϵ₁ += U[K,k] * exp(sgn * Δτ/2 * D[k]) * conj(U[1,k])
+                ϵ₂ += U[K,k] * exp(sgn * Δτ * D[k]) * conj(U[1,k])
             end
+            ϵ = normres(fact) * ( 2*abs(ϵ₁)/3 + abs(ϵ₂)/6 ) # error per unit time: see Lubich
 
-            # Apply time step
-            totalerr += Δτ * ϵ
-            y = map(exp, (sgn*Δτ)*D)
-            @inbounds for k = 1:length(y)
-                y[k] *= conj(U[1,k])
+            if ϵ < δ * η || numiter == maxiter
+                break
+            else # reduce time step
+                Δτ = signif(δ * (η / ϵ)^(1/krylovdim) * Δτ, 2)
             end
-            y = U*y
-        else
-            # TODO: matrix exponential and error estimation in case of Arnoldi
-            error("Arnoldi is not yet implemented")
         end
 
+        # Apply time step
+        totalerr += Δτ * ϵ
+        y1 = view(Y1, 1:m)
+        y2 = view(Y2, 1:m)
+        @inbounds for k = 1:m
+            y1[k] = exp(sgn*Δτ*D[k])*conj(U[1,k])
+        end
+        y2 = A_mul_B!(y2, U, y1)
+
         # Finalize step
-        A_mul_B!(w, V, y)
+        A_mul_B!(w, V, y2)
         τ -= Δτ
 
         if iszero(τ) # should always be true if numiter == maxiter

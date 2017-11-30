@@ -11,20 +11,22 @@ ArnoldiIterator(A, v₀) = ArnoldiIterator(A, v₀, Defaults.orth)
 Base.iteratorsize(::Type{<:ArnoldiIterator}) = Base.HasLength()
 Base.length(iter::ArnoldiIterator) = length(iter.v₀)
 
-struct ArnoldiFact{T,S} <: KrylovFactorization{T}
+mutable struct ArnoldiFact{T,S} <: KrylovFactorization{T}
     k::Int # current Krylov dimension
     V::OrthonormalBasis{T} # basis of length k+1
     H::Vector{S} # stores the Hessenberg matrix in packed form
 end
 
 Base.length(F::ArnoldiFact) = F.k
+Base.sizehint!(F::ArnoldiFact, n) = begin
+    sizehint!(F.H, (n*n + 3*n) >> 1)
+    return F
+end
 Base.eltype(F::ArnoldiFact) = eltype(typeof(F))
 Base.eltype(::Type{<:ArnoldiFact{<:Any,S}}) where {S} = S
 
 basis(F::ArnoldiFact) = F.V
 rayleighquotient(F::ArnoldiFact) = PackedHessenberg(F.H, F.k)
-# rayleighquotient(F::ArnoldiFact{<:Any,S}) where {S} = copy!(Array{S}(F.k,F.k), PackedHessenberg(F.H, F.k))
-# # TODO: make everything work with PackedHessenberg directly
 normres(F::ArnoldiFact) = abs(F.H[end])
 residual(F::ArnoldiFact) = normres(F)*F.V[F.k+1]
 
@@ -52,7 +54,9 @@ function start!(iter::ArnoldiIterator, state::ArnoldiFact) # recylcle existing s
 
     push!(V, w)
     push!(H, α, β)
-    return ArnoldiFact(1, V, H)
+
+    state.k = 1
+    return state
 end
 
 Base.done(iter::ArnoldiIterator, state::ArnoldiFact) = length(state) == length(iter)
@@ -63,7 +67,8 @@ function Base.next(iter::ArnoldiIterator, state::ArnoldiFact)
     return nr, state
 end
 function next!(iter::ArnoldiIterator, state::ArnoldiFact)
-    k = state.k + 1
+    state.k += 1
+    k = state.k
     V = state.V
     H = state.H
     m = length(H)
@@ -71,7 +76,7 @@ function next!(iter::ArnoldiIterator, state::ArnoldiFact)
     w, β = arnoldirecurrence!(iter.operator, V, view(H, (m+1):(m+k)), iter.orth)
     push!(V, w)
     H[m+k+1] = β
-    return ArnoldiFact(k, V, H)
+    return state
 end
 
 function shrink!(state::ArnoldiFact, k)
@@ -81,7 +86,8 @@ function shrink!(state::ArnoldiFact, k)
         pop!(V)
     end
     resize!(H, (k*k + 3*k) >> 1)
-    return ArnoldiFact(k, V, H)
+    state.k = k
+    return state
 end
 
 # Arnoldi recurrence: simply use provided orthonormalization routines

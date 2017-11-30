@@ -58,6 +58,9 @@ function ldiv!(A::UpperTriangular, y::AbstractVector, r::UnitRange{Int} = 1:leng
 end
 
 
+# Eigenvalue decomposition of SymTridiagonal matrix
+eig!(A::SymTridiagonal{T}, Z::StridedMatrix{T} = one(A)) where {T<:BlasFloat} = steqr!(A.dv, A.ev, Z)
+
 # Schur factorization of a Hessenberg matrix
 hschur!(H::StridedMatrix{T}, Z::StridedMatrix{T} = one(H)) where {T<:BlasFloat} = hseqr!(H, Z)
 
@@ -236,6 +239,28 @@ function permuteschur!(T::StridedMatrix{S}, Q::StridedMatrix{S}, perm::AbstractV
         end
     end
     return T,Q
+end
+
+# redefine LAPACK interface to tridiagonal eigenvalue problem
+for (steqr, elty) in ((:dsteqr_, :Float64), (:ssteqr_, :Float32))
+    @eval begin
+        function steqr!(D::StridedVector{$elty}, E::StridedVector{$elty}, Z::StridedMatrix{$elty})
+            n = length(D)
+            chkstride1(Z)
+            checksquare(Z) == n || throw(DimensionMismatch())
+            length(E) >= n-1 || throw(DimensionMismatch())
+            compz = 'V'
+            ldz = stride(Z, 2)
+            work = Vector{$elty}(max(1,2*n-2))
+            info = Ref{BlasInt}()
+            ccall((@blasfunc($steqr), liblapack), Void,
+                (Ref{UInt8}, Ref{BlasInt}, Ptr{$elty}, Ptr{$elty},
+                    Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ptr{BlasInt}),
+                    compz, n, D, E, Z, ldz, work, info)
+            chklapackerror(info[])
+            return D, Z
+        end
+    end
 end
 
 # redefine LAPACK interface to schur
