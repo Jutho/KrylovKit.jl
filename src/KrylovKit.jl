@@ -48,19 +48,21 @@ include("dense/reflector.jl")
 # include("dense/utldiv.jl")
 # include("dense/hschur.jl")
 
-include("linsolve/gmres.jl")
-include("matrixfun/exponentiate.jl")
-
-include("eigsolve/eigsolve.jl")
-include("eigsolve/arnoldi.jl")
-
 struct ConvergenceInfo{S,T}
-    converged::Int # how many eigenvalues have converged, 0 or 1 for linear systems, ...
+    converged::Int # how many vectors have converged, 0 or 1 for linear systems, exponentiate, any integer for eigenvalue problems
     normres::S
     residual::T
     numiter::Int
     numops::Int
 end
+
+include("linsolve/gmres.jl")
+
+include("matrixfun/exponentiate.jl")
+
+include("eigsolve/eigsolve.jl")
+include("eigsolve/lanczos.jl")
+include("eigsolve/arnoldi.jl")
 
 apply(A::AbstractMatrix, x::AbstractVector) = A*x
 apply(f, x) = f(x)

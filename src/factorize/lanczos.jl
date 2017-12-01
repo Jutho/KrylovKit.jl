@@ -102,7 +102,7 @@ function next!(iter::LanczosIterator, state::LanczosFact)
 end
 
 function shrink!(state::LanczosFact, k)
-    length(state) == length(state.V) || error("we cannot shrink LanczosFact without keeping Lanczos vectors")
+    length(state)+1 == length(state.V) || error("we cannot shrink LanczosFact without keeping Lanczos vectors")
     V = state.V
     while length(V) > k+1
         pop!(V)

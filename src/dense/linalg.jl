@@ -193,6 +193,34 @@ function schur2eigvecs(T::StridedMatrix{<:BlasReal}, which::AbstractVector{Int})
     return VR
 end
 
+function permuteeig!(D::StridedVector{S}, V::StridedMatrix{S}, perm::AbstractVector{Int}) where {S}
+    n = checksquare(V)
+    p = collect(perm) # makes copy cause will be overwritten
+    isperm(p) && length(p) == n || throw(ArgumentError("not a valid permutation of length $n"))
+    i = 1
+    @inbounds while true
+        if p[i] == i
+            i = 1
+            while i <= n && p[i] == i
+                i += 1
+            end
+            i > n && break
+        else
+            iprev = findfirst(equalto(i), p)
+            inext = p[i]
+            p[iprev] = inext
+            p[i] = i
+
+            D[i], D[inext] = D[inext], D[i]
+            for j = 1:n
+                V[j,i], V[j,inext] = V[j,inext], V[j,i]
+            end
+            i = inext
+        end
+    end
+    return D, V
+end
+
 permuteschur!(T::StridedMatrix{<:BlasFloat}, p::AbstractVector{Int}) = permuteschur!(T, one(T), p)
 function permuteschur!(T::StridedMatrix{S}, Q::StridedMatrix{S}, perm::AbstractVector{Int}) where {S<:BlasComplex}
     n = checksquare(T)

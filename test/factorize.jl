@@ -62,8 +62,8 @@ end
 
             V = hcat(basis(s)...)
             H = zeros(T,(n+1,n))
-            H[1:n,:] = rayleighquotient(s)
-            H[n+1,n] = normres(s)
+            H[1:n,:] = @inferred rayleighquotient(s)
+            H[n+1,n] = @inferred normres(s)
             G = V[:,1:n]'*V[:,1:n]
             @test G ≈ one(G)
             @test A*V[:,1:n] ≈ V*H
@@ -88,8 +88,8 @@ end
 
             V = hcat(basis(s)...)
             H = zeros(T,(n+1,n))
-            H[1:n,:] = rayleighquotient(s)
-            H[n+1,n] = normres(s)
+            H[1:n,:] = @inferred rayleighquotient(s)
+            H[n+1,n] = @inferred normres(s)
             G = V[:,1:n]'*V[:,1:n]
             @test G ≈ one(G)
             @test A*V[:,1:n] ≈ V*H

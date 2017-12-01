@@ -1,5 +1,5 @@
 # Test lanczos exponentiate full
-@testset "Lanczos - Expontiate full" begin
+@testset "Lanczos - Exponentiate full" begin
     @testset for T in (Float32, Float64, Complex64, Complex128)
         @testset for orth in (cgs2, mgs2, cgsr, mgsr)
             A = rand(T,(n,n)) .- one(T)/2
@@ -8,7 +8,7 @@
             W = zero(A)
             alg = Lanczos(orth; krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)))
             for k = 1:n
-                W[:,k], = exponentiate(1, A, view(V,:,k), alg)
+                W[:,k], =  @inferred exponentiate(1, A, view(V,:,k), alg)
             end
             if VERSION <= v"0.6.99"
                 @test W ≈ expm(A)
@@ -20,7 +20,7 @@
 end
 
 # Test exponentiate
-@testset "Lanczos Expontiate" begin
+@testset "Lanczos - Exponentiate iteratively" begin
     @testset for T in (Float32, Float64, Complex64, Complex128)
         @testset for orth in (cgs2, mgs2, cgsr, mgsr)
             A = rand(T,(N,N)) .- one(T)/2
@@ -28,7 +28,7 @@ end
             v = rand(T,N)
             t = rand(complex(T))
             alg = Lanczos(orth; krylovdim = n, maxiter = 30, tol = 10*N*eps(real(T))*abs(t))
-            w, info = exponentiate(t, A, v, alg)
+            w, info =  @inferred exponentiate(t, A, v, alg)
             @test info.converged > 0
             if VERSION <= v"0.6.99"
                 @test w ≈ expm(t*A)*v

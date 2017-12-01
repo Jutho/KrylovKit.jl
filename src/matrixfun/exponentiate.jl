@@ -10,9 +10,9 @@ function exponentiate(t::Number, A, v, alg::Lanczos)
 
     # krylovdim and related allocations
     krylovdim = min(alg.krylovdim, length(v))
-    Z = Matrix{S}(krylovdim, krylovdim)
-    Y1 = Vector{T}(krylovdim)
-    Y2 = Vector{T}(krylovdim)
+    UU = Matrix{S}(krylovdim, krylovdim)
+    yy1 = Vector{T}(krylovdim)
+    yy2 = Vector{T}(krylovdim)
 
     # initialize iterator
     iter = LanczosIterator(A, w, alg.orth, true)
@@ -52,7 +52,7 @@ function exponentiate(t::Number, A, v, alg::Lanczos)
         m = length(fact)
 
         # Small matrix exponential and error estimation
-        U = copy!(view(Z, 1:m, 1:m), I)
+        U = copy!(view(UU, 1:m, 1:m), I)
         H = rayleighquotient(fact) # tridiagonal
         D, U = eig!(H, U)
 
@@ -76,8 +76,8 @@ function exponentiate(t::Number, A, v, alg::Lanczos)
 
         # Apply time step
         totalerr += Δτ * ϵ
-        y1 = view(Y1, 1:m)
-        y2 = view(Y2, 1:m)
+        y1 = view(yy1, 1:m)
+        y2 = view(yy2, 1:m)
         @inbounds for k = 1:m
             y1[k] = exp(sgn*Δτ*D[k])*conj(U[1,k])
         end

@@ -1,13 +1,12 @@
-# Arnoldi methods for eigenvalue problems
-function eigsolve(A, x₀, howmany::Int, which::Symbol, alg::Arnoldi)
+function eigsolve(A, x₀, howmany::Int, which::Symbol, alg::Lanczos)
     krylovdim = min(alg.krylovdim, length(x₀))
     maxiter = alg.maxiter
     howmany < krylovdim || error("krylov dimension $(krylovdim) too small to compute $howmany eigenvalues")
 
     ## FIRST ITERATION: setting up
     numiter = 1
-    # Compute arnoldi factorization
-    iter = ArnoldiIterator(A, x₀, alg.orth)
+    # Compute Lanczos factorization
+    iter = LanczosIterator(A, x₀, alg.orth)
     fact = start(iter)
     β = normres(fact)
     tol::eltype(β) = alg.tol
@@ -26,17 +25,15 @@ function eigsolve(A, x₀, howmany::Int, which::Symbol, alg::Arnoldi)
     # initialize
     β = normres(fact)
     m = length(fact)
-    H = view(HH, 1:m, 1:m)
-    U = view(UU, 1:m, 1:m)
+    U = copy!(view(UU, 1:m, 1:m), I)
     f = view(HH, m+1, 1:m)
-    copy!(U, I)
-    copy!(H, rayleighquotient(fact))
+    T = rayleighquotient(fact) # symtridiagonal
 
-    # compute dense schur factorization
-    T, U, values = hschur!(H, U)
+    # compute eigenvalues
+    D, U = eig!(T, U)
     by, rev = eigsort(which)
-    p = sortperm(values, by = by, rev = rev)
-    T, U = permuteschur!(T, U, p)
+    p = sortperm(D, by = by, rev = rev)
+    D, U = permuteeig!(D, U, p)
     scale!(f, view(U,m,:), β)
     converged = 0
     while converged < length(fact) && abs(f[converged+1]) < tol
@@ -49,10 +46,6 @@ function eigsolve(A, x₀, howmany::Int, which::Symbol, alg::Arnoldi)
 
         # Determine how many to keep
         keep = div(3*krylovdim + 2*converged, 5) # strictly smaller than krylovdim, at least equal to converged
-        if eltype(H) <: Real && H[keep+1,keep] != 0 # we are in the middle of a 2x2 block
-            keep += 1 # conservative choice
-            keep >= krylovdim && error("krylov dimension $(krylovdim) too small to compute $howmany eigenvalues")
-        end
 
         # Update B by applying U using Householder reflections
         B = basis(fact)
@@ -62,13 +55,15 @@ function eigsolve(A, x₀, howmany::Int, which::Symbol, alg::Arnoldi)
             rmulc!(B, h)
         end
 
-        # Shrink Arnoldi factorization (no longer strictly Arnoldi but still Krylov)
+        # Shrink Lanczos factorization (no longer strictly Lanczos)
         B[keep+1] = last(B)
-        for j = 1:keep
+        H = fill!(view(HH, 1:keep+1, 1:keep), 0)
+        @inbounds for j = 1:keep
+            H[j,j] = D[j]
             H[keep+1,j] = f[j]
         end
 
-        # Restore Arnoldi form in the first keep columns
+        # Restore Lanczos form in the first keep columns
         for j = keep:-1:1
             h, ν = householder(H, j+1, 1:j, j)
             H[j+1,j] = ν
@@ -77,10 +72,13 @@ function eigsolve(A, x₀, howmany::Int, which::Symbol, alg::Arnoldi)
             rmulc!(H, h, 1:j)
             rmulc!(B, h)
         end
-        copy!(rayleighquotient(fact), H) # copy back into fact
+        @inbounds for j = 1:keep
+            fact.αs[j] = H[j,j]
+            fact.βs[j] = H[j+1,j]
+        end
         fact = shrink!(fact, keep)
 
-        # Arnoldi factorization: recylce fact
+        # Lanczos factorization: recylce fact
         while length(fact) < krylovdim
             fact = next!(iter, fact)
             numops += 1
@@ -90,30 +88,25 @@ function eigsolve(A, x₀, howmany::Int, which::Symbol, alg::Arnoldi)
         # post process
         β = normres(fact)
         m = length(fact)
-        H = view(HH, 1:m, 1:m)
-        U = view(UU, 1:m, 1:m)
+        U = copy!(view(UU, 1:m, 1:m), I)
         f = view(HH, m+1, 1:m)
-        copy!(U, I)
-        copy!(H, rayleighquotient(fact))
+        T = rayleighquotient(fact) # symtridiagonal
 
-        # compute dense schur factorization
-        T, U, values = hschur!(H, U)
+        # compute eigenvalues
+        D, U = eig!(T, U)
         by, rev = eigsort(which)
-        p = sortperm(values, by = by, rev = rev)
-        T, U = permuteschur!(T, U, p)
+        p = sortperm(D, by = by, rev = rev)
+        D, U = permuteeig!(D, U, p)
         scale!(f, view(U,m,:), β)
         converged = 0
         while converged < length(fact) && abs(f[converged+1]) < tol
             converged += 1
         end
     end
+    values = D[1:howmany]
+
     # Compute eigenvectors
-    if eltype(H) <: Real && length(fact) > howmany && T[howmany+1,howmany] != 0
-        howmany += 1
-    end
-    values = schur2eigvals(T, 1:howmany)
-    R = schur2eigvecs(T, 1:howmany)
-    V = U*R;
+    V = view(U,:,1:howmany)
 
     # Compute convergence information
     vectors = let B = basis(fact)
