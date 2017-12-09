@@ -10,9 +10,9 @@ function exponentiate(t::Number, A, v, alg::Lanczos)
 
     # krylovdim and related allocations
     krylovdim = min(alg.krylovdim, length(v))
-    UU = Matrix{S}(krylovdim, krylovdim)
-    yy1 = Vector{T}(krylovdim)
-    yy2 = Vector{T}(krylovdim)
+    UU = Matrix{S}(uninitialized, (krylovdim, krylovdim))
+    yy1 = Vector{T}(uninitialized, krylovdim)
+    yy2 = Vector{T}(uninitialized, krylovdim)
 
     # initialize iterator
     iter = LanczosIterator(A, w, alg.orth, true)

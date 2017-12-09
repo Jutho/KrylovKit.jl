@@ -1,5 +1,5 @@
 # Arnoldi methods for eigenvalue problems
-function eigsolve(A, x₀, howmany::Int, which::Symbol, alg::Arnoldi)
+function schursolve(A, x₀, howmany::Int, which::Symbol, alg::Arnoldi)
     krylovdim = min(alg.krylovdim, length(x₀))
     maxiter = alg.maxiter
     howmany < krylovdim || error("krylov dimension $(krylovdim) too small to compute $howmany eigenvalues")
@@ -9,9 +9,10 @@ function eigsolve(A, x₀, howmany::Int, which::Symbol, alg::Arnoldi)
     # Compute arnoldi factorization
     iter = ArnoldiIterator(A, x₀, alg.orth)
     fact = start(iter)
+    numops = 1
+    sizehint!(fact, krylovdim)
     β = normres(fact)
     tol::eltype(β) = alg.tol
-    numops = 1
     while length(fact) < krylovdim
         fact = next!(iter, fact)
         numops += 1
@@ -20,8 +21,8 @@ function eigsolve(A, x₀, howmany::Int, which::Symbol, alg::Arnoldi)
 
     # Process
     # allocate storage
-    HH = zeros(eltype(fact), krylovdim+1, krylovdim)
-    UU = zeros(eltype(fact), krylovdim, krylovdim)
+    HH = fill(zero(eltype(fact)), krylovdim+1, krylovdim)
+    UU = fill(zero(eltype(fact)), krylovdim, krylovdim)
 
     # initialize
     β = normres(fact)
@@ -107,22 +108,30 @@ function eigsolve(A, x₀, howmany::Int, which::Symbol, alg::Arnoldi)
             converged += 1
         end
     end
-    # Compute eigenvectors
     if eltype(H) <: Real && length(fact) > howmany && T[howmany+1,howmany] != 0
         howmany += 1
     end
-    values = schur2eigvals(T, 1:howmany)
-    R = schur2eigvecs(T, 1:howmany)
-    V = U*R;
-
-    # Compute convergence information
+    TT = view(T,1:howmany,1:howmany)
+    values = schur2eigvals(TT)
     vectors = let B = basis(fact)
-        [B*v for v in cols(V)]
+        [B*u for u in cols(U, 1:howmany)]
     end
     residuals = let r = residual(fact)
-        [r*last(v) for v in cols(V)]
+        [r*last(u) for u in cols(U, 1:howmany)]
     end
-    normreseigvecs = scale!(map(abs, view(V, m, :)), β)
 
-    return values, vectors, ConvergenceInfo(converged, normreseigvecs, residuals, numiter, numops)
+    return view(T,1:howmany,1:howmany), vectors, values, ConvergenceInfo(converged, f[1:howmany], residuals, numiter, numops)
+end
+
+function eigsolve(A, x₀, howmany::Int, which::Symbol, alg::Arnoldi)
+    T, schurvectors, values, info = schursolve(A, x₀, howmany, which, alg)
+
+    # Transform schurvectors to eigenvectors
+    values = schur2eigvals(T)
+    V = schur2eigvecs(T)
+    vectors = let B = OrthonormalBasis(schurvectors)
+        [B*v for v in cols(V)]
+    end
+
+    return values, vectors, info
 end

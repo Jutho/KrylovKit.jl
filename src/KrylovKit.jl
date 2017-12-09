@@ -7,26 +7,23 @@ module KrylovKit
 # scale!(w,v,α) -> w = α*v, LinAlg.axpy!(α,v,w) w += α*v : key properties of a vector
 # vecdot(w,v), vecnorm(v) -> inner products and norms
 
-# 0.7.0-DEV.1993
-@static if !isdefined(Base, :EqualTo)
-    struct EqualTo{T} <: Function
-        x::T
-        EqualTo(x::T) where {T} = new{T}(x)
-    end
-    (f::EqualTo)(y) = isequal(f.x, y)
-    const equalto = EqualTo
-    export equalto
+using Compat
+
+@static if !isdefined(Base, :AbstractRange)
+    const IndexRange{T<:Integer} = Base.Range{T}
+else
+    const IndexRange{T<:Integer} = Base.AbstractRange{T}
 end
+
 
 using Base.length, Base.eltype, Base.similar, Base.LinAlg.axpy!, Base.scale!, Base.vecdot, Base.vecnorm
 
 export orthogonalize, orthogonalize!, orthonormalize, orthonormalize!
 export cgs, mgs, cgs2, mgs2, cgsr, mgsr
 export rayleighquotient, normres, residual, basis
-export Lanczos, Arnoldi, NoRestart, ExplicitRestart, ImplicitRestart
-export LanczosIterator, ArnoldiIterator
+export factorize, LanczosIterator, ArnoldiIterator
 export linsolve, GMRES
-export eigsolve
+export schursolve, eigsolve, Lanczos, Arnoldi
 export exponentiate
 export ConvergenceInfo
 

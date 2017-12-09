@@ -1,5 +1,5 @@
 linsolve(operator, b, alg::GMRES, a₀ = 0, a₁ = 1) =
-    linsolve(operator, b, zero(b), alg, a₀, a₁)
+    linsolve(operator, b, fill!(similar(b), zero(eltype(b))), alg, a₀, a₁)
 
 function linsolve(operator, b, x₀, alg::GMRES, a₀ = 0, a₁ = 1)
     # Initial function operation and division defines number type
@@ -22,9 +22,9 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀ = 0, a₁ = 1)
     β < tol && return (x, ConvergenceInfo(1, β, r, 0, 1))
 
     # Initialize data structures
-    y = Vector{T}(krylovdim+1)
-    gs = Vector{Givens{T}}(krylovdim)
-    R = zeros(T, (krylovdim,krylovdim))
+    y = Vector{T}(uninitialized, krylovdim+1)
+    gs = Vector{Givens{T}}(uninitialized, krylovdim)
+    R = fill(zero(T), (krylovdim,krylovdim))
     numiter = 0
     numops = 1 # operator has been applied once to determine T
 

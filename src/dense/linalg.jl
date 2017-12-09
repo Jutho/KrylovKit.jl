@@ -4,34 +4,39 @@ import Base.LinAlg: BlasFloat, BlasInt, LAPACKException,
 import Base.BLAS: @blasfunc, libblas, BlasReal, BlasComplex
 import Base.LAPACK: liblapack, chklapackerror
 
-struct RowIterator{A<:AbstractMatrix}
+struct RowIterator{A<:AbstractMatrix,R<:IndexRange}
     a::A
+    r::R
 end
-rows(a::AbstractMatrix) = RowIterator(a)
+rows(a::AbstractMatrix, r::IndexRange = indices(a,1)) = RowIterator(a, r)
 
-Base.start(iter::RowIterator) = 1
-Base.next(iter::RowIterator, i) = view(iter.a, i, :), i+1
-Base.done(iter::RowIterator, i) = i > size(iter.a, 1)
+Base.start(iter::RowIterator) = start(iter.r)
+function Base.next(iter::RowIterator, s)
+    i, s = next(iter.r, s)
+    return view(iter.a, i, :), s
+end
+Base.done(iter::RowIterator, s) = done(iter.r, s)
 
 Base.IteratorSize(::Type{<:RowIterator}) = Base.HasLength()
-Base.length(iter::RowIterator) = size(iter.a, 1)
-Base.getindex(iter::RowIterator, i) = view(iter.a, i, :)
+Base.length(iter::RowIterator) = length(iter.r)
 
 Base.eltype(iter::RowIterator{A}) where {A<:DenseArray} = SubArray{Float64,1,A,Tuple{Int64,Base.Slice{Base.OneTo{Int64}}},true}
 
-
-struct ColumnIterator{A<:AbstractMatrix}
+struct ColumnIterator{A<:AbstractMatrix,R<:IndexRange}
     a::A
+    r::R
 end
-cols(a::AbstractMatrix) = ColumnIterator(a)
+cols(a::AbstractMatrix, r::IndexRange = indices(a,2)) = ColumnIterator(a, r)
 
-Base.start(iter::ColumnIterator) = 1
-Base.next(iter::ColumnIterator, i) = view(iter.a, :, i), i+1
-Base.done(iter::ColumnIterator, i) = i > size(iter.a, 2)
+Base.start(iter::ColumnIterator) = start(iter.r)
+function Base.next(iter::ColumnIterator, s)
+    i, s = next(iter.r, s)
+    return view(iter.a, :, i), s
+end
+Base.done(iter::ColumnIterator, s) = done(iter.r, s)
 
 Base.IteratorSize(::Type{<:ColumnIterator}) = Base.HasLength()
-Base.length(iter::ColumnIterator) = size(iter.a, 2)
-Base.getindex(iter::ColumnIterator, i) = view(iter.a, :, i)
+Base.length(iter::ColumnIterator) = length(iter.r)
 
 Base.eltype(iter::ColumnIterator{A}) where {A<:DenseArray} = SubArray{Float64,1,A,Tuple{Base.Slice{Base.OneTo{Int64}},Int64},true}
 
@@ -101,7 +106,7 @@ function schur2eigvecs(T::StridedMatrix{<:BlasComplex})
     n = checksquare(T)
     VR = similar(T, n, n)
     VL = similar(T, n, 0)
-    select = Vector{BlasInt}(0)
+    select = Vector{BlasInt}(uninitialized, 0)
     trevc!('R','A', select, T, VL, VR)
     return VR
 end
@@ -127,7 +132,7 @@ function schur2eigvecs(T::StridedMatrix{<:BlasReal})
     VR = similar(T, Complex{eltype(T)}, n, n)
     VR′ = similar(T, n, n)
     VL′ = similar(T, n, 0)
-    select = Vector{BlasInt}(0)
+    select = Vector{BlasInt}(uninitialized, 0)
     trevc!('R','A', select, T, VL′, VR′)
     i = 1
     while i <= n
@@ -279,7 +284,7 @@ for (steqr, elty) in ((:dsteqr_, :Float64), (:ssteqr_, :Float32))
             length(E) >= n-1 || throw(DimensionMismatch())
             compz = 'V'
             ldz = stride(Z, 2)
-            work = Vector{$elty}(max(1,2*n-2))
+            work = Vector{$elty}(uninitialized, max(1,2*n-2))
             info = Ref{BlasInt}()
             ccall((@blasfunc($steqr), liblapack), Void,
                 (Ref{UInt8}, Ref{BlasInt}, Ptr{$elty}, Ptr{$elty},
@@ -311,7 +316,7 @@ for (hseqr, trevc, trexc, trsen, elty) in
             ldz = stride(Z, 2)
             wr = similar(H, $elty, n)
             wi = similar(H, $elty, n)
-            work = Vector{$elty}(1)
+            work = Vector{$elty}(uninitialized, 1)
             lwork = BlasInt(-1)
             info = Ref{BlasInt}()
             for i = 1:2  # first call returns lwork as work[1]
@@ -346,7 +351,7 @@ for (hseqr, trevc, trexc, trsen, elty) in
 
             # Allocate
             m = Ref{BlasInt}()
-            work = Vector{$elty}(3n)
+            work = Vector{$elty}(uninitialized, 3n)
             info = Ref{BlasInt}()
 
             ccall((@blasfunc($trevc), liblapack), Void,
@@ -367,7 +372,7 @@ for (hseqr, trevc, trexc, trsen, elty) in
             n = checksquare(T)
             ldt = stride(T, 2)
             ldq = stride(Q, 2)
-            work = Vector{$elty}(n)
+            work = Vector{$elty}(uninitialized, n)
             info = Ref{BlasInt}()
             ccall((@blasfunc($trexc), liblapack), Void,
                   (Ref{UInt8},  Ref{BlasInt},
@@ -390,9 +395,9 @@ for (hseqr, trevc, trexc, trsen, elty) in
             wr = similar(T, $elty, n)
             wi = similar(T, $elty, n)
             m = sum(select)
-            work = Vector{$elty}(1)
+            work = Vector{$elty}(uninitialized, 1)
             lwork = BlasInt(-1)
-            iwork = Vector{BlasInt}(1)
+            iwork = Vector{BlasInt}(uninitialized, 1)
             liwork = BlasInt(-1)
             info = Ref{BlasInt}()
             select = convert(Array{BlasInt}, select)
@@ -439,7 +444,7 @@ end
             ldh = stride(H, 2)
             ldz = stride(Z, 2)
             w    = similar(H, $elty, n)
-            work  = Vector{$elty}(1)
+            work  = Vector{$elty}(uninitialized, 1)
             lwork = BlasInt(-1)
             info  = Ref{BlasInt}()
             for i = 1:2  # first call returns lwork as work[1]
@@ -475,8 +480,8 @@ end
 
             # Allocate
             m = Ref{BlasInt}()
-            work = Vector{$elty}(2n)
-            rwork = Vector{$relty}(n)
+            work = Vector{$elty}(uninitialized, 2n)
+            rwork = Vector{$relty}(uninitialized, n)
             info = Ref{BlasInt}()
             ccall((@blasfunc($trevc), liblapack), Void,
                 (Ref{UInt8}, Ref{UInt8}, Ptr{BlasInt}, Ref{BlasInt},
@@ -517,7 +522,7 @@ end
             ldq = max(1, stride(Q, 2))
             w = similar(T, $elty, n)
             m = sum(select)
-            work = Vector{$elty}(1)
+            work = Vector{$elty}(uninitialized, 1)
             lwork = BlasInt(-1)
             info = Ref{BlasInt}()
             select = convert(Array{BlasInt}, select)

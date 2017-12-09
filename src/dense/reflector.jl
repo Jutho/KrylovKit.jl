@@ -1,9 +1,3 @@
-if VERSION <= v"0.6.99"
-    const IndexRange{T<:Integer} = Base.Range{T}
-else
-    const IndexRange{T<:Integer} = Base.AbstractRange{T}
-end
-
 # Elementary Householder reflection
 struct Householder{T,V<:AbstractVector,R<:IndexRange}
     β::T

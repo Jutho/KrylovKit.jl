@@ -12,8 +12,8 @@
         α₀ = rand(T)
         α₁ = -rand(T)
         x, hist = @inferred linsolve(A, b, alg, α₀, α₁)
-        @test hist.converged > 0
         @test b ≈ (α₀*I+α₁*A)*x
+        @test hist.converged > 0
     end
 end
 

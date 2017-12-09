@@ -8,9 +8,10 @@ function eigsolve(A, x₀, howmany::Int, which::Symbol, alg::Lanczos)
     # Compute Lanczos factorization
     iter = LanczosIterator(A, x₀, alg.orth)
     fact = start(iter)
+    numops = 1
+    sizehint!(fact, krylovdim)
     β = normres(fact)
     tol::eltype(β) = alg.tol
-    numops = 1
     while length(fact) < krylovdim
         fact = next!(iter, fact)
         numops += 1
@@ -19,8 +20,8 @@ function eigsolve(A, x₀, howmany::Int, which::Symbol, alg::Lanczos)
 
     # Process
     # allocate storage
-    HH = zeros(eltype(fact), krylovdim+1, krylovdim)
-    UU = zeros(eltype(fact), krylovdim, krylovdim)
+    HH = fill(zero(eltype(fact)), krylovdim+1, krylovdim)
+    UU = fill(zero(eltype(fact)), krylovdim, krylovdim)
 
     # initialize
     β = normres(fact)

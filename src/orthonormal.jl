@@ -2,7 +2,7 @@
 struct OrthonormalBasis{T} <: Basis{T}
     basis::Vector{T}
 end
-OrthonormalBasis{T}() where {T} = OrthonormalBasis{T}(Vector{T}())
+OrthonormalBasis{T}() where {T} = OrthonormalBasis{T}(Vector{T}(uninitialized, 0))
 
 # Iterator methods for OrthonormalBasis
 Base.length(b::OrthonormalBasis) = length(b.basis)
@@ -34,7 +34,7 @@ function Base.:*(b::OrthonormalBasis, x::AbstractVector)
 end
 function Base.Ac_mul_B(b::OrthonormalBasis, x)
     S = promote_type(eltype(eltype(b)), eltype(x))
-    y = Vector{S}(length(b))
+    y = Vector{S}(uninitialized, length(b))
     Ac_mul_B!(y, b, x)
 end
 
@@ -61,7 +61,7 @@ orthogonalize(v, args...) = orthogonalize!(copy(v), args...)
 
 function orthogonalize!(v::T, b::OrthonormalBasis{T}, alg::Orthogonalizer) where {T}
     S = promote_type(eltype(v), eltype(T))
-    c = Vector{S}(length(b))
+    c = Vector{S}(uninitialized, length(b))
     orthogonalize!(v, b, c, alg)
 end
 
