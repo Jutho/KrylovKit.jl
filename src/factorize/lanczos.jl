@@ -44,8 +44,8 @@ function Base.start(iter::LanczosIterator)
     w₁ = apply(iter.operator, v) # applying the operator might change eltype
     w₀ = copy!(similar(w₁), v)
     w₁, β, α = orthonormalize!(w₁, w₀, iter.orth)
-    n = hypot(α,β)
-    imag(α) <= 10*eps(n) || error("operator does not appear to be hermitian: $(imag(α)) vs $n")
+    n = hypot(α,2*β)
+    imag(α) <= sqrt(eps(n)) || error("operator does not appear to be hermitian: $(imag(α)) vs $n")
 
     V = OrthonormalBasis([w₀,w₁])
     S = eltype(β)
