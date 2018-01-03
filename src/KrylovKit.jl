@@ -67,4 +67,7 @@ apply(f, x) = f(x)
 apply!(y::AbstractVector, A::AbstractMatrix, x::AbstractVector) = A_mul_B!(y, A, x)
 apply!(y, f, x) = copy!(y, f(x))
 
+include("recursivevec.jl")
+export RecursiveVec
+
 end

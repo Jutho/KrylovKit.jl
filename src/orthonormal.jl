@@ -167,6 +167,6 @@ orthonormalize(v, args...) = orthonormalize!(copy(v), args...)
 function orthonormalize!(v, args...)
     out = orthogonalize!(v, args...) # out[1] === v
     r = vecnorm(v)
-    v = scale!(v, inv(r))
+    v = scale!(v, v, inv(r))
     return tuple(v, r, Base.tail(out)...)
 end

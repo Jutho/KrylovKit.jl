@@ -34,7 +34,7 @@ function rmulc!(A::AbstractMatrix, G::Givens, rows=indices(A,1))
 end
 function rmulc!(b::OrthonormalBasis, G::Givens)
     q1, q2 = b[G.i1], b[G.i2]
-    q1old = copy(q1)
+    q1old = copy!(similar(q1), q1)
     axpy!(conj(G.s), q2, scale!(q1, G.c))
     axpy!(-G.s, q1old, scale!(q2, G.c))
     return b

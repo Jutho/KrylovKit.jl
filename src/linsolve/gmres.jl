@@ -8,7 +8,10 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀ = 0, a₁ = 1)
     α₀::T = a₀
     α₁::T = a₁
     # Continue computing r = b - a₀ * x₀ - a₁ * operator(x₀)
-    r = b - α₀*x₀ - α₁*y₀
+    r = similar(b, T)
+    copy!(r, b)
+    axpy!(-α₀, x₀, r)
+    axpy!(-α₁, y₀, r)
     x = copy!(similar(r), x₀)
     β = vecnorm(r)
     S = typeof(β)
