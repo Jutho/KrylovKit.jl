@@ -16,7 +16,7 @@ function schursolve(A, x₀, howmany::Int, which::Symbol, alg::Arnoldi)
     while length(fact) < krylovdim
         fact = next!(iter, fact)
         numops += 1
-        normres(fact) < tol && break
+        normres(fact) < tol && length(fact) >= howmany && break
     end
 
     # Process
@@ -85,7 +85,7 @@ function schursolve(A, x₀, howmany::Int, which::Symbol, alg::Arnoldi)
         while length(fact) < krylovdim
             fact = next!(iter, fact)
             numops += 1
-            normres(fact) < tol && break
+            normres(fact) < tol && length(fact) >= howmany && break
         end
 
         # post process
