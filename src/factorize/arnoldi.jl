@@ -32,7 +32,8 @@ residual(F::ArnoldiFact) = normres(F)*F.V[F.k+1]
 
 function Base.start(iter::ArnoldiIterator)
     β₀ = vecnorm(iter.v₀)
-    v = iter.v₀/β₀ # division might change eltype
+    T = typeof(one(eltype(iter.v₀))/β₀) # division might change eltype
+    v = scale!(similar(iter.v₀, T), iter.v₀, 1/β₀)
     w₁ = apply(iter.operator, v) # applying the operator might change eltype
     w₀ = copy!(similar(w₁), v)
     w₁, β, α = orthonormalize!(w₁, w₀, iter.orth)

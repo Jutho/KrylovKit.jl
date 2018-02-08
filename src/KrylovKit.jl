@@ -3,8 +3,9 @@ module KrylovKit
 # length(v)::Int -> dimensionality of the vector space, i.e. number of elements in the vector
 # eltype(v)::Type{<:Number} -> element type of the data in the vector
 # similar(v, [T::Type{<:Number}]) -> a similar object, possibly with different eltype
-# fill!(v, α) -> fill all entries of v with the value α
-# scale!(w,v,α) -> w = α*v, LinAlg.axpy!(α,v,w) w += α*v : key properties of a vector
+# zero(v) -> create a similar object that represents the zero vector
+# scale!(w,v,α) -> w = α*v: key properties of a vector
+# LinAlg.axpy!(α,v,w) w += α*v : key properties of a vector
 # vecdot(w,v), vecnorm(v) -> inner products and norms
 
 using Compat
