@@ -41,9 +41,9 @@ end
 function Base.A_mul_B!(y, b::OrthonormalBasis, x::AbstractVector)
     @assert length(x) <= length(b)
 
-    fill!(y, zero(eltype(y)))
+    y = fill!(y, zero(eltype(y)))
     @inbounds for (i, xi) = enumerate(x)
-        Base.LinAlg.axpy!(xi, b[i], y)
+        y = Base.LinAlg.axpy!(xi, b[i], y)
     end
     return y
 end
@@ -70,7 +70,7 @@ function orthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::Class
         x[i] = vecdot(q, v)
     end
     for (i, q) = enumerate(b)
-        Base.LinAlg.axpy!(-x[i], q, v)
+        v = Base.LinAlg.axpy!(-x[i], q, v)
     end
     return (v, x)
 end
@@ -81,7 +81,7 @@ function reorthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::Cla
         x[i] += s[i]
     end
     for (i, q) = enumerate(b)
-        Base.LinAlg.axpy!(-s[i], q, v)
+        v = Base.LinAlg.axpy!(-s[i], q, v)
     end
     return (v, x)
 end
@@ -95,7 +95,7 @@ function orthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, alg::Cl
     nnew = vecnorm(v)
     while nnew < alg.η*nold
         nold = nnew
-        reorthogonalize!(v, b, x, ClassicalGramSchmidt())
+        v = reorthogonalize!(v, b, x, ClassicalGramSchmidt())
         nnew = vecnorm(v)
     end
     return (v, x)
@@ -104,7 +104,7 @@ end
 function orthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::ModifiedGramSchmidt) where {T}
     for (i, q) = enumerate(b)
         s = vecdot(q, v)
-        Base.LinAlg.axpy!(-s, q, v)
+        v = Base.LinAlg.axpy!(-s, q, v)
         x[i] = s
     end
     return (v, x)
@@ -112,7 +112,7 @@ end
 function reorthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::ModifiedGramSchmidt) where {T}
     for (i, q) = enumerate(b)
         s = vecdot(q, v)
-        Base.LinAlg.axpy!(-s, q, v)
+        v = Base.LinAlg.axpy!(-s, q, v)
         x[i] += s
     end
     return (v, x)
@@ -123,11 +123,11 @@ function orthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::Modif
 end
 function orthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, alg::ModifiedGramSchmidtIR) where {T}
     nold = vecnorm(v)
-    orthogonalize!(v, b, x, ModifiedGramSchmidt())
+    v = orthogonalize!(v, b, x, ModifiedGramSchmidt())
     nnew = vecnorm(v)
     while nnew < alg.η*nold
         nold = nnew
-        reorthogonalize!(v, b, x, ModifiedGramSchmidt())
+        v = reorthogonalize!(v, b, x, ModifiedGramSchmidt())
         nnew = vecnorm(v)
     end
     return (v, x)
@@ -136,25 +136,25 @@ end
 # Orthogonalization of a vector against a given normalized vector
 function orthogonalize!(v::T, q::T, alg::Union{ClassicalGramSchmidt,ModifiedGramSchmidt}) where {T}
     s = vecdot(q,v)
-    Base.LinAlg.axpy!(-s, q, v)
+    v = Base.LinAlg.axpy!(-s, q, v)
     return (v, s)
 end
 function orthogonalize!(v::T, q::T, alg::Union{ClassicalGramSchmidt2,ModifiedGramSchmidt2}) where {T}
     s = vecdot(q,v)
-    Base.LinAlg.axpy!(-s, q, v)
+    v = Base.LinAlg.axpy!(-s, q, v)
     ds = vecdot(q,v)
-    Base.LinAlg.axpy!(-ds, q, v)
+    v = Base.LinAlg.axpy!(-ds, q, v)
     return (v, s+ds)
 end
 function orthogonalize!(v::T, q::T, alg::Union{ClassicalGramSchmidtIR,ModifiedGramSchmidtIR}) where {T}
     nold = vecnorm(v)
     s = vecdot(q,v)
-    Base.LinAlg.axpy!(-s, q, v)
+    v = Base.LinAlg.axpy!(-s, q, v)
     nnew = vecnorm(v)
     while nnew < alg.η*nold
         nold = nnew
         ds = vecdot(q,v)
-        Base.LinAlg.axpy!(-ds, q, v)
+        v = Base.LinAlg.axpy!(-ds, q, v)
         s += ds
         nnew = vecnorm(v)
     end
