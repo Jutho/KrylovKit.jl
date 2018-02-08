@@ -95,7 +95,7 @@ function orthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, alg::Cl
     nnew = vecnorm(v)
     while nnew < alg.η*nold
         nold = nnew
-        v = reorthogonalize!(v, b, x, ClassicalGramSchmidt())
+        (v,x) = reorthogonalize!(v, b, x, ClassicalGramSchmidt())
         nnew = vecnorm(v)
     end
     return (v, x)
@@ -123,11 +123,11 @@ function orthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::Modif
 end
 function orthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, alg::ModifiedGramSchmidtIR) where {T}
     nold = vecnorm(v)
-    v = orthogonalize!(v, b, x, ModifiedGramSchmidt())
+    (v,x) = orthogonalize!(v, b, x, ModifiedGramSchmidt())
     nnew = vecnorm(v)
     while nnew < alg.η*nold
         nold = nnew
-        v = reorthogonalize!(v, b, x, ModifiedGramSchmidt())
+        (v,x) = reorthogonalize!(v, b, x, ModifiedGramSchmidt())
         nnew = vecnorm(v)
     end
     return (v, x)
