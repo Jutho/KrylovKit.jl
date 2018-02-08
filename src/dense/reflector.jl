@@ -141,7 +141,7 @@ function rmulc!(b::OrthonormalBasis, H::Householder)
     r = H.r
     β = H.β
     β == 0 && return b
-    w = fill!(similar(b[first(r)]), zero(eltype(b[first(r)])))
+    w = zero(b[first(r)])
     @inbounds begin
         l = 1
         for k in r

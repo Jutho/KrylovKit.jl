@@ -1,5 +1,5 @@
 linsolve(operator, b, alg::GMRES, a₀ = 0, a₁ = 1) =
-    linsolve(operator, b, fill!(similar(b), zero(eltype(b))), alg, a₀, a₁)
+    linsolve(operator, b, zero(b), alg, a₀, a₁)
 
 function linsolve(operator, b, x₀, alg::GMRES, a₀ = 0, a₁ = 1)
     # Initial function operation and division defines number type
