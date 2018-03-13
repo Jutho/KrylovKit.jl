@@ -1,4 +1,4 @@
-function eigsolve(A, x₀, howmany::Int, which::Symbol, alg::Lanczos)
+function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
     krylovdim = min(alg.krylovdim, length(x₀))
     maxiter = alg.maxiter
     howmany < krylovdim || error("krylov dimension $(krylovdim) too small to compute $howmany eigenvalues")
@@ -116,7 +116,9 @@ function eigsolve(A, x₀, howmany::Int, which::Symbol, alg::Lanczos)
     residuals = let r = residual(fact)
         [r*last(v) for v in cols(V)]
     end
-    normreseigvecs = scale!(map(abs, view(V, m, :)), β)
+    normresiduals = let f = f
+        map(i->abs(f[i]), 1:howmany)
+    end
 
-    return values, vectors, ConvergenceInfo(converged, normreseigvecs, residuals, numiter, numops)
+    return values, vectors, ConvergenceInfo(converged, normresiduals, residuals, numiter, numops)
 end

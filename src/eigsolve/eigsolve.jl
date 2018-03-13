@@ -1,19 +1,25 @@
-function eigsolve(A::AbstractMatrix, howmany::Int = 1, which::Symbol = :LM, T::Type = eltype(A);
+struct ClosestTo{T}
+    λ::T
+end
+
+const Selector = Union{ClosestTo, Symbol}
+
+function eigsolve(A::AbstractMatrix, howmany::Int = 1, which::Selector = :LM, T::Type = eltype(A);
         issymmetric = issymmetric(A), ishermitian = ishermitian(A),
         krylovdim::Int = Defaults.krylovdim, maxiter::Int = Defaults.maxiter, tol::Real = Defaults.tol)
     eigsolve(x->(A*x), size(A,1), howmany, which, T; issymmetric = issymmetric, ishermitian = ishermitian, krylovdim = krylovdim, maxiter = maxiter, tol = tol)
 end
 
-function eigsolve(A::AbstractMatrix, x₀::VecOrMat, howmany::Int = 1, which::Symbol = :LM, T::Type = promote_type(eltype(A), eltype(x₀));
+function eigsolve(A::AbstractMatrix, x₀::VecOrMat, howmany::Int = 1, which::Selector = :LM, T::Type = promote_type(eltype(A), eltype(x₀));
         issymmetric = issymmetric(A), ishermitian = ishermitian(A),
         krylovdim::Int = Defaults.krylovdim, maxiter::Int = Defaults.maxiter, tol::Real = Defaults.tol)
     eigsolve(x->(A*x), x₀, howmany, which, T; issymmetric = issymmetric, ishermitian = ishermitian, krylovdim = krylovdim, maxiter = maxiter, tol = tol)
 end
 
-eigsolve(f, n::Int, howmany::Int = 1, which::Symbol = :LM, T::Type = Float64; kwargs...) =
+eigsolve(f, n::Int, howmany::Int = 1, which::Selector = :LM, T::Type = Float64; kwargs...) =
     eigsolve(f, rand(T, n), howmany, which; kwargs...)
 
-function eigsolve(f, x₀, howmany::Int = 1, which::Symbol = :LM, T::Type = eltype(x₀);
+function eigsolve(f, x₀, howmany::Int = 1, which::Selector = :LM, T::Type = eltype(x₀);
         issymmetric = false, ishermitian = T<:Real && issymmetric,
         krylovdim::Int = Defaults.krylovdim, maxiter::Int = Defaults.maxiter, tol::Real = Defaults.tol)
     x = eltype(x₀) == T ? x₀ : copy!(similar(x₀, T), x₀)
@@ -27,6 +33,12 @@ function eigsolve(f, x₀, howmany::Int = 1, which::Symbol = :LM, T::Type = elty
     end
 end
 
+
+function eigsort(which::ClosestTo)
+    by = x->abs(x-which.λ)
+    rev = false
+    return by, rev
+end
 function eigsort(which::Symbol)
     if which == :LM
         by = abs

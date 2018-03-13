@@ -28,12 +28,12 @@ Base.resize!(b::OrthonormalBasis, k::Int) = (resize!(b.basis, k); return b)
 
 # Multiplication methods with OrthonormalBasis
 function Base.:*(b::OrthonormalBasis, x::AbstractVector)
-    S = promote_type(eltype(eltype(b)), eltype(x))
-    y = similar(b.basis[1], S)
+    S = promote_type(eltype(first(b)), eltype(x))
+    y = similar(first(b), S)
     A_mul_B!(y, b, x)
 end
 function Base.Ac_mul_B(b::OrthonormalBasis, x)
-    S = promote_type(eltype(eltype(b)), eltype(x))
+    S = promote_type(eltype(first(b)), eltype(x))
     y = Vector{S}(uninitialized, length(b))
     Ac_mul_B!(y, b, x)
 end
@@ -60,7 +60,7 @@ end
 orthogonalize(v, args...) = orthogonalize!(copy(v), args...)
 
 function orthogonalize!(v::T, b::OrthonormalBasis{T}, alg::Orthogonalizer) where {T}
-    S = promote_type(eltype(v), eltype(T))
+    S = promote_type(eltype(v), eltype(first(b)))
     c = Vector{S}(uninitialized, length(b))
     orthogonalize!(v, b, c, alg)
 end

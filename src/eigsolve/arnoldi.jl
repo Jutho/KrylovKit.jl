@@ -1,5 +1,5 @@
 # Arnoldi methods for eigenvalue problems
-function schursolve(A, x₀, howmany::Int, which::Symbol, alg::Arnoldi)
+function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     krylovdim = min(alg.krylovdim, length(x₀))
     maxiter = alg.maxiter
     howmany < krylovdim || error("krylov dimension $(krylovdim) too small to compute $howmany eigenvalues")
@@ -119,11 +119,14 @@ function schursolve(A, x₀, howmany::Int, which::Symbol, alg::Arnoldi)
     residuals = let r = residual(fact)
         [r*last(u) for u in cols(U, 1:howmany)]
     end
+    normresiduals = let f = f
+        map(i->abs(f[i]), 1:howmany)
+    end
 
-    return view(T,1:howmany,1:howmany), vectors, values, ConvergenceInfo(converged, f[1:howmany], residuals, numiter, numops)
+    return view(T,1:howmany,1:howmany), vectors, values, ConvergenceInfo(converged, normresiduals, residuals, numiter, numops)
 end
 
-function eigsolve(A, x₀, howmany::Int, which::Symbol, alg::Arnoldi)
+function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     T, schurvectors, values, info = schursolve(A, x₀, howmany, which, alg)
 
     # Transform schurvectors to eigenvectors
