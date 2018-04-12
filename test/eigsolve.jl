@@ -10,7 +10,7 @@
             D1, V1, info = @inferred eigsolve(A, v, n1, :SR, alg)
             n2 = n-n1
             D2, V2, info = eigsolve(A, v, n2, :LR, alg)
-            @test vcat(D1,reverse(D2)) ≈ eigvals(A)
+            @test vcat(D1[1:n1],reverse(D2[1:n2])) ≈ eigvals(A)
             U1 = hcat(V1...)
             U2 = hcat(V2...)
             @test A*U1 ≈ U1*Diagonal(D1)
@@ -30,8 +30,8 @@ end
             D1, V1, info1 = @inferred eigsolve(A, v, n1, :SR, alg)
             n2 = n-n1
             D2, V2, info2 = eigsolve(A, v, n2, :LR, alg)
-            @test D1 ≈ eigvals(A)[1:n1]
-            @test D2 ≈ eigvals(A)[N:-1:N-n2+1]
+            @test D1 ≈ eigvals(A)[1:length(D1)]
+            @test D2 ≈ eigvals(A)[N:-1:N-length(D2)+1]
             U1 = hcat(V1...)
             U2 = hcat(V2...)
             R1 = hcat(info1.residual...)
@@ -54,13 +54,8 @@ end
             n2 = n-n1
             D2, V2, info2 = eigsolve(A, v, n2, :LR, alg)
             D = sort(sort(eigvals(A), by=imag, rev=true), alg=MergeSort, by=real)
-            if length(D1) > n1
-                D2′ = sort(sort(D2[1:end-2], by=imag, rev=true), alg=MergeSort, by=real)
-                @test vcat(D1,D2′) ≈ D
-            else
-                D2′ = sort(sort(D2, by=imag, rev=true), alg=MergeSort, by=real)
-                @test vcat(D1,D2′) ≈ D
-            end
+            D2′ = sort(sort(D2, by=imag, rev=true), alg=MergeSort, by=real)
+            @test vcat(D1[1:n1],D2′[end-n2+1:end]) ≈ D
             U1 = hcat(V1...)
             U2 = hcat(V2...)
             @test A*U1 ≈ U1*Diagonal(D1)
@@ -72,7 +67,7 @@ end
                 n2 = n-n1
                 D2, V2, info = eigsolve(A, v, n2, :LI, alg)
                 D = sort(eigvals(A), by=imag)
-                @test vcat(D1,reverse(D2)) ≈ D
+                @test vcat(D1[1:n1],reverse(D2[1:n2])) ≈ D
                 U1 = hcat(V1...)
                 U2 = hcat(V2...)
                 @test A*U1 ≈ U1*Diagonal(D1)
@@ -108,10 +103,10 @@ end
 
             if T<:Complex
                 T1, V1, D1, info1 = schursolve(A, v, n, :SI, alg)
-                T1, V1, D2, info2 = schursolve(A, v, n, :LI, alg)
+                T2, V2, D2, info2 = schursolve(A, v, n, :LI, alg)
                 D = eigvals(A)
-                @test D1 ≈ sort(D, by=imag)[1:n]
-                @test D2 ≈ sort(D, by=imag, rev=true)[1:n]
+                @test D1 ≈ sort(D, by=imag)[1:length(D1)]
+                @test D2 ≈ sort(D, by=imag, rev=true)[1:length(D2)]
 
                 U1 = hcat(V1...)
                 U2 = hcat(V2...)

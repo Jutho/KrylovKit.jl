@@ -7,11 +7,11 @@
             A = (A+A')
             iter = LanczosIterator(A, v, orth)
             fact = start(iter)
-            while !done(iter, fact)
-                nr, fact = next(iter, fact)
+            while !done(iter, fact) && length(fact) < n
+                _, fact = next(iter, fact)
             end
 
-            V = hcat(basis(fact)...)[:,1:n]
+            V = hcat(basis(fact)...)
             H = rayleighquotient(fact)
             @test normres(fact) < 10*n*eps(real(T))
             G = V'*V
@@ -28,18 +28,18 @@ end
             A = rand(T,(n,n))
             v = rand(T,(n,))
             iter = ArnoldiIterator(A, v, orth)
-            s = start(iter)
-            while !done(iter, s)
-                fact, s = next(iter, s)
+            fact = start(iter)
+            while !done(iter, fact) && length(fact) < n
+                _, fact = next(iter, fact)
             end
 
-            V = hcat(basis(s)...)[:,1:n]
-            H = rayleighquotient(s)
+            V = hcat(basis(fact)...)
+            H = rayleighquotient(fact)
             factor = (orth == cgs || orth == mgs ? 100 : 10)
-            @test normres(s) < factor*n*eps(real(T))
+            @test normres(fact) < factor*n*eps(real(T))
             G = V'*V
             @test G ≈ one(G)
-            @test A*V[:,1:n] ≈ V[:,1:n]*H
+            @test A*V ≈ V*H
         end
     end
 end
@@ -53,20 +53,23 @@ end
             A = (A+A')
             iter = @inferred LanczosIterator(A, v, orth)
             krylovdim = n
-            s = @inferred start(iter)
-            @inferred next(iter, s)
-            @inferred done(iter, s)
-            while !done(iter, s) && s.k < krylovdim
-                fact, s = next(iter, s)
+            fact = @inferred start(iter)
+            @inferred next(iter, fact)
+            @inferred done(iter, fact)
+            while !done(iter, fact) && length(fact) < krylovdim
+                _, fact = next(iter, fact)
             end
 
-            V = hcat(basis(s)...)
-            H = zeros(T,(n+1,n))
-            H[1:n,:] = @inferred rayleighquotient(s)
-            H[n+1,n] = @inferred normres(s)
+            V = hcat(basis(fact)...)
+            H = @inferred rayleighquotient(fact)
+            r = @inferred residual(fact)
+            β = @inferred normres(fact)
+            e = zeros(T,n)
+            e[n] = one(T)
             G = V[:,1:n]'*V[:,1:n]
             @test G ≈ one(G)
-            @test A*V[:,1:n] ≈ V*H
+            @test norm(r) ≈ β
+            @test A*V ≈ V*H + r*e'
         end
     end
 end
@@ -79,20 +82,23 @@ end
             v = rand(T,(N,))
             iter = @inferred ArnoldiIterator(A, v, orth)
             krylovdim = n
-            s = @inferred start(iter)
-            @inferred next(iter, s)
-            @inferred done(iter, s)
-            while !done(iter, s) && s.k < krylovdim
-                fact, s = next(iter, s)
+            fact = @inferred start(iter)
+            @inferred next(iter, fact)
+            @inferred done(iter, fact)
+            while !done(iter, fact) && length(fact) < krylovdim
+                _, fact = next(iter, fact)
             end
 
-            V = hcat(basis(s)...)
-            H = zeros(T,(n+1,n))
-            H[1:n,:] = @inferred rayleighquotient(s)
-            H[n+1,n] = @inferred normres(s)
+            V = hcat(basis(fact)...)
+            H = @inferred rayleighquotient(fact)
+            r = @inferred residual(fact)
+            β = @inferred normres(fact)
+            e = zeros(T,n)
+            e[n] = one(T)
             G = V[:,1:n]'*V[:,1:n]
             @test G ≈ one(G)
-            @test A*V[:,1:n] ≈ V*H
+            @test norm(r) ≈ β
+            @test A*V ≈ V*H + r*e'
         end
     end
 end

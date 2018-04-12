@@ -46,10 +46,10 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀ = 0, a₁ = 1)
         β = convert(S, abs(y[2]))
         # info("iter $numiter, step $k : normres = $β")
 
-        while β > tol && fact.k < krylovdim # inner arnoldi loop
+        while β > tol && length(fact) < krylovdim # inner arnoldi loop
             fact = next!(iter, fact)
             numops += 1 # next! applies the operator once
-            k = fact.k
+            k = length(fact)
             H = rayleighquotient(fact)
 
             # copy Arnoldi Hessenberg matrix into R
@@ -79,13 +79,15 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀ = 0, a₁ = 1)
         ldiv!(UpperTriangular(R), y, 1:k)
 
         # Update x
-        V = fact.V
+        V = basis(fact)
         @inbounds for i = 1:k
-            axpy!(y[i], fact.V[i], x)
+            axpy!(y[i], V[i], x)
         end
 
         if β > tol
             # Recompute residual without reevaluating operator
+            w = residual(fact)
+            push!(V, scale!(w, w, 1/normres(fact)))
             for i = 1:k
                 rmulc!(V, gs[i])
             end
