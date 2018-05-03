@@ -18,7 +18,7 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀ = 0, a₁ = 1)
 
     # Algorithm parameters
     maxiter = alg.maxiter
-    krylovdim = min(alg.krylovdim, length(r))
+    krylovdim = alg.krylovdim
     tol::S = max(alg.tol, vecnorm(b)*alg.reltol)
 
     # Check for early return
@@ -74,6 +74,7 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀ = 0, a₁ = 1)
             β = convert(S, abs(y[k+1]))
             # info("iter $numiter, step $k : normres = $β")
         end
+        # info("iter $numiter, finished at step $k : normres = $β")
 
         # Solve upper triangular system
         ldiv!(UpperTriangular(R), y, 1:k)

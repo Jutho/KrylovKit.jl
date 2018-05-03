@@ -4,11 +4,11 @@ end
 RecursiveVec(arg1, args...) = RecursiveVec((arg1, args...))
 
 Base.getindex(v::RecursiveVec, i) = v.vecs[i]
-
-Base.length(v::RecursiveVec) = sum(length, v.vecs)
+Base.start(v::RecursiveVec) = start(v.vecs)
+Base.next(v::RecursiveVec, s) = next(v.vecs, s)
+Base.done(v::RecursiveVec, s) = done(v.vecs, s)
 
 Base.eltype(v::RecursiveVec) = eltype(typeof(v))
-
 Base.eltype(::Type{RecursiveVec{T}}) where {T<:Tuple} = _eltype(T)
 
 _eltype(::Type{Tuple{T}}) where {T} = eltype(T)
