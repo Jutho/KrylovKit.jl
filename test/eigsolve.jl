@@ -87,13 +87,16 @@ end
             T2, V2, D2, info2 = schursolve(A, v, n, :LR, alg)
             T3, V3, D3, info3 = schursolve(A, v, n, :LM, alg)
             D = sort(eigvals(A), by=imag, rev=true)
+            U1 = hcat(V1...)
+            U2 = hcat(V2...)
+            U3 = hcat(V3...)
+            @test U1'*U1 ≈ one(U1'*U1)
+            @test U2'*U2 ≈ one(U2'*U2)
+            @test U3'*U3 ≈ one(U3'*U3)
             @test D1 ≈ sort(D, alg=MergeSort, by=real)[1:length(D1)]
             @test D2 ≈ sort(D, alg=MergeSort, by=real, rev=true)[1:length(D2)]
             @test D3 ≈ sort(D, alg=MergeSort, by=abs, rev=true)[1:length(D3)]
 
-            U1 = hcat(V1...)
-            U2 = hcat(V2...)
-            U3 = hcat(V3...)
             R1 = hcat(info1.residual...)
             R2 = hcat(info2.residual...)
             R3 = hcat(info3.residual...)
