@@ -71,5 +71,7 @@ apply!(y, f, x) = copy!(y, f(x))
 
 include("recursivevec.jl")
 export RecursiveVec
+include("innerproductvec.jl")
+export InnerProductVec
 
 end

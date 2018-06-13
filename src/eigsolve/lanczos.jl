@@ -1,7 +1,7 @@
 function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
-    krylovdim = min(alg.krylovdim, length(x₀))
+    krylovdim = alg.krylovdim
     maxiter = alg.maxiter
-    howmany < krylovdim || error("krylov dimension $(krylovdim) too small to compute $howmany eigenvalues")
+    howmany > krylovdim && error("krylov dimension $(krylovdim) too small to compute $howmany eigenvalues")
 
     ## FIRST ITERATION: setting up
     numiter = 1
@@ -46,7 +46,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
         numiter += 1
 
         # Determine how many to keep
-        keep = div(3*krylovdim + 2*converged, 5) # strictly smaller than krylovdim, at least equal to converged
+        keep = div(3*krylovdim + 2*converged, 5) # strictly smaller than krylovdim since converged < howmany <= krylovdim, at least equal to converged
 
         # Update B by applying U using Householder reflections
         B = basis(fact)
@@ -57,7 +57,8 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
         end
 
         # Shrink Lanczos factorization (no longer strictly Lanczos)
-        B[keep+1] = last(B)
+        r = residual(fact)
+        B[keep+1] = scale!(r, r, 1/normres(fact))
         H = fill!(view(HH, 1:keep+1, 1:keep), 0)
         @inbounds for j = 1:keep
             H[j,j] = D[j]
@@ -103,6 +104,10 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
         while converged < length(fact) && abs(f[converged+1]) < tol
             converged += 1
         end
+    end
+
+    if converged > howmany
+        howmany = converged
     end
     values = D[1:howmany]
 

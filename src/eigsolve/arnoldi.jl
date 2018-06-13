@@ -1,8 +1,8 @@
 # Arnoldi methods for eigenvalue problems
 function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
-    krylovdim = min(alg.krylovdim, length(x₀))
+    krylovdim = alg.krylovdim
     maxiter = alg.maxiter
-    howmany < krylovdim || error("krylov dimension $(krylovdim) too small to compute $howmany eigenvalues")
+    howmany > krylovdim && error("krylov dimension $(krylovdim) too small to compute $howmany eigenvalues")
 
     ## FIRST ITERATION: setting up
     numiter = 1
@@ -43,13 +43,16 @@ function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     while converged < length(fact) && abs(f[converged+1]) < tol
         converged += 1
     end
+    if eltype(T) <: Real && 0< converged < length(fact) && T[converged+1,converged] != 0
+        converged -= 1
+    end
 
     ## OTHER ITERATIONS: recycle
     while numiter < maxiter && converged < howmany
         numiter += 1
 
         # Determine how many to keep
-        keep = div(3*krylovdim + 2*converged, 5) # strictly smaller than krylovdim, at least equal to converged
+        keep = div(3*krylovdim + 2*converged, 5) # strictly smaller than krylovdim since converged < howmany <= krylovdim, at least equal to converged
         if eltype(H) <: Real && H[keep+1,keep] != 0 # we are in the middle of a 2x2 block
             keep += 1 # conservative choice
             keep >= krylovdim && error("krylov dimension $(krylovdim) too small to compute $howmany eigenvalues")
@@ -64,7 +67,8 @@ function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
         end
 
         # Shrink Arnoldi factorization (no longer strictly Arnoldi but still Krylov)
-        B[keep+1] = last(B)
+        r = residual(fact)
+        B[keep+1] = scale!(r, r, 1/normres(fact))
         for j = 1:keep
             H[keep+1,j] = f[j]
         end
@@ -107,9 +111,15 @@ function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
         while converged < length(fact) && abs(f[converged+1]) < tol
             converged += 1
         end
+        if eltype(T) <: Real && 0 < converged < length(fact) && T[converged+1,converged] != 0
+            converged -= 1
+        end
     end
-    if eltype(H) <: Real && length(fact) > howmany && T[howmany+1,howmany] != 0
+    if eltype(T) <: Real && howmany < length(fact) && T[howmany+1,howmany] != 0
         howmany += 1
+    end
+    if converged > howmany
+        howmany = converged
     end
     TT = view(T,1:howmany,1:howmany)
     values = schur2eigvals(TT)
