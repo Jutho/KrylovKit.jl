@@ -9,16 +9,8 @@ module KrylovKit
 # LinAlg.axpy!(α,v,w) w += α*v : key properties of a vector
 # vecdot(w,v), vecnorm(v) -> inner products and norms
 
-using Compat
-
-@static if !isdefined(Base, :AbstractRange)
-    const IndexRange{T<:Integer} = Base.Range{T}
-else
-    const IndexRange{T<:Integer} = Base.AbstractRange{T}
-end
-
-
-using Base.length, Base.eltype, Base.similar, Base.LinAlg.axpy!, Base.scale!, Base.vecdot, Base.vecnorm
+using Base: RangeIndex
+using LinearAlgebra
 
 export orthogonalize, orthogonalize!, orthonormalize, orthonormalize!
 export cgs, mgs, cgs2, mgs2, cgsr, mgsr
@@ -35,43 +27,43 @@ abstract type Basis{T} end
 abstract type KrylovFactorization{T} end
 
 include("orthonormal.jl")
-include("factorize/lanczos.jl")
-include("factorize/arnoldi.jl")
-
-include("dense/givens.jl")
-include("dense/linalg.jl")
-include("dense/packedhessenberg.jl")
-include("dense/reflector.jl")
-
-# include("dense/factorizations.jl")
-# include("dense/utldiv.jl")
-# include("dense/hschur.jl")
-
-struct ConvergenceInfo{S,T}
-    converged::Int # how many vectors have converged, 0 or 1 for linear systems, exponentiate, any integer for eigenvalue problems
-    normres::S
-    residual::T
-    numiter::Int
-    numops::Int
-end
-
-include("linsolve/gmres.jl")
-
-include("matrixfun/exponentiate.jl")
-
-include("eigsolve/eigsolve.jl")
-include("eigsolve/lanczos.jl")
-include("eigsolve/arnoldi.jl")
-
-apply(A::AbstractMatrix, x::AbstractVector) = A*x
-apply(f, x) = f(x)
-
-apply!(y::AbstractVector, A::AbstractMatrix, x::AbstractVector) = A_mul_B!(y, A, x)
-apply!(y, f, x) = copy!(y, f(x))
-
-include("recursivevec.jl")
-export RecursiveVec
-include("innerproductvec.jl")
-export InnerProductVec
+# include("factorize/lanczos.jl")
+# include("factorize/arnoldi.jl")
+#
+# include("dense/givens.jl")
+# include("dense/linalg.jl")
+# include("dense/packedhessenberg.jl")
+# include("dense/reflector.jl")
+#
+# # include("dense/factorizations.jl")
+# # include("dense/utldiv.jl")
+# # include("dense/hschur.jl")
+#
+# struct ConvergenceInfo{S,T}
+#     converged::Int # how many vectors have converged, 0 or 1 for linear systems, exponentiate, any integer for eigenvalue problems
+#     normres::S
+#     residual::T
+#     numiter::Int
+#     numops::Int
+# end
+#
+# include("linsolve/gmres.jl")
+#
+# include("matrixfun/exponentiate.jl")
+#
+# include("eigsolve/eigsolve.jl")
+# include("eigsolve/lanczos.jl")
+# include("eigsolve/arnoldi.jl")
+#
+# apply(A::AbstractMatrix, x::AbstractVector) = A*x
+# apply(f, x) = f(x)
+#
+# apply!(y::AbstractVector, A::AbstractMatrix, x::AbstractVector) = A_mul_B!(y, A, x)
+# apply!(y, f, x) = copy!(y, f(x))
+#
+# include("recursivevec.jl")
+# export RecursiveVec
+# include("innerproductvec.jl")
+# export InnerProductVec
 
 end

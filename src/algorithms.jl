@@ -200,7 +200,7 @@ end
     can be passed to `linsolve` in order to iteratively solve a linear system. The
     `GMRES` method will search for the optimal `x` in a Krylov subspace of maximal
     size `krylovdim`, and repeat this process for at most `maxiter` times, or stop
-    when \$\| A*x - b \| < max(tol, reltol*\|b\|)\$.
+    when \$ | A*x - b | < max(tol, reltol*|b|) \$.
 
     In building the Krylov subspace, it will use the orthogonalizer `orth`.
 
