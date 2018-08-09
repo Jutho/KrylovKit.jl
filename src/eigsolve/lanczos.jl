@@ -7,13 +7,13 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
     numiter = 1
     # Compute Lanczos factorization
     iter = LanczosIterator(A, x₀, alg.orth)
-    fact = start(iter)
+    fact = initialize(iter)
     numops = 1
     sizehint!(fact, krylovdim)
     β = normres(fact)
     tol::eltype(β) = alg.tol
     while length(fact) < krylovdim
-        fact = next!(iter, fact)
+        fact = expand!(iter, fact)
         numops += 1
         normres(fact) < tol && length(fact) >= howmany && break
     end
@@ -26,7 +26,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
     # initialize
     β = normres(fact)
     m = length(fact)
-    U = copy!(view(UU, 1:m, 1:m), I)
+    U = copyto!(view(UU, 1:m, 1:m), I)
     f = view(HH, m+1, 1:m)
     T = rayleighquotient(fact) # symtridiagonal
 
@@ -35,7 +35,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
     by, rev = eigsort(which)
     p = sortperm(D, by = by, rev = rev)
     D, U = permuteeig!(D, U, p)
-    scale!(f, view(U,m,:), β)
+    mul!(f, view(U,m,:), β)
     converged = 0
     while converged < length(fact) && abs(f[converged+1]) < tol
         converged += 1
@@ -52,13 +52,13 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
         B = basis(fact)
         for j = 1:m
             h, ν = householder(U, j:m, j)
-            lmul!(U, h, j+1:krylovdim)
-            rmulc!(B, h)
+            lmul!(h, view(U, :, j+1:krylovdim))
+            rmul!(B, h')
         end
 
         # Shrink Lanczos factorization (no longer strictly Lanczos)
         r = residual(fact)
-        B[keep+1] = scale!(r, r, 1/normres(fact))
+        B[keep+1] = mul!(r, r, 1/normres(fact))
         H = fill!(view(HH, 1:keep+1, 1:keep), 0)
         @inbounds for j = 1:keep
             H[j,j] = D[j]
@@ -69,10 +69,10 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
         for j = keep:-1:1
             h, ν = householder(H, j+1, 1:j, j)
             H[j+1,j] = ν
-            @inbounds H[j+1,1:j-1] = 0
-            lmul!(H, h)
-            rmulc!(H, h, 1:j)
-            rmulc!(B, h)
+            @inbounds H[j+1,1:j-1] .= 0
+            lmul!(h, H)
+            rmul!(view(H, 1:j, :), h')
+            rmul!(B, h')
         end
         @inbounds for j = 1:keep
             fact.αs[j] = H[j,j]
@@ -82,7 +82,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
 
         # Lanczos factorization: recylce fact
         while length(fact) < krylovdim
-            fact = next!(iter, fact)
+            fact = expand!(iter, fact)
             numops += 1
             normres(fact) < tol && length(fact) >= howmany && break
         end
@@ -90,7 +90,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
         # post process
         β = normres(fact)
         m = length(fact)
-        U = copy!(view(UU, 1:m, 1:m), I)
+        U = copyto!(view(UU, 1:m, 1:m), I)
         f = view(HH, m+1, 1:m)
         T = rayleighquotient(fact) # symtridiagonal
 
@@ -99,7 +99,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
         by, rev = eigsort(which)
         p = sortperm(D, by = by, rev = rev)
         D, U = permuteeig!(D, U, p)
-        scale!(f, view(U,m,:), β)
+        mul!(f, view(U,m,:), β)
         converged = 0
         while converged < length(fact) && abs(f[converged+1]) < tol
             converged += 1

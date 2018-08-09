@@ -1,11 +1,8 @@
-if VERSION < v"0.7.0-DEV.2005"
-    const Test = Base.Test
-else
-    import Test
-end
-
-using KrylovKit
 using Test
+using LinearAlgebra
+using Random
+using KrylovKit
+
 const n = 10
 const N = 100
 

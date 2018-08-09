@@ -1,22 +1,22 @@
 function exponentiate(t::Number, A, v, alg::Lanczos)
     # process initial vector and determine result type
-    β = vecnorm(v)
+    β = norm(v)
     Av = apply(A, v) # used to determine return type
     numops = 1
     T = promote_type(eltype(Av), typeof(β), typeof(t))
     S = real(T)
     w = similar(Av, T)
-    scale!(w, v, 1/β)
+    mul!(w, v, 1/β)
 
     # krylovdim and related allocations
     krylovdim = min(alg.krylovdim, length(v))
-    UU = Matrix{S}(uninitialized, (krylovdim, krylovdim))
-    yy1 = Vector{T}(uninitialized, krylovdim)
-    yy2 = Vector{T}(uninitialized, krylovdim)
+    UU = Matrix{S}(undef, (krylovdim, krylovdim))
+    yy1 = Vector{T}(undef, krylovdim)
+    yy2 = Vector{T}(undef, krylovdim)
 
     # initialize iterator
     iter = LanczosIterator(A, w, alg.orth, true)
-    fact = start(iter)
+    fact = initialize(iter)
     numops += 1
     sizehint!(fact, krylovdim)
 
@@ -44,7 +44,7 @@ function exponentiate(t::Number, A, v, alg::Lanczos)
 
         # Lanczos or Arnoldi factorization
         while normres(fact) > η && length(fact) < krylovdim
-            fact = next!(iter, fact)
+            fact = expand!(iter, fact)
             numops += 1
         end
         K = fact.k # current Krylov dimension
@@ -52,7 +52,7 @@ function exponentiate(t::Number, A, v, alg::Lanczos)
         m = length(fact)
 
         # Small matrix exponential and error estimation
-        U = copy!(view(UU, 1:m, 1:m), I)
+        U = copyto!(view(UU, 1:m, 1:m), I)
         H = rayleighquotient(fact) # tridiagonal
         D, U = eig!(H, U)
 
@@ -70,7 +70,7 @@ function exponentiate(t::Number, A, v, alg::Lanczos)
             if ϵ < δ * η || numiter == maxiter
                 break
             else # reduce time step
-                Δτ = signif(δ * (η / ϵ)^(1/krylovdim) * Δτ, 2)
+                Δτ = round(δ * (η / ϵ)^(1/krylovdim) * Δτ; sigdigits=2)
             end
         end
 
@@ -81,21 +81,21 @@ function exponentiate(t::Number, A, v, alg::Lanczos)
         @inbounds for k = 1:m
             y1[k] = exp(sgn*Δτ*D[k])*conj(U[1,k])
         end
-        y2 = A_mul_B!(y2, U, y1)
+        y2 = mul!(y2, U, y1)
 
         # Finalize step
-        A_mul_B!(w, V, y2)
+        mul!(w, V, y2)
         τ -= Δτ
 
         if iszero(τ) # should always be true if numiter == maxiter
-            scale!(w, β)
+            rmul!(w, β)
             converged = totalerr < alg.tol ? 1 : 0
             return w, ConvergenceInfo(converged, totalerr, nothing, numiter, numops)
         else
-            normw = vecnorm(w)
+            normw = norm(w)
             β *= normw
-            scale!(w, inv(normw))
-            fact = start!(iter, fact)
+            rmul!(w, inv(normw))
+            fact = initialize!(iter, fact)
         end
     end
 end

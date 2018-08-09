@@ -1,6 +1,5 @@
-# Test lanczos eigsolve full
 @testset "Lanczos - Eigenvalue full" begin
-    @testset for T in (Float32, Float64, Complex64, Complex128)
+    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
         @testset for orth in (cgs2, mgs2, cgsr, mgsr)
             A = rand(T,(n,n)) .- one(T)/2
             A = (A+A')/2
@@ -20,7 +19,7 @@
 end
 
 @testset "Lanczos - Eigenvalue iteratively" begin
-    @testset for T in (Float32, Float64, Complex64, Complex128)
+    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
         @testset for orth in (cgs2, mgs2, cgsr, mgsr)
             A = rand(T,(N,N)) .- one(T)/2
             A = (A+A')/2
@@ -42,9 +41,8 @@ end
     end
 end
 
-# Test lanczos eigsolve full
 @testset "Arnoldi - Eigenvalue full" begin
-    @testset for T in (Float32, Float64, Complex64, Complex128)
+    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
         @testset for orth in (cgs2, mgs2, cgsr, mgsr)
             A = rand(T,(n,n)) .- one(T)/2
             v = rand(T,(n,))
@@ -78,7 +76,7 @@ end
 end
 
 @testset "Arnoldi - Eigenvalue iteratively" begin
-    @testset for T in (Float32, Float64, Complex64, Complex128)
+    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
         @testset for orth in (cgs2, mgs2, cgsr, mgsr)
             A = rand(T,(N,N)) .- one(T)/2
             v = rand(T,(N,))

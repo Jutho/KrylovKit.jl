@@ -22,7 +22,7 @@ eigsolve(f, n::Int, howmany::Int = 1, which::Selector = :LM, T::Type = Float64; 
 function eigsolve(f, x₀, howmany::Int = 1, which::Selector = :LM, T::Type = eltype(x₀);
         issymmetric = false, ishermitian = T<:Real && issymmetric,
         krylovdim::Int = Defaults.krylovdim, maxiter::Int = Defaults.maxiter, tol::Real = Defaults.tol)
-    x = eltype(x₀) == T ? x₀ : copy!(similar(x₀, T), x₀)
+    x = eltype(x₀) == T ? x₀ : copyto!(similar(x₀, T), x₀)
     if T<:Real
         (which == :LI || which == :SI) && throw(ArgumentError("work in complex domain to find eigenvalues with largest or smallest imaginary part"))
     end

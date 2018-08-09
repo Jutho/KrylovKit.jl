@@ -15,7 +15,8 @@ struct LanczosIterator{F,T,O<:Orthogonalizer}
 end
 LanczosIterator(operator::F, v₀::T, orth::O = Defaults.orth, keepvecs::Bool = true) where {F,T,O<:Orthogonalizer} = LanczosIterator{F,T,O}(operator, v₀, orth, keepvecs)
 
-Base.iteratorsize(::Type{<:LanczosIterator}) = Base.SizeUnknown()
+Base.IteratorSize(::Type{<:LanczosIterator}) = Base.SizeUnknown()
+Base.IteratorEltype(::Type{<:LanczosIterator}) = Base.EltypeUnknown()
 
 mutable struct LanczosFact{T, S<:Real} <: KrylovFactorization{T}
     k::Int # current Krylov dimension
@@ -27,6 +28,7 @@ end
 
 Base.length(F::LanczosFact) = F.k
 Base.sizehint!(F::LanczosFact, n) = begin
+    sizehint!(F.V, n)
     sizehint!(F.αs, n)
     sizehint!(F.βs, n)
     return F
@@ -39,14 +41,29 @@ rayleighquotient(F::LanczosFact) = SymTridiagonal(F.αs, F.βs)
 @inbounds normres(F::LanczosFact) = F.βs[F.k]
 residual(F::LanczosFact) = F.r
 
-function Base.start(iter::LanczosIterator)
-    β₀ = vecnorm(iter.v₀)
+function Base.iterate(iter::LanczosIterator)
+    state = initialize(iter)
+    value = (basis(state), rayleighquotient(state), residual(state))
+    return value, state
+end
+function Base.iterate(iter::LanczosIterator, state::LanczosFact)
+    if normres(state) < eps(real(eltype(state)))
+        return nothing
+    else
+        state = expand!(iter, deepcopy(state))
+        value = (basis(state), rayleighquotient(state), residual(state))
+        return value, state
+    end
+end
+
+function initialize(iter::LanczosIterator)
+    β₀ = norm(iter.v₀)
     T = typeof(one(eltype(iter.v₀))/β₀) # division might change eltype
-    v₀ = scale!(similar(iter.v₀, T), iter.v₀, 1/β₀)
+    v₀ = mul!(similar(iter.v₀, T), iter.v₀, 1/β₀)
     w = apply(iter.operator, v₀) # applying the operator might change eltype
-    v = copy!(similar(w), v₀)
+    v = copyto!(similar(w), v₀)
     r, α = orthogonalize!(w, v, iter.orth)
-    β = vecnorm(r)
+    β = norm(r)
     n = hypot(α,2*β)
     imag(α) <= sqrt(max(eps(n),eps(one(n)))) || error("operator does not appear to be hermitian: $(imag(α)) vs $n")
 
@@ -57,7 +74,7 @@ function Base.start(iter::LanczosIterator)
 
     return LanczosFact(1, V, αs, βs, r)
 end
-function start!(iter::LanczosIterator, state::LanczosFact)
+function initialize!(iter::LanczosIterator, state::LanczosFact)
     v₀ = iter.v₀
     V = state.V
     while length(V) > 1
@@ -66,10 +83,10 @@ function start!(iter::LanczosIterator, state::LanczosFact)
     αs = empty!(state.αs)
     βs = empty!(state.βs)
 
-    v = scale!(V[1], v₀, 1/vecnorm(v₀))
+    v = mul!(V[1], v₀, 1/norm(v₀))
     w = apply(iter.operator, v)
     r, α = orthogonalize!(w, v, iter.orth)
-    β = vecnorm(r)
+    β = norm(r)
     n = hypot(α,β)
     imag(α) <= sqrt(max(eps(n),eps(one(n)))) || error("operator does not appear to be hermitian: $(imag(α)) vs $n")
 
@@ -79,20 +96,11 @@ function start!(iter::LanczosIterator, state::LanczosFact)
     state.r = r
     return state
 end
-
-# return type declatation required because iter.tol is Real
-Base.done(iter::LanczosIterator, state::LanczosFact) = normres(state) < eps(eltype(state))
-
-function Base.next(iter::LanczosIterator, state::LanczosFact)
-    value = (basis(state), rayleighquotient(state), residual(state))
-    state = next!(iter, deepcopy(state))
-    return value, state
-end
-function next!(iter::LanczosIterator, state::LanczosFact)
+function expand!(iter::LanczosIterator, state::LanczosFact)
     βold = normres(state)
     V = state.V
     r = state.r
-    V = push!(V, scale!(r, r, 1/βold))
+    V = push!(V, rmul!(r, 1/βold))
     r, α, β = lanczosrecurrence(iter.operator, V, βold, iter.orth)
     n = hypot(α, β, βold)
     imag(α) <= sqrt(max(eps(n),eps(one(n)))) || error("operator does not appear to be hermitian: $(imag(α)) vs $n")
@@ -107,7 +115,6 @@ function next!(iter::LanczosIterator, state::LanczosFact)
 
     return state
 end
-
 function shrink!(state::LanczosFact, k)
     length(state) == length(state.V) || error("we cannot shrink LanczosFact without keeping Lanczos vectors")
     length(state) <= k && return state
@@ -119,7 +126,7 @@ function shrink!(state::LanczosFact, k)
     resize!(state.αs, k)
     resize!(state.βs, k)
     state.k = k
-    state.r = scale!(r, r, normres(state))
+    state.r = rmul!(r, normres(state))
     return state
 end
 
@@ -131,7 +138,7 @@ function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::Union{Classi
     w = axpy!( -β, V[end-1], w)
 
     w, α = orthogonalize!(w, v, orth)
-    β = vecnorm(w)
+    β = norm(w)
     return w, α, β
 end
 function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ClassicalGramSchmidt2)
@@ -142,7 +149,7 @@ function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ClassicalGra
     w, α = orthogonalize!(w, v, ClassicalGramSchmidt())
     w, s = orthogonalize!(w, V, ClassicalGramSchmidt())
     α += s[end]
-    β = vecnorm(w)
+    β = norm(w)
     return w, α, β
 end
 function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ModifiedGramSchmidt2)
@@ -157,7 +164,7 @@ function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ModifiedGram
         w, s = orthogonalize!(w, q, ModifiedGramSchmidt())
     end
     α += s
-    β = vecnorm(w)
+    β = norm(w)
     return w, α, β
 end
 function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ClassicalGramSchmidtIR)
@@ -167,13 +174,13 @@ function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ClassicalGra
 
     w, α = orthogonalize!(w, v, ClassicalGramSchmidt())
     ab2 = abs2(α) + abs2(β)
-    β = vecnorm(w)
+    β = norm(w)
     nold = sqrt(abs2(β)+ab2)
     while β < orth.η * nold
         nold = β
         w, s = orthogonalize!(w, V, ClassicalGramSchmidt())
         α += s[end]
-        β = vecnorm(w)
+        β = norm(w)
     end
     return w, α, β
 end
@@ -184,7 +191,7 @@ function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ModifiedGram
 
     w, α = orthogonalize!(w, v, ModifiedGramSchmidt())
     ab2 = abs2(α) + abs2(β)
-    β = vecnorm(w)
+    β = norm(w)
     nold = sqrt(abs2(β)+ab2)
     while β < orth.η * nold
         nold = β
@@ -193,7 +200,7 @@ function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ModifiedGram
             w, s = orthogonalize!(w, q, ModifiedGramSchmidt())
         end
         α += s
-        β = vecnorm(w)
+        β = norm(w)
     end
     return w, α, β
 end

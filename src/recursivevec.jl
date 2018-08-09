@@ -37,44 +37,51 @@ function Base.fill!(v::RecursiveVec, a)
     return v
 end
 
-function Base.copy!(w::RecursiveVec, v::RecursiveVec)
+function Base.copyto!(w::RecursiveVec, v::RecursiveVec)
     @assert length(w.vecs) == length(v.vecs)
     @inbounds for i = 1:length(w.vecs)
-        copy!(w.vecs[i], v.vecs[i])
+        copyto!(w.vecs[i], v.vecs[i])
     end
     return w
 end
 
-function Base.scale!(w::RecursiveVec, a, v::RecursiveVec)
+function LinearAlgebra.mul!(w::RecursiveVec, a, v::RecursiveVec)
     @assert length(w.vecs) == length(v.vecs)
     @inbounds for i = 1:length(w.vecs)
-        scale!(w.vecs[i], a, v.vecs[i])
+        mul!(w.vecs[i], a, v.vecs[i])
     end
     return w
 end
 
-function Base.scale!(w::RecursiveVec, v::RecursiveVec, a)
+function LinearAlgebra.mul!(w::RecursiveVec, v::RecursiveVec, a)
     @assert length(w.vecs) == length(v.vecs)
     @inbounds for i = 1:length(w.vecs)
-        scale!(w.vecs[i], v.vecs[i], a)
+        mul!(w.vecs[i], v.vecs[i], a)
     end
     return w
 end
 
-function Base.scale!(v::RecursiveVec, a)
+function LinearAlgebra.rmul!(v::RecursiveVec, a)
     for x in v.vecs
-        scale!(x, a)
+        rmul!(x, a)
     end
     return v
 end
 
-function LinAlg.axpy!(a, v::RecursiveVec, w::RecursiveVec)
+function LinearAlgebra.axpy!(a, v::RecursiveVec, w::RecursiveVec)
     @assert length(w.vecs) == length(v.vecs)
     @inbounds for i = 1:length(w.vecs)
-        LinAlg.axpy!(a, v.vecs[i], w.vecs[i])
+        axpy!(a, v.vecs[i], w.vecs[i])
+    end
+    return w
+end
+function LinearAlgebra.axpby!(a, v::RecursiveVec, b, w::RecursiveVec)
+    @assert length(w.vecs) == length(v.vecs)
+    @inbounds for i = 1:length(w.vecs)
+        axpby!(a, v.vecs[i], b, w.vecs[i])
     end
     return w
 end
 
-LinAlg.vecdot(v::RecursiveVec{T}, w::RecursiveVec{T}) where {T} = sum(x->vecdot(x...), zip(v.vecs, w.vecs))
-LinAlg.vecnorm(v::RecursiveVec, p::Real = 2) = vecnorm(map(x->vecnorm(x,p), v.vecs), p)
+LinearAlgebra.dot(v::RecursiveVec{T}, w::RecursiveVec{T}) where {T} = sum(dot.(v.vecs, w.vecs))
+LinearAlgebra.norm(v::RecursiveVec) = norm(norm.(v.vecs))

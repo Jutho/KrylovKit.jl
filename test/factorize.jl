@@ -1,14 +1,14 @@
 # Test complete Lanczos factorization
 @testset "Complete Lanczos factorization" begin
-    @testset for T in (Float32, Float64, Complex64, Complex128)
+    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
         @testset for orth in (cgs2, mgs2, cgsr, mgsr) # tests fail miserably for cgs and mgs
             A = rand(T,(n,n))
             v = rand(T,(n,))
             A = (A+A')
             iter = LanczosIterator(A, v, orth)
-            fact = start(iter)
-            while !done(iter, fact) && length(fact) < n
-                _, fact = next(iter, fact)
+            fact = initialize(iter)
+            while length(fact) < n
+                expand!(iter, fact)
             end
 
             V = hcat(basis(fact)...)
@@ -23,14 +23,14 @@ end
 
 # Test complete Arnoldi factorization
 @testset "Complete Arnoldi factorization" begin
-    @testset for T in (Float32, Float64, Complex64, Complex128)
+    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
         @testset for orth in (cgs, mgs, cgs2, mgs2, cgsr, mgsr)
             A = rand(T,(n,n))
             v = rand(T,(n,))
             iter = ArnoldiIterator(A, v, orth)
-            fact = start(iter)
-            while !done(iter, fact) && length(fact) < n
-                _, fact = next(iter, fact)
+            fact = initialize(iter)
+            while length(fact) < n
+                expand!(iter, fact)
             end
 
             V = hcat(basis(fact)...)
@@ -46,18 +46,16 @@ end
 
 # Test incomplete Lanczos factorization
 @testset "Incomplete Lanczos factorization" begin
-    @testset for T in (Float32, Float64, Complex64, Complex128)
+    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
         @testset for orth in (cgs2, mgs2, cgsr, mgsr) # tests fail miserably for cgs and mgs
             A = rand(T,(N,N))
             v = rand(T,(N,))
             A = (A+A')
             iter = @inferred LanczosIterator(A, v, orth)
             krylovdim = n
-            fact = @inferred start(iter)
-            @inferred next(iter, fact)
-            @inferred done(iter, fact)
-            while !done(iter, fact) && length(fact) < krylovdim
-                _, fact = next(iter, fact)
+            fact = @inferred initialize(iter)
+            while normres(fact) > eps(real(T)) && length(fact) < krylovdim
+                @inferred expand!(iter, fact)
             end
 
             V = hcat(basis(fact)...)
@@ -76,17 +74,15 @@ end
 
 # Test incomplete Arnoldi factorization
 @testset "Incomplete Arnoldi factorization" begin
-    @testset for T in (Float32, Float64, Complex64, Complex128)
+    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
         @testset for orth in (cgs, mgs, cgs2, mgs2, cgsr, mgsr)
             A = rand(T,(N,N))
             v = rand(T,(N,))
             iter = @inferred ArnoldiIterator(A, v, orth)
             krylovdim = n
-            fact = @inferred start(iter)
-            @inferred next(iter, fact)
-            @inferred done(iter, fact)
-            while !done(iter, fact) && length(fact) < krylovdim
-                _, fact = next(iter, fact)
+            fact = @inferred initialize(iter)
+            while normres(fact) > eps(real(T)) && length(fact) < krylovdim
+                @inferred expand!(iter, fact)
             end
 
             V = hcat(basis(fact)...)
