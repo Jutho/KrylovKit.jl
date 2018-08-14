@@ -1,15 +1,4 @@
 # arnoldi.jl
-#
-# Arnoldi iteration for constructing the orthonormal basis of a Krylov subspace.
-struct ArnoldiIterator{F,T,O<:Orthogonalizer}
-    operator::F
-    v₀::T
-    orth::O
-end
-ArnoldiIterator(A, v₀) = ArnoldiIterator(A, v₀, Defaults.orth)
-
-Base.IteratorSize(::Type{<:ArnoldiIterator}) = Base.SizeUnknown()
-Base.IteratorEltype(::Type{<:ArnoldiIterator}) = Base.EltypeUnknown()
 
 mutable struct ArnoldiFact{T,S} <: KrylovFactorization{T}
     k::Int # current Krylov dimension
@@ -29,21 +18,30 @@ Base.eltype(::Type{<:ArnoldiFact{<:Any,S}}) where {S} = S
 
 basis(F::ArnoldiFact) = F.V
 rayleighquotient(F::ArnoldiFact) = PackedHessenberg(F.H, F.k)
-normres(F::ArnoldiFact) = abs(F.H[end])
 residual(F::ArnoldiFact) = F.r
+@inbounds normres(F::ArnoldiFact) = abs(F.H[end])
+
+# Arnoldi iteration for constructing the orthonormal basis of a Krylov subspace.
+struct ArnoldiIterator{F,T,O<:Orthogonalizer}
+    operator::F
+    v₀::T
+    orth::O
+end
+ArnoldiIterator(A, v₀) = ArnoldiIterator(A, v₀, Defaults.orth)
+
+Base.IteratorSize(::Type{<:ArnoldiIterator}) = Base.SizeUnknown()
+Base.IteratorEltype(::Type{<:ArnoldiIterator}) = Base.EltypeUnknown()
 
 function Base.iterate(iter::ArnoldiIterator)
     state = initialize(iter)
-    value = (basis(state), rayleighquotient(state), residual(state))
-    return value, state
+    return state, state
 end
 function Base.iterate(iter::ArnoldiIterator, state)
     if normres(state) < eps(real(eltype(state)))
         return nothing
     else
         state = expand!(iter, deepcopy(state))
-        value = (basis(state), rayleighquotient(state), residual(state))
-        return value, state
+        return state, state
     end
 end
 
@@ -91,7 +89,6 @@ function expand!(iter::ArnoldiIterator, state::ArnoldiFact)
     state.r = r
     return state
 end
-
 function shrink!(state::ArnoldiFact, k)
     length(state) <= k && return state
     V = state.V

@@ -29,6 +29,18 @@ include("algorithms.jl")
 abstract type Basis{T} end
 abstract type KrylovFactorization{T} end
 
+function basis end
+function rayleighquotient end
+function residual end
+function normres end
+
+# iteration for destructuring into components
+Base.iterate(F::KrylovFactorization) = (basis(F), Val(:rayleighquotient))
+Base.iterate(F::KrylovFactorization, ::Val{:rayleighquotient}) = (rayleighquotient(F), Val(:residual))
+Base.iterate(F::KrylovFactorization, ::Val{:residual}) = (residual(F), Val(:normres))
+Base.iterate(F::KrylovFactorization, ::Val{:normres}) = (normres(F), Val(:done))
+Base.iterate(F::KrylovFactorization, ::Val{:done}) = nothing
+
 include("orthonormal.jl")
 
 include("dense/givens.jl")

@@ -1,22 +1,4 @@
 # lanczos.jl
-#
-# Lanczos iteration for constructing the orthonormal basis of a Krylov subspace.
-struct LanczosIterator{F,T,O<:Orthogonalizer}
-    operator::F
-    v₀::T
-    orth::O
-    keepvecs::Bool
-    function LanczosIterator{F,T,O}(operator::F, v₀::T, orth::O, keepvecs::Bool) where {F,T,O<:Orthogonalizer}
-        if !keepvecs && isa(orth, Reorthogonalizer)
-            error("Cannot use reorthogonalization without keeping all Krylov vectors")
-        end
-        new{F,T,O}(operator, v₀, orth, keepvecs)
-    end
-end
-LanczosIterator(operator::F, v₀::T, orth::O = Defaults.orth, keepvecs::Bool = true) where {F,T,O<:Orthogonalizer} = LanczosIterator{F,T,O}(operator, v₀, orth, keepvecs)
-
-Base.IteratorSize(::Type{<:LanczosIterator}) = Base.SizeUnknown()
-Base.IteratorEltype(::Type{<:LanczosIterator}) = Base.EltypeUnknown()
 
 mutable struct LanczosFact{T, S<:Real} <: KrylovFactorization{T}
     k::Int # current Krylov dimension
@@ -38,21 +20,37 @@ Base.eltype(::Type{<:LanczosFact{<:Any,S}}) where {S} = S
 
 basis(F::LanczosFact) = length(F.V) == F.k ? F.V : error("Not keeping vectors during Lanczos factorization")
 rayleighquotient(F::LanczosFact) = SymTridiagonal(F.αs, F.βs)
-@inbounds normres(F::LanczosFact) = F.βs[F.k]
 residual(F::LanczosFact) = F.r
+@inbounds normres(F::LanczosFact) = F.βs[F.k]
+
+# Lanczos iteration for constructing the orthonormal basis of a Krylov subspace.
+struct LanczosIterator{F,T,O<:Orthogonalizer}
+    operator::F
+    v₀::T
+    orth::O
+    keepvecs::Bool
+    function LanczosIterator{F,T,O}(operator::F, v₀::T, orth::O, keepvecs::Bool) where {F,T,O<:Orthogonalizer}
+        if !keepvecs && isa(orth, Reorthogonalizer)
+            error("Cannot use reorthogonalization without keeping all Krylov vectors")
+        end
+        new{F,T,O}(operator, v₀, orth, keepvecs)
+    end
+end
+LanczosIterator(operator::F, v₀::T, orth::O = Defaults.orth, keepvecs::Bool = true) where {F,T,O<:Orthogonalizer} = LanczosIterator{F,T,O}(operator, v₀, orth, keepvecs)
+
+Base.IteratorSize(::Type{<:LanczosIterator}) = Base.SizeUnknown()
+Base.IteratorEltype(::Type{<:LanczosIterator}) = Base.EltypeUnknown()
 
 function Base.iterate(iter::LanczosIterator)
     state = initialize(iter)
-    value = (basis(state), rayleighquotient(state), residual(state))
-    return value, state
+    return state, state
 end
 function Base.iterate(iter::LanczosIterator, state::LanczosFact)
     if normres(state) < eps(real(eltype(state)))
         return nothing
     else
         state = expand!(iter, deepcopy(state))
-        value = (basis(state), rayleighquotient(state), residual(state))
-        return value, state
+        return state, state
     end
 end
 
