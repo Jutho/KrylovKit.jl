@@ -12,7 +12,7 @@ rows(a::AbstractMatrix, r::IndexRange = axes(a,1)) = RowIterator(a, r)
 
 function Base.iterate(iter::RowIterator)
     next = iterate(iter.r)
-    if next == nothing
+    if next === nothing
         return nothing
     else
         i, s = next
@@ -21,7 +21,7 @@ function Base.iterate(iter::RowIterator)
 end
 function Base.iterate(iter::RowIterator, s)
     next = iterate(iter.r, s)
-    if next == nothing
+    if next === nothing
         return nothing
     else
         i, s = next
@@ -42,7 +42,7 @@ cols(a::AbstractMatrix, r::IndexRange = axes(a,2)) = ColumnIterator(a, r)
 
 function Base.iterate(iter::ColumnIterator)
     next = iterate(iter.r)
-    if next == nothing
+    if next === nothing
         return nothing
     else
         i, s = next
@@ -51,7 +51,7 @@ function Base.iterate(iter::ColumnIterator)
 end
 function Base.iterate(iter::ColumnIterator, s)
     next = iterate(iter.r, s)
-    if next == nothing
+    if next === nothing
         return nothing
     else
         i, s = next
@@ -189,7 +189,7 @@ function schur2eigvecs(T::StridedMatrix{<:BlasReal}, which::AbstractVector{Int})
     while i <= n
         if i == n || iszero(T[i+1,i])
             j = findfirst(isequal(i), which2)
-            if j != nothing
+            if j !== nothing
                 select[i] = one(BlasInt)
                 trevc!('R','S', select, T, VL′, VR′)
                 @inbounds @simd for k = 1:n
@@ -201,15 +201,15 @@ function schur2eigvecs(T::StridedMatrix{<:BlasReal}, which::AbstractVector{Int})
         else
             j1 = findfirst(isequal(i), which2)
             j2 = findfirst(isequal(i+1), which2)
-            if j1 != nothing || j2 != nothing
+            if j1 !== nothing || j2 !== nothing
                 select[i] = one(BlasInt)
                 select[i+1] = one(BlasInt)
                 trevc!('R','S', select, T, VL′, VR′)
                 @inbounds @simd for k = 1:n
-                    if j1 != nothing
+                    if j1 !== nothing
                         VR[k,j1]= VR′[k,1] + im*VR′[k,2]
                     end
-                    if j2 != nothing
+                    if j2 !== nothing
                         VR[k,j2]= VR′[k,1] - im*VR′[k,2]
                     end
                 end

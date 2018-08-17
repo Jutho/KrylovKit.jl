@@ -78,9 +78,9 @@ apply(f, x) = f(x)
 apply!(y::AbstractVector, A::AbstractMatrix, x::AbstractVector) = mul!(y, A, x)
 apply!(y, f, x) = copyto!(y, f(x))
 
-# include("recursivevec.jl")
-# export RecursiveVec
-# include("innerproductvec.jl")
-# export InnerProductVec
+include("recursivevec.jl")
+export RecursiveVec
+include("innerproductvec.jl")
+export InnerProductVec
 
 end
