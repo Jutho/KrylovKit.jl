@@ -1,12 +1,11 @@
-function exponentiate(t::Number, A, v, alg::Lanczos)
+function exponentiate(A, t::Number, v, alg::Lanczos)
     # process initial vector and determine result type
     β = norm(v)
     Av = apply(A, v) # used to determine return type
     numops = 1
     T = promote_type(eltype(Av), typeof(β), typeof(t))
     S = real(T)
-    w = similar(Av, T)
-    mul!(w, v, 1/β)
+    w = mul!(similar(Av, T), v, 1/β)
 
     # krylovdim and related allocations
     krylovdim = min(alg.krylovdim, length(v))
@@ -84,17 +83,17 @@ function exponentiate(t::Number, A, v, alg::Lanczos)
         y2 = mul!(y2, U, y1)
 
         # Finalize step
-        mul!(w, V, y2)
+        w = mul!(w, V, y2)
         τ -= Δτ
 
         if iszero(τ) # should always be true if numiter == maxiter
-            rmul!(w, β)
+            w = rmul!(w, β)
             converged = totalerr < alg.tol ? 1 : 0
             return w, ConvergenceInfo(converged, totalerr, nothing, numiter, numops)
         else
             normw = norm(w)
             β *= normw
-            rmul!(w, inv(normw))
+            w = rmul!(w, inv(normw))
             fact = initialize!(iter, fact)
         end
     end

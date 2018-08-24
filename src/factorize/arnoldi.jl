@@ -1,25 +1,26 @@
 # arnoldi.jl
 
-mutable struct ArnoldiFact{T,S} <: KrylovFactorization{T}
+mutable struct ArnoldiFactorization{T,S} <: KrylovFactorization{T}
     k::Int # current Krylov dimension
     V::OrthonormalBasis{T} # basis of length k
     H::Vector{S} # stores the Hessenberg matrix in packed form
     r::T # residual
 end
 
-Base.length(F::ArnoldiFact) = F.k
-Base.sizehint!(F::ArnoldiFact, n) = begin
+Base.length(F::ArnoldiFactorization) = F.k
+Base.sizehint!(F::ArnoldiFactorization, n) = begin
     sizehint!(F.V, n)
     sizehint!(F.H, (n*n + 3*n) >> 1)
     return F
 end
-Base.eltype(F::ArnoldiFact) = eltype(typeof(F))
-Base.eltype(::Type{<:ArnoldiFact{<:Any,S}}) where {S} = S
+Base.eltype(F::ArnoldiFactorization) = eltype(typeof(F))
+Base.eltype(::Type{<:ArnoldiFactorization{<:Any,S}}) where {S} = S
 
-basis(F::ArnoldiFact) = F.V
-rayleighquotient(F::ArnoldiFact) = PackedHessenberg(F.H, F.k)
-residual(F::ArnoldiFact) = F.r
-@inbounds normres(F::ArnoldiFact) = abs(F.H[end])
+basis(F::ArnoldiFactorization) = F.V
+rayleighquotient(F::ArnoldiFactorization) = PackedHessenberg(F.H, F.k)
+residual(F::ArnoldiFactorization) = F.r
+@inbounds normres(F::ArnoldiFactorization) = abs(F.H[end])
+rayleighextension(F::ArnoldiFactorization) = SimpleBasisVector(F.k, F.k)
 
 # Arnoldi iteration for constructing the orthonormal basis of a Krylov subspace.
 struct ArnoldiIterator{F,T,O<:Orthogonalizer}
@@ -50,14 +51,14 @@ function initialize(iter::ArnoldiIterator)
     T = typeof(one(eltype(iter.v₀))/β₀) # division might change eltype
     v₀ = mul!(similar(iter.v₀, T), iter.v₀, 1/β₀)
     w = apply(iter.operator, v₀) # applying the operator might change eltype
-    v = copyto!(similar(w), v₀)
+    v = eltype(v₀) == eltype(w) ? v₀ : copyto!(similar(w), v₀)
     r, α = orthogonalize!(w, v, iter.orth)
     β = norm(r)
     V = OrthonormalBasis([v])
     H = [α, β]
-    state = ArnoldiFact(1, V, H, r)
+    state = ArnoldiFactorization(1, V, H, r)
 end
-function initialize!(iter::ArnoldiIterator, state::ArnoldiFact) # recylcle existing state
+function initialize!(iter::ArnoldiIterator, state::ArnoldiFactorization) # recylcle existing state
     v₀ = iter.v₀
     V = state.V
     while length(V) > 1
@@ -74,7 +75,7 @@ function initialize!(iter::ArnoldiIterator, state::ArnoldiFact) # recylcle exist
     state.r = r
     return state
 end
-function expand!(iter::ArnoldiIterator, state::ArnoldiFact)
+function expand!(iter::ArnoldiIterator, state::ArnoldiFactorization)
     state.k += 1
     k = state.k
     V = state.V
@@ -89,7 +90,7 @@ function expand!(iter::ArnoldiIterator, state::ArnoldiFact)
     state.r = r
     return state
 end
-function shrink!(state::ArnoldiFact, k)
+function shrink!(state::ArnoldiFactorization, k)
     length(state) <= k && return state
     V = state.V
     H = state.H

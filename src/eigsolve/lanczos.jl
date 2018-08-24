@@ -58,7 +58,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
 
         # Shrink Lanczos factorization (no longer strictly Lanczos)
         r = residual(fact)
-        B[keep+1] = mul!(r, r, 1/normres(fact))
+        B[keep+1] = rmul!(r, 1/normres(fact))
         H = fill!(view(HH, 1:keep+1, 1:keep), 0)
         @inbounds for j = 1:keep
             H[j,j] = D[j]

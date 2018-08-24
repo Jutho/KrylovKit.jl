@@ -1,4 +1,30 @@
 # Definition of an orthonormal basis
+"""
+    OrthonormalBasis{T} <: Basis{T}
+
+A list of vector like objects of type `T` that are mutually orthogonal and normalized to one,
+representing an orthonormal basis for some subspace (typically a Krylov subspace).
+
+`OrthonormalBasis{T}` behaves in many ways like `Vector{T}` (and is a simple wrapper thereof).
+In particular, `OrthonormalBasis` has a `length`, can be indexed (`getindex` and `setindex!`),
+iterated over, and support resizing (`resize!`, `pop!`, `push!`, `empty!`, `sizehint!`).
+
+The type `T` denotes the type of the elements stored in an `OrthonormalBasis{T}` and can be
+any custom type that has vector like behavior (as defined in the docs of [`KrylovKit`](@ref)).
+
+Orthonormality of the vectors contained in an instance `b` of `OrthonormalBasis`
+(i.e. `all(dot(b[i],b[j]) == I[i,j] for i=1:lenght(b), j=1:length(b))`) is not checked when elements are added; it is up to the algorithm that constructs `b` to
+guarantee orthonormality.
+
+One can easily orthogonalize or orthonormalize a given vector `v` with respect to a `b::OrthonormalBasis`
+using the functions [`w, = orthogonalize(v,b,...)`](@ref orthogonalize) or [`w, = orthonormalize(v,b,...)`](@ref orhonormalize).
+The resulting vector `w` of the latter can then be added to `b` using `push!(b, w)`. Note that
+in place versions [`orthogonalize!(v, b, ...)`](@ref orthgonalize!) or [`orthonormalize!(v, b, ...)`](@ref orthonormalize!)
+are also available.
+
+Finally, a linear combination of the vectors in `b::OrthonormalBasis` can be obtained by multiplying
+`b` with a `Vector{<:Number}` using `*` or `mul!` (if the output vector is already allocated).
+"""
 struct OrthonormalBasis{T} <: Basis{T}
     basis::Vector{T}
 end

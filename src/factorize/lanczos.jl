@@ -1,6 +1,6 @@
 # lanczos.jl
 
-mutable struct LanczosFact{T, S<:Real} <: KrylovFactorization{T}
+mutable struct LanczosFactorization{T, S<:Real} <: KrylovFactorization{T}
     k::Int # current Krylov dimension
     V::OrthonormalBasis{T} # basis of length k
     αs::Vector{S}
@@ -8,20 +8,21 @@ mutable struct LanczosFact{T, S<:Real} <: KrylovFactorization{T}
     r::T
 end
 
-Base.length(F::LanczosFact) = F.k
-Base.sizehint!(F::LanczosFact, n) = begin
+Base.length(F::LanczosFactorization) = F.k
+Base.sizehint!(F::LanczosFactorization, n) = begin
     sizehint!(F.V, n)
     sizehint!(F.αs, n)
     sizehint!(F.βs, n)
     return F
 end
-Base.eltype(F::LanczosFact) = eltype(typeof(F))
-Base.eltype(::Type{<:LanczosFact{<:Any,S}}) where {S} = S
+Base.eltype(F::LanczosFactorization) = eltype(typeof(F))
+Base.eltype(::Type{<:LanczosFactorization{<:Any,S}}) where {S} = S
 
-basis(F::LanczosFact) = length(F.V) == F.k ? F.V : error("Not keeping vectors during Lanczos factorization")
-rayleighquotient(F::LanczosFact) = SymTridiagonal(F.αs, F.βs)
-residual(F::LanczosFact) = F.r
-@inbounds normres(F::LanczosFact) = F.βs[F.k]
+basis(F::LanczosFactorization) = length(F.V) == F.k ? F.V : error("Not keeping vectors during Lanczos factorization")
+rayleighquotient(F::LanczosFactorization) = SymTridiagonal(F.αs, F.βs)
+residual(F::LanczosFactorization) = F.r
+@inbounds normres(F::LanczosFactorization) = F.βs[F.k]
+rayleighextension(F::LanczosFactorization) = SimpleBasisVector(F.k, F.k)
 
 # Lanczos iteration for constructing the orthonormal basis of a Krylov subspace.
 struct LanczosIterator{F,T,O<:Orthogonalizer}
@@ -45,7 +46,7 @@ function Base.iterate(iter::LanczosIterator)
     state = initialize(iter)
     return state, state
 end
-function Base.iterate(iter::LanczosIterator, state::LanczosFact)
+function Base.iterate(iter::LanczosIterator, state::LanczosFactorization)
     if normres(state) < eps(real(eltype(state)))
         return nothing
     else
@@ -59,7 +60,7 @@ function initialize(iter::LanczosIterator)
     T = typeof(one(eltype(iter.v₀))/β₀) # division might change eltype
     v₀ = mul!(similar(iter.v₀, T), iter.v₀, 1/β₀)
     w = apply(iter.operator, v₀) # applying the operator might change eltype
-    v = copyto!(similar(w), v₀)
+    v = eltype(v₀) == eltype(w) ? v₀ : copyto!(similar(w), v₀)
     r, α = orthogonalize!(w, v, iter.orth)
     β = norm(r)
     n = hypot(α,2*β)
@@ -70,9 +71,9 @@ function initialize(iter::LanczosIterator)
     αs = [real(α)]
     βs = [β]
 
-    return LanczosFact(1, V, αs, βs, r)
+    return LanczosFactorization(1, V, αs, βs, r)
 end
-function initialize!(iter::LanczosIterator, state::LanczosFact)
+function initialize!(iter::LanczosIterator, state::LanczosFactorization)
     v₀ = iter.v₀
     V = state.V
     while length(V) > 1
@@ -94,7 +95,7 @@ function initialize!(iter::LanczosIterator, state::LanczosFact)
     state.r = r
     return state
 end
-function expand!(iter::LanczosIterator, state::LanczosFact)
+function expand!(iter::LanczosIterator, state::LanczosFactorization)
     βold = normres(state)
     V = state.V
     r = state.r
@@ -113,8 +114,8 @@ function expand!(iter::LanczosIterator, state::LanczosFact)
 
     return state
 end
-function shrink!(state::LanczosFact, k)
-    length(state) == length(state.V) || error("we cannot shrink LanczosFact without keeping Lanczos vectors")
+function shrink!(state::LanczosFactorization, k)
+    length(state) == length(state.V) || error("we cannot shrink LanczosFactorization without keeping Lanczos vectors")
     length(state) <= k && return state
     V = state.V
     while length(V) > k+1

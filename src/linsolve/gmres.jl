@@ -8,10 +8,9 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀ = 0, a₁ = 1)
     α₀::T = a₀
     α₁::T = a₁
     # Continue computing r = b - a₀ * x₀ - a₁ * operator(x₀)
-    r = similar(b, T)
-    copyto!(r, b)
-    axpy!(-α₀, x₀, r)
-    axpy!(-α₁, y₀, r)
+    r = copyto!(similar(b, T), b)
+    r = α₀ == 0 ? r : axpy!(-α₀, x₀, r)
+    r = axpy!(-α₁, y₀, r)
     x = copyto!(similar(r), x₀)
     β = norm(r)
     S = typeof(β)
@@ -82,23 +81,23 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀ = 0, a₁ = 1)
         # Update x
         V = basis(fact)
         @inbounds for i = 1:k
-            axpy!(y[i], V[i], x)
+            x = axpy!(y[i], V[i], x)
         end
 
         if β > tol
             # Recompute residual without reevaluating operator
             w = residual(fact)
-            push!(V, mul!(w, w, 1/normres(fact)))
+            push!(V, rmul!(w, 1/normres(fact)))
             for i = 1:k
                 rmul!(V, gs[i]')
             end
-            mul!(r, y[k+1], V[k+1])
+            r = mul!(r, y[k+1], V[k+1])
         else
             # Recompute residual and its norm explicitly, to ensure that no
             # numerical errors have accumulated
-            mul!(r, -α₁, apply(operator, x))
-            axpy!(+1, b, r)
-            α₀ != 0 && axpy!(-α₀, x, r) # r = b - a₀ * x - a₁ * operator(x)
+            r = copyto!(r, b)                      # r = b
+            r = α₀ == 0 ? r : axpy!(-α₀, x, r)     #      - α₀ * x
+            r = axpy!(-α₁, apply(operator, x), r)  #      - α₁ * operator(x)
             numops += 1
             β = norm(r)
             β < tol && return (x, ConvergenceInfo(1, β, r, numiter, numops))

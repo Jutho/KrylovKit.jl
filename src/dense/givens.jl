@@ -12,8 +12,8 @@ using LinearAlgebra: Givens
 function LinearAlgebra.rmul!(b::OrthonormalBasis, G::Givens)
     q1, q2 = b[G.i1], b[G.i2]
     q1old = copyto!(similar(q1), q1)
-    axpby!(-conj(G.s), q2, G.c, q1)
-    axpby!(G.s, q1old, G.c, q2)
+    q1 = axpby!(-conj(G.s), q2, G.c, q1)
+    q2 = axpby!(G.s, q1old, G.c, q2)
     return b
 end
 

@@ -1,4 +1,80 @@
 # Arnoldi methods for eigenvalue problems
+
+"""
+    schursolve(f, x₀, howmany, which, algorithm)
+
+Compute a partial Schur decomposition containing `howmany` eigenvalues from the linear map
+encoded in the matrix `A` or by the function `f`. Return reduced matrix, basis of Schur vectors,
+extracted eigenvalues and a `ConvergenceInfo` structure.
+
+See also [`eigsolve`](@eigsolve) to obtain the eigenvectors instead. For real symmetric or
+complex hermitian problems, the (partial) Schur decomposition is identical to the (partial)
+eigenvalue decomposition, and `eigsolve` should always be used.
+
+### Arguments:
+The linear map can be an `AbstractMatrix` (dense or sparse) or a general function or callable
+object, that acts on vector like objects similar to `x₀`, which is the starting guess from
+which a Krylov subspace will be built. `howmany` specifies how many Schur vectors should be
+converged before the algorithm terminates; `which` specifies which eigenvalues should be targetted.
+Valid specifications of `which` are
+  * `LM`: eigenvalues of largest magnitude
+  * `LR`: eigenvalues with largest (most positive) real part
+  * `SR`: eigenvalues with smallest (most negative) real part
+  * `LI`: eigenvalues with largest (most positive) imaginary part, only if `T <: Complex`
+  * `SI`: eigenvalues with smallest (most negative) imaginary part, only if `T <: Complex`
+  * [`ClosestTo(λ)`](@ref): eigenvalues closest to some number `λ`
+Note that Krylov methods work well for extremal eigenvalues, i.e. close to the outer regions
+of the spectrum of the linear map. Even with `ClosestTo`, no shift and invert is performed.
+This is useful if, e.g., you know the spectrum to be within the unit circle in the complex plane,
+and want to target the eigenvalues closest to the value `λ = 1`.
+
+The final argument `algorithm` can currently only be an instance of [`Arnoldi`](@ref), but
+should nevertheless be specified. Since `schursolve` is less commonly used as `eigsolve`, no
+convenient keyword syntax is currently available.
+
+### Return values:
+The return value is always of the form `T, vecs, vals, info = eigsolve(...)` with
+  * `T`: a `Matrix` containing the partial Schur decomposition of the linear map, i.e. it's
+    elements are given by `T[i,j] = dot(vecs[i], f(vecs[j]))`. It is of Schur form, i.e. upper
+    triangular in case of complex arithmetic, and block upper triangular (with at most 2x2 blocks)
+    in case of real arithmetic.
+  * `vecs`: a `Vector` of corresponding Schur vectors, of the same length as `vals`. Note that
+    Schur vecotrs are not returned as a matrix, as the linear map could act on any custom Julia
+    type with vector like behavior, i.e. the elements of the list `vecs` are objects that are
+    typically similar to the starting guess `x₀`, up to a possibly different `eltype`. When
+    the linear map is a simple `AbstractMatrix`, `vecs` will be `Vector{Vector{<:Number}}`.
+    Schur vectors are by definition orthogonal, i.e. `dot(vecs[i],vecs[j]) = I[i,j]`.
+  * `vals`: a `Vector` of eigenvalues, i.e. the diagonal elements of `T` in case of complex
+    arithmetic, or extracted from the diagonal blocks in case of real arithmetic. Note that
+    `vals` will always be complex, independent of the underlying arithmetic.
+  * `info`: an object of type [`ConvergenceInfo`], which has the following fields
+      - `info.converged::Int`: indices how many eigenvalues and Schur vectors were actually
+        converged to the specified tolerance (see below under keyword arguments)
+      - `info.normres::Vector{<:Real}`: list of the same length as `vals` containing the norm
+        of the residual for every Schur vector, i.e.
+        ```julia
+            info.normres[i] = norm(f(vecs[i]) - sum(vecs[j]*T[j,i] for j = 1:i+1))
+        ```
+        where `T[i+1,i]` is definitely zero in case of complex arithmetic and possibly zero
+        in case of real arithmetic
+      - `info.residuals::Vector`: a list of the same length as `vals` containing the actual
+        residuals
+        ```julia
+            info.residuals[i] = f(vecs[i]) - sum(vecs[j]*T[j,i] for j = 1:i+1)
+        ```
+      - `info.numops::Int`: number of times the linear map was applied, i.e. number of times
+        `f` was called, or a vector was multiplied with `A`
+      - `info.numiter::Int`: number of times the Krylov subspace was restarted (see below)
+!!! warning "Check for convergence"
+    No warning is printed if not all requested eigenvalues were converged, so always check
+    if `info.converged >= howmany`.
+
+### Algorithm
+The actual algorithm is an implementation of the Krylov-Schur algorithm, where the [`Arnoldi`](@ref)
+algorithm is used to generate the Krylov subspace. During the algorith, the Krylov subspace is
+dynamically grown and shrunk, i.e. the restarts are so-called thick restarts where a part of the
+current Krylov subspace is kept.
+"""
 function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     krylovdim = alg.krylovdim
     maxiter = alg.maxiter
@@ -68,7 +144,7 @@ function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
 
         # Shrink Arnoldi factorization (no longer strictly Arnoldi but still Krylov)
         r = residual(fact)
-        B[keep+1] = mul!(r, r, 1/normres(fact))
+        B[keep+1] = rmul!(r, 1/normres(fact))
         for j = 1:keep
             H[keep+1,j] = f[j]
         end
