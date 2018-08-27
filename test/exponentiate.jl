@@ -7,7 +7,7 @@
             W = zero(A)
             alg = Lanczos(orth; krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)))
             for k = 1:n
-                W[:,k], =  @inferred exponentiate(1, A, view(V,:,k), alg)
+                W[:,k], =  @inferred exponentiate(A, 1, view(V,:,k), alg)
             end
             @test W ≈ exp(A)
         end
@@ -22,7 +22,7 @@ end
             v = rand(T,N)
             t = rand(complex(T))
             alg = Lanczos(orth; krylovdim = n, maxiter = 30, tol = 10*N*eps(real(T))*abs(t))
-            w, info =  @inferred exponentiate(t, A, v, alg)
+            w, info =  @inferred exponentiate(A, t, v, alg)
             @test info.converged > 0
             @test w ≈ exp(t*A)*v
         end

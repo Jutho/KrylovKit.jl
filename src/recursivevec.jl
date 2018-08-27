@@ -4,8 +4,12 @@ end
 RecursiveVec(arg1, args...) = RecursiveVec((arg1, args...))
 
 Base.getindex(v::RecursiveVec, i) = v.vecs[i]
+
 Base.iterate(v::RecursiveVec) = iterate(v.vecs)
 Base.iterate(v::RecursiveVec, s) = iterate(v.vecs, s)
+Base.IteratorEltype(::Type{<:RecursiveVec}) = Base.EltypeUnknown() # since `eltype` is not the eltype of the iterator
+Base.IteratorSize(::Type{<:RecursiveVec}) = Base.HasLength()
+Base.length(v::RecursiveVec) = length(v.vecs)
 
 Base.eltype(v::RecursiveVec) = eltype(typeof(v))
 Base.eltype(::Type{RecursiveVec{T}}) where {T<:Tuple} = _eltype(T)

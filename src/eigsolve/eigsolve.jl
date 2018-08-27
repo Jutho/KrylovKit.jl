@@ -27,14 +27,15 @@ specifications of `which` are
   * `LI`: eigenvalues with largest (most positive) imaginary part, only if `T <: Complex`
   * `SI`: eigenvalues with smallest (most negative) imaginary part, only if `T <: Complex`
   * [`ClosestTo(λ)`](@ref): eigenvalues closest to some number `λ`
-Note that Krylov methods work well for extremal eigenvalues, i.e. close to the outer regions
-of the spectrum of the linear map. Even with `ClosestTo`, no shift and invert is performed.
-This is useful if, e.g., you know the spectrum to be within the unit circle in the complex plane,
-and want to target the eigenvalues closest to the value `λ = 1`.
+!!! note
+    Krylov methods work well for extremal eigenvalues, i.e. eigenvalues on the periphery of
+    the spectrum of the linear map. Even with `ClosestTo`, no shift and invert is performed.
+    This is useful if, e.g., you know the spectrum to be within the unit circle in the complex
+    plane, and want to target the eigenvalues closest to the value `λ = 1`.
 
-The argument `T` acts as a hint in which number type the computation should be performed, but
-is not restrictive. If the linear map automatically produces complex values, even though `T<:Real`
-was specified, complex arithmetic will still be used.
+The argument `T` acts as a hint in which `Number` type the computation should be performed, but
+is not restrictive. If the linear map automatically produces complex values, complex arithmetic
+will be used even though `T<:Real` was specified.
 
 ### Return values:
 The return value is always of the form `vals, vecs, info = eigsolve(...)` with
@@ -87,7 +88,7 @@ algorithm is an implementation of the Krylov-Schur algorithm, which can dynamica
 grow the Krylov subspace, i.e. the restarts are so-called thick restarts where a part of the
 current Krylov subspace is kept.
 
-!!! note "Convergence"
+!!! note "Note about convergence"
     In case of a general problem, where the `Arnoldi` method is used, convergence of an eigenvalue
     is not based on the norm of the residual `norm(f(vecs[i]) - vals[i]*vecs[i])` for the eigenvectors
     but rather on the norm of the residual for the corresponding Schur vectors.
@@ -113,13 +114,13 @@ const Selector = Union{ClosestTo, Symbol}
 
 function eigsolve(A::AbstractMatrix, howmany::Int = 1, which::Selector = :LM, T::Type = eltype(A);
         issymmetric = issymmetric(A), ishermitian = ishermitian(A),
-        krylovdim::Int = Defaults.krylovdim, maxiter::Int = Defaults.maxiter, tol::Real = Defaults.tol)
+        krylovdim::Int = KrylovDefaults.krylovdim, maxiter::Int = KrylovDefaults.maxiter, tol::Real = KrylovDefaults.tol)
     eigsolve(x->(A*x), size(A,1), howmany, which, T; issymmetric = issymmetric, ishermitian = ishermitian, krylovdim = krylovdim, maxiter = maxiter, tol = tol)
 end
 
 function eigsolve(A::AbstractMatrix, x₀::VecOrMat, howmany::Int = 1, which::Selector = :LM, T::Type = promote_type(eltype(A), eltype(x₀));
         issymmetric = issymmetric(A), ishermitian = ishermitian(A),
-        krylovdim::Int = Defaults.krylovdim, maxiter::Int = Defaults.maxiter, tol::Real = Defaults.tol)
+        krylovdim::Int = KrylovDefaults.krylovdim, maxiter::Int = KrylovDefaults.maxiter, tol::Real = KrylovDefaults.tol)
     eigsolve(x->(A*x), x₀, howmany, which, T; issymmetric = issymmetric, ishermitian = ishermitian, krylovdim = krylovdim, maxiter = maxiter, tol = tol)
 end
 
@@ -128,7 +129,7 @@ eigsolve(f, n::Int, howmany::Int = 1, which::Selector = :LM, T::Type = Float64; 
 
 function eigsolve(f, x₀, howmany::Int = 1, which::Selector = :LM, T::Type = eltype(x₀);
         issymmetric = false, ishermitian = T<:Real && issymmetric,
-        krylovdim::Int = Defaults.krylovdim, maxiter::Int = Defaults.maxiter, tol::Real = Defaults.tol)
+        krylovdim::Int = KrylovDefaults.krylovdim, maxiter::Int = KrylovDefaults.maxiter, tol::Real = KrylovDefaults.tol)
     x = eltype(x₀) == T ? x₀ : copyto!(similar(x₀, T), x₀)
     if T<:Real
         (which == :LI || which == :SI) && throw(ArgumentError("work in complex domain to find eigenvalues with largest or smallest imaginary part"))

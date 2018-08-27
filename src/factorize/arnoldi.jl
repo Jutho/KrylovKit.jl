@@ -1,6 +1,6 @@
 # arnoldi.jl
 
-mutable struct ArnoldiFactorization{T,S} <: KrylovFactorization{T}
+mutable struct ArnoldiFactorization{T,S} <: KrylovFactorization{T,S}
     k::Int # current Krylov dimension
     V::OrthonormalBasis{T} # basis of length k
     H::Vector{S} # stores the Hessenberg matrix in packed form
@@ -23,12 +23,12 @@ residual(F::ArnoldiFactorization) = F.r
 rayleighextension(F::ArnoldiFactorization) = SimpleBasisVector(F.k, F.k)
 
 # Arnoldi iteration for constructing the orthonormal basis of a Krylov subspace.
-struct ArnoldiIterator{F,T,O<:Orthogonalizer}
+struct ArnoldiIterator{F,T,O<:Orthogonalizer} <: KrylovIterator{F,T}
     operator::F
     v₀::T
     orth::O
 end
-ArnoldiIterator(A, v₀) = ArnoldiIterator(A, v₀, Defaults.orth)
+ArnoldiIterator(A, v₀) = ArnoldiIterator(A, v₀, KrylovDefaults.orth)
 
 Base.IteratorSize(::Type{<:ArnoldiIterator}) = Base.SizeUnknown()
 Base.IteratorEltype(::Type{<:ArnoldiIterator}) = Base.EltypeUnknown()
@@ -38,7 +38,8 @@ function Base.iterate(iter::ArnoldiIterator)
     return state, state
 end
 function Base.iterate(iter::ArnoldiIterator, state)
-    if normres(state) < eps(real(eltype(state)))
+    nr = normres(state)
+    if nr < eps(typeof(nr))
         return nothing
     else
         state = expand!(iter, deepcopy(state))

@@ -1,6 +1,6 @@
 # lanczos.jl
 
-mutable struct LanczosFactorization{T, S<:Real} <: KrylovFactorization{T}
+mutable struct LanczosFactorization{T, S<:Real} <: KrylovFactorization{T,S}
     k::Int # current Krylov dimension
     V::OrthonormalBasis{T} # basis of length k
     αs::Vector{S}
@@ -25,7 +25,7 @@ residual(F::LanczosFactorization) = F.r
 rayleighextension(F::LanczosFactorization) = SimpleBasisVector(F.k, F.k)
 
 # Lanczos iteration for constructing the orthonormal basis of a Krylov subspace.
-struct LanczosIterator{F,T,O<:Orthogonalizer}
+struct LanczosIterator{F,T,O<:Orthogonalizer} <: KrylovIterator{F,T}
     operator::F
     v₀::T
     orth::O
@@ -37,7 +37,7 @@ struct LanczosIterator{F,T,O<:Orthogonalizer}
         new{F,T,O}(operator, v₀, orth, keepvecs)
     end
 end
-LanczosIterator(operator::F, v₀::T, orth::O = Defaults.orth, keepvecs::Bool = true) where {F,T,O<:Orthogonalizer} = LanczosIterator{F,T,O}(operator, v₀, orth, keepvecs)
+LanczosIterator(operator::F, v₀::T, orth::O = KrylovDefaults.orth, keepvecs::Bool = true) where {F,T,O<:Orthogonalizer} = LanczosIterator{F,T,O}(operator, v₀, orth, keepvecs)
 
 Base.IteratorSize(::Type{<:LanczosIterator}) = Base.SizeUnknown()
 Base.IteratorEltype(::Type{<:LanczosIterator}) = Base.EltypeUnknown()
@@ -47,7 +47,8 @@ function Base.iterate(iter::LanczosIterator)
     return state, state
 end
 function Base.iterate(iter::LanczosIterator, state::LanczosFactorization)
-    if normres(state) < eps(real(eltype(state)))
+    nr = normres(state)
+    if nr < eps(typeof(nr))
         return nothing
     else
         state = expand!(iter, deepcopy(state))
@@ -107,7 +108,7 @@ function expand!(iter::LanczosIterator, state::LanczosFactorization)
     αs = push!(state.αs, real(α))
     βs = push!(state.βs, β)
 
-    !iter.keepvecs && shift!(state.V) # remove oldest V if not keepvecs
+    !iter.keepvecs && popfirst!(state.V) # remove oldest V if not keepvecs
 
     state.k += 1
     state.r = r

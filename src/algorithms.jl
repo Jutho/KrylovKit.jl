@@ -6,13 +6,13 @@
 
 # Orthogonalization and orthonormalization
 """
-    abstract type orthogonalizer
+    abstract type Orthogonalizer
 
 Supertype of a hierarchy for representing different orthogonalization strategies
 or algorithms.
 
-See also: `ClassicalGramSchmidt`, `ModifiedGramSchmidt`, `ClassicalGramSchmidt2`,
-    `ModifiedGramSchmidt2`, `ClassicalGramSchmidtIR`, `ModifiedGramSchmidtIR`.
+See also: [`ClassicalGramSchmidt`](@ref), [`ModifiedGramSchmidt`](@ref), [`ClassicalGramSchmidt2`](@ref),
+    [`ModifiedGramSchmidt2`](@ref), [`ClassicalGramSchmidtIR`](@ref), [`ModifiedGramSchmidtIR`](@ref).
 """
 abstract type Orthogonalizer end
 abstract type Reorthogonalizer <: Orthogonalizer end
@@ -71,7 +71,7 @@ end
 """
     ModifiedGramSchmidtIR(η::Real)
 
-Represents the classical Gram Schmidt algorithm with zero or more reorthogonalization
+Represents the modified Gram Schmidt algorithm with zero or more reorthogonalization
 steps being applied untill the norm of the vector after an orthogonalization step
 has not decreased by a factor smaller than `η` with respect to the norm before the step.
 """
@@ -79,17 +79,8 @@ struct ModifiedGramSchmidtIR{S<:Real} <: Reorthogonalizer
     η::S
 end
 
-const η₀   = 1/sqrt(2) # conservative choice, probably 1/2 is sufficient
-
-const cgs = ClassicalGramSchmidt()
-const mgs = ModifiedGramSchmidt()
-const cgs2 = ClassicalGramSchmidt2()
-const mgs2 = ModifiedGramSchmidt2()
-const cgsr = ClassicalGramSchmidtIR(η₀)
-const mgsr = ModifiedGramSchmidtIR(η₀)
-
 # Default values
-module Defaults
+module KrylovDefaults
     using ..KrylovKit
     const orth = KrylovKit.ModifiedGramSchmidtIR(1/sqrt(2)) # conservative choice
     const krylovdim = 30
@@ -113,8 +104,8 @@ const norestart = NoRestart()
 
 # General purpose; good for linear systems, eigensystems and matrix functions
 """
-    Lanczos(orth::Orthogonalizer = Defaults.orth; krylovdim = Defaults.krylovdim,
-        maxiter::Int = Defaults.maxiter, tol = Defaults.tol)
+    Lanczos(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,
+        maxiter::Int = KrylovDefaults.maxiter, tol = KrylovDefaults.tol)
 
 Represents the Lanczos algorithm for building the Krylov subspace; assumes the
 linear operator is real symmetric or complex Hermitian. Can be used in `factorize`,
@@ -134,13 +125,13 @@ struct Lanczos{O<:Orthogonalizer} <: KrylovAlgorithm
     maxiter::Int
     tol::Real
 end
-Lanczos(orth::Orthogonalizer = Defaults.orth; krylovdim = Defaults.krylovdim,
-    maxiter::Int = Defaults.maxiter, tol = Defaults.tol) =
+Lanczos(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,
+    maxiter::Int = KrylovDefaults.maxiter, tol = KrylovDefaults.tol) =
     Lanczos(orth, krylovdim, maxiter, tol)
 
 """
-    Arnoldi(orth::Orthogonalizer = Defaults.orth; krylovdim = Defaults.krylovdim,
-        maxiter::Int = Defaults.maxiter, tol = Defaults.tol)
+    Arnoldi(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,
+        maxiter::Int = KrylovDefaults.maxiter, tol = KrylovDefaults.tol)
 
 Represents the Arnoldi algorithm for building the Krylov subspace for a general.
 matrix or linear operator. Can be used in `factorize`, `eigsolve` and `exponentiate`.
@@ -159,19 +150,14 @@ struct Arnoldi{O<:Orthogonalizer} <: KrylovAlgorithm
     maxiter::Int
     tol::Real
 end
-Arnoldi(orth::Orthogonalizer = Defaults.orth; krylovdim = Defaults.krylovdim,
-    maxiter::Int = Defaults.maxiter, tol = Defaults.tol) =
+Arnoldi(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,
+    maxiter::Int = KrylovDefaults.maxiter, tol = KrylovDefaults.tol) =
     Arnoldi(orth, krylovdim, maxiter, tol)
 
 # Solving linear systems specifically
 abstract type LinearSolver <: KrylovAlgorithm end
 
 struct CG <: LinearSolver
-    maxiter::Int
-    tol::Real
-    reltol::Real
-end
-struct SYMMLQ <: LinearSolver
     maxiter::Int
     tol::Real
     reltol::Real
@@ -193,14 +179,14 @@ struct BiCGStab <: LinearSolver
 end
 
 """
-    GMRES(orth::Orthogonalizer = Defaults.orth; tol = Defaults.tol, reltol = Defaults.tol,
-        krylovdim = Defaults.krylovdim, maxiter = Defaults.maxiter)
+    GMRES(orth::Orthogonalizer = KrylovDefaults.orth; tol = KrylovDefaults.tol, reltol = KrylovDefaults.tol,
+        krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter)
 
     Construct an instance of the GMRES algorithm with specified parameters, which
     can be passed to `linsolve` in order to iteratively solve a linear system. The
     `GMRES` method will search for the optimal `x` in a Krylov subspace of maximal
     size `krylovdim`, and repeat this process for at most `maxiter` times, or stop
-    when \$ | A*x - b | < max(tol, reltol*|b|) \$.
+    when ``| A*x - b | < max(tol, reltol*|b|)``.
 
     In building the Krylov subspace, it will use the orthogonalizer `orth`.
 
@@ -209,7 +195,7 @@ end
     vector counts as an iteration. I.e. our iteration count should rougly be multiplied
     by `krylovdim` to obtain the conventional iteration count.
 
-    See also: linsolve, Orthogonalizer, CG, SYMMLQ, MINRES, BiCG, BiCGStab
+    See also: [`linsolve`](@ref), [`CG`](@ref), [`MINRES`](@ref), [`BiCG`](@ref), [`BiCGStab`](@ref)
 """
 struct GMRES{O<:Orthogonalizer} <: LinearSolver
     orth::O
@@ -219,8 +205,8 @@ struct GMRES{O<:Orthogonalizer} <: LinearSolver
     reltol::Real
 end
 
-GMRES(orth::Orthogonalizer = Defaults.orth; tol = Defaults.tol, reltol = Defaults.tol,
-    krylovdim = Defaults.krylovdim, maxiter = Defaults.maxiter) =
+GMRES(orth::Orthogonalizer = KrylovDefaults.orth; tol = KrylovDefaults.tol, reltol = KrylovDefaults.tol,
+    krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter) =
     GMRES(orth, maxiter, krylovdim, tol, reltol)
 
 # Solving eigenvalue systems specifically
