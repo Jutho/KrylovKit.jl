@@ -4,9 +4,15 @@ end
 RecursiveVec(arg1, args...) = RecursiveVec((arg1, args...))
 
 Base.getindex(v::RecursiveVec, i) = v.vecs[i]
-Base.start(v::RecursiveVec) = start(v.vecs)
-Base.next(v::RecursiveVec, s) = next(v.vecs, s)
-Base.done(v::RecursiveVec, s) = done(v.vecs, s)
+
+Base.iterate(v::RecursiveVec) = iterate(v.vecs)
+Base.iterate(v::RecursiveVec, s) = iterate(v.vecs, s)
+Base.IteratorEltype(::Type{<:RecursiveVec}) = Base.EltypeUnknown() # since `eltype` is not the eltype of the iterator
+Base.IteratorSize(::Type{<:RecursiveVec}) = Base.HasLength()
+Base.length(v::RecursiveVec) = length(v.vecs)
+
+Base.first(v::RecursiveVec) = first(v.vecs)
+Base.last(v::RecursiveVec) = last(v.vecs)
 
 Base.eltype(v::RecursiveVec) = eltype(typeof(v))
 Base.eltype(::Type{RecursiveVec{T}}) where {T<:Tuple} = _eltype(T)
@@ -37,44 +43,51 @@ function Base.fill!(v::RecursiveVec, a)
     return v
 end
 
-function Base.copy!(w::RecursiveVec, v::RecursiveVec)
+function Base.copyto!(w::RecursiveVec, v::RecursiveVec)
     @assert length(w.vecs) == length(v.vecs)
     @inbounds for i = 1:length(w.vecs)
-        copy!(w.vecs[i], v.vecs[i])
+        copyto!(w.vecs[i], v.vecs[i])
     end
     return w
 end
 
-function Base.scale!(w::RecursiveVec, a, v::RecursiveVec)
+function LinearAlgebra.mul!(w::RecursiveVec, a, v::RecursiveVec)
     @assert length(w.vecs) == length(v.vecs)
     @inbounds for i = 1:length(w.vecs)
-        scale!(w.vecs[i], a, v.vecs[i])
+        mul!(w.vecs[i], a, v.vecs[i])
     end
     return w
 end
 
-function Base.scale!(w::RecursiveVec, v::RecursiveVec, a)
+function LinearAlgebra.mul!(w::RecursiveVec, v::RecursiveVec, a)
     @assert length(w.vecs) == length(v.vecs)
     @inbounds for i = 1:length(w.vecs)
-        scale!(w.vecs[i], v.vecs[i], a)
+        mul!(w.vecs[i], v.vecs[i], a)
     end
     return w
 end
 
-function Base.scale!(v::RecursiveVec, a)
+function LinearAlgebra.rmul!(v::RecursiveVec, a)
     for x in v.vecs
-        scale!(x, a)
+        rmul!(x, a)
     end
     return v
 end
 
-function LinAlg.axpy!(a, v::RecursiveVec, w::RecursiveVec)
+function LinearAlgebra.axpy!(a, v::RecursiveVec, w::RecursiveVec)
     @assert length(w.vecs) == length(v.vecs)
     @inbounds for i = 1:length(w.vecs)
-        LinAlg.axpy!(a, v.vecs[i], w.vecs[i])
+        axpy!(a, v.vecs[i], w.vecs[i])
+    end
+    return w
+end
+function LinearAlgebra.axpby!(a, v::RecursiveVec, b, w::RecursiveVec)
+    @assert length(w.vecs) == length(v.vecs)
+    @inbounds for i = 1:length(w.vecs)
+        axpby!(a, v.vecs[i], b, w.vecs[i])
     end
     return w
 end
 
-LinAlg.vecdot(v::RecursiveVec{T}, w::RecursiveVec{T}) where {T} = sum(x->vecdot(x...), zip(v.vecs, w.vecs))
-LinAlg.vecnorm(v::RecursiveVec, p::Real = 2) = vecnorm(map(x->vecnorm(x,p), v.vecs), p)
+LinearAlgebra.dot(v::RecursiveVec{T}, w::RecursiveVec{T}) where {T} = sum(dot.(v.vecs, w.vecs))
+LinearAlgebra.norm(v::RecursiveVec) = norm(norm.(v.vecs))

@@ -1,6 +1,6 @@
 # Test GMRES complete
 @testset "GMRES full factorization" begin
-    @testset for T in (Float32, Float64, Complex64, Complex128)
+    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
         A = rand(T,(n,n)).-one(T)/2
         b = rand(T,n)
         alg = GMRES(krylovdim = n, maxiter = 2, reltol = 2*n*eps(real(T)))
@@ -19,7 +19,7 @@ end
 
 # Test GMRES with restart
 @testset "GMRES with restarts" begin
-    @testset for T in (Float32, Float64, Complex64, Complex128)
+    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
         A = rand(T,(N,N)).-one(T)/2
         A = I-T(9/10)*A/maximum(abs, eigvals(A))
         b = rand(T,N)

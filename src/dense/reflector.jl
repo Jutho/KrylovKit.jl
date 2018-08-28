@@ -5,23 +5,25 @@ struct Householder{T,V<:AbstractVector,R<:IndexRange}
     r::R
 end
 
-function householder(x::AbstractVector, r::IndexRange = indices(x,1), k = first(r))
-    i = findfirst(equalto(k), r)
-    i == 0 && error("k = $k should be in the range r = $r")
+Base.adjoint(H::Householder) = Householder(conj(H.β), H.v, H.r)
+
+function householder(x::AbstractVector, r::IndexRange = axes(x,1), k = first(r))
+    i = findfirst(isequal(k), r)
+    i isa Nothing && error("k = $k should be in the range r = $r")
     β, v, ν = _householder!(x[r], i)
     return Householder(β,v,r), ν
 end
 # Householder reflector h that zeros the elements A[r,col] (except for A[k,col]) upon lmul!(A,h)
 function householder(A::AbstractMatrix, r::IndexRange, col::Int, k = first(r))
-    i = findfirst(equalto(k), r)
-    i == 0 && error("k = $k should be in the range r = $r")
+    i = findfirst(isequal(k), r)
+    i isa Nothing && error("k = $k should be in the range r = $r")
     β, v, ν = _householder!(A[r,col], i)
     return Householder(β,v,r), ν
 end
 # Householder reflector that zeros the elements A[row,r] (except for A[row,k]) upon rmulc!(A,h)
 function householder(A::AbstractMatrix, row::Int, r::IndexRange, k = first(r))
-    i = findfirst(equalto(k), r)
-    i == 0 && error("k = $k should be in the range r = $r")
+    i = findfirst(isequal(k), r)
+    i isa Nothing && error("k = $k should be in the range r = $r")
     β, v, ν = _householder!(conj!(A[row,r]), i)
     return Householder(β,v,r), ν
 end
@@ -63,7 +65,7 @@ function _householder!(v::AbstractVector{T}, i::Int) where {T}
     return β, v, ν
 end
 
-function lmul!(x::AbstractVector, H::Householder)
+function LinearAlgebra.lmul!(H::Householder, x::AbstractVector)
     v = H.v
     r = H.r
     β = H.β
@@ -84,7 +86,7 @@ function lmul!(x::AbstractVector, H::Householder)
     end
     return x
 end
-function lmul!(A::AbstractMatrix, H::Householder, cols=indices(A,2))
+function LinearAlgebra.lmul!(H::Householder, A::AbstractMatrix, cols=axes(A,2))
     v = H.v
     r = H.r
     β = H.β
@@ -107,7 +109,7 @@ function lmul!(A::AbstractMatrix, H::Householder, cols=indices(A,2))
     end
     return A
 end
-function rmulc!(A::AbstractMatrix, H::Householder, rows=indices(A,1))
+function LinearAlgebra.rmul!(A::AbstractMatrix, H::Householder, rows=axes(A,1))
     v = H.v
     r = H.r
     β = H.β
@@ -128,7 +130,7 @@ function rmulc!(A::AbstractMatrix, H::Householder, rows=indices(A,1))
         for k in r
             j = 1
             @simd for i in rows
-                A[i,k] -= conj(β)*w[j]*conj(v[l])
+                A[i,k] -= β*w[j]*conj(v[l])
                 j += 1
             end
             l += 1
@@ -136,7 +138,7 @@ function rmulc!(A::AbstractMatrix, H::Householder, rows=indices(A,1))
     end
     return A
 end
-function rmulc!(b::OrthonormalBasis, H::Householder)
+function LinearAlgebra.rmul!(b::OrthonormalBasis, H::Householder)
     v = H.v
     r = H.r
     β = H.β
@@ -150,7 +152,7 @@ function rmulc!(b::OrthonormalBasis, H::Householder)
         end
         l = 1
         for k in r
-            axpy!(-conj(v[l])*conj(β), w, b[k])
+            axpy!(-conj(v[l])*β, w, b[k])
             l += 1
         end
     end

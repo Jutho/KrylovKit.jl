@@ -1,22 +1,35 @@
-function exponentiate(t::Number, A, v, alg::Lanczos)
+"""
+    function exponentiate(A, t::Number, v; kwargs...)
+    function exponentiate(A, t::Number, v, algorithm)
+
+Compute ``exp(t*A) v``, where `A` is a general linear map, i.e. a `AbstractMatrix` or just
+a general function or callable object and `v` is of any Julia type with vector like behavior.
+"""
+function exponentiate end
+
+function exponentiate(A, t::Number, v; kwargs...)
+    alg = eigselector(A, promote_type(typeof(t), eltype(v)); kwargs...)
+    exponentiate(A, t, v, alg)
+end
+
+function exponentiate(A, t::Number, v, alg::Lanczos)
     # process initial vector and determine result type
-    β = vecnorm(v)
+    β = norm(v)
     Av = apply(A, v) # used to determine return type
     numops = 1
     T = promote_type(eltype(Av), typeof(β), typeof(t))
     S = real(T)
-    w = similar(Av, T)
-    scale!(w, v, 1/β)
+    w = mul!(similar(Av, T), v, 1/β)
 
     # krylovdim and related allocations
     krylovdim = min(alg.krylovdim, length(v))
-    UU = Matrix{S}(uninitialized, (krylovdim, krylovdim))
-    yy1 = Vector{T}(uninitialized, krylovdim)
-    yy2 = Vector{T}(uninitialized, krylovdim)
+    UU = Matrix{S}(undef, (krylovdim, krylovdim))
+    yy1 = Vector{T}(undef, krylovdim)
+    yy2 = Vector{T}(undef, krylovdim)
 
     # initialize iterator
     iter = LanczosIterator(A, w, alg.orth, true)
-    fact = start(iter)
+    fact = initialize(iter)
     numops += 1
     sizehint!(fact, krylovdim)
 
@@ -44,7 +57,7 @@ function exponentiate(t::Number, A, v, alg::Lanczos)
 
         # Lanczos or Arnoldi factorization
         while normres(fact) > η && length(fact) < krylovdim
-            fact = next!(iter, fact)
+            fact = expand!(iter, fact)
             numops += 1
         end
         K = fact.k # current Krylov dimension
@@ -52,7 +65,7 @@ function exponentiate(t::Number, A, v, alg::Lanczos)
         m = length(fact)
 
         # Small matrix exponential and error estimation
-        U = copy!(view(UU, 1:m, 1:m), I)
+        U = copyto!(view(UU, 1:m, 1:m), I)
         H = rayleighquotient(fact) # tridiagonal
         D, U = eig!(H, U)
 
@@ -70,7 +83,7 @@ function exponentiate(t::Number, A, v, alg::Lanczos)
             if ϵ < δ * η || numiter == maxiter
                 break
             else # reduce time step
-                Δτ = signif(δ * (η / ϵ)^(1/krylovdim) * Δτ, 2)
+                Δτ = round(δ * (η / ϵ)^(1/krylovdim) * Δτ; sigdigits=2)
             end
         end
 
@@ -81,21 +94,21 @@ function exponentiate(t::Number, A, v, alg::Lanczos)
         @inbounds for k = 1:m
             y1[k] = exp(sgn*Δτ*D[k])*conj(U[1,k])
         end
-        y2 = A_mul_B!(y2, U, y1)
+        y2 = mul!(y2, U, y1)
 
         # Finalize step
-        A_mul_B!(w, V, y2)
+        w = mul!(w, V, y2)
         τ -= Δτ
 
         if iszero(τ) # should always be true if numiter == maxiter
-            scale!(w, β)
+            w = rmul!(w, β)
             converged = totalerr < alg.tol ? 1 : 0
-            return w, ConvergenceInfo(converged, totalerr, nothing, numiter, numops)
+            return w, ConvergenceInfo(converged, nothing, totalerr, numiter, numops)
         else
-            normw = vecnorm(w)
+            normw = norm(w)
             β *= normw
-            scale!(w, inv(normw))
-            fact = start!(iter, fact)
+            w = rmul!(w, inv(normw))
+            fact = initialize!(iter, fact)
         end
     end
 end
