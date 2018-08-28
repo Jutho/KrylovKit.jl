@@ -125,5 +125,5 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
         map(i->abs(f[i]), 1:howmany)
     end
 
-    return values, vectors, ConvergenceInfo(converged, normresiduals, residuals, numiter, numops)
+    return values, vectors, ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end

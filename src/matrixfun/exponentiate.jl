@@ -1,3 +1,17 @@
+"""
+    function exponentiate(A, t::Number, v; kwargs...)
+    function exponentiate(A, t::Number, v, algorithm)
+
+Compute ``exp(t*A) v``, where `A` is a general linear map, i.e. a `AbstractMatrix` or just
+a general function or callable object and `v` is of any Julia type with vector like behavior.
+"""
+function exponentiate end
+
+function exponentiate(A, t::Number, v; kwargs...)
+    alg = eigselector(A, promote_type(typeof(t), eltype(v)); kwargs...)
+    exponentiate(A, t, v, alg)
+end
+
 function exponentiate(A, t::Number, v, alg::Lanczos)
     # process initial vector and determine result type
     β = norm(v)
@@ -89,7 +103,7 @@ function exponentiate(A, t::Number, v, alg::Lanczos)
         if iszero(τ) # should always be true if numiter == maxiter
             w = rmul!(w, β)
             converged = totalerr < alg.tol ? 1 : 0
-            return w, ConvergenceInfo(converged, totalerr, nothing, numiter, numops)
+            return w, ConvergenceInfo(converged, nothing, totalerr, numiter, numops)
         else
             normw = norm(w)
             β *= normw

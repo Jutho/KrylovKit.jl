@@ -11,6 +11,9 @@ Base.IteratorEltype(::Type{<:RecursiveVec}) = Base.EltypeUnknown() # since `elty
 Base.IteratorSize(::Type{<:RecursiveVec}) = Base.HasLength()
 Base.length(v::RecursiveVec) = length(v.vecs)
 
+Base.first(v::RecursiveVec) = first(v.vecs)
+Base.last(v::RecursiveVec) = last(v.vecs)
+
 Base.eltype(v::RecursiveVec) = eltype(typeof(v))
 Base.eltype(::Type{RecursiveVec{T}}) where {T<:Tuple} = _eltype(T)
 

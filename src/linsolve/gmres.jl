@@ -21,7 +21,7 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀ = 0, a₁ = 1)
     tol::S = max(alg.tol, norm(b)*alg.reltol)
 
     # Check for early return
-    β < tol && return (x, ConvergenceInfo(1, β, r, 0, 1))
+    β < tol && return (x, ConvergenceInfo(1, r, β, 0, 1))
 
     # Initialize data structures
     y = Vector{T}(undef, krylovdim+1)
@@ -100,12 +100,12 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀ = 0, a₁ = 1)
             r = axpy!(-α₁, apply(operator, x), r)  #      - α₁ * operator(x)
             numops += 1
             β = norm(r)
-            β < tol && return (x, ConvergenceInfo(1, β, r, numiter, numops))
+            β < tol && return (x, ConvergenceInfo(1, r, β, numiter, numops))
         end
 
         # Restart Arnoldi factorization with new r
         iter = ArnoldiIterator(operator, r, alg.orth)
         fact = initialize!(iter, fact)
     end
-    return (x, ConvergenceInfo(0, β, r, numiter, numops))
+    return (x, ConvergenceInfo(0, r, β, numiter, numops))
 end

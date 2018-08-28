@@ -80,6 +80,27 @@ struct ModifiedGramSchmidtIR{S<:Real} <: Reorthogonalizer
 end
 
 # Default values
+"""
+    module KrylovDefaults
+        const orth = KrylovKit.ModifiedGramSchmidtIR(1/sqrt(2))
+        const krylovdim = 30
+        const maxiter = 100
+        const tol = 1e-12
+    end
+
+A module listing the default values for the typical parameters in Krylov based algorithms:
+*   `orth`: the orthogonalization routine used to orthogonalize the Krylov basis in the `Lanczos`
+    or `Arnoldi` iteration
+*   `krylovdim`: the maximal dimension of the Krylov subspace that will be constructed
+*   `maxiter`: the maximal number of outer iterations, i.e. the maximum number of times the
+    Krylov subspace may be rebuilt
+*   `tol`: the tolerance to which the problem must be solved, based on a suitable error measure,
+    e.g. the norm of some residual.
+    !!! warning
+        The default value of `tol` is a `Float64` value, if you solve problems in `Float32`
+        or `ComplexF32` arithmetic, you should always specify a new `tol` as the default value
+        will not be attainable.
+"""
 module KrylovDefaults
     using ..KrylovKit
     const orth = KrylovKit.ModifiedGramSchmidtIR(1/sqrt(2)) # conservative choice
