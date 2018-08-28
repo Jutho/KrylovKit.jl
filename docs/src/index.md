@@ -11,16 +11,23 @@ maps or operators to vectors.
 
 ## Defining features
 There are a number of packages with Krylov-based or other iterative methods, such as
-*   [`IterativeSolvers.jl`](https://github.com/JuliaMath/IterativeSolvers.jl): part of the [`JuliaMath`](https://github.com/JuliaMath) organisation, solves linear systems and least square problems, eigenvalue and singular value problems
-*   [`Krylov.jl`](https://github.com/JuliaSmoothOptimizers/Krylov.jl): part of the [`JuliaSmoothOptimizers`](https://github.com/JuliaSmoothOptimizers) organisation, solves linear systems and least square problems, specific for linear operators from [`LinearOperators.jl`](https://github.com/JuliaSmoothOptimizers/LinearOperators.jl).
+*   [`IterativeSolvers.jl`](https://github.com/JuliaMath/IterativeSolvers.jl): part of the
+    [`JuliaMath`](https://github.com/JuliaMath) organisation, solves linear systems and least
+    square problems, eigenvalue and singular value problems
+*   [`Krylov.jl`](https://github.com/JuliaSmoothOptimizers/Krylov.jl): part of the
+    [`JuliaSmoothOptimizers`](https://github.com/JuliaSmoothOptimizers) organisation, solves
+    linear systems and least square problems, specific for linear operators from
+    [`LinearOperators.jl`](https://github.com/JuliaSmoothOptimizers/LinearOperators.jl).
 *   [`KrylovMethods.jl`](https://github.com/lruthotto/KrylovMethods.jl): specific for sparse matrices
 *   [`Expokit.jl`](https://github.com/acroy/Expokit.jl): application of the matrix exponential to a vector
 
 `KrylovKit.jl` distinguishes itself from the previous packages the following two ways
 
 1.  `KrylovKit` accepts general functions `f` to represent the linear map or operator that defines
-    the problem, but does of course also accept subtypes of `AbstractMatrix`. The linear map
-    is always the first argument in `linsolve(f,...)`, `eigsolve(f,...)`, `exponentiate(f,...)`
+    the problem, without having to wrap them in a [`LinearMap`](https://github.com/Jutho/LinearMaps.jl)
+    or [`LinearOperator`](https://github.com/JuliaSmoothOptimizers/LinearOperators.jl) type.
+    Of course, subtypes of `AbstractMatrix` are also supported. The linear map is always the
+    first argument in `linsolve(f,...)`, `eigsolve(f,...)`, `svdsolve(f,...)`, `exponentiate(f,...)`
     so that Julia's `do` block construction can be used, e.g.
     ```julia
     linsolve(...) do x
@@ -71,6 +78,8 @@ The following algorithms are currently implemented
 *   `eigsolve`: a Krylov-Schur algorithm (i.e. with tick restarts) for extremal eigenvalues of
     normal (i.e. not generalized) eigenvalue problems, corresponding to [`Lanczos`](@ref) for
     real symmetric or complex hermitian linear maps, and to [`Arnoldi`](@ref) for general linear maps.
+*   `svdsolve`: finding largest singular values by using `eigsolve` of the circulant matrix with
+    the `Lanczos` algorithm.
 *   `exponentiate`: a [`Lanczos`](@ref) based algorithm for the action of the exponential of
     a real symmetric or complex hermitian linear map.
 
@@ -78,14 +87,16 @@ The following algorithms are currently implemented
 
 Below is a wish list / to-do list for the future. Any help is welcomed and appreciated.
 
-*   More linear solvers: conjugate gradient
-*   Biorthogonal methods for linear problems and eigenvalue problems: BiCG, BiCGStab, BiLanczos
-*   Preconditioners
-*   Exponentiate for a general (non-hermitian) linear map, based on `Arnoldi`
-*   Singular values: `svdsolve`
-*   Harmonic ritz values
+*   More algorithms, including biorthogonal methods:
+    -   for `linsolve`: CG, MINRES, BiCG, BiCGStab, ...
+    -   for `eigsolve`: BiLanczos, Jacobi-Davidson (?), subspace iteration (?), ...
+    -   for `svdsolve`: Golub-Kahan-Lanczos
+    -   for `exponentiate`: Arnoldi (currently only Lanczos supported)
 *   Generalized eigenvalue problems: LOPCG, EIGFP and trace minimization
+*   Least square problems
 *   Nonlinear eigenvalue problems
+*   Preconditioners
+*   Harmonic ritz values
 *   Support both in-place / mutating and out-of-place functions as linear maps
 *   Reuse memory for storing vectors when restarting algorithms
 *   Improved efficiency for the specific case where `x` is `Vector` (i.e. BLAS level 2 operations)

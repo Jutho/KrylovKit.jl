@@ -5,7 +5,9 @@ makedocs(modules=[KrylovKit],
             sitename="KrylovKit.jl",
             pages = [
                 "Home" => "index.md",
-                "Linear Problems" => "linsolve.md",
-                "Eigenvalue Problems" => "eigsolve.md",
-                "Matrix exponential" => "exponentiate.md",
+                "Linear systems and least square problems" => "linear.md",
+                "Eigenvalues and singular values" => "eigsvd.md",
+                "Matrix functions" => "matfun.md",
+                "Available algorithms" => "algorithms.md",
+                "Implementation" => "implementation.md"
             ])
