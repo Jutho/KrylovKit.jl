@@ -86,9 +86,33 @@ function ldiv!(A::UpperTriangular, y::AbstractVector, r::UnitRange{Int} = 1:leng
     return y
 end
 
-
 # Eigenvalue decomposition of SymTridiagonal matrix
 eig!(A::SymTridiagonal{T}, Z::StridedMatrix{T} = one(A)) where {T<:BlasFloat} = steqr!(A.dv, A.ev, Z)
+
+# Singular value decomposition of a Bidiagonal matrix
+function bidiagsvd!(B::Bidiagonal{T}, U::StridedMatrix{T} = one(B), VT::StridedMatrix{T} = one(B)) where {T<:BlasReal}
+    s, Vt, U, = LAPACK.bdsqr!(B.uplo, B.dv, B.ev, VT, U, similar(U, (size(B,1), 0)))
+    return U, s, Vt
+end
+
+function reversecols!(U::AbstractMatrix)
+    n = size(U, 2)
+    @inbounds for j = 1:div(n, 2)
+        @simd for i = 1:size(U, 1)
+            U[i,j], U[i, n+1-j] = U[i,n+1-j], U[i,j]
+        end
+    end
+    return U
+end
+function reverserows!(V::AbstractVecOrMat)
+    m = size(V, 1)
+    @inbounds for j = 1:size(V,2)
+        @simd for i = 1:div(m, 2)
+            V[i, j], V[m+1-i, j] = V[m+1-i,j], V[i,j]
+        end
+    end
+    return V
+end
 
 # Schur factorization of a Hessenberg matrix
 hschur!(H::StridedMatrix{T}, Z::StridedMatrix{T} = one(H)) where {T<:BlasFloat} = hseqr!(H, Z)

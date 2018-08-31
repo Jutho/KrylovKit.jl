@@ -19,7 +19,7 @@ where the default value of `T` is `Float64`, unless specified differently.
 
 The next arguments are optional, but should typically be specified. `howmany` specifies how many
 eigenvalues should be computed; `which` specifies which eigenvalues should be targetted. Valid
-specifications of `which` are
+specifications of `which` are given by
 *   `LM`: eigenvalues of largest magnitude
 *   `LR`: eigenvalues with largest (most positive) real part
 *   `SR`: eigenvalues with smallest (most negative) real part
@@ -44,7 +44,9 @@ The return value is always of the form `vals, vecs, info = eigsolve(...)` with
 *   `vecs`: a `Vector` of corresponding eigenvectors, of the same length as `vals`. Note that
     eigenvectors are not returned as a matrix, as the linear map could act on any custom Julia
     type with vector like behavior, i.e. the elements of the list `vecs` are objects that are
-    typically similar to the starting guess `x₀`, up to a possibly different `eltype`.
+    typically similar to the starting guess `x₀`, up to a possibly different `eltype`. In particular,
+    for a general matrix (i.e. with `Arnoldi`) the eigenvectors are generally complex and are
+    therefore always returned in a complex number format.
     When the linear map is a simple `AbstractMatrix`, `vecs` will be `Vector{Vector{<:Number}}`.
 *   `info`: an object of type [`ConvergenceInfo`], which has the following fields
     -   `info.converged::Int`: indicates how many eigenvalues and eigenvectors were actually
@@ -93,8 +95,8 @@ current Krylov subspace is kept.
     but rather on the norm of the residual for the corresponding Schur vectors.
 
     See also [`schursolve`](@ref) if you want to use the partial Schur decomposition directly,
-    or if you are not interested in computing the eigenvectors, and want to work in real arithetic
-    all the way true.
+    or if you are not interested in computing the eigenvectors, and want to work in real arithmetic
+    all the way true (if the linear map and starting guess are real).
 """
 function eigsolve end
 
@@ -176,7 +178,7 @@ function eigsort(which::Symbol)
         by = imag
         rev = false
     else
-        error("incorrect value of which: $which")
+        error("invalid specification of which eigenvalues to target: which = $which")
     end
     return by, rev
 end

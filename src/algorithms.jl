@@ -103,7 +103,7 @@ A module listing the default values for the typical parameters in Krylov based a
 """
 module KrylovDefaults
     using ..KrylovKit
-    const orth = KrylovKit.ModifiedGramSchmidtIR(1/sqrt(2)) # conservative choice
+    const orth = KrylovKit.ModifiedGramSchmidt2() # conservative choice
     const krylovdim = 30
     const maxiter = 100
     const tol = 1e-12
@@ -111,17 +111,6 @@ end
 
 # Solving eigenvalue problems
 abstract type KrylovAlgorithm end
-
-abstract type RestartStrategy end
-struct NoRestart <: RestartStrategy
-end
-struct ExplicitRestart <: RestartStrategy
-    maxiter::Int
-end
-struct ImplicitRestart <: RestartStrategy # only meaningful for eigenvalue problems
-    maxiter::Int
-end
-const norestart = NoRestart()
 
 # General purpose; good for linear systems, eigensystems and matrix functions
 """
@@ -150,6 +139,16 @@ Lanczos(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.k
     maxiter::Int = KrylovDefaults.maxiter, tol = KrylovDefaults.tol) =
     Lanczos(orth, krylovdim, maxiter, tol)
 
+struct GKL{O<:Orthogonalizer} <: KrylovAlgorithm
+    orth::O
+    krylovdim::Int
+    maxiter::Int
+    tol::Real
+end
+GKL(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,
+    maxiter::Int = KrylovDefaults.maxiter, tol = KrylovDefaults.tol) =
+    GKL(orth, krylovdim, maxiter, tol)
+
 """
     Arnoldi(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,
         maxiter::Int = KrylovDefaults.maxiter, tol = KrylovDefaults.tol)
@@ -163,7 +162,7 @@ residual of the Arnoldi factorization is smaller than `tol`. The orthogonalizer
 
 Use `Lanczos` for real symmetric or complex Hermitian linear operators.
 
-See also: `factorize`, `eigsolve`, `exponentiate`, `Lanczos`, `Orthogonalizer`
+See also: `eigsolve`, `exponentiate`, `Lanczos`, `Orthogonalizer`
 """
 struct Arnoldi{O<:Orthogonalizer} <: KrylovAlgorithm
     orth::O
@@ -199,6 +198,14 @@ struct BiCGStab <: LinearSolver
     reltol::Real
 end
 
+struct GMRES{O<:Orthogonalizer} <: LinearSolver
+    orth::O
+    maxiter::Int
+    krylovdim::Int
+    tol::Real
+    reltol::Real
+end
+
 """
     GMRES(orth::Orthogonalizer = KrylovDefaults.orth; tol = KrylovDefaults.tol, reltol = KrylovDefaults.tol,
         krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter)
@@ -218,14 +225,6 @@ end
 
     See also: [`linsolve`](@ref), [`CG`](@ref), [`MINRES`](@ref), [`BiCG`](@ref), [`BiCGStab`](@ref)
 """
-struct GMRES{O<:Orthogonalizer} <: LinearSolver
-    orth::O
-    maxiter::Int
-    krylovdim::Int
-    tol::Real
-    reltol::Real
-end
-
 GMRES(orth::Orthogonalizer = KrylovDefaults.orth; tol = KrylovDefaults.tol, reltol = KrylovDefaults.tol,
     krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter) =
     GMRES(orth, maxiter, krylovdim, tol, reltol)

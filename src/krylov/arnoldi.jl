@@ -25,10 +25,12 @@ rayleighextension(F::ArnoldiFactorization) = SimpleBasisVector(F.k, F.k)
 # Arnoldi iteration for constructing the orthonormal basis of a Krylov subspace.
 struct ArnoldiIterator{F,T,O<:Orthogonalizer} <: KrylovIterator{F,T}
     operator::F
-    v₀::T
+    x₀::T
     orth::O
 end
-ArnoldiIterator(A, v₀) = ArnoldiIterator(A, v₀, KrylovDefaults.orth)
+ArnoldiIterator(A, x₀) = ArnoldiIterator(A, x₀, KrylovDefaults.orth)
+ArnoldiIterator(A::AbstractMatrix, x₀::AbstractVector, orth::Orthogonalizer = KrylovDefaults.orth) =
+    ArnoldiIterator(x->A*x, x₀, orth)
 
 Base.IteratorSize(::Type{<:ArnoldiIterator}) = Base.SizeUnknown()
 Base.IteratorEltype(::Type{<:ArnoldiIterator}) = Base.EltypeUnknown()
@@ -48,11 +50,12 @@ function Base.iterate(iter::ArnoldiIterator, state)
 end
 
 function initialize(iter::ArnoldiIterator)
-    β₀ = norm(iter.v₀)
-    T = typeof(one(eltype(iter.v₀))/β₀) # division might change eltype
-    v₀ = mul!(similar(iter.v₀, T), iter.v₀, 1/β₀)
-    w = apply(iter.operator, v₀) # applying the operator might change eltype
-    v = eltype(v₀) == eltype(w) ? v₀ : copyto!(similar(w), v₀)
+    β₀ = norm(iter.x₀)
+    invβ₀ = one(eltype(iter.x₀))/β₀
+    T = typeof(invβ₀) # division might change eltype
+    x₀ = mul!(similar(iter.x₀, T), iter.x₀, invβ₀)
+    w = iter.operator(x₀) # applying the operator might change eltype
+    v = eltype(x₀) == eltype(w) ? x₀ : copyto!(similar(w), x₀)
     r, α = orthogonalize!(w, v, iter.orth)
     β = norm(r)
     V = OrthonormalBasis([v])
@@ -60,15 +63,15 @@ function initialize(iter::ArnoldiIterator)
     state = ArnoldiFactorization(1, V, H, r)
 end
 function initialize!(iter::ArnoldiIterator, state::ArnoldiFactorization) # recylcle existing state
-    v₀ = iter.v₀
+    x₀ = iter.x₀
     V = state.V
     while length(V) > 1
         pop!(V)
     end
     H = empty!(state.H)
 
-    v = mul!(V[1], v₀, 1/norm(v₀))
-    w = apply(iter.operator, v)
+    v = mul!(V[1], x₀, 1/norm(x₀))
+    w = iter.operator(v)
     r, α = orthogonalize!(w, v, iter.orth)
     β = norm(r)
     state.k = 1
@@ -107,7 +110,7 @@ end
 
 # Arnoldi recurrence: simply use provided orthonormalization routines
 function arnoldirecurrence!(operator, V::OrthonormalBasis, h::AbstractVector, orth::Orthogonalizer)
-    w = apply(operator, last(V))
+    w = operator(last(V))
     r, h = orthogonalize!(w, V, h, orth)
     return r, norm(r)
 end

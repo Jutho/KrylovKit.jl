@@ -1,9 +1,9 @@
 """
-    schursolve(f, x₀, howmany, which, algorithm)
+    schursolve(A, x₀, howmany, which, algorithm)
 
 Compute a partial Schur decomposition containing `howmany` eigenvalues from the linear map
-encoded in the matrix `A` or by the function `f`. Return reduced matrix, basis of Schur vectors,
-extracted eigenvalues and a `ConvergenceInfo` structure.
+encoded in the matrix or function `A`. Return the reduced Schur matrix, the basis of Schur vectors,
+the extracted eigenvalues and a `ConvergenceInfo` structure.
 
 See also [`eigsolve`](@eigsolve) to obtain the eigenvectors instead. For real symmetric or
 complex hermitian problems, the (partial) Schur decomposition is identical to the (partial)
@@ -38,11 +38,12 @@ The return value is always of the form `T, vecs, vals, info = eigsolve(...)` wit
     triangular in case of complex arithmetic, and block upper triangular (with at most 2x2 blocks)
     in case of real arithmetic.
 *   `vecs`: a `Vector` of corresponding Schur vectors, of the same length as `vals`. Note that
-    Schur vecotrs are not returned as a matrix, as the linear map could act on any custom Julia
+    Schur vectors are not returned as a matrix, as the linear map could act on any custom Julia
     type with vector like behavior, i.e. the elements of the list `vecs` are objects that are
     typically similar to the starting guess `x₀`, up to a possibly different `eltype`. When
     the linear map is a simple `AbstractMatrix`, `vecs` will be `Vector{Vector{<:Number}}`.
-    Schur vectors are by definition orthogonal, i.e. `dot(vecs[i],vecs[j]) = I[i,j]`.
+    Schur vectors are by definition orthogonal, i.e. `dot(vecs[i],vecs[j]) = I[i,j]`. Note that
+    Schur vectors are real if the problem (i.e. the linear map and the initial guess) are real.
 *   `vals`: a `Vector` of eigenvalues, i.e. the diagonal elements of `T` in case of complex
     arithmetic, or extracted from the diagonal blocks in case of real arithmetic. Note that
     `vals` will always be complex, independent of the underlying arithmetic.

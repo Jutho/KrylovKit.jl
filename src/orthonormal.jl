@@ -122,7 +122,7 @@ function orthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, alg::Cl
     nold = norm(v)
     orthogonalize!(v, b, x, ClassicalGramSchmidt())
     nnew = norm(v)
-    while nnew < alg.η*nold
+    while eps(one(nnew)) < nnew < alg.η * nold
         nold = nnew
         (v,x) = reorthogonalize!(v, b, x, ClassicalGramSchmidt())
         nnew = norm(v)
@@ -154,7 +154,7 @@ function orthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, alg::Mo
     nold = norm(v)
     (v,x) = orthogonalize!(v, b, x, ModifiedGramSchmidt())
     nnew = norm(v)
-    while nnew < alg.η*nold
+    while eps(one(nnew)) < nnew < alg.η * nold
         nold = nnew
         (v,x) = reorthogonalize!(v, b, x, ModifiedGramSchmidt())
         nnew = norm(v)
@@ -180,7 +180,7 @@ function orthogonalize!(v::T, q::T, alg::Union{ClassicalGramSchmidtIR,ModifiedGr
     s = dot(q,v)
     v = axpy!(-s, q, v)
     nnew = norm(v)
-    while nnew < alg.η*nold
+    while eps(one(nnew)) < nnew < alg.η * nold
         nold = nnew
         ds = dot(q,v)
         v = axpy!(-ds, q, v)
@@ -190,12 +190,64 @@ function orthogonalize!(v::T, q::T, alg::Union{ClassicalGramSchmidtIR,ModifiedGr
     return (v, s)
 end
 
+"""
+    orthogonalize(v, b::OrthonormalBasis, [x::AbstractVector,] algorithm::Orthogonalizer]) -> w, x
+    orthogonalize!(v, b::OrthonormalBasis, [x::AbstractVector,] algorithm::Orthogonalizer]) -> w, x
+
+    orthogonalize(v, q, algorithm::Orthogonalizer]) -> w, s
+    orthogonalize!(v, q, algorithm::Orthogonalizer]) -> w, s
+
+Orthogonalize vector `v` against all the vectors in the orthonormal basis `b` using the
+orthogonalization algorithm `algorithm`, and return the resulting vector `w` and the overlap
+coefficients `x` of `v` with the basis vectors in `b`.
+
+In case of `orthogonalize!`, the vector `v` is mutated in place. In both functions, storage
+for the overlap coefficients `x` can be provided as optional argument `x::AbstractVector` with
+`length(x) >= length(b)`.
+
+One can also orthogonalize `v` against a given vector `q` (assumed to be normalized), in which
+case the orthogonal vector `w` and the inner product `s` between `v` and `q` are returned.
+
+Note that `w` is not normalized, see also [`orthonormalize`](@ref).
+
+For algorithms, see [`ClassicalGramSchmidt`](@ref), [`ModifiedGramSchmidt`](@ref), [`ClassicalGramSchmidt2`](@ref),
+[`ModifiedGramSchmidt2`](@ref), [`ClassicalGramSchmidtIR`](@ref) and [`ModifiedGramSchmidtIR`](@ref).
+"""
+orthogonalize, orthogonalize!
+
 # Orthonormalization: orthogonalization and normalization
 orthonormalize(v, args...) = orthonormalize!(copy(v), args...)
 
 function orthonormalize!(v, args...)
     out = orthogonalize!(v, args...) # out[1] === v
-    r = norm(v)
-    v = rmul!(v, inv(r))
-    return tuple(v, r, Base.tail(out)...)
+    β = norm(v)
+    v = rmul!(v, inv(β))
+    return tuple(v, β, Base.tail(out)...)
 end
+
+"""
+    orthonormalize(v, b::OrthonormalBasis, [x::AbstractVector,] algorithm::Orthogonalizer]) -> w, β, x
+    orthonormalize!(v, b::OrthonormalBasis, [x::AbstractVector,] algorithm::Orthogonalizer]) -> w, β, x
+
+    orthonormalize(v, q, algorithm::Orthogonalizer]) -> w, β, s
+    orthonormalize!(v, q, algorithm::Orthogonalizer]) -> w, β, s
+
+Orthonormalize vector `v` against all the vectors in the orthonormal basis `b` using the
+orthogonalization algorithm `algorithm`, and return the resulting vector `w` (of norm 1), its
+norm `β` after orthogonalizing and the overlap coefficients `x` of `v` with the basis vectors in
+`b`, such that `v = β * w + b * x`.
+
+In case of `orthogonalize!`, the vector `v` is mutated in place. In both functions, storage
+for the overlap coefficients `x` can be provided as optional argument `x::AbstractVector` with
+`length(x) >= length(b)`.
+
+One can also orthonormalize `v` against a given vector `q` (assumed to be normalized), in which
+case the orthonormal vector `w`, its norm `β` before normalizing and the inner product `s` between
+`v` and `q` are returned.
+
+See [`orthogonalize`](@ref) if `w` does not need to be normalized.
+
+For algorithms, see [`ClassicalGramSchmidt`](@ref), [`ModifiedGramSchmidt`](@ref), [`ClassicalGramSchmidt2`](@ref),
+[`ModifiedGramSchmidt2`](@ref), [`ClassicalGramSchmidtIR`](@ref) and [`ModifiedGramSchmidtIR`](@ref).
+"""
+orthonormalize, orthonormalize!

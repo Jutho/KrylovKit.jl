@@ -13,32 +13,32 @@ The linear map can be an `AbstractMatrix` (dense or sparse) or a general functio
 object. Since both the action of the linear map and its adjoint are required in order to compute
 singular values, `f` can either be a tuple of two callable objects (each accepting a single argument),
 representing the linear map and its adjoint respectively, or, `f` can be a single callable object
-that accepts two input arguments, and returns a length two tuple containing the action of the
-linear map on the first input argument, and the action of the adjoint of the linear map on the
-second argument. The latter form still combines well with the `do` block syntax of Julia, as in
+that accepts two input arguments, where the second argument is a flag that indicates whether
+the adjoint or the normal action of the linear map needs to be computed. The latter form still
+combines well with the `do` block syntax of Julia, as in
 ```julia
-vals, lvecs, rvecs, info = svdsolve(x₀, y₀, howmany, which; kwargs...) do (x,y)
-    # x′ = compute action of linear map on x
-    # y′ = compute action of adjoint map on y
-    return (x′, y′)
+vals, lvecs, rvecs, info = svdsolve(x₀, y₀, howmany, which; kwargs...) do (x, flag)
+    if flag
+        # y = compute action of adjoint map on x
+    else
+        # y = compute action of linear map on x
+    end
+    return y
 end
 ```
 
 For a general linear map encoded using either the tuple or the two-argument form, the best approach
-is to provide starting vectors `x₀` (in the domain of the linear map) and `y₀` (in the domain of
-the adjoint of the linear map). Alternatively, one can specify the size of the linear map using
-integers `m` and `n`, in which case `x₀ = rand(T, n)` and `y₀ = rand(T, m)` are used, where the
+is to provide a start vector `x₀` (in the domain of the linear map). Alternatively, one can specify
+the number `n` of columns of the linear map, in which case `x₀ = rand(T, n)` is used, where the
 default value of `T` is `Float64`, unless specified differently. If an `AbstractMatrix` is used,
-starting vectors `x₀` and `y₀` do not need to be provided; they are chosen as `rand(T, size(A,2))`
-and `rand(T, size(A,1))`.
+a starting vector `x₀` does not need to be provided; it is chosen as `rand(T, size(A,1))`.
 
 The next arguments are optional, but should typically be specified. `howmany` specifies how many
 singular values and vectors should be computed; `which` specifies which singular values should
 be targetted. Valid specifications of `which` are
-*   `LM` or `LR`: largest singular values
+*   `LR`: largest singular values
 *   `SR`: smallest singular values
-However, the current implementation based on the circulant matrix (see below) is only suitable
-for targetting largest singular values.
+However, the largest singular values tend to converge more rapidly.
 
 ### Return values:
 The return value is always of the form `vals, lvecs, rvecs, info = svdsolve(...)` with
@@ -55,14 +55,11 @@ The return value is always of the form `vals, lvecs, rvecs, info = svdsolve(...)
     -   `info.converged::Int`: indicates how many singular values and vectors were actually
         converged to the specified tolerance `tol` (see below under keyword arguments)
     -   `info.residual::Vector`: a list of the same length as `vals` containing the residuals
-        as a [`RecursiveVec`](@ref) with two components, such that
-
-        -   `first(info.residual[i]) = (A' * lvecs[i] - vals[i] * rvecs[i]) / √2`
-        -   `last( info.residual[i]) = (A  * rvecs[i] - vals[i] * lvecs[i]) / √2`
+        `info.residual[i] = A * rvecs[i] - vals[i] * lvecs[i]`.
     -   `info.normres::Vector{<:Real}`: list of the same length as `vals` containing the norm
         of the residual `info.normres[i] = norm(info.residual[i])`
     -   `info.numops::Int`: number of times the linear map was applied, i.e. number of times
-        `f` was called, or a vector was multiplied with `A`
+        `f` was called, or a vector was multiplied with `A` or `A'`.
     -   `info.numiter::Int`: number of times the Krylov subspace was restarted (see below)
 !!! warning "Check for convergence"
     No warning is printed if not all requested eigenvalues were converged, so always check
@@ -81,62 +78,182 @@ Keyword arguments and their default values are given by:
     details on the algorithms.
 
 ### Algorithm
-Currently, singular values are computed as eigenvalues of the hermitian matrix ``[0 A'; A 0]``
-using the [`eigsolve`](@ref) routine with the [`Lanczos`](@ref) algorithm, without forming this
-matrix explicitly. For this, [`RecursiveVec`](@ref) is employed to capture both blocks of the
-eigenvalue problem. The left and right singular vectors are afterwards simply extracted from
-the first and last component of the corresponding eigenvector (up to normalization). The last method,
-without default values and keyword arguments, is the one that is finally called, and can also
-be used directly. Here, one specifies the algorithm explicitly as last argument, but only [`Lanczos`](@ref)
-is currently accepted.
+The last method, without default values and keyword arguments, is the one that is finally called,
+and can also be used directly. Here the algorithm is specified, though currently only [`GKL`](@ref)
+is available. `GKL` refers to the the partial Golub-Kahan-Lanczos bidiagonalization which forms
+the basis for computing the approximation to the singular values. This factorization is dynamically
+shrunk and expanded (i.e. thick restart) similar to the Krylov-Schur factorization for eigenvalues.
 """
 function svdsolve end
 
 function svdsolve(A::AbstractMatrix, howmany::Int = 1, which::Selector = :LR, T::Type = eltype(A); kwargs...)
-    svdsolve(A, rand(T, size(A,2)), rand(T, size(A,1)), howmany, which; kwargs...)
+    svdsolve(A, rand(T, size(A,1)), howmany, which; kwargs...)
 end
-function svdsolve(f, m::Int, n::Int, howmany::Int = 1, which::Selector = :LR, T::Type = Float64; kwargs...)
-    svdsolve(f, rand(T, n), rand(T, m), howmany, which; kwargs...)
+function svdsolve(f, n::Int, howmany::Int = 1, which::Selector = :LR, T::Type = Float64; kwargs...)
+    svdsolve(f, rand(T, n), howmany, which; kwargs...)
 end
-function svdsolve(f, x₀, y₀, howmany::Int = 1, which::Symbol = :LR; kwargs...)
-    which == :LM || which == :LR || error("only largest singular values are currently supported; use which = :LR")
-    alg = Lanczos(;kwargs...)
-    svdsolve(f, x₀, y₀, howmany, alg)
+function svdsolve(f, x₀, howmany::Int = 1, which::Symbol = :LR; kwargs...)
+    which == :LR || which == :SR || error("invalid specification of which singular values to target: which = $which")
+    alg = GKL(; kwargs...)
+    svdsolve(f, x₀, howmany, which, alg)
 end
 
-function svdsolve(f, x₀, y₀, howmany::Int, alg::Lanczos)
-    g = x -> RecursiveVec(reverse(svdfun(f)(x[1], x[2])))
-    vals, vecs, info = eigsolve(g, RecursiveVec((x₀, y₀)), howmany, :LR, alg)
-    # check if all returned eigenvalues correspond to actual singular values
-    i = howmany
-    @inbounds while i <= length(vals)
-        vals[i] < 0 && break # negative values are necessarily discarded
-        if vals[i] < 10*max(info.normres[i], eps(eltype(vals))) # carefully check small positive eigenvalues
-            # if this eigenvalue is an actual singular value, both the first and second component
-            # of the corresponding vec should have norm approximately 1/√2;
-            # otherwise it is a zero eigenvalue due to a rectangular shape of the linear map
-            if !(norm(first(vecs[i])) ≈ norm(last(vecs[i])))
-                break
-            end
+function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
+    krylovdim = alg.krylovdim
+    maxiter = alg.maxiter
+    howmany > krylovdim && error("krylov dimension $(krylovdim) too small to compute $howmany singular values")
+
+    ## FIRST ITERATION: setting up
+    numiter = 1
+    # Compute Lanczos factorization
+    iter = GKLIterator(svdfun(A), x₀, alg.orth)
+    fact = initialize(iter)
+    numops = 2
+    sizehint!(fact, krylovdim)
+    β = normres(fact)
+    tol::eltype(β) = alg.tol
+    while length(fact) < krylovdim
+        fact = expand!(iter, fact)
+        numops += 2
+        normres(fact) < tol && length(fact) >= howmany && break
+    end
+
+    # Process
+    # allocate storage
+    HH = fill(zero(eltype(fact)), krylovdim+1, krylovdim)
+    PP = fill(zero(eltype(fact)), krylovdim, krylovdim)
+    QQ = fill(zero(eltype(fact)), krylovdim, krylovdim)
+
+    # initialize
+    β = normres(fact)
+    m = length(fact)
+    P = copyto!(view(PP, 1:m, 1:m), I)
+    Q = copyto!(view(QQ, 1:m, 1:m), I)
+    f = view(HH, m+1, 1:m)
+    B = rayleighquotient(fact) # Bidiagional (lower)
+
+    # compute singular value decomposition
+    P, S, Q = bidiagsvd!(B, P, Q)
+    if which == :SR
+        reversecols!(P)
+        reverserows!(S)
+        reverserows!(Q)
+    elseif which != :LR
+        error("invalid specification of which singular values to target: which = $which")
+    end
+    mul!(f, view(Q', m, :), β)
+
+    converged = 0
+    while converged < length(fact) && abs(f[converged+1]) < tol
+        converged += 1
+    end
+
+    ## OTHER ITERATIONS: recycle
+    while numiter < maxiter && converged < howmany
+        numiter += 1
+
+        # Determine how many to keep
+        keep = div(3*krylovdim + 2*converged, 5) # strictly smaller than krylovdim since converged < howmany <= krylovdim, at least equal to converged
+
+        # Update basis by applying P and Q using Householder reflections
+        U = basis(fact, :U)
+        for j = 1:m
+            h, ν = householder(P, j:m, j)
+            lmul!(h, view(P, :, j+1:krylovdim))
+            rmul!(U, h')
         end
-        i += 1
-    end
-    i -= 1
-    # prepare output
-    if i < length(vals)
-        vals = resize!(vals, i)
-        lvecs = rmul!.(last.(view(vecs,1:i)), sqrt(2))
-        rvecs = rmul!.(first.(view(vecs,1:i)), sqrt(2))
+        V = basis(fact, :V)
+        for j = 1:m
+            h, ν = householder(Q, j, j:m)
+            rmul!(view(Q, j+1:krylovdim, :), h)
+            rmul!(V, h)
+        end
 
-        info = ConvergenceInfo(min(info.converged, i), resize!(info.residual, i),
-                                resize!(info.normres, i), info.numops, info.numiter)
-    else
-        lvecs = rmul!.(last.(vecs), sqrt(2))
-        rvecs = rmul!.(first.(vecs), sqrt(2))
+        # Shrink GKL factorization (no longer strictly GKL)
+        r = residual(fact)
+        U[keep+1] = rmul!(r, 1/normres(fact))
+        H = fill!(view(HH, 1:keep+1, 1:keep), 0)
+        @inbounds for j = 1:keep
+            H[j,j] = S[j]
+            H[keep+1,j] = f[j]
+        end
+
+        # Restore bidiagonal form in the first keep columns
+        @inbounds for j = keep:-1:1
+            h, ν = householder(H, j+1, 1:j, j)
+            H[j+1,j] = ν
+            H[j+1,1:j-1] .= 0
+            rmul!(view(H, 1:j, :), h')
+            rmul!(V, h')
+            h, ν = householder(H, 1:j, j, j)
+            H[j,j] = ν
+            @inbounds H[1:j-1,j] .= 0
+            lmul!(h, view(H, :, 1:j-1))
+            rmul!(U, h')
+        end
+        @inbounds for j = 1:keep
+            fact.αs[j] = H[j,j]
+            fact.βs[j] = H[j+1,j]
+        end
+        fact = shrink!(fact, keep)
+
+        # GKL factorization: recylce fact
+        while length(fact) < krylovdim
+            fact = expand!(iter, fact)
+            numops += 2
+            normres(fact) < tol && length(fact) >= howmany && break
+        end
+
+        # post process
+        β = normres(fact)
+        m = length(fact)
+        P = copyto!(view(PP, 1:m, 1:m), I)
+        Q = copyto!(view(QQ, 1:m, 1:m), I)
+        f = view(HH, m+1, 1:m)
+        B = rayleighquotient(fact) # Bidiagional (lower)
+
+        # compute singular value decomposition
+        P, S, Q = bidiagsvd!(B, P, Q)
+        if which == :SR
+            reversecols!(P)
+            reverserows!(S)
+            reverserows!(Q)
+        elseif which != :LR
+            error("invalid specification of which singular values to target: which = $which")
+        end
+        mul!(f, view(Q', m, :), β)
+        converged = 0
+        while converged < length(fact) && abs(f[converged+1]) < tol
+            converged += 1
+        end
     end
-    return vals, lvecs, rvecs, info
+
+    if converged > howmany
+        howmany = converged
+    end
+    values = S[1:howmany]
+
+    # Compute schur vectors
+    Pv = view(P,:, 1:howmany)
+    Qv = view(Q, 1:howmany, :)
+
+    # Compute convergence information
+    leftvectors = let U = basis(fact, :U)
+        [U*v for v in cols(Pv)]
+    end
+    rightvectors = let V = basis(fact, :V)
+        [V*v for v in cols(Qv')]
+    end
+    residuals = let r = residual(fact)
+        [r*last(v) for v in cols(Qv')]
+    end
+    normresiduals = let f = f
+        map(i->abs(f[i]), 1:howmany)
+    end
+
+    return values, leftvectors, rightvectors, ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end
 
-svdfun(A::AbstractMatrix) = (x,y) -> (A*x, A'*y)
-svdfun(f::Tuple{Any,Any}) = (x,y) -> (f[1](x), f[2](x))
+svdfun(A::AbstractMatrix) = (x,flag) -> flag ? A'*x : A*x
+svdfun((f,fadjoint)::Tuple{Any,Any}) = (x,flag) -> flag ? fadjoint(x) : f(x)
 svdfun(f) = f

@@ -84,8 +84,8 @@ export basis, rayleighquotient, residual, normres, rayleighextension
 export initialize, initialize!, expand!, shrink!
 export ClassicalGramSchmidt, ClassicalGramSchmidt2, ClassicalGramSchmidtIR
 export ModifiedGramSchmidt, ModifiedGramSchmidt2, ModifiedGramSchmidtIR
-export LanczosIterator, ArnoldiIterator
-export GMRES, Lanczos, Arnoldi
+export LanczosIterator, ArnoldiIterator, GKLIterator
+export GMRES, Lanczos, Arnoldi, GKL
 export KrylovDefaults, ClosestTo
 export RecursiveVec, InnerProductVec
 
@@ -202,8 +202,9 @@ Base.iterate(F::KrylovFactorization, ::Val{:normres}) = (normres(F), Val(:raylei
 Base.iterate(F::KrylovFactorization, ::Val{:rayleighextension}) = (rayleighextension(F), Val(:done))
 Base.iterate(F::KrylovFactorization, ::Val{:done}) = nothing
 
-include("factorize/lanczos.jl")
-include("factorize/arnoldi.jl")
+include("krylov/lanczos.jl")
+include("krylov/arnoldi.jl")
+include("krylov/gkl.jl")
 
 """
     abstract type KrylovFactorization{T,S<:Number}
@@ -211,16 +212,16 @@ include("factorize/arnoldi.jl")
     mutable struct ArnoldiFactorization{T,S<:Number}  <: KrylovFactorization{T,S}
 
 Structures to store a Krylov factorization of a linear map `A` of the form
-```math
+```julia
     A * V = V * B + r * b'.
 ```
-For a given Krylov factorization `fact` of length `k = length(fact)`, the basis ``V`` is obtained
+For a given Krylov factorization `fact` of length `k = length(fact)`, the basis `A is obtained
 via [`basis(fact)`](@ref basis) and is an instance of some subtype of [`Basis{T}`](@ref Basis),
 with also `length(V) == k` and where `T` denotes the type of vector like objects used in the
-problem. The Rayleigh quotient ``B`` is obtained as [`rayleighquotient(fact)`](@ref) and `typeof(B)`
+problem. The Rayleigh quotient `B` is obtained as [`rayleighquotient(fact)`](@ref) and `typeof(B)`
 is some subtype of `AbstractMatrix{S}` with `size(B) == (k,k)`, typically a structured matrix.
 The residual `r` is obtained as [`residual(fact)`](@ref) and is of type `T`. One can also query
-[`normres(fact)`](@ref) to obtain `norm(r)`, the norm of the residual. The vector ``b`` has no
+[`normres(fact)`](@ref) to obtain `norm(r)`, the norm of the residual. The vector `b` has no
 dedicated name and often takes a default form (see below). It should be a subtype of `AbstractVector`
 of length `k` and can be obtained as [`rayleighextension(fact)`](@ref) (by lack of a better dedicated name).
 
@@ -228,7 +229,7 @@ In particular, `LanczosFactorization` stores a Lanczos factorization of a real s
 complex hermitian linear map and has `V::OrthonormalBasis{T}` and `B::SymTridiagonal{S<:Real}`.
 `ArnoldiFactorization` stores an Arnoldi factorization of a general linear map and has
 `V::OrthonormalBasis{T}` and [`B::PackedHessenberg{S<:Number}`](@ref PackedHessenberg). In both
-cases, ``b`` takes the default value ``e_k``, i.e. the unit vector of all zeros and a one in
+cases, `b` takes the default value ``e_k``, i.e. the unit vector of all zeros and a one in
 the last entry, which is represented using [`SimpleBasisVector`](@ref).
 
 A Krylov factorization `fact` can be destructured as `V, B, r, nr, b = fact` with `nr = norm(r)`.

@@ -1,10 +1,10 @@
-@testset "Lanczos - svdsolve full" begin
+@testset "GKL - svdsolve full" begin
     @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
-        @testset for orth in (cgs2, mgs2, cgsr, mgsr)
-            A = rand(T, (2*n,n))
-            S, lvecs, rvecs, info = @inferred svdsolve(A, n; krylovdim = 3*n, maxiter = 1, tol = 10*n*eps(real(T)))
+        @testset for orth in (cgs2, mgs2)
+            A = rand(T, (n,n))
+            alg = GKL(orth; krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)))
+            S, lvecs, rvecs, info = @inferred svdsolve(A, A[:,1], n, :LR, alg)
 
-            @test info.converged == n
             @test S ≈ svdvals(A)
 
             U = hcat(lvecs...)
@@ -16,15 +16,14 @@
     end
 end
 
-@testset "Lanczos - svdsolve iteratively" begin
+@testset "GKL - svdsolve iteratively" begin
     @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
-        @testset for orth in (cgs2, mgs2, cgsr, mgsr)
-            A = rand(T, (N,2*N))
+        @testset for orth in (cgs2, mgs2)
+            A = rand(T, (2*N,N))
             v = rand(T, (2*N,))
-            w = rand(T, (N,))
             n₁ = div(n, 2)
-            alg = Lanczos(orth; krylovdim = n, maxiter = 10, tol = 10*n*eps(real(T)))
-            S, lvecs, rvecs, info = @inferred svdsolve(A, v, w, n₁, alg)
+            alg = GKL(orth; krylovdim = n, maxiter = 10, tol = 10*n*eps(real(T)))
+            S, lvecs, rvecs, info = @inferred svdsolve(A, v, n₁, :LR, alg)
 
             l = info.converged
             @test S[1:l] ≈ svdvals(A)[1:l]
@@ -34,10 +33,9 @@ end
             @test U[:,1:l]'*U[:,1:l] ≈ I
             @test V[:,1:l]'*V[:,1:l] ≈ I
 
-            R1 = sqrt(2*one(T))*hcat(map(first, info.residual)...)
-            R2 = sqrt(2*one(T))*hcat(map(last, info.residual)...)
-            @test A' * U ≈ V * Diagonal(S) + R1
-            @test A * V ≈ U * Diagonal(S) + R2
+            R = hcat(info.residual...)
+            @test A' * U ≈ V * Diagonal(S)
+            @test A * V ≈ U * Diagonal(S) + R
         end
     end
 end

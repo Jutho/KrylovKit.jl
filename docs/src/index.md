@@ -1,16 +1,29 @@
-# KrylovKit.jl Documention
+# KrylovKit.jl
 
-`KrylovKit.jl` is a Julia package that collects a number of Krylov-based algorithms for linear
-problems, singular value and eigenvalue problems and the application of functions of linear
-maps or operators to vectors.
+A Julia package collecting a number of Krylov-based algorithms for linear problems, singular
+value and eigenvalue problems and the application of functions of linear maps or operators
+to vectors.
 
-## Contens
+## Package features
+`KrylovKit.jl` accepts general functions or callable objects as linear maps, and general Julia
+objects with vector like behavior (see below) as vectors.
+
+The high level interface of KrylovKit is provided by the following functions:
+*   [`linsolve`](@ref): solve linear systems
+*   [`eigsolve`](@ref): find a few eigenvalues and corresponding eigenvectors
+*   [`svdsolve`](@ref): find a few singular values and corresponding left and right singular vectors
+*   [`exponentiate`](@ref): apply the exponential of a linear map to a vector
+
+## Manual outline
 
 ```@contents
+Pages = ["man/linear.md","man/eigsvd.md","man/matfun.md","man/algorithms.md","man/implementation.md"]
 ```
 
-## Defining features
-There are a number of packages with Krylov-based or other iterative methods, such as
+## Comparison to other packages
+This section could also be titled "Why did I create KrylovKit.jl"?
+
+There are already a fair number of packages with Krylov-based or other iterative methods, such as
 *   [`IterativeSolvers.jl`](https://github.com/JuliaMath/IterativeSolvers.jl): part of the
     [`JuliaMath`](https://github.com/JuliaMath) organisation, solves linear systems and least
     square problems, eigenvalue and singular value problems
@@ -21,21 +34,14 @@ There are a number of packages with Krylov-based or other iterative methods, suc
 *   [`KrylovMethods.jl`](https://github.com/lruthotto/KrylovMethods.jl): specific for sparse matrices
 *   [`Expokit.jl`](https://github.com/acroy/Expokit.jl): application of the matrix exponential to a vector
 
-`KrylovKit.jl` distinguishes itself from the previous packages the following two ways
+`KrylovKit.jl` distinguishes itself from the previous packages in the following two ways
 
-1.  `KrylovKit` accepts general functions `f` to represent the linear map or operator that defines
+1.  `KrylovKit` accepts general functions to represent the linear map or operator that defines
     the problem, without having to wrap them in a [`LinearMap`](https://github.com/Jutho/LinearMaps.jl)
     or [`LinearOperator`](https://github.com/JuliaSmoothOptimizers/LinearOperators.jl) type.
-    Of course, subtypes of `AbstractMatrix` are also supported. The linear map is always the
-    first argument in `linsolve(f,...)`, `eigsolve(f,...)`, `svdsolve(f,...)`, `exponentiate(f,...)`
-    so that Julia's `do` block construction can be used, e.g.
-    ```julia
-    linsolve(...) do x
-        # some linear operation on x
-    end
-    ```
-    If the first argument `f isa AbstractMatrix`, matrix vector multiplication is used, otherwise
-    `f` is called as a function.
+    Of course, subtypes of `AbstractMatrix` are also supported. If the linear map (always the first
+    argument) is a subtype of `AbstractMatrix`, matrix vector multiplication is used, otherwise
+    is applied as a function call.
 
 2.  `KrylovKit` does not assume that the vectors involved in the problem are actual subtypes of
     `AbstractVector`. Any Julia object that behaves as a vector (in the way defined below) is
@@ -68,13 +74,10 @@ There are a number of packages with Krylov-based or other iterative methods, suc
     certain type of preconditioners and solving generalized eigenvalue problems with a positive
     definite matrix in the right hand side.
 
-
 ## Current functionality
 
 The following algorithms are currently implemented
-*   `orthogonalization`: Classical & Modified Gram Schmidt, possibly with a second round or
-    an adaptive number of rounds of reorthogonalization.
-*   `linsolve`: [`GMRES`](@ref) without preconditioning
+*   `linsolve`: [`GMRES`](@ref)
 *   `eigsolve`: a Krylov-Schur algorithm (i.e. with tick restarts) for extremal eigenvalues of
     normal (i.e. not generalized) eigenvalue problems, corresponding to [`Lanczos`](@ref) for
     real symmetric or complex hermitian linear maps, and to [`Arnoldi`](@ref) for general linear maps.
@@ -85,18 +88,18 @@ The following algorithms are currently implemented
 
 ## Future functionality?
 
-Below is a wish list / to-do list for the future. Any help is welcomed and appreciated.
+Here follows a wish list / to-do list for the future. Any help is welcomed and appreciated.
 
 *   More algorithms, including biorthogonal methods:
     -   for `linsolve`: CG, MINRES, BiCG, BiCGStab, ...
     -   for `eigsolve`: BiLanczos, Jacobi-Davidson (?), subspace iteration (?), ...
     -   for `svdsolve`: Golub-Kahan-Lanczos
     -   for `exponentiate`: Arnoldi (currently only Lanczos supported)
-*   Generalized eigenvalue problems: LOPCG, EIGFP and trace minimization
+*   Generalized eigenvalue problems: Rayleigh quotient / trace minimization, LOPCG, EIGFP
 *   Least square problems
 *   Nonlinear eigenvalue problems
 *   Preconditioners
-*   Harmonic ritz values
+*   Refined Ritz vectors, Harmonic ritz values and vectors
 *   Support both in-place / mutating and out-of-place functions as linear maps
 *   Reuse memory for storing vectors when restarting algorithms
 *   Improved efficiency for the specific case where `x` is `Vector` (i.e. BLAS level 2 operations)

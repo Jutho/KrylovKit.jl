@@ -27,17 +27,18 @@ rayleighextension(F::LanczosFactorization) = SimpleBasisVector(F.k, F.k)
 # Lanczos iteration for constructing the orthonormal basis of a Krylov subspace.
 struct LanczosIterator{F,T,O<:Orthogonalizer} <: KrylovIterator{F,T}
     operator::F
-    v₀::T
+    x₀::T
     orth::O
     keepvecs::Bool
-    function LanczosIterator{F,T,O}(operator::F, v₀::T, orth::O, keepvecs::Bool) where {F,T,O<:Orthogonalizer}
+    function LanczosIterator{F,T,O}(operator::F, x₀::T, orth::O, keepvecs::Bool) where {F,T,O<:Orthogonalizer}
         if !keepvecs && isa(orth, Reorthogonalizer)
             error("Cannot use reorthogonalization without keeping all Krylov vectors")
         end
-        new{F,T,O}(operator, v₀, orth, keepvecs)
+        new{F,T,O}(operator, x₀, orth, keepvecs)
     end
 end
-LanczosIterator(operator::F, v₀::T, orth::O = KrylovDefaults.orth, keepvecs::Bool = true) where {F,T,O<:Orthogonalizer} = LanczosIterator{F,T,O}(operator, v₀, orth, keepvecs)
+LanczosIterator(operator::F, x₀::T, orth::O = KrylovDefaults.orth, keepvecs::Bool = true) where {F,T,O<:Orthogonalizer} = LanczosIterator{F,T,O}(operator, x₀, orth, keepvecs)
+LanczosIterator(A::AbstractMatrix, x₀::AbstractVector, orth::O = KrylovDefaults.orth, keepvecs::Bool = true) where {O<:Orthogonalizer} = LanczosIterator(x->A*x, x₀, orth, keepvecs)
 
 Base.IteratorSize(::Type{<:LanczosIterator}) = Base.SizeUnknown()
 Base.IteratorEltype(::Type{<:LanczosIterator}) = Base.EltypeUnknown()
@@ -57,11 +58,12 @@ function Base.iterate(iter::LanczosIterator, state::LanczosFactorization)
 end
 
 function initialize(iter::LanczosIterator)
-    β₀ = norm(iter.v₀)
-    T = typeof(one(eltype(iter.v₀))/β₀) # division might change eltype
-    v₀ = mul!(similar(iter.v₀, T), iter.v₀, 1/β₀)
-    w = apply(iter.operator, v₀) # applying the operator might change eltype
-    v = eltype(v₀) == eltype(w) ? v₀ : copyto!(similar(w), v₀)
+    β₀ = norm(iter.x₀)
+    invβ₀ = one(eltype(iter.x₀))/β₀
+    T = typeof(invβ₀) # division might change eltype
+    x₀ = mul!(similar(iter.x₀, T), iter.x₀, invβ₀)
+    w = iter.operator(x₀) # applying the operator might change eltype
+    v = eltype(x₀) == eltype(w) ? x₀ : copyto!(similar(w), x₀)
     r, α = orthogonalize!(w, v, iter.orth)
     β = norm(r)
     n = hypot(α,2*β)
@@ -75,7 +77,7 @@ function initialize(iter::LanczosIterator)
     return LanczosFactorization(1, V, αs, βs, r)
 end
 function initialize!(iter::LanczosIterator, state::LanczosFactorization)
-    v₀ = iter.v₀
+    x₀ = iter.x₀
     V = state.V
     while length(V) > 1
         pop!(V)
@@ -83,8 +85,8 @@ function initialize!(iter::LanczosIterator, state::LanczosFactorization)
     αs = empty!(state.αs)
     βs = empty!(state.βs)
 
-    v = mul!(V[1], v₀, 1/norm(v₀))
-    w = apply(iter.operator, v)
+    v = mul!(V[1], x₀, 1/norm(x₀))
+    w = iter.operator(v)
     r, α = orthogonalize!(w, v, iter.orth)
     β = norm(r)
     n = hypot(α,β)
@@ -132,7 +134,17 @@ end
 
 # Exploit hermiticity to "simplify" orthonormalization process:
 # Lanczos three-term recurrence relation
-function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::Union{ClassicalGramSchmidt,ModifiedGramSchmidt})
+function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ClassicalGramSchmidt)
+    v = V[end]
+    w = apply(operator, v)
+    α = dot(v, w)
+
+    w = axpy!(-β, V[end-1], w)
+    w = axpy!(-α, v, w)
+    β = norm(w)
+    return w, α, β
+end
+function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ModifiedGramSchmidt)
     v = V[end]
     w = apply(operator, v)
     w = axpy!( -β, V[end-1], w)
@@ -143,10 +155,11 @@ function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::Union{Classi
 end
 function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ClassicalGramSchmidt2)
     v = V[end]
-    w = apply(operator, v)
-    w = axpy!( -β, V[end-1], w)
+    w = operator(v)
+    α = dot(v, w)
+    w = axpy!(-β, V[end-1], w)
+    w = axpy!(-α, v, w)
 
-    w, α = orthogonalize!(w, v, ClassicalGramSchmidt())
     w, s = orthogonalize!(w, V, ClassicalGramSchmidt())
     α += s[end]
     β = norm(w)
@@ -154,9 +167,8 @@ function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ClassicalGra
 end
 function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ModifiedGramSchmidt2)
     v = V[end]
-    w = apply(operator, v)
+    w = operator(v)
     w = axpy!( -β, V[end-1], w)
-
     w, α = orthogonalize!(w, v, ModifiedGramSchmidt())
 
     s = α
@@ -170,13 +182,14 @@ end
 function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ClassicalGramSchmidtIR)
     v = V[end]
     w = apply(operator, v)
-    w = axpy!( -β, V[end-1], w)
+    α = dot(v, w)
+    w = axpy!(-β, V[end-1], w)
+    w = axpy!(-α, v, w)
 
-    w, α = orthogonalize!(w, v, ClassicalGramSchmidt())
     ab2 = abs2(α) + abs2(β)
     β = norm(w)
     nold = sqrt(abs2(β)+ab2)
-    while β < orth.η * nold
+    while eps(one(β)) < β < orth.η * nold
         nold = β
         w, s = orthogonalize!(w, V, ClassicalGramSchmidt())
         α += s[end]
@@ -193,7 +206,7 @@ function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ModifiedGram
     ab2 = abs2(α) + abs2(β)
     β = norm(w)
     nold = sqrt(abs2(β)+ab2)
-    while β < orth.η * nold
+    while eps(one(β)) < β < orth.η * nold
         nold = β
         s = zero(α)
         for q in V
