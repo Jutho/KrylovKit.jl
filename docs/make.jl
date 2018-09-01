@@ -24,6 +24,10 @@ makedocs(modules=[KrylovKit],
 # Documenter can also automatically deploy documentation to gh-pages.
 # See "Hosting Documentation" and deploydocs() in the Documenter manual
 # for more information.
-#=deploydocs(
-    repo = "<repository url>"
-)=#
+deploydocs(
+    deps = nothing,
+    make = nothing,
+    target = "build",
+    repo = "github.com/Jutho/KrylovKit.jl.git",
+    julia = "1.0"
+)

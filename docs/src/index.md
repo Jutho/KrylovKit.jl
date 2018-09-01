@@ -14,6 +14,10 @@ The high level interface of KrylovKit is provided by the following functions:
 *   [`svdsolve`](@ref): find a few singular values and corresponding left and right singular vectors
 *   [`exponentiate`](@ref): apply the exponential of a linear map to a vector
 
+Here, the matrix or linear map to which these methods are applied can be any instance of `AbstractMatrix`,
+or any callable object or function. Furthermore, any Julia type with vector like behavior can
+be used for the vector objects (see below).
+
 ## Manual outline
 
 ```@contents
@@ -44,9 +48,9 @@ There are already a fair number of packages with Krylov-based or other iterative
     is applied as a function call.
 
 2.  `KrylovKit` does not assume that the vectors involved in the problem are actual subtypes of
-    `AbstractVector`. Any Julia object that behaves as a vector (in the way defined below) is
-    supported, so in particular higher-dimensional arrays or any custom user type that supports
-    the following functions (with `v` and `w` two instances of this type and `α` a scalar (`Number`)):
+    `AbstractVector`. Any Julia object that behaves as a vector is supported, so in particular
+    higher-dimensional arrays or any custom user type that supports the following functions
+    (with `v` and `w` two instances of this type and `α` a scalar (`Number`)):
     *   `Base.eltype(v)`: the scalar type (i.e. `<:Number`) of the data in `v`
     *   `Base.similar(v, [T::Type<:Number])`: a way to construct additional similar vectors,
         possibly with a different scalar type `T`.
@@ -63,7 +67,7 @@ There are already a fair number of packages with Krylov-based or other iterative
     *   `LinearAlgebra.dot(v,w)`: compute the inner product of two vectors
     *   `LinearAlgebra.norm(v)`: compute the 2-norm of a vector
 
-    In particular, `KrylovKit` provides two types satisfying the above requirements that might
+    Furthermore, `KrylovKit` provides two types satisfying the above requirements that might
     facilitate certain applications:
     * [`RecursiveVec`](@ref) can be used for grouping a set of vectors into a single vector like
     structure (can be used recursively). The reason that e.g. `Vector{<:Vector}` cannot be used
@@ -74,6 +78,10 @@ There are already a fair number of packages with Krylov-based or other iterative
     certain type of preconditioners and solving generalized eigenvalue problems with a positive
     definite matrix in the right hand side.
 
+3.  To the best of my knowledge, it is the only package that provides a Julia implementation of
+    the Krylov-Schur algorithm for eigenvalues of general matrices, and as such is the only
+    alternative to [`Arpack.jl`](https://github.com/JuliaLinearAlgebra/Arpack.jl).
+
 ## Current functionality
 
 The following algorithms are currently implemented
@@ -81,8 +89,8 @@ The following algorithms are currently implemented
 *   `eigsolve`: a Krylov-Schur algorithm (i.e. with tick restarts) for extremal eigenvalues of
     normal (i.e. not generalized) eigenvalue problems, corresponding to [`Lanczos`](@ref) for
     real symmetric or complex hermitian linear maps, and to [`Arnoldi`](@ref) for general linear maps.
-*   `svdsolve`: finding largest singular values by using `eigsolve` of the circulant matrix with
-    the `Lanczos` algorithm.
+*   `svdsolve`: finding largest singular values based on Golub-Kahan-Lanczos bidiagonalization
+    (see [`GKL`](@ref))
 *   `exponentiate`: a [`Lanczos`](@ref) based algorithm for the action of the exponential of
     a real symmetric or complex hermitian linear map.
 
@@ -91,11 +99,10 @@ The following algorithms are currently implemented
 Here follows a wish list / to-do list for the future. Any help is welcomed and appreciated.
 
 *   More algorithms, including biorthogonal methods:
-    -   for `linsolve`: CG, MINRES, BiCG, BiCGStab, ...
+    -   for `linsolve`: CG, MINRES, BiCG, BiCGStab(l), IDR(s), ...
     -   for `eigsolve`: BiLanczos, Jacobi-Davidson (?), subspace iteration (?), ...
-    -   for `svdsolve`: Golub-Kahan-Lanczos
     -   for `exponentiate`: Arnoldi (currently only Lanczos supported)
-*   Generalized eigenvalue problems: Rayleigh quotient / trace minimization, LOPCG, EIGFP
+*   Generalized eigenvalue problems: Rayleigh quotient / trace minimization, LO(B)PCG, EIGFP
 *   Least square problems
 *   Nonlinear eigenvalue problems
 *   Preconditioners

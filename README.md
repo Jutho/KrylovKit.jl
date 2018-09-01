@@ -2,9 +2,9 @@
 
 A package collecting a number of Krylov-based algorithms for linear problems, eigenvalue problems and the application of functions of linear maps or operators to vectors.
 
-[![Build Status](https://travis-ci.org/jutho/KrylovKit.jl.svg?branch=master)](https://travis-ci.org/jutho/KrylovKit.jl)
-[![Coverage Status](https://coveralls.io/repos/jutho/KrylovKit.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/jutho/KrylovKit.jl?branch=master)
-[![codecov.io](http://codecov.io/github/jutho/KrylovKit.jl/coverage.svg?branch=master)](http://codecov.io/github/jutho/KrylovKit.jl?branch=master)
+[![Build Status](https://travis-ci.org/Jutho/KrylovKit.jl.svg?branch=master)](https://travis-ci.org/jutho/KrylovKit.jl)
+[![Coverage Status](https://coveralls.io/repos/jutho/KrylovKit.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/Jutho/KrylovKit.jl?branch=master)
+[![codecov.io](http://codecov.io/github/Jutho/KrylovKit.jl/coverage.svg?branch=master)](http://codecov.io/github/jutho/KrylovKit.jl?branch=master)
 
 --------------------------------------------------------------------------------
 So far, the starting point into KrylovKit are the general purpose functions [`linsolve`](ref), [`eigsolve`](@ref) and [`exponentiate`](@ref). KrylovKit distinguishes itself from similar packages in the Julia ecosystem in the following two ways
