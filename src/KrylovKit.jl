@@ -85,14 +85,29 @@ export initialize, initialize!, expand!, shrink!
 export ClassicalGramSchmidt, ClassicalGramSchmidt2, ClassicalGramSchmidtIR
 export ModifiedGramSchmidt, ModifiedGramSchmidt2, ModifiedGramSchmidtIR
 export LanczosIterator, ArnoldiIterator, GKLIterator
-export CG, GMRES, Lanczos, Arnoldi, GKL, CG
+export CG, GMRES, Lanczos, Arnoldi, GKL
 export KrylovDefaults, ClosestTo
 export RecursiveVec, InnerProductVec
 
 include("algorithms.jl")
 
 # Structures to store a list of basis vectors
+"""
+    abstract type Basis{T} end
+
+An abstract type to collect specific types for representing a basis of vectors of type `T`.
+
+Implementations of `Basis{T}` behave in many ways like `Vector{T}` and should have a `length`,
+can be indexed (`getindex` and `setindex!`), iterated over (`iterate`), and support resizing
+(`resize!`, `pop!`, `push!`, `empty!`, `sizehint!`).
+
+The type `T` denotes the type of the elements stored in an `Basis{T}` and can be
+any custom type that has vector like behavior (as defined in the docs of [`KrylovKit`](@ref)).
+
+See [`OrthonormalBasis`](@ref).
+"""
 abstract type Basis{T} end
+
 include("orthonormal.jl")
 
 # Dense linear algebra structures and functions used in the algorithms below

@@ -1,5 +1,25 @@
 # Details of the implementation
 
+## Orthogonalization
+To denote a basis of vectors, e.g. to represent a given Krylov subspace, there is an abstract
+type `Basis{T}`
+```@docs
+KrylovKit.Basis
+```
+
+Many Krylov based algorithms use an orthogonal basis to parametrize the Krylov subspace. In that
+case, the specific implementation `OrthonormalBasis{T}` can be used:
+```@docs
+KrylovKit.OrthonormalBasis{T}
+```
+
+We can orthogonalize or orthonormalize a given vector to another vector (assumed normalized)
+or to a given [`OrthonormalBasis`](@ref).
+```@docs
+KrylovKit.orthogonalize
+KrylovKit.orthonormalize
+```
+
 ## Krylov factorizations
 The central ingredient in a Krylov based algorithm is a Krylov factorization or decomposition
 of a linear map. Such partial factorizations are represented as a `KrylovFactorization`, of
@@ -35,5 +55,3 @@ shrink!
 initialize!
 initialize
 ```
-
-## Orthogonalization

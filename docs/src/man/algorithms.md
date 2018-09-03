@@ -19,10 +19,10 @@ Arnoldi
 ## Specific algorithms for linear systems
 ```@docs
 CG
-MINRES
+KrylovKit.MINRES
 GMRES
-BiCG
-BiCGStab
+KrylovKit.BiCG
+KrylovKit.BiCGStab
 ```
 
 ## Specific algorithms for sigular values

@@ -36,14 +36,14 @@ There are already a fair number of packages with Krylov-based or other iterative
 
 KrylovKit.jl distinguishes itself from the previous packages in the following ways
 
-1.  `KrylovKit` accepts general functions to represent the linear map or operator that defines
+1.  KrylovKit accepts general functions to represent the linear map or operator that defines
     the problem, without having to wrap them in a [`LinearMap`](https://github.com/Jutho/LinearMaps.jl)
     or [`LinearOperator`](https://github.com/JuliaSmoothOptimizers/LinearOperators.jl) type.
     Of course, subtypes of `AbstractMatrix` are also supported. If the linear map (always the first
     argument) is a subtype of `AbstractMatrix`, matrix vector multiplication is used, otherwise
     is applied as a function call.
 
-2.  `KrylovKit` does not assume that the vectors involved in the problem are actual subtypes of
+2.  KrylovKit does not assume that the vectors involved in the problem are actual subtypes of
     `AbstractVector`. Any Julia object that behaves as a vector is supported, so in particular
     higher-dimensional arrays or any custom user type that supports the following functions
     (with `v` and `w` two instances of this type and `α` a scalar (`Number`)):
@@ -63,7 +63,7 @@ KrylovKit.jl distinguishes itself from the previous packages in the following wa
     *   `LinearAlgebra.dot(v,w)`: compute the inner product of two vectors
     *   `LinearAlgebra.norm(v)`: compute the 2-norm of a vector
 
-    Furthermore, `KrylovKit` provides two types satisfying the above requirements that might
+    Furthermore, KrylovKit provides two types satisfying the above requirements that might
     facilitate certain applications:
     * [`RecursiveVec`](@ref) can be used for grouping a set of vectors into a single vector like
     structure (can be used recursively). The reason that e.g. `Vector{<:Vector}` cannot be used
@@ -74,9 +74,9 @@ KrylovKit.jl distinguishes itself from the previous packages in the following wa
     certain type of preconditioners and solving generalized eigenvalue problems with a positive
     definite matrix in the right hand side.
 
-3.  To the best of my knowledge, it is the only package that provides a Julia implementation of
-    the Krylov-Schur algorithm for eigenvalues of general matrices, and as such is the only
-    alternative to [`Arpack.jl`](https://github.com/JuliaLinearAlgebra/Arpack.jl).
+3.  To the best of my knowledge, KrylovKit.jl is the only package that provides a native Julia
+    implementation of a Krylov method for eigenvalues of general matrices (in particular the
+    Krylov-Schur algorithm). As such, is the only pure Julia alternative to [`Arpack.jl`](https://github.com/JuliaLinearAlgebra/Arpack.jl).
 
 ## Current functionality
 

@@ -3,14 +3,8 @@
     OrthonormalBasis{T} <: Basis{T}
 
 A list of vector like objects of type `T` that are mutually orthogonal and normalized to one,
-representing an orthonormal basis for some subspace (typically a Krylov subspace).
-
-`OrthonormalBasis{T}` behaves in many ways like `Vector{T}` (and is a simple wrapper thereof).
-In particular, `OrthonormalBasis` has a `length`, can be indexed (`getindex` and `setindex!`),
-iterated over, and support resizing (`resize!`, `pop!`, `push!`, `empty!`, `sizehint!`).
-
-The type `T` denotes the type of the elements stored in an `OrthonormalBasis{T}` and can be
-any custom type that has vector like behavior (as defined in the docs of [`KrylovKit`](@ref)).
+representing an orthonormal basis for some subspace (typically a Krylov subspace). See also
+[`Basis`](@ref)
 
 Orthonormality of the vectors contained in an instance `b` of `OrthonormalBasis`
 (i.e. `all(dot(b[i],b[j]) == I[i,j] for i=1:lenght(b), j=1:length(b))`) is not checked when elements are added; it is up to the algorithm that constructs `b` to

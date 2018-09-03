@@ -1,9 +1,63 @@
 """
-    function exponentiate(A, t::Number, v; kwargs...)
-    function exponentiate(A, t::Number, v, algorithm)
+    function exponentiate(A, t::Number, x; kwargs...)
+    function exponentiate(A, t::Number, x, algorithm)
 
-Compute ``exp(t*A) v``, where `A` is a general linear map, i.e. a `AbstractMatrix` or just
-a general function or callable object and `v` is of any Julia type with vector like behavior.
+Compute ``y = exp(t*A) x``, where `A` is a general linear map, i.e. a `AbstractMatrix` or just
+a general function or callable object and `x` is of any Julia type with vector like behavior.
+
+### Arguments:
+The linear map `A` can be an `AbstractMatrix` (dense or sparse) or a general function or callable
+object that implements the action of the linear map on a vector. If `A` is an `AbstractMatrix`,
+`x` is expected to be an `AbstractVector`, otherwise `x` can be of any type that behaves as a
+vector and supports the required methods (see KrylovKit docs).
+
+The time parameter `t` can be real or complex, and it is better to choose `t` e.g. imaginary
+and `A` hermitian, then to absorb the imaginary unit in an antihermitian `A`. For the former,
+the Lanczos scheme is used to built a Krylov subspace, in which an approximation to the exponential
+action of the linear map is obtained. The argument `x` can be of any type and should be in the
+domain of `A`.
+
+
+### Return values:
+The return value is always of the form `y, info = eigsolve(...)` with
+*   `y`: the result of the computation, i.e. `y = exp(t*A)*x`
+*   `info`: an object of type [`ConvergenceInfo`], which has the following fields
+    -   `info.converged::Int`: 0 or 1 if the solution `y` was approximated up to the requested
+        tolerance `tol`.
+    -   `info.residual::Nothing`: value `nothing`, there is no concept of a residual in this case
+    -   `info.normres::Real`: an estimate (upper bound) of the error between the approximate and exact solution
+    -   `info.numops::Int`: number of times the linear map was applied, i.e. number of times
+        `f` was called, or a vector was multiplied with `A`
+    -   `info.numiter::Int`: number of times the Krylov subspace was restarted (see below)
+!!! warning "Check for convergence"
+    No warning is printed if not all requested eigenvalues were converged, so always check
+    if `info.converged >= howmany`.
+
+### Keyword arguments:
+Keyword arguments and their default values are given by:
+*   `krylovdim = 30`: the maximum dimension of the Krylov subspace that will be constructed.
+    Note that the dimension of the vector space is not known or checked, e.g. `x₀` should not
+    necessarily support the `Base.length` function. If you know the actual problem dimension
+    is smaller than the default value, it is useful to reduce the value of `krylovdim`, though
+    in principle this should be detected.
+*   `tol = 1e-12`: the requested accuracy (corresponding to the 2-norm of the residual for
+    Schur vectors, not the eigenvectors). If you work in e.g. single precision (`Float32`),
+    you should definitely change the default value.
+*   `maxiter = 100`: the number of times the Krylov subspace can be rebuilt; see below for
+    further details on the algorithms.
+*   `issymmetric`: if the linear map is symmetric, only meaningful if `T<:Real`
+*   `ishermitian`: if the linear map is hermitian
+The default value for the last two depends on the method. If an `AbstractMatrix` is used,
+`issymmetric` and `ishermitian` are checked for that matrix, ortherwise the default values are
+`issymmetric = false` and `ishermitian = T <: Real && issymmetric`.
+
+### Algorithm
+The last method, without default values and keyword arguments, is the one that is finally called,
+and can also be used directly. Here, one specifies the algorithm explicitly as either [`Lanczos`](@ref),
+for real symmetric or complex hermitian problems, or [`Arnoldi`](@ref), for general problems.
+Note that these names refer to the process for building the Krylov subspace.
+
+!!! warning "`Arnoldi` not yet implented"
 """
 function exponentiate end
 

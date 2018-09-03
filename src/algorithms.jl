@@ -166,7 +166,7 @@ Construct an instance of the conjugate gradient algorithm with specified paramet
 be passed to `linsolve` in order to iteratively solve a linear system with a positive definite
 (and thus symmetric or hermitian) coefficent matrix or operator. The `CG` method will search
 for the optimal `x` in a Krylov subspace of maximal size `maxiter`, or stop when
-``| A*x - b | < max(atol, rtol*|b|)``.
+`norm(A*x - b) < max(atol, rtol*norm(b))`.
 
 See also: [`linsolve`](@ref), [`MINRES`](@ref), [`GMRES`](@ref), [`BiCG`](@ref), [`BiCGStab`](@ref)
 """
@@ -178,59 +178,6 @@ end
 CG(; maxiter::Integer = KrylovDefaults.maxiter, atol::Real = 0, rtol::Real = KrylovDefaults.tol) = CG(maxiter, promote(atol, rtol)...)
 
 """
-    MINRES(; maxiter = KrylovDefaults.maxiter, atol = 0, rtol = KrylovDefaults.tol)
-
-Construct an instance of the conjugate gradient algorithm with specified parameters, which can
-be passed to `linsolve` in order to iteratively solve a linear system with a real symmetric or
-complex hermitian coefficent matrix or operator. The `MINRES` method will search for the optimal
-`x` in a Krylov subspace of maximal size `maxiter`, or stop when ``| A*x - b | < max(atol, rtol*|b|)``.
-
-See also: [`linsolve`](@ref), [`CG`](@ref), [`GMRES`](@ref), [`BiCG`](@ref), [`BiCGStab`](@ref)
-"""
-struct MINRES{S<:Real} <: LinearSolver
-    maxiter::Int
-    atol::S
-    rtol::S
-end
-MINRES(; maxiter::Integer = KrylovDefaults.maxiter, atol::Real = 0, rtol::Real = KrylovDefaults.tol) = MINRES(maxiter, promote(atol, rtol)...)
-
-"""
-    BiCG(; maxiter = KrylovDefaults.maxiter, atol = 0, rtol = KrylovDefaults.tol)
-
-Construct an instance of the Biconjugate gradient algorithm with specified parameters, which
-can be passed to `linsolve` in order to iteratively solve a linear system general linear map,
-of which the adjoint can also be applied. The `BiCG` method will search for the optimal `x`
-in a Krylov subspace of maximal size `maxiter`, or stop when ``| A*x - b | < max(atol, rtol*|b|)``.
-
-See also: [`linsolve`](@ref), [`BiCGStab`](@ref), [`GMRES`](@ref), [`CG`](@ref), [`MINRES`](@ref)
-"""
-struct BiCG{S<:Real} <: LinearSolver
-    maxiter::Int
-    atol::S
-    rtol::S
-end
-BiCG(; maxiter::Integer = KrylovDefaults.maxiter, atol::Real = 0, rtol::Real = KrylovDefaults.tol) = BiCG(maxiter, promote(atol, rtol)...)
-
-
-"""
-    BiCGStab(; maxiter = KrylovDefaults.maxiter, atol = 0, rtol = KrylovDefaults.tol)
-
-Construct an instance of the Biconjugate gradient algorithm with specified parameters, which
-can be passed to `linsolve` in order to iteratively solve a linear system general linear map.
-The `BiCGStab` method will search for the optimal `x` in a Krylov subspace of maximal size `maxiter`,
-or stop when ``| A*x - b | < tol``. Note that absolute tolerance is used, i.e. set `tol = η * norm(b)`
-if you want to use some relative tolerance `η`.
-
-See also: [`linsolve`](@ref), [`BiCG`](@ref), [`GMRES`](@ref), [`CG`](@ref), [`MINRES`](@ref)
-"""
-struct BiCGStab{S<:Real} <: LinearSolver
-    maxiter::Int
-    atol::S
-    rtol::S
-end
-BiCGStab(; maxiter::Integer = KrylovDefaults.maxiter, atol::Real = 0, rtol::Real = KrylovDefaults.tol) = BiCGStab(maxiter, promote(atol, rtol)...)
-
-"""
     GMRES(orth::Orthogonalizer = KrylovDefaults.orth; maxiter = KrylovDefaults.maxiter,
         krylovdim = KrylovDefaults.krylovdim, atol = 0, rtol = KrylovDefaults.tol)
 
@@ -238,7 +185,7 @@ Construct an instance of the GMRES algorithm with specified parameters, which
 can be passed to `linsolve` in order to iteratively solve a linear system. The
 `GMRES` method will search for the optimal `x` in a Krylov subspace of maximal
 size `krylovdim`, and repeat this process for at most `maxiter` times, or stop
-when ``| A*x - b | < max(atol, rtol*|b|)``.
+when `norm(A*x - b) < max(atol, rtol*norm(b))`.
 
 In building the Krylov subspace, `GMRES` will use the orthogonalizer `orth`.
 
@@ -259,6 +206,66 @@ end
 GMRES(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,
     maxiter = KrylovDefaults.maxiter, atol = 0, rtol = KrylovDefaults.tol) =
     GMRES(orth, maxiter, krylovdim, promote(atol, rtol)...)
+
+# TODO
+"""
+    MINRES(; maxiter = KrylovDefaults.maxiter, atol = 0, rtol = KrylovDefaults.tol)
+
+Construct an instance of the conjugate gradient algorithm with specified parameters, which can
+be passed to `linsolve` in order to iteratively solve a linear system with a real symmetric or
+complex hermitian coefficent matrix or operator. The `MINRES` method will search for the optimal
+`x` in a Krylov subspace of maximal size `maxiter`, or stop when `norm(A*x - b) < max(atol, rtol*norm(b))`.
+
+!!! warning "Not implemented yet"
+
+See also: [`linsolve`](@ref), [`CG`](@ref), [`GMRES`](@ref), [`BiCG`](@ref), [`BiCGStab`](@ref)
+"""
+struct MINRES{S<:Real} <: LinearSolver
+    maxiter::Int
+    atol::S
+    rtol::S
+end
+MINRES(; maxiter::Integer = KrylovDefaults.maxiter, atol::Real = 0, rtol::Real = KrylovDefaults.tol) = MINRES(maxiter, promote(atol, rtol)...)
+
+"""
+    BiCG(; maxiter = KrylovDefaults.maxiter, atol = 0, rtol = KrylovDefaults.tol)
+
+Construct an instance of the Biconjugate gradient algorithm with specified parameters, which
+can be passed to `linsolve` in order to iteratively solve a linear system general linear map,
+of which the adjoint can also be applied. The `BiCG` method will search for the optimal `x`
+in a Krylov subspace of maximal size `maxiter`, or stop when `norm(A*x - b) < max(atol, rtol*norm(b))`.
+
+!!! warning "Not implemented yet"
+
+See also: [`linsolve`](@ref), [`BiCGStab`](@ref), [`GMRES`](@ref), [`CG`](@ref), [`MINRES`](@ref)
+"""
+struct BiCG{S<:Real} <: LinearSolver
+    maxiter::Int
+    atol::S
+    rtol::S
+end
+BiCG(; maxiter::Integer = KrylovDefaults.maxiter, atol::Real = 0, rtol::Real = KrylovDefaults.tol) = BiCG(maxiter, promote(atol, rtol)...)
+
+
+"""
+    BiCGStab(; maxiter = KrylovDefaults.maxiter, atol = 0, rtol = KrylovDefaults.tol)
+
+Construct an instance of the Biconjugate gradient algorithm with specified parameters, which
+can be passed to `linsolve` in order to iteratively solve a linear system general linear map.
+The `BiCGStab` method will search for the optimal `x` in a Krylov subspace of maximal size `maxiter`,
+or stop when `norm(A*x - b) < max(atol, rtol*norm(b))`.
+
+!!! warning "Not implemented yet"
+
+See also: [`linsolve`](@ref), [`BiCG`](@ref), [`GMRES`](@ref), [`CG`](@ref), [`MINRES`](@ref)
+"""
+struct BiCGStab{S<:Real} <: LinearSolver
+    maxiter::Int
+    atol::S
+    rtol::S
+end
+BiCGStab(; maxiter::Integer = KrylovDefaults.maxiter, atol::Real = 0, rtol::Real = KrylovDefaults.tol) = BiCGStab(maxiter, promote(atol, rtol)...)
+
 
 # Solving eigenvalue systems specifically
 abstract type EigenSolver <: KrylovAlgorithm end

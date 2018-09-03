@@ -13,10 +13,10 @@ to vectors.
 objects with vector like behavior (see below) as vectors.
 
 The high level interface of KrylovKit is provided by the following functions:
-*   [`linsolve`](@ref): solve linear systems
-*   [`eigsolve`](@ref): find a few eigenvalues and corresponding eigenvectors
-*   [`svdsolve`](@ref): find a few singular values and corresponding left and right singular vectors
-*   [`exponentiate`](@ref): apply the exponential of a linear map to a vector
+*   [`linsolve`]: solve linear systems
+*   [`eigsolve`]: find a few eigenvalues and corresponding eigenvectors
+*   [`svdsolve`]: find a few singular values and corresponding left and right singular vectors
+*   [`exponentiate`]: apply the exponential of a linear map to a vector
 
 ## Installation
 `KrylovKit.jl` runs on Julia 0.7 or 1.0 and can be installed with
