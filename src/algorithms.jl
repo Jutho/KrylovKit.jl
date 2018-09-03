@@ -79,6 +79,193 @@ struct ModifiedGramSchmidtIR{S<:Real} <: Reorthogonalizer
     η::S
 end
 
+# Solving eigenvalue problems
+abstract type KrylovAlgorithm end
+
+# General purpose; good for linear systems, eigensystems and matrix functions
+"""
+    Lanczos(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,
+        maxiter::Int = KrylovDefaults.maxiter, tol = KrylovDefaults.tol)
+
+Represents the Lanczos algorithm for building the Krylov subspace; assumes the
+linear operator is real symmetric or complex Hermitian. Can be used in `eigsolve` and
+`exponentiate`. The corresponding algorithms will build a Krylov subspace of size at most
+`krylovdim`, which will be repeated at most `maxiter` times and will stop when the norm of
+the residual of the Lanczos factorization is smaller than `tol`. The orthogonalizer `orth`
+will be used to orthogonalize the different Krylov vectors.
+
+Use `Arnoldi` for non-symmetric or non-Hermitian linear operators.
+
+See also: `factorize`, `eigsolve`, `exponentiate`, `Arnoldi`, `Orthogonalizer`
+"""
+struct Lanczos{O<:Orthogonalizer} <: KrylovAlgorithm
+    orth::O
+    krylovdim::Int
+    maxiter::Int
+    tol::Real
+end
+Lanczos(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,
+    maxiter::Int = KrylovDefaults.maxiter, tol = KrylovDefaults.tol) =
+    Lanczos(orth, krylovdim, maxiter, tol)
+
+"""
+    GKL(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,
+        maxiter::Int = KrylovDefaults.maxiter, tol = KrylovDefaults.tol)
+
+Represents the Golub-Kahan-Lanczos bidiagonalization algorithm for sequentially building a
+Krylov-like factorization of a genereal matrix or linear operator with a bidiagonal reduced
+matrix. Can be used in `svdsolve`. The corresponding algorithm builds a Krylov subspace of size
+at most `krylovdim`, which will be repeated at most `maxiter` times and will stop when the norm of the
+residual of the Arnoldi factorization is smaller than `tol`. The orthogonalizer `orth` will be
+used to orthogonalize the different Krylov vectors.
+
+See also: `svdsolve`, `Orthogonalizer`
+"""
+struct GKL{O<:Orthogonalizer} <: KrylovAlgorithm
+    orth::O
+    krylovdim::Int
+    maxiter::Int
+    tol::Real
+end
+GKL(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,
+    maxiter::Int = KrylovDefaults.maxiter, tol = KrylovDefaults.tol) =
+    GKL(orth, krylovdim, maxiter, tol)
+
+"""
+    Arnoldi(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,
+        maxiter::Int = KrylovDefaults.maxiter, tol = KrylovDefaults.tol)
+
+Represents the Arnoldi algorithm for building the Krylov subspace for a general
+matrix or linear operator. Can be used in `eigsolve` and `exponentiate`.
+The corresponding algorithms will build a Krylov subspace of size at most `krylovdim`,
+which will be repeated at most `maxiter` times and will stop when the norm of the
+residual of the Arnoldi factorization is smaller than `tol`. The orthogonalizer
+`orth` will be used to orthogonalize the different Krylov vectors.
+
+Use `Lanczos` for real symmetric or complex Hermitian linear operators.
+
+See also: `eigsolve`, `exponentiate`, `Lanczos`, `Orthogonalizer`
+"""
+struct Arnoldi{O<:Orthogonalizer} <: KrylovAlgorithm
+    orth::O
+    krylovdim::Int
+    maxiter::Int
+    tol::Real
+end
+Arnoldi(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,
+    maxiter::Int = KrylovDefaults.maxiter, tol = KrylovDefaults.tol) =
+    Arnoldi(orth, krylovdim, maxiter, tol)
+
+# Solving linear systems specifically
+abstract type LinearSolver <: KrylovAlgorithm end
+
+"""
+    CG(; maxiter = KrylovDefaults.maxiter, atol = 0, rtol = KrylovDefaults.tol)
+
+Construct an instance of the conjugate gradient algorithm with specified parameters, which can
+be passed to `linsolve` in order to iteratively solve a linear system with a positive definite
+(and thus symmetric or hermitian) coefficent matrix or operator. The `CG` method will search
+for the optimal `x` in a Krylov subspace of maximal size `maxiter`, or stop when
+``| A*x - b | < max(atol, rtol*|b|)``.
+
+See also: [`linsolve`](@ref), [`MINRES`](@ref), [`GMRES`](@ref), [`BiCG`](@ref), [`BiCGStab`](@ref)
+"""
+struct CG{S<:Real} <: LinearSolver
+    maxiter::Int
+    atol::S
+    rtol::S
+end
+CG(; maxiter::Integer = KrylovDefaults.maxiter, atol::Real = 0, rtol::Real = KrylovDefaults.tol) = CG(maxiter, promote(atol, rtol)...)
+
+"""
+    MINRES(; maxiter = KrylovDefaults.maxiter, atol = 0, rtol = KrylovDefaults.tol)
+
+Construct an instance of the conjugate gradient algorithm with specified parameters, which can
+be passed to `linsolve` in order to iteratively solve a linear system with a real symmetric or
+complex hermitian coefficent matrix or operator. The `MINRES` method will search for the optimal
+`x` in a Krylov subspace of maximal size `maxiter`, or stop when ``| A*x - b | < max(atol, rtol*|b|)``.
+
+See also: [`linsolve`](@ref), [`CG`](@ref), [`GMRES`](@ref), [`BiCG`](@ref), [`BiCGStab`](@ref)
+"""
+struct MINRES{S<:Real} <: LinearSolver
+    maxiter::Int
+    atol::S
+    rtol::S
+end
+MINRES(; maxiter::Integer = KrylovDefaults.maxiter, atol::Real = 0, rtol::Real = KrylovDefaults.tol) = MINRES(maxiter, promote(atol, rtol)...)
+
+"""
+    BiCG(; maxiter = KrylovDefaults.maxiter, atol = 0, rtol = KrylovDefaults.tol)
+
+Construct an instance of the Biconjugate gradient algorithm with specified parameters, which
+can be passed to `linsolve` in order to iteratively solve a linear system general linear map,
+of which the adjoint can also be applied. The `BiCG` method will search for the optimal `x`
+in a Krylov subspace of maximal size `maxiter`, or stop when ``| A*x - b | < max(atol, rtol*|b|)``.
+
+See also: [`linsolve`](@ref), [`BiCGStab`](@ref), [`GMRES`](@ref), [`CG`](@ref), [`MINRES`](@ref)
+"""
+struct BiCG{S<:Real} <: LinearSolver
+    maxiter::Int
+    atol::S
+    rtol::S
+end
+BiCG(; maxiter::Integer = KrylovDefaults.maxiter, atol::Real = 0, rtol::Real = KrylovDefaults.tol) = BiCG(maxiter, promote(atol, rtol)...)
+
+
+"""
+    BiCGStab(; maxiter = KrylovDefaults.maxiter, atol = 0, rtol = KrylovDefaults.tol)
+
+Construct an instance of the Biconjugate gradient algorithm with specified parameters, which
+can be passed to `linsolve` in order to iteratively solve a linear system general linear map.
+The `BiCGStab` method will search for the optimal `x` in a Krylov subspace of maximal size `maxiter`,
+or stop when ``| A*x - b | < tol``. Note that absolute tolerance is used, i.e. set `tol = η * norm(b)`
+if you want to use some relative tolerance `η`.
+
+See also: [`linsolve`](@ref), [`BiCG`](@ref), [`GMRES`](@ref), [`CG`](@ref), [`MINRES`](@ref)
+"""
+struct BiCGStab{S<:Real} <: LinearSolver
+    maxiter::Int
+    atol::S
+    rtol::S
+end
+BiCGStab(; maxiter::Integer = KrylovDefaults.maxiter, atol::Real = 0, rtol::Real = KrylovDefaults.tol) = BiCGStab(maxiter, promote(atol, rtol)...)
+
+"""
+    GMRES(orth::Orthogonalizer = KrylovDefaults.orth; maxiter = KrylovDefaults.maxiter,
+        krylovdim = KrylovDefaults.krylovdim, atol = 0, rtol = KrylovDefaults.tol)
+
+Construct an instance of the GMRES algorithm with specified parameters, which
+can be passed to `linsolve` in order to iteratively solve a linear system. The
+`GMRES` method will search for the optimal `x` in a Krylov subspace of maximal
+size `krylovdim`, and repeat this process for at most `maxiter` times, or stop
+when ``| A*x - b | < max(atol, rtol*|b|)``.
+
+In building the Krylov subspace, `GMRES` will use the orthogonalizer `orth`.
+
+Note that we do not follow the nomenclature in the traditional literature on `GMRES`,
+where `krylovdim` is referred to as the restart parameter, and every new Krylov
+vector counts as an iteration. I.e. our iteration count should rougly be multiplied
+by `krylovdim` to obtain the conventional iteration count.
+
+See also: [`linsolve`](@ref), [`BiCG`](@ref), [`BiCGStab`](@ref), [`CG`](@ref), [`MINRES`](@ref)
+"""
+struct GMRES{O<:Orthogonalizer,S<:Real} <: LinearSolver
+    orth::O
+    maxiter::Int
+    krylovdim::Int
+    atol::S
+    rtol::S
+end
+GMRES(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,
+    maxiter = KrylovDefaults.maxiter, atol = 0, rtol = KrylovDefaults.tol) =
+    GMRES(orth, maxiter, krylovdim, promote(atol, rtol)...)
+
+# Solving eigenvalue systems specifically
+abstract type EigenSolver <: KrylovAlgorithm end
+
+struct JacobiDavidson <: EigenSolver
+end
+
 # Default values
 """
     module KrylovDefaults
@@ -107,130 +294,4 @@ module KrylovDefaults
     const krylovdim = 30
     const maxiter = 100
     const tol = 1e-12
-end
-
-# Solving eigenvalue problems
-abstract type KrylovAlgorithm end
-
-# General purpose; good for linear systems, eigensystems and matrix functions
-"""
-    Lanczos(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,
-        maxiter::Int = KrylovDefaults.maxiter, tol = KrylovDefaults.tol)
-
-Represents the Lanczos algorithm for building the Krylov subspace; assumes the
-linear operator is real symmetric or complex Hermitian. Can be used in `factorize`,
-`eigsolve` and `exponentiate`. The corresponding algorithms will build a Krylov
-subspace of size at most `krylovdim`, which will be repeated at most `maxiter` times
-and will stop when the norm of the residual of the Lanczos factorization is smaller
-than `tol`. The orthogonalizer `orth` will be used to orthogonalize the different
-Krylov vectors.
-
-Use `Arnoldi` for non-symmetric or non-Hermitian linear operators.
-
-See also: `factorize`, `eigsolve`, `exponentiate`, `Arnoldi`, `Orthogonalizer`
-"""
-struct Lanczos{O<:Orthogonalizer} <: KrylovAlgorithm
-    orth::O
-    krylovdim::Int
-    maxiter::Int
-    tol::Real
-end
-Lanczos(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,
-    maxiter::Int = KrylovDefaults.maxiter, tol = KrylovDefaults.tol) =
-    Lanczos(orth, krylovdim, maxiter, tol)
-
-struct GKL{O<:Orthogonalizer} <: KrylovAlgorithm
-    orth::O
-    krylovdim::Int
-    maxiter::Int
-    tol::Real
-end
-GKL(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,
-    maxiter::Int = KrylovDefaults.maxiter, tol = KrylovDefaults.tol) =
-    GKL(orth, krylovdim, maxiter, tol)
-
-"""
-    Arnoldi(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,
-        maxiter::Int = KrylovDefaults.maxiter, tol = KrylovDefaults.tol)
-
-Represents the Arnoldi algorithm for building the Krylov subspace for a general.
-matrix or linear operator. Can be used in `factorize`, `eigsolve` and `exponentiate`.
-The corresponding algorithms will build a Krylov subspace of size at most `krylovdim`,
-which will be repeated at most `maxiter` times and will stop when the norm of the
-residual of the Arnoldi factorization is smaller than `tol`. The orthogonalizer
-`orth` will be used to orthogonalize the different Krylov vectors.
-
-Use `Lanczos` for real symmetric or complex Hermitian linear operators.
-
-See also: `eigsolve`, `exponentiate`, `Lanczos`, `Orthogonalizer`
-"""
-struct Arnoldi{O<:Orthogonalizer} <: KrylovAlgorithm
-    orth::O
-    krylovdim::Int
-    maxiter::Int
-    tol::Real
-end
-Arnoldi(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,
-    maxiter::Int = KrylovDefaults.maxiter, tol = KrylovDefaults.tol) =
-    Arnoldi(orth, krylovdim, maxiter, tol)
-
-# Solving linear systems specifically
-abstract type LinearSolver <: KrylovAlgorithm end
-
-struct CG <: LinearSolver
-    maxiter::Int
-    tol::Real
-    reltol::Real
-end
-struct MINRES <: LinearSolver
-    maxiter::Int
-    tol::Real
-    reltol::Real
-end
-struct BiCG <: LinearSolver
-    maxiter::Int
-    tol::Real
-    reltol::Real
-end
-struct BiCGStab <: LinearSolver
-    maxiter::Int
-    tol::Real
-    reltol::Real
-end
-
-struct GMRES{O<:Orthogonalizer} <: LinearSolver
-    orth::O
-    maxiter::Int
-    krylovdim::Int
-    tol::Real
-    reltol::Real
-end
-
-"""
-    GMRES(orth::Orthogonalizer = KrylovDefaults.orth; tol = KrylovDefaults.tol, reltol = KrylovDefaults.tol,
-        krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter)
-
-    Construct an instance of the GMRES algorithm with specified parameters, which
-    can be passed to `linsolve` in order to iteratively solve a linear system. The
-    `GMRES` method will search for the optimal `x` in a Krylov subspace of maximal
-    size `krylovdim`, and repeat this process for at most `maxiter` times, or stop
-    when ``| A*x - b | < max(tol, reltol*|b|)``.
-
-    In building the Krylov subspace, it will use the orthogonalizer `orth`.
-
-    Note that we do not follow the nomenclature in the traditional literature on `GMRES`,
-    where `krylovdim` is referred to as the restart parameter, and every new Krylov
-    vector counts as an iteration. I.e. our iteration count should rougly be multiplied
-    by `krylovdim` to obtain the conventional iteration count.
-
-    See also: [`linsolve`](@ref), [`CG`](@ref), [`MINRES`](@ref), [`BiCG`](@ref), [`BiCGStab`](@ref)
-"""
-GMRES(orth::Orthogonalizer = KrylovDefaults.orth; tol = KrylovDefaults.tol, reltol = KrylovDefaults.tol,
-    krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter) =
-    GMRES(orth, maxiter, krylovdim, tol, reltol)
-
-# Solving eigenvalue systems specifically
-abstract type EigenSolver <: KrylovAlgorithm end
-
-struct JacobiDavidson <: EigenSolver
 end

@@ -5,8 +5,8 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀ = 0, a₁ = 1)
     # Initial function operation and division defines number type
     y₀ = apply(operator, x₀)
     T = typeof(dot(b, y₀)/norm(b)*one(a₀)*one(a₁))
-    α₀::T = a₀
-    α₁::T = a₁
+    α₀ = convert(T, a₀)::T
+    α₁ = convert(T, a₁)::T
     # Continue computing r = b - a₀ * x₀ - a₁ * operator(x₀)
     r = copyto!(similar(b, T), b)
     r = α₀ == 0 ? r : axpy!(-α₀, x₀, r)
@@ -18,7 +18,7 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀ = 0, a₁ = 1)
     # Algorithm parameters
     maxiter = alg.maxiter
     krylovdim = alg.krylovdim
-    tol::S = max(alg.tol, norm(b)*alg.reltol)
+    tol = convert(S, alg.rtol == 0 ? alg.atol : max(alg.atol, alg.rtol*norm(b)))::S
 
     # Check for early return
     β < tol && return (x, ConvergenceInfo(1, r, β, 0, 1))

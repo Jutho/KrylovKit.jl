@@ -94,16 +94,17 @@ function linselector(A::AbstractMatrix, T::Type;
     issymmetric = T <: Real ? issymmetric(A) : false,
     ishermitian = T <: Complex ? ishermitian(A) : false,
     isposdef = issymmetric || ishermitian ? isposdef(A) : false,
-    krylovdim::Int = KrylovDefaults.krylovdim, maxiter::Int = KrylovDefaults.maxiter, tol::Real = KrylovDefaults.tol)
+    krylovdim::Int = KrylovDefaults.krylovdim, maxiter::Int = KrylovDefaults.maxiter, tol::Real = KrylovDefaults.tol,
+    a0::Number = 0, a1::Number = 1)
     if (T<:Real && issymmetric) || ishermitian
         # TODO
-        # if isposdef
-        #     return CG(krylovdim*maxiter, tol=tol)
+        if isposdef
+            return CG(krylovdim*maxiter, tol=tol, a0, a1)
         # else
         #     return MINRES(krylovdim*maxiter, tol=tol)
-        # end
-        return GMRES(krylovdim = krylovdim, maxiter = maxiter, tol=tol)
+        end
+        return GMRES(krylovdim = krylovdim, maxiter = maxiter, tol=tol, a0, a1)
     else
-        return GMRES(krylovdim = krylovdim, maxiter = maxiter, tol=tol)
+        return GMRES(krylovdim = krylovdim, maxiter = maxiter, tol=tol, a0, a1)
     end
 end

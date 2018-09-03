@@ -18,7 +18,16 @@ Arnoldi
 
 ## Specific algorithms for linear systems
 ```@docs
+CG
+MINRES
 GMRES
+BiCG
+BiCGStab
+```
+
+## Specific algorithms for sigular values
+```@docs
+GKL
 ```
 
 ## Default values
