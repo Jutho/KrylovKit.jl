@@ -27,6 +27,4 @@ once it will be registered.
 
 ## Getting started
 
-Read the documentation:
-[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://Jutho.github.io/KrylovKit.jl/stable)
-[![](https://img.shields.io/badge/docs-latest-blue.svg)](https://Jutho.github.io/KrylovKit.jl/latest)
+Read the documentation: [![](https://img.shields.io/badge/docs-latest-blue.svg)](https://Jutho.github.io/KrylovKit.jl/latest)

@@ -5,7 +5,7 @@ value and eigenvalue problems and the application of functions of linear maps or
 to vectors.
 
 ## Overview
-`KrylovKit.jl` accepts general functions or callable objects as linear maps, and general Julia
+KrylovKit.jl accepts general functions or callable objects as linear maps, and general Julia
 objects with vector like behavior (see below) as vectors.
 
 The high level interface of KrylovKit is provided by the following functions:
@@ -24,17 +24,17 @@ Pages = ["man/linear.md","man/eigsvd.md","man/matfun.md","man/algorithms.md","ma
 This section could also be titled "Why did I create KrylovKit.jl"?
 
 There are already a fair number of packages with Krylov-based or other iterative methods, such as
-*   [`IterativeSolvers.jl`](https://github.com/JuliaMath/IterativeSolvers.jl): part of the
-    [`JuliaMath`](https://github.com/JuliaMath) organisation, solves linear systems and least
+*   [IterativeSolvers.jl](https://github.com/JuliaMath/IterativeSolvers.jl): part of the
+    [JuliaMath](https://github.com/JuliaMath) organisation, solves linear systems and least
     square problems, eigenvalue and singular value problems
-*   [`Krylov.jl`](https://github.com/JuliaSmoothOptimizers/Krylov.jl): part of the
-    [`JuliaSmoothOptimizers`](https://github.com/JuliaSmoothOptimizers) organisation, solves
+*   [Krylov.jl](https://github.com/JuliaSmoothOptimizers/Krylov.jl): part of the
+    [JuliaSmoothOptimizers](https://github.com/JuliaSmoothOptimizers) organisation, solves
     linear systems and least square problems, specific for linear operators from
-    [`LinearOperators.jl`](https://github.com/JuliaSmoothOptimizers/LinearOperators.jl).
-*   [`KrylovMethods.jl`](https://github.com/lruthotto/KrylovMethods.jl): specific for sparse matrices
-*   [`Expokit.jl`](https://github.com/acroy/Expokit.jl): application of the matrix exponential to a vector
+    [LinearOperators.jl](https://github.com/JuliaSmoothOptimizers/LinearOperators.jl).
+*   [KrylovMethods.jl](https://github.com/lruthotto/KrylovMethods.jl): specific for sparse matrices
+*   [Expokit.jl](https://github.com/acroy/Expokit.jl): application of the matrix exponential to a vector
 
-`KrylovKit.jl` distinguishes itself from the previous packages in the following ways
+KrylovKit.jl distinguishes itself from the previous packages in the following ways
 
 1.  `KrylovKit` accepts general functions to represent the linear map or operator that defines
     the problem, without having to wrap them in a [`LinearMap`](https://github.com/Jutho/LinearMaps.jl)

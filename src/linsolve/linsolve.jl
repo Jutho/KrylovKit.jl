@@ -1,5 +1,5 @@
 """
-    linsolve(A::AbstractMatrix, b::AbstractVector, T::Type = promote_type(eltype(A), eltype(b)); kwargs...)    eigsolve(f, n::Int, [howmany = 1, which = :LM, T = Float64]; kwargs...)
+    linsolve(A::AbstractMatrix, b::AbstractVector, T::Type = promote_type(eltype(A), eltype(b)); kwargs...)
     linsolve(f, b, T::Type = eltype(b); kwargs...)
     linsolve(f, b, x₀; kwargs...)
     linsolve(f, b, x₀, algorithm)
