@@ -25,14 +25,6 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#Manual-outline-1",
-    "page": "Home",
-    "title": "Manual outline",
-    "category": "section",
-    "text": "Pages = [\"man/linear.md\",\"man/eigsvd.md\",\"man/matfun.md\",\"man/algorithms.md\",\"man/implementation.md\"]"
-},
-
-{
     "location": "index.html#Package-features-and-alternatives-1",
     "page": "Home",
     "title": "Package features and alternatives",
@@ -57,6 +49,62 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
+    "location": "man/intro.html#",
+    "page": "Introduction",
+    "title": "Introduction",
+    "category": "page",
+    "text": ""
+},
+
+{
+    "location": "man/intro.html#Introduction-1",
+    "page": "Introduction",
+    "title": "Introduction",
+    "category": "section",
+    "text": "Pages = [\"man/intro.md\", \"man/linear.md\", \"man/eig.md\", \"man/svd.md\", \"man/matfun.md\", \"man/algorithms.md\", \"man/implementation.md\"]\nDepth = 2"
+},
+
+{
+    "location": "man/intro.html#Installing-1",
+    "page": "Introduction",
+    "title": "Installing",
+    "category": "section",
+    "text": "Install KrylovKit.jl via the package manager:using Pkg\nPkg.add(\"KrylovKit\")KrylovKit.jl is a pure Julia package; no dependencies (aside from the Julia standard library) are required."
+},
+
+{
+    "location": "man/intro.html#KrylovKit",
+    "page": "Introduction",
+    "title": "KrylovKit",
+    "category": "module",
+    "text": "KrylovKit\n\nA Julia package collecting a number of Krylov-based algorithms for linear problems, singular value and eigenvalue problems and the application of functions of linear maps or operators to vectors.\n\nKrylovKit accepts general functions or callable objects as linear maps, and general Julia objects with vector like behavior as vectors.\n\nThe high level interface of KrylovKit is provided by the following functions:\n\nlinsolve: solve linear systems\neigsolve: find a few eigenvalues and corresponding eigenvectors\nsvdsolve: find a few singular values and corresponding left and right singular vectors\nexponentiate: apply the exponential of a linear map to a vector\n\n\n\n\n\n"
+},
+
+{
+    "location": "man/intro.html#Getting-started-1",
+    "page": "Introduction",
+    "title": "Getting started",
+    "category": "section",
+    "text": "After installation, start by loading KrylovKitusing KrylovKitThe help entry of the KrylovKit module statesKrylovKit"
+},
+
+{
+    "location": "man/intro.html#KrylovKit.ConvergenceInfo",
+    "page": "Introduction",
+    "title": "KrylovKit.ConvergenceInfo",
+    "category": "type",
+    "text": "struct ConvergenceInfo{S,T}\n    converged::Int\n    residual::T\n    normres::S\n    numiter::Int\n    numops::Int\nend\n\nUsed to return information about the solution found by the iterative method.\n\nconverged: the number of solutions that have converged according to an appropriate error   measure and requested tolerance for the problem. Its value can be zero or one for linsolve   and exponentiate, or any integer >= 0 for eigsolve, schursolve   or svdsolve.\nresidual: the (list of) residual(s) for the problem, or nothing for problems without   the concept of a residual (i.e. exponentiate). This is a single vector (of the same type   as the type of vectors used in the problem) for linsolve, or a Vector of such vectors   for eigsolve, schursolve or svdsolve.\nnormres: the norm of the residual(s) (in the previous field) or the value of any other   error measure that is appropriate for the problem. This is a Real for linsolve and   exponentiate, and a Vector{<:Real} for eigsolve, schursolve and svdsolve. The   number of values in normres that are smaller than a predefined tolerance corresponds to   the number converged of solutions that have converged.\nnumiter: the number of iterations (sometimes called restarts) used by the algorithm.\nnumops: the number of times the linear map or operator was applied\n\n\n\n\n\n"
+},
+
+{
+    "location": "man/intro.html#Common-interface-1",
+    "page": "Introduction",
+    "title": "Common interface",
+    "category": "section",
+    "text": "The for high-level function linsolve, eigsolve, svdsolve and exponentiate follow a common interfaceresults..., info = problemsolver(A, args...; kwargs...)where problemsolver is one of the functions above. Here, A is the linear map in the problem, which could be an instance of AbstractMatrix, or any function or callable object that encodes the action of the linear map on a vector. In particular, one can write the linear map using Julia\'s do block syntax asresults..., info = problemsolver(args...; kwargs...) do x\n    y = # implement linear map on x\n    return y\nendRead the documentation for problems that require both the linear map and its adjoint to be implemented, e.g. svdsolve.Furthermore, args is a set of additional arguments to specify the problem. The keyword arguments kwargs contain information about the linear map (issymmetric, ishermitian, isposdef) and about the solution strategy (tol, krylovdim, maxiter). A suitable algorithm for the problem is then chosen.The return value contains one or more entries that define the solution, and a final entry info of type ConvergeInfo that encodes information about the solution, i.e. wether it has converged, the residual(s) and the norm thereof, the number of operations used:KrylovKit.ConvergenceInfoThere is also an expert interface where the user specifies the algorithm that should be used explicitly, i.e.results..., info = method(A, args..., algorithm)"
+},
+
+{
     "location": "man/linear.html#",
     "page": "Solving linear systems",
     "title": "Solving linear systems",
@@ -77,7 +125,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Solving linear systems",
     "title": "Solving linear systems",
     "category": "section",
-    "text": "Linear systems are of the form A*x=b where A should be a linear map that has the same type of output as input, i.e. the solution x should be of the same type as the right hand side b. They can be solved using the function linsolve:linsolveCurrently supported algorithms areGMRES"
+    "text": "Linear systems are of the form A*x=b where A should be a linear map that has the same type of output as input, i.e. the solution x should be of the same type as the right hand side b. They can be solved using the function linsolve:linsolveCurrently supported algorithms are CG and GMRES."
 },
 
 {
@@ -133,7 +181,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Finding singular values and singular vectors",
     "title": "Finding singular values and singular vectors",
     "category": "section",
-    "text": "svdsolve"
+    "text": "Computing a few singular values and corresponding left and right singular vectors is done using the function svdsolve:svdsolve"
 },
 
 {
@@ -141,14 +189,6 @@ var documenterSearchIndex = {"docs": [
     "page": "Functions of matrices and linear maps",
     "title": "Functions of matrices and linear maps",
     "category": "page",
-    "text": ""
-},
-
-{
-    "location": "man/matfun.html#Functions-of-matrices-and-linear-maps-1",
-    "page": "Functions of matrices and linear maps",
-    "title": "Functions of matrices and linear maps",
-    "category": "section",
     "text": ""
 },
 
@@ -161,11 +201,11 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/matfun.html#Exponential-function-1",
+    "location": "man/matfun.html#Functions-of-matrices-and-linear-maps-1",
     "page": "Functions of matrices and linear maps",
-    "title": "Exponential function",
+    "title": "Functions of matrices and linear maps",
     "category": "section",
-    "text": "exponentiate"
+    "text": "Currently, the only function of a linear map for which a method is available is the exponential function, obtained via exponentiate:exponentiate"
 },
 
 {
@@ -398,6 +438,14 @@ var documenterSearchIndex = {"docs": [
     "title": "Orthogonalization",
     "category": "section",
     "text": "To denote a basis of vectors, e.g. to represent a given Krylov subspace, there is an abstract type Basis{T}KrylovKit.BasisMany Krylov based algorithms use an orthogonal basis to parametrize the Krylov subspace. In that case, the specific implementation OrthonormalBasis{T} can be used:KrylovKit.OrthonormalBasis{T}We can orthogonalize or orthonormalize a given vector to another vector (assumed normalized) or to a given OrthonormalBasis.KrylovKit.orthogonalize\nKrylovKit.orthonormalize"
+},
+
+{
+    "location": "man/implementation.html#Dense-linear-algebra-1",
+    "page": "Details of the implementation",
+    "title": "Dense linear algebra",
+    "category": "section",
+    "text": "KrylovKit relies on Julia\'s LinearAlgebra module from the standard library for most of its dense linear algebra dependencies. "
 },
 
 {
