@@ -7,6 +7,7 @@ makedocs(modules=[KrylovKit],
             pages = [
                 "Home" => "index.md",
                 "Manual" => [
+                    "man/intro.md",
                     "man/linear.md",
                     "man/eig.md",
                     "man/svd.md",
@@ -14,11 +15,6 @@ makedocs(modules=[KrylovKit],
                     "man/algorithms.md",
                     "man/implementation.md"
                 ]
-                # "Linear systems" => "linear.md",
-                # "Eigenvalues and singular values" => "eigsvd.md",
-                # "Matrix functions" => "matfun.md",
-                # "Available algorithms" => "algorithms.md",
-                # "Implementation" => "implementation.md"
             ])
 
 # Documenter can also automatically deploy documentation to gh-pages.

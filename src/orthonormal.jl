@@ -11,9 +11,9 @@ Orthonormality of the vectors contained in an instance `b` of `OrthonormalBasis`
 guarantee orthonormality.
 
 One can easily orthogonalize or orthonormalize a given vector `v` with respect to a `b::OrthonormalBasis`
-using the functions [`w, = orthogonalize(v,b,...)`](@ref orthogonalize) or [`w, = orthonormalize(v,b,...)`](@ref orhonormalize).
+using the functions [`w, = orthogonalize(v,b,...)`](@ref orthogonalize) or [`w, = orthonormalize(v,b,...)`](@ref orthonormalize).
 The resulting vector `w` of the latter can then be added to `b` using `push!(b, w)`. Note that
-in place versions [`orthogonalize!(v, b, ...)`](@ref orthgonalize!) or [`orthonormalize!(v, b, ...)`](@ref orthonormalize!)
+in place versions [`orthogonalize!(v, b, ...)`](@ref orthogonalize) or [`orthonormalize!(v, b, ...)`](@ref orthonormalize)
 are also available.
 
 Finally, a linear combination of the vectors in `b::OrthonormalBasis` can be obtained by multiplying

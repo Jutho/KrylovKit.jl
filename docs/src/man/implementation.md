@@ -20,6 +20,11 @@ KrylovKit.orthogonalize
 KrylovKit.orthonormalize
 ```
 
+## Dense linear algebra
+
+KrylovKit relies on Julia's `LinearAlgebra` module from the standard library for most of its
+dense linear algebra dependencies. 
+
 ## Krylov factorizations
 The central ingredient in a Krylov based algorithm is a Krylov factorization or decomposition
 of a linear map. Such partial factorizations are represented as a `KrylovFactorization`, of

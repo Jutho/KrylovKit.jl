@@ -14,12 +14,6 @@ The high level interface of KrylovKit is provided by the following functions:
 *   [`svdsolve`](@ref): find a few singular values and corresponding left and right singular vectors
 *   [`exponentiate`](@ref): apply the exponential of a linear map to a vector
 
-## Manual outline
-
-```@contents
-Pages = ["man/linear.md","man/eigsvd.md","man/matfun.md","man/algorithms.md","man/implementation.md"]
-```
-
 ## Package features and alternatives
 This section could also be titled "Why did I create KrylovKit.jl"?
 

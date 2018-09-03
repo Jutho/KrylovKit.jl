@@ -8,7 +8,4 @@ They can be solved using the function `linsolve`:
 linsolve
 ```
 
-Currently supported algorithms are
-```@docs
-GMRES
-```
+Currently supported algorithms are [`CG`](@ref) and [`GMRES`](@ref).
