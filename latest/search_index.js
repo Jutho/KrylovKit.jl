@@ -17,11 +17,11 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#Package-features-1",
+    "location": "index.html#Overview-1",
     "page": "Home",
-    "title": "Package features",
+    "title": "Overview",
     "category": "section",
-    "text": "KrylovKit.jl accepts general functions or callable objects as linear maps, and general Julia objects with vector like behavior (see below) as vectors.The high level interface of KrylovKit is provided by the following functions:linsolve: solve linear systems\neigsolve: find a few eigenvalues and corresponding eigenvectors\nsvdsolve: find a few singular values and corresponding left and right singular vectors\nexponentiate: apply the exponential of a linear map to a vectorHere, the matrix or linear map to which these methods are applied can be any instance of AbstractMatrix, or any callable object or function. Furthermore, any Julia type with vector like behavior can be used for the vector objects (see below)."
+    "text": "KrylovKit.jl accepts general functions or callable objects as linear maps, and general Julia objects with vector like behavior (see below) as vectors.The high level interface of KrylovKit is provided by the following functions:linsolve: solve linear systems\neigsolve: find a few eigenvalues and corresponding eigenvectors\nsvdsolve: find a few singular values and corresponding left and right singular vectors\nexponentiate: apply the exponential of a linear map to a vector"
 },
 
 {
@@ -33,11 +33,11 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#Comparison-to-other-packages-1",
+    "location": "index.html#Package-features-and-alternatives-1",
     "page": "Home",
-    "title": "Comparison to other packages",
+    "title": "Package features and alternatives",
     "category": "section",
-    "text": "This section could also be titled \"Why did I create KrylovKit.jl\"?There are already a fair number of packages with Krylov-based or other iterative methods, such asIterativeSolvers.jl: part of the   JuliaMath organisation, solves linear systems and least   square problems, eigenvalue and singular value problems\nKrylov.jl: part of the   JuliaSmoothOptimizers organisation, solves   linear systems and least square problems, specific for linear operators from   LinearOperators.jl.\nKrylovMethods.jl: specific for sparse matrices\nExpokit.jl: application of the matrix exponential to a vectorKrylovKit.jl distinguishes itself from the previous packages in the following two waysKrylovKit accepts general functions to represent the linear map or operator that defines  the problem, without having to wrap them in a LinearMap  or LinearOperator type.  Of course, subtypes of AbstractMatrix are also supported. If the linear map (always the first  argument) is a subtype of AbstractMatrix, matrix vector multiplication is used, otherwise  is applied as a function call.\nKrylovKit does not assume that the vectors involved in the problem are actual subtypes of  AbstractVector. Any Julia object that behaves as a vector is supported, so in particular  higher-dimensional arrays or any custom user type that supports the following functions  (with v and w two instances of this type and α a scalar (Number)):\nBase.eltype(v): the scalar type (i.e. <:Number) of the data in v\nBase.similar(v, [T::Type<:Number]): a way to construct additional similar vectors,   possibly with a different scalar type T.\nBase.copyto!(w, v): copy the contents of v to a preallocated vector w\nBase.fill!(w, α): fill all the scalar entries of w with value α; this is only   used in combination with α = 0 to create a zero vector. Note that Base.zero(v) does   not work for this purpose if we want to change the scalar eltype. We can also not   use rmul!(v, 0) (see below), since NaN*0 yields NaN.\nLinearAlgebra.mul!(w, v, α): out of place scalar multiplication; multiply   vector v with scalar α and store the result in w\nLinearAlgebra.rmul!(v, α): in-place scalar multiplication of v with α.\nLinearAlgebra.axpy!(α, v, w): store in w the result of α*v + w\nLinearAlgebra.axpby!(α, v, β, w): store in w the result of α*v + β*w\nLinearAlgebra.dot(v,w): compute the inner product of two vectors\nLinearAlgebra.norm(v): compute the 2-norm of a vector\nFurthermore, KrylovKit provides two types satisfying the above requirements that might  facilitate certain applications:\nRecursiveVec can be used for grouping a set of vectors into a single vector like\nstructure (can be used recursively). The reason that e.g. Vector{<:Vector} cannot be used  for this is that it returns the wrong eltype and methods like similar(v, T) and fill!(v, α)  don\'t work correctly.\nInnerProductVec can be used to redefine the inner product (i.e. dot) and corresponding\nnorm (norm) of an already existing vector like object. The latter should help with implementing  certain type of preconditioners and solving generalized eigenvalue problems with a positive  definite matrix in the right hand side.\nTo the best of my knowledge, it is the only package that provides a Julia implementation of  the Krylov-Schur algorithm for eigenvalues of general matrices, and as such is the only  alternative to Arpack.jl."
+    "text": "This section could also be titled \"Why did I create KrylovKit.jl\"?There are already a fair number of packages with Krylov-based or other iterative methods, such asIterativeSolvers.jl: part of the   JuliaMath organisation, solves linear systems and least   square problems, eigenvalue and singular value problems\nKrylov.jl: part of the   JuliaSmoothOptimizers organisation, solves   linear systems and least square problems, specific for linear operators from   LinearOperators.jl.\nKrylovMethods.jl: specific for sparse matrices\nExpokit.jl: application of the matrix exponential to a vectorKrylovKit.jl distinguishes itself from the previous packages in the following waysKrylovKit accepts general functions to represent the linear map or operator that defines  the problem, without having to wrap them in a LinearMap  or LinearOperator type.  Of course, subtypes of AbstractMatrix are also supported. If the linear map (always the first  argument) is a subtype of AbstractMatrix, matrix vector multiplication is used, otherwise  is applied as a function call.\nKrylovKit does not assume that the vectors involved in the problem are actual subtypes of  AbstractVector. Any Julia object that behaves as a vector is supported, so in particular  higher-dimensional arrays or any custom user type that supports the following functions  (with v and w two instances of this type and α a scalar (Number)):\nBase.eltype(v): the scalar type (i.e. <:Number) of the data in v\nBase.similar(v, [T::Type<:Number]): a way to construct additional similar vectors,   possibly with a different scalar type T.\nBase.copyto!(w, v): copy the contents of v to a preallocated vector w\nBase.fill!(w, α): fill all the scalar entries of w with value α; this is only   used in combination with α = 0 to create a zero vector. Note that Base.zero(v) does   not work for this purpose if we want to change the scalar eltype. We can also not   use rmul!(v, 0) (see below), since NaN*0 yields NaN.\nLinearAlgebra.mul!(w, v, α): out of place scalar multiplication; multiply   vector v with scalar α and store the result in w\nLinearAlgebra.rmul!(v, α): in-place scalar multiplication of v with α.\nLinearAlgebra.axpy!(α, v, w): store in w the result of α*v + w\nLinearAlgebra.axpby!(α, v, β, w): store in w the result of α*v + β*w\nLinearAlgebra.dot(v,w): compute the inner product of two vectors\nLinearAlgebra.norm(v): compute the 2-norm of a vector\nFurthermore, KrylovKit provides two types satisfying the above requirements that might  facilitate certain applications:\nRecursiveVec can be used for grouping a set of vectors into a single vector like\nstructure (can be used recursively). The reason that e.g. Vector{<:Vector} cannot be used  for this is that it returns the wrong eltype and methods like similar(v, T) and fill!(v, α)  don\'t work correctly.\nInnerProductVec can be used to redefine the inner product (i.e. dot) and corresponding\nnorm (norm) of an already existing vector like object. The latter should help with implementing  certain type of preconditioners and solving generalized eigenvalue problems with a positive  definite matrix in the right hand side.\nTo the best of my knowledge, it is the only package that provides a Julia implementation of  the Krylov-Schur algorithm for eigenvalues of general matrices, and as such is the only  alternative to Arpack.jl."
 },
 
 {
@@ -45,7 +45,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "Current functionality",
     "category": "section",
-    "text": "The following algorithms are currently implementedlinsolve: GMRES\neigsolve: a Krylov-Schur algorithm (i.e. with tick restarts) for extremal eigenvalues of   normal (i.e. not generalized) eigenvalue problems, corresponding to Lanczos for   real symmetric or complex hermitian linear maps, and to Arnoldi for general linear maps.\nsvdsolve: finding largest singular values based on Golub-Kahan-Lanczos bidiagonalization   (see GKL)\nexponentiate: a Lanczos based algorithm for the action of the exponential of   a real symmetric or complex hermitian linear map."
+    "text": "The following algorithms are currently implementedlinsolve: CG, GMRES\neigsolve: a Krylov-Schur algorithm (i.e. with tick restarts) for extremal eigenvalues of   normal (i.e. not generalized) eigenvalue problems, corresponding to Lanczos for   real symmetric or complex hermitian linear maps, and to Arnoldi for general linear maps.\nsvdsolve: finding largest singular values based on Golub-Kahan-Lanczos bidiagonalization   (see GKL)\nexponentiate: a Lanczos based algorithm for the action of the exponential of   a real symmetric or complex hermitian linear map."
 },
 
 {
@@ -53,7 +53,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "Future functionality?",
     "category": "section",
-    "text": "Here follows a wish list / to-do list for the future. Any help is welcomed and appreciated.More algorithms, including biorthogonal methods:\nfor linsolve: CG, MINRES, BiCG, BiCGStab(l), IDR(s), ...\nfor eigsolve: BiLanczos, Jacobi-Davidson (?), subspace iteration (?), ...\nfor exponentiate: Arnoldi (currently only Lanczos supported)\nGeneralized eigenvalue problems: Rayleigh quotient / trace minimization, LO(B)PCG, EIGFP\nLeast square problems\nNonlinear eigenvalue problems\nPreconditioners\nRefined Ritz vectors, Harmonic ritz values and vectors\nSupport both in-place / mutating and out-of-place functions as linear maps\nReuse memory for storing vectors when restarting algorithms\nImproved efficiency for the specific case where x is Vector (i.e. BLAS level 2 operations)\nBlock versions of the algorithms\nMore relevant matrix functions"
+    "text": "Here follows a wish list / to-do list for the future. Any help is welcomed and appreciated.More algorithms, including biorthogonal methods:\nfor linsolve: MINRES, BiCG, BiCGStab(l), IDR(s), ...\nfor eigsolve: BiLanczos, Jacobi-Davidson (?) JDQR/JDQZ, subspace iteration (?), ...\nfor exponentiate: Arnoldi (currently only Lanczos supported)\nGeneralized eigenvalue problems: Rayleigh quotient / trace minimization, LO(B)PCG, EIGFP\nLeast square problems\nNonlinear eigenvalue problems\nPreconditioners\nRefined Ritz vectors, Harmonic ritz values and vectors\nSupport both in-place / mutating and out-of-place functions as linear maps\nReuse memory for storing vectors when restarting algorithms\nImproved efficiency for the specific case where x is Vector (i.e. BLAS level 2 operations)\nBlock versions of the algorithms\nMore relevant matrix functions"
 },
 
 {
@@ -245,7 +245,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Available algorithms",
     "title": "KrylovKit.Lanczos",
     "category": "type",
-    "text": "Lanczos(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,\n    maxiter::Int = KrylovDefaults.maxiter, tol = KrylovDefaults.tol)\n\nRepresents the Lanczos algorithm for building the Krylov subspace; assumes the linear operator is real symmetric or complex Hermitian. Can be used in factorize, eigsolve and exponentiate. The corresponding algorithms will build a Krylov subspace of size at most krylovdim, which will be repeated at most maxiter times and will stop when the norm of the residual of the Lanczos factorization is smaller than tol. The orthogonalizer orth will be used to orthogonalize the different Krylov vectors.\n\nUse Arnoldi for non-symmetric or non-Hermitian linear operators.\n\nSee also: factorize, eigsolve, exponentiate, Arnoldi, Orthogonalizer\n\n\n\n\n\n"
+    "text": "Lanczos(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,\n    maxiter::Int = KrylovDefaults.maxiter, tol = KrylovDefaults.tol)\n\nRepresents the Lanczos algorithm for building the Krylov subspace; assumes the linear operator is real symmetric or complex Hermitian. Can be used in eigsolve and exponentiate. The corresponding algorithms will build a Krylov subspace of size at most krylovdim, which will be repeated at most maxiter times and will stop when the norm of the residual of the Lanczos factorization is smaller than tol. The orthogonalizer orth will be used to orthogonalize the different Krylov vectors.\n\nUse Arnoldi for non-symmetric or non-Hermitian linear operators.\n\nSee also: factorize, eigsolve, exponentiate, Arnoldi, Orthogonalizer\n\n\n\n\n\n"
 },
 
 {
@@ -253,7 +253,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Available algorithms",
     "title": "KrylovKit.Arnoldi",
     "category": "type",
-    "text": "Arnoldi(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,\n    maxiter::Int = KrylovDefaults.maxiter, tol = KrylovDefaults.tol)\n\nRepresents the Arnoldi algorithm for building the Krylov subspace for a general. matrix or linear operator. Can be used in factorize, eigsolve and exponentiate. The corresponding algorithms will build a Krylov subspace of size at most krylovdim, which will be repeated at most maxiter times and will stop when the norm of the residual of the Arnoldi factorization is smaller than tol. The orthogonalizer orth will be used to orthogonalize the different Krylov vectors.\n\nUse Lanczos for real symmetric or complex Hermitian linear operators.\n\nSee also: eigsolve, exponentiate, Lanczos, Orthogonalizer\n\n\n\n\n\n"
+    "text": "Arnoldi(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,\n    maxiter::Int = KrylovDefaults.maxiter, tol = KrylovDefaults.tol)\n\nRepresents the Arnoldi algorithm for building the Krylov subspace for a general matrix or linear operator. Can be used in eigsolve and exponentiate. The corresponding algorithms will build a Krylov subspace of size at most krylovdim, which will be repeated at most maxiter times and will stop when the norm of the residual of the Arnoldi factorization is smaller than tol. The orthogonalizer orth will be used to orthogonalize the different Krylov vectors.\n\nUse Lanczos for real symmetric or complex Hermitian linear operators.\n\nSee also: eigsolve, exponentiate, Lanczos, Orthogonalizer\n\n\n\n\n\n"
 },
 
 {
@@ -265,19 +265,27 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/algorithms.html#KrylovKit.GMRES",
-    "page": "Available algorithms",
-    "title": "KrylovKit.GMRES",
-    "category": "type",
-    "text": "GMRES(orth::Orthogonalizer = KrylovDefaults.orth; tol = KrylovDefaults.tol, reltol = KrylovDefaults.tol,\n    krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter)\n\nConstruct an instance of the GMRES algorithm with specified parameters, which\ncan be passed to `linsolve` in order to iteratively solve a linear system. The\n`GMRES` method will search for the optimal `x` in a Krylov subspace of maximal\nsize `krylovdim`, and repeat this process for at most `maxiter` times, or stop\nwhen ``| A*x - b | < max(tol, reltol*|b|)``.\n\nIn building the Krylov subspace, it will use the orthogonalizer `orth`.\n\nNote that we do not follow the nomenclature in the traditional literature on `GMRES`,\nwhere `krylovdim` is referred to as the restart parameter, and every new Krylov\nvector counts as an iteration. I.e. our iteration count should rougly be multiplied\nby `krylovdim` to obtain the conventional iteration count.\n\nSee also: [`linsolve`](@ref), [`CG`](@ref), [`MINRES`](@ref), [`BiCG`](@ref), [`BiCGStab`](@ref)\n\n\n\n\n\n"
-},
-
-{
     "location": "man/algorithms.html#Specific-algorithms-for-linear-systems-1",
     "page": "Available algorithms",
     "title": "Specific algorithms for linear systems",
     "category": "section",
-    "text": "GMRES"
+    "text": "CG\nMINRES\nGMRES\nBiCG\nBiCGStab"
+},
+
+{
+    "location": "man/algorithms.html#KrylovKit.GKL",
+    "page": "Available algorithms",
+    "title": "KrylovKit.GKL",
+    "category": "type",
+    "text": "GKL(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,\n    maxiter::Int = KrylovDefaults.maxiter, tol = KrylovDefaults.tol)\n\nRepresents the Golub-Kahan-Lanczos bidiagonalization algorithm for sequentially building a Krylov-like factorization of a genereal matrix or linear operator with a bidiagonal reduced matrix. Can be used in svdsolve. The corresponding algorithm builds a Krylov subspace of size at most krylovdim, which will be repeated at most maxiter times and will stop when the norm of the residual of the Arnoldi factorization is smaller than tol. The orthogonalizer orth will be used to orthogonalize the different Krylov vectors.\n\nSee also: svdsolve, Orthogonalizer\n\n\n\n\n\n"
+},
+
+{
+    "location": "man/algorithms.html#Specific-algorithms-for-sigular-values-1",
+    "page": "Available algorithms",
+    "title": "Specific algorithms for sigular values",
+    "category": "section",
+    "text": "GKL"
 },
 
 {
