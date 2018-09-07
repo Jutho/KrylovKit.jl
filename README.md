@@ -23,7 +23,6 @@ The high level interface of KrylovKit is provided by the following functions:
 ```julia
 Pkg.add("KrylovKit.jl")
 ```
-once it will be registered.
 
 ## Getting started
 

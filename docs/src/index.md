@@ -27,6 +27,8 @@ There are already a fair number of packages with Krylov-based or other iterative
     [LinearOperators.jl](https://github.com/JuliaSmoothOptimizers/LinearOperators.jl).
 *   [KrylovMethods.jl](https://github.com/lruthotto/KrylovMethods.jl): specific for sparse matrices
 *   [Expokit.jl](https://github.com/acroy/Expokit.jl): application of the matrix exponential to a vector
+*   [ArnoldiMethod.jl](https://github.com/haampie/ArnoldiMethod.jl): Implicitly restarted Arnoldi method for eigenvalues of a general matrix
+*   [JacobiDavidson.jl](https://github.com/haampie/JacobiDavidson.jl): Jacobi-Davidson method for eigenvalues of a general matrix
 
 KrylovKit.jl distinguishes itself from the previous packages in the following ways
 
@@ -59,18 +61,19 @@ KrylovKit.jl distinguishes itself from the previous packages in the following wa
 
     Furthermore, KrylovKit provides two types satisfying the above requirements that might
     facilitate certain applications:
-    * [`RecursiveVec`](@ref) can be used for grouping a set of vectors into a single vector like
+    *   [`RecursiveVec`](@ref) can be used for grouping a set of vectors into a single vector like
     structure (can be used recursively). The reason that e.g. `Vector{<:Vector}` cannot be used
     for this is that it returns the wrong `eltype` and methods like `similar(v, T)` and `fill!(v, α)`
     don't work correctly.
-    * [`InnerProductVec`](@ref) can be used to redefine the inner product (i.e. `dot`) and corresponding
+    *   [`InnerProductVec`](@ref) can be used to redefine the inner product (i.e. `dot`) and corresponding
     norm (`norm`) of an already existing vector like object. The latter should help with implementing
     certain type of preconditioners and solving generalized eigenvalue problems with a positive
     definite matrix in the right hand side.
 
-3.  To the best of my knowledge, KrylovKit.jl is the only package that provides a native Julia
+3.  ~~To the best of my knowledge, KrylovKit.jl is the only package that provides a native Julia
     implementation of a Krylov method for eigenvalues of general matrices (in particular the
-    Krylov-Schur algorithm). As such, is the only pure Julia alternative to [`Arpack.jl`](https://github.com/JuliaLinearAlgebra/Arpack.jl).
+    Krylov-Schur algorithm). As such, is the only pure Julia alternative to [`Arpack.jl`](https://github.com/JuliaLinearAlgebra/Arpack.jl).~~
+    See also [ArnoldiMethod.jl](https://github.com/haampie/ArnoldiMethod.jl) and [JacobiDavidson.jl](https://github.com/haampie/JacobiDavidson.jl).
 
 ## Current functionality
 
