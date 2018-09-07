@@ -70,11 +70,6 @@ KrylovKit.jl distinguishes itself from the previous packages in the following wa
     certain type of preconditioners and solving generalized eigenvalue problems with a positive
     definite matrix in the right hand side.
 
-3.  ~~To the best of my knowledge, KrylovKit.jl is the only package that provides a native Julia
-    implementation of a Krylov method for eigenvalues of general matrices (in particular the
-    Krylov-Schur algorithm). As such, is the only pure Julia alternative to [`Arpack.jl`](https://github.com/JuliaLinearAlgebra/Arpack.jl).~~
-    See also [ArnoldiMethod.jl](https://github.com/haampie/ArnoldiMethod.jl) and [JacobiDavidson.jl](https://github.com/haampie/JacobiDavidson.jl).
-
 ## Current functionality
 
 The following algorithms are currently implemented
