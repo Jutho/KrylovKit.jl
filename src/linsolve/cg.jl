@@ -1,7 +1,4 @@
-linsolve(operator, b, alg::CG, a₀ = 0, a₁ = 1) =
-    linsolve(operator, b, fill!(similar(b), zero(eltype(b))), alg, a₀, a₁)
-
-function linsolve(operator, b, x₀, alg::CG, a₀ = 0, a₁ = 1)
+function linsolve(operator, b, x₀, alg::CG, a₀::Real = 0, a₁::Real = 1)
     # Initial function operation and division defines number type
     y₀ = apply(operator, x₀)
     T = typeof(dot(b, y₀)/norm(b)*one(a₀)*one(a₁))

@@ -189,10 +189,10 @@ when `norm(A*x - b) < max(atol, rtol*norm(b))`.
 
 In building the Krylov subspace, `GMRES` will use the orthogonalizer `orth`.
 
-Note that we do not follow the nomenclature in the traditional literature on `GMRES`,
-where `krylovdim` is referred to as the restart parameter, and every new Krylov
-vector counts as an iteration. I.e. our iteration count should rougly be multiplied
-by `krylovdim` to obtain the conventional iteration count.
+Note that in the traditional nomenclature of `GMRES`, the parameter `krylovdim` is referred to
+as the restart parameter, and `maxiter` is the number of outer iterations, i.e. restart cycles.
+The total iteration count, i.e. the number of expansion steps, is roughly `krylovdim` times
+the number of iterations.
 
 See also: [`linsolve`](@ref), [`BiCG`](@ref), [`BiCGStab`](@ref), [`CG`](@ref), [`MINRES`](@ref)
 """
