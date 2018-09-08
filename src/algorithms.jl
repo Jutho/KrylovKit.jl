@@ -276,7 +276,7 @@ end
 # Default values
 """
     module KrylovDefaults
-        const orth = KrylovKit.ModifiedGramSchmidtIR(1/sqrt(2))
+        const orth = KrylovKit.ModifiedGramSchmidt2
         const krylovdim = 30
         const maxiter = 100
         const tol = 1e-12

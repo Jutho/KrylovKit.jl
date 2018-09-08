@@ -30,7 +30,8 @@ There are already a fair number of packages with Krylov-based or other iterative
 *   [ArnoldiMethod.jl](https://github.com/haampie/ArnoldiMethod.jl): Implicitly restarted Arnoldi method for eigenvalues of a general matrix
 *   [JacobiDavidson.jl](https://github.com/haampie/JacobiDavidson.jl): Jacobi-Davidson method for eigenvalues of a general matrix
 
-KrylovKit.jl distinguishes itself from the previous packages in the following ways
+These packages have certainly inspired and influenced the development of KrylovKit.jl. However,
+KrylovKit.jl distinguishes itself from the previous packages in the following ways:
 
 1.  KrylovKit accepts general functions to represent the linear map or operator that defines
     the problem, without having to wrap them in a [`LinearMap`](https://github.com/Jutho/LinearMaps.jl)
