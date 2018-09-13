@@ -5,6 +5,7 @@ value and eigenvalue problems and the application of functions of linear maps or
 to vectors.
 
 [![Build Status](https://travis-ci.org/Jutho/KrylovKit.jl.svg?branch=master)](https://travis-ci.org/jutho/KrylovKit.jl)
+[![License](http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](LICENSE.md)
 [![Coverage Status](https://coveralls.io/repos/github/Jutho/KrylovKit.jl/badge.svg?branch=master)](https://coveralls.io/github/Jutho/KrylovKit.jl?branch=master)
 [![codecov.io](http://codecov.io/github/Jutho/KrylovKit.jl/coverage.svg?branch=master)](http://codecov.io/github/jutho/KrylovKit.jl?branch=master)
 

@@ -98,6 +98,8 @@ Here follows a wish list / to-do list for the future. Any help is welcomed and a
 *   Refined Ritz vectors, Harmonic ritz values and vectors
 *   Support both in-place / mutating and out-of-place functions as linear maps
 *   Reuse memory for storing vectors when restarting algorithms
-*   Improved efficiency for the specific case where `x` is `Vector` (i.e. BLAS level 2 operations)
 *   Block versions of the algorithms
 *   More relevant matrix functions
+
+Partially done:
+*   Improved efficiency for the specific case where `x` is `Vector` (i.e. BLAS level 2 operations): any vector `v::AbstractArray` which has `IndexStyle(v) == IndexLinear()` now benefits from a multithreaded (use `export JULIA_NUM_THREADS = x` with `x` the number of threads you want to use) implementation that resembles BLAS level 2 style for the vector operations, provided `ClassicalGramSchmidt()`, `ClassicalGramSchmidt2()` or `ClassicalGramSchmidtIR()` is chosen.
