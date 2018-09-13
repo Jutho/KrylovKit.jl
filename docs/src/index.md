@@ -102,4 +102,4 @@ Here follows a wish list / to-do list for the future. Any help is welcomed and a
 *   More relevant matrix functions
 
 Partially done:
-*   Improved efficiency for the specific case where `x` is `Vector` (i.e. BLAS level 2 operations): any vector `v::AbstractArray` which has `IndexStyle(v) == IndexLinear()` now benefits from a multithreaded (use `export JULIA_NUM_THREADS = x` with `x` the number of threads you want to use) implementation that resembles BLAS level 2 style for the vector operations, provided `ClassicalGramSchmidt()`, `ClassicalGramSchmidt2()` or `ClassicalGramSchmidtIR()` is chosen.
+*   Improved efficiency for the specific case where `x` is `Vector` (i.e. BLAS level 2 operations): any vector `v::AbstractArray` which has `IndexStyle(v) == IndexLinear()` now benefits from a multithreaded (use `export JULIA_NUM_THREADS = x` with `x` the number of threads you want to use) implementation that resembles BLAS level 2 style for the vector operations, provided `ClassicalGramSchmidt()`, `ClassicalGramSchmidt2()` or `ClassicalGramSchmidtIR()` is chosen as orthogonalization routine.
