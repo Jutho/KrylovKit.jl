@@ -113,7 +113,7 @@ end
     end
     return y
 end
-const BLOCKSIZE = 32
+const BLOCKSIZE = 2048
 @fastmath function unproject_linear!(y::AbstractArray, b::OrthonormalBasis{<:AbstractArray}, x::AbstractVector, α::Number = 1, β::Number = 0, r = Base.OneTo(length(b)))
     # multi-threaded implementation, similar to BLAS level 2 matrix vector multiplication
     m = length(y)
@@ -122,22 +122,26 @@ const BLOCKSIZE = 32
     for rj in r
         length(b[rj]) == m || throw(DimensionMismatch())
     end
-    Threads.@threads for I = 1:BLOCKSIZE:m
+    if n == 0
+        return β == 1 ? y : β == 0 ? fill!(y, 0) : rmul!(y, β)
+    end
+    blocksize = prevpow(2, div(BLOCKSIZE, n))
+    Threads.@threads for I = 1:blocksize:m
         @inbounds begin
             if β == 0
-                @simd for i = I:min(I+BLOCKSIZE-1, m)
+                @simd for i = I:min(I+blocksize-1, m)
                     y[i] = zero(y[i])
                 end
             elseif β != 1
-                @simd for i = I:min(I+BLOCKSIZE-1, m)
+                @simd for i = I:min(I+blocksize-1, m)
                     y[i] *= β
                 end
             end
             for (j,rj) in enumerate(r)
                 xj = α*x[j]
                 Vj = b[rj]
-                if I + BLOCKSIZE-1 <= m
-                    @simd for i = Base.OneTo(BLOCKSIZE)
+                if I + blocksize-1 <= m
+                    @simd for i = Base.OneTo(blocksize)
                         y[I-1+i] += Vj[I-1+i]*xj
                     end
                 else
@@ -176,22 +180,26 @@ end
     for rj in r
         length(b[rj]) == m || throw(DimensionMismatch())
     end
-    Threads.@threads for I = 1:BLOCKSIZE:m
+    if n == 0
+        return b
+    end
+    blocksize = prevpow(2, div(BLOCKSIZE, n))
+    Threads.@threads for I = 1:blocksize:m
         @inbounds begin
             for (j,rj) in enumerate(r)
                 xj = α*conj(x[j])
                 Vj = b[rj]
                 if β == 0
-                    @simd for i = I:min(I+BLOCKSIZE-1, m)
+                    @simd for i = I:min(I+blocksize-1, m)
                         Vj[i] = zero(Vj[i])
                     end
                 elseif β != 1
-                    @simd for i = I:min(I+BLOCKSIZE-1, m)
+                    @simd for i = I:min(I+blocksize-1, m)
                         Vj[i] *= β
                     end
                 end
-                if I + BLOCKSIZE-1 <= m
-                    @simd for i = Base.OneTo(BLOCKSIZE)
+                if I + blocksize-1 <= m
+                    @simd for i = Base.OneTo(blocksize)
                         Vj[I-1+i] += y[I-1+i]*xj
                     end
                 else
