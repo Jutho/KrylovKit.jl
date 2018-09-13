@@ -64,21 +64,25 @@ The return value is always of the form `vals, vecs, info = eigsolve(...)` with
 
 ### Keyword arguments:
 Keyword arguments and their default values are given by:
-*   `krylovdim = 30`: the maximum dimension of the Krylov subspace that will be constructed.
+*   `tol::Real`: the requested accuracy (corresponding to the 2-norm of the residual for
+    Schur vectors, not the eigenvectors). If you work in e.g. single precision (`Float32`),
+    you should definitely change the default value.
+*   `krylovdim::Integer`: the maximum dimension of the Krylov subspace that will be constructed.
     Note that the dimension of the vector space is not known or checked, e.g. `x₀` should not
     necessarily support the `Base.length` function. If you know the actual problem dimension
     is smaller than the default value, it is useful to reduce the value of `krylovdim`, though
     in principle this should be detected.
-*   `tol = 1e-12`: the requested accuracy (corresponding to the 2-norm of the residual for
-    Schur vectors, not the eigenvectors). If you work in e.g. single precision (`Float32`),
-    you should definitely change the default value.
-*   `maxiter = 100`: the number of times the Krylov subspace can be rebuilt; see below for
+*   `maxiter::Integer`: the number of times the Krylov subspace can be rebuilt; see below for
     further details on the algorithms.
-*   `issymmetric`: if the linear map is symmetric, only meaningful if `T<:Real`
-*   `ishermitian`: if the linear map is hermitian
-The default value for the last two depends on the method. If an `AbstractMatrix` is used,
-`issymmetric` and `ishermitian` are checked for that matrix, ortherwise the default values are
-`issymmetric = false` and `ishermitian = T <: Real && issymmetric`.
+*   `orth::Orthogonalizer`: the orthogonalization method to be used, see [`Orthogonalizer`](@ref)
+*   `issymmetric::Bool`: if the linear map is symmetric, only meaningful if `T<:Real`
+*   `ishermitian::Bool`: if the linear map is hermitian
+The default values are given by `tol = KrylovDefaults.tol`, `krylovdim = KrylovDefaults.krylovdim`,
+`maxiter = KrylovDefaults.maxiter`, `orth = KrylovDefaults.orth`; see [`KrylovDefaults`](@ref) for details.
+
+The default value for the last two parameters depends on the method. If an `AbstractMatrix`
+is used, `issymmetric` and `ishermitian` are checked for that matrix, ortherwise the default
+values are `issymmetric = false` and `ishermitian = T <: Real && issymmetric`.
 
 ### Algorithm
 The last method, without default values and keyword arguments, is the one that is finally called,
@@ -135,21 +139,23 @@ function eigsolve(f, x₀, howmany::Int = 1, which::Selector = :LM; kwargs...)
 end
 
 function eigselector(f, T::Type;
-    issymmetric = false, ishermitian = T<:Real && issymmetric, orth = KrylovDefaults.orth,
-    krylovdim::Int = KrylovDefaults.krylovdim, maxiter::Int = KrylovDefaults.maxiter, tol::Real = KrylovDefaults.tol)
+    issymmetric::Bool = false, ishermitian::Bool = T<:Real && issymmetric,
+    krylovdim::Int = KrylovDefaults.krylovdim, maxiter::Int = KrylovDefaults.maxiter,
+    tol::Real = KrylovDefaults.tol, orth::Orthogonalizer = KrylovDefaults.orth)
     if (T<:Real && issymmetric) || ishermitian
-        return Lanczos(orth; krylovdim = krylovdim, maxiter = maxiter, tol=tol)
+        return Lanczos(krylovdim = krylovdim, maxiter = maxiter, tol=tol, orth = orth)
     else
-        return Arnoldi(orth; krylovdim = krylovdim, maxiter = maxiter, tol=tol)
+        return Arnoldi(krylovdim = krylovdim, maxiter = maxiter, tol=tol, orth = orth)
     end
 end
 function eigselector(A::AbstractMatrix, T::Type;
-    issymmetric = issymmetric(A), ishermitian = ishermitian(A), orth = KrylovDefaults.orth,
-    krylovdim::Int = KrylovDefaults.krylovdim, maxiter::Int = KrylovDefaults.maxiter, tol::Real = KrylovDefaults.tol)
+    issymmetric::Bool = issymmetric(A), ishermitian::Bool = ishermitian(A),
+    krylovdim::Int = KrylovDefaults.krylovdim, maxiter::Int = KrylovDefaults.maxiter,
+    tol::Real = KrylovDefaults.tol, orth::Orthogonalizer = KrylovDefaults.orth)
     if (T<:Real && issymmetric) || ishermitian
-        return Lanczos(orth; krylovdim = krylovdim, maxiter = maxiter, tol=tol)
+        return Lanczos(krylovdim = krylovdim, maxiter = maxiter, tol=tol, orth = orth)
     else
-        return Arnoldi(orth; krylovdim = krylovdim, maxiter = maxiter, tol=tol)
+        return Arnoldi(krylovdim = krylovdim, maxiter = maxiter, tol=tol, orth = orth)
     end
 end
 

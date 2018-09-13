@@ -37,18 +37,19 @@ The return value is always of the form `x, info = linsolve(...)` with
 
 ### Keyword arguments:
 Keyword arguments are given by:
-  * `atol`: the requested accuracy, i.e. absolute tolerance, on the norm of the residual.
-  * `rtol`: the requested accuracy on the norm of the residual, relative to the norm of
+*   `atol::Real`: the requested accuracy, i.e. absolute tolerance, on the norm of the residual.
+*   `rtol::Real`: the requested accuracy on the norm of the residual, relative to the norm of
     of the right hand side `b`. Together, the solution is considered converged when the
     norm of the residual is smaller than `max(atol, rtol*norm(b))`.
-  * `krylovdim`: the maximum dimension of the Krylov subspace that will be constructed.
-  * `maxiter: the number of times the Krylov subspace can be rebuilt; see below for
+*   `krylovdim::Integer`: the maximum dimension of the Krylov subspace that will be constructed.
+*   `maxiter::Integer: the number of times the Krylov subspace can be rebuilt; see below for
     further details on the algorithms.
-  * `issymmetric`: if the linear map is symmetric, only meaningful if `T<:Real`
-  * `ishermitian`: if the linear map is hermitian
-  * `isposdef`: if the linear map is positive definite
-The default values are given by `atol = 0`, `rtol = KrylovDefaults.tol`, `maxiter = KrylovDefaults.maxiter`
-and `krylovdim = KrylovDefaults.krylovdim`; see [`KrylovDefaults`](@ref) for details.
+*   `orth::Orthogonalizer`: the orthogonalization method to be used, see [`Orthogonalizer`](@ref)
+*   `issymmetric::Bool`: if the linear map is symmetric, only meaningful if `T<:Real`
+*   `ishermitian::Bool`: if the linear map is hermitian
+*   `isposdef::Bool`: if the linear map is positive definite
+The default values are given by `atol = 0`, `rtol = KrylovDefaults.tol`, `krylovdim = KrylovDefaults.krylovdim`,
+`maxiter = KrylovDefaults.maxiter`, `orth = KrylovDefaults.orth`; see [`KrylovDefaults`](@ref) for details.
 
 The default value for the last three parameters depends on the method. If an `AbstractMatrix`
 is used, `issymmetric`, `ishermitian` and `isposdef` are checked for that matrix, ortherwise
@@ -81,7 +82,7 @@ end
 function linselector(f, T::Type;
     issymmetric = false, ishermitian = T<:Real && issymmetric, isposdef = false,
     krylovdim::Int = KrylovDefaults.krylovdim, maxiter::Int = KrylovDefaults.maxiter,
-    atol::Real = 0, rtol::Real = KrylovDefaults.tol)
+    atol::Real = 0, rtol::Real = KrylovDefaults.tol, orth = KrylovDefaults.orth)
     if (T<:Real && issymmetric) || ishermitian
         if isposdef
             return CG(maxiter = krylovdim*maxiter, atol = atol, rtol = rtol)
@@ -89,9 +90,9 @@ function linselector(f, T::Type;
         # TODO
         #     return MINRES(krylovdim*maxiter, tol=tol)
         end
-        return GMRES(krylovdim = krylovdim, maxiter = maxiter, atol = atol, rtol = rtol)
+        return GMRES(krylovdim = krylovdim, maxiter = maxiter, atol = atol, rtol = rtol, orth = orth)
     else
-        return GMRES(krylovdim = krylovdim, maxiter = maxiter, atol = atol, rtol = rtol)
+        return GMRES(krylovdim = krylovdim, maxiter = maxiter, atol = atol, rtol = rtol, orth = orth)
     end
 end
 function linselector(A::AbstractMatrix, T::Type;
@@ -99,7 +100,7 @@ function linselector(A::AbstractMatrix, T::Type;
     ishermitian = T <: Complex ? ishermitian(A) : false,
     isposdef = issymmetric || ishermitian ? isposdef(A) : false,
     krylovdim::Int = KrylovDefaults.krylovdim, maxiter::Int = KrylovDefaults.maxiter,
-    atol::Real = 0, rtol::Real = KrylovDefaults.tol)
+    atol::Real = 0, rtol::Real = KrylovDefaults.tol, orth = KrylovDefaults.orth)
     if (T<:Real && issymmetric) || ishermitian
         if isposdef
             return CG(maxiter = krylovdim*maxiter, atol = atol, rtol = rtol)
@@ -107,8 +108,8 @@ function linselector(A::AbstractMatrix, T::Type;
         # TODO
         #     return MINRES(krylovdim*maxiter, tol=tol)
         end
-        return GMRES(krylovdim = krylovdim, maxiter = maxiter, atol = atol, rtol = rtol)
+        return GMRES(krylovdim = krylovdim, maxiter = maxiter, atol = atol, rtol = rtol, orth = orth)
     else
-        return GMRES(krylovdim = krylovdim, maxiter = maxiter, atol = atol, rtol = rtol)
+        return GMRES(krylovdim = krylovdim, maxiter = maxiter, atol = atol, rtol = rtol, orth = orth)
     end
 end

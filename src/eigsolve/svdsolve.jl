@@ -76,6 +76,7 @@ Keyword arguments and their default values are given by:
     single precision (`Float32`), you should definitely change the default value.
 *   `maxiter`: the number of times the Krylov subspace can be rebuilt; see below for further
     details on the algorithms.
+*   `orth`: the orthogonalization method to be used, see [`Orthogonalizer`](@ref)
 
 ### Algorithm
 The last method, without default values and keyword arguments, is the one that is finally called,

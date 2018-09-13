@@ -4,7 +4,7 @@
             A = rand(T, (n,n))
             v = rand(T, (n,))
             v2 = RecursiveVec((v, zero(v)))
-            alg = Lanczos(orth; krylovdim = 2*n, maxiter = 1, tol = 10*n*eps(real(T)))
+            alg = Lanczos(orth = orth, krylovdim = 2*n, maxiter = 1, tol = 10*n*eps(real(T)))
             D, V, info = eigsolve(v2, n, :LR, alg) do x
                         x1, x2 = x
                         y1 = A*x2
@@ -28,7 +28,7 @@ end
             v = rand(T, (N,))
             w = rand(T, (2*N,))
             v2 = RecursiveVec((v, w))
-            alg = Lanczos(orth; krylovdim = n, maxiter = 300, tol = 10*n*eps(real(T)))
+            alg = Lanczos(orth = orth, krylovdim = n, maxiter = 300, tol = 10*n*eps(real(T)))
             n1 = div(n,2)
             D, V, info = eigsolve(v2, n1, :LR, alg) do x
                         x1, x2 = x

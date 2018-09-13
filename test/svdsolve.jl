@@ -2,7 +2,7 @@
     @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
         @testset for orth in (cgs2, mgs2)
             A = rand(T, (n,n))
-            alg = GKL(orth; krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)))
+            alg = GKL(orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)))
             S, lvecs, rvecs, info = @inferred svdsolve(A, A[:,1], n, :LR, alg)
 
             @test S ≈ svdvals(A)
@@ -22,7 +22,7 @@ end
             A = rand(T, (2*N,N))
             v = rand(T, (2*N,))
             n₁ = div(n, 2)
-            alg = GKL(orth; krylovdim = n, maxiter = 10, tol = 10*n*eps(real(T)))
+            alg = GKL(orth = orth, krylovdim = n, maxiter = 10, tol = 10*n*eps(real(T)))
             S, lvecs, rvecs, info = @inferred svdsolve(A, v, n₁, :LR, alg)
 
             l = info.converged

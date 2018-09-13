@@ -88,8 +88,8 @@ abstract type KrylovAlgorithm end
 
 # General purpose; good for linear systems, eigensystems and matrix functions
 """
-    Lanczos(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,
-        maxiter::Int = KrylovDefaults.maxiter, tol = KrylovDefaults.tol)
+    Lanczos(; krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter,
+        tol = KrylovDefaults.tol, orth = KrylovDefaults.orth)
 
 Represents the Lanczos algorithm for building the Krylov subspace; assumes the
 linear operator is real symmetric or complex Hermitian. Can be used in `eigsolve` and
@@ -102,19 +102,19 @@ Use `Arnoldi` for non-symmetric or non-Hermitian linear operators.
 
 See also: `factorize`, `eigsolve`, `exponentiate`, `Arnoldi`, `Orthogonalizer`
 """
-struct Lanczos{O<:Orthogonalizer} <: KrylovAlgorithm
+struct Lanczos{O<:Orthogonalizer, S<:Real} <: KrylovAlgorithm
     orth::O
     krylovdim::Int
     maxiter::Int
-    tol::Real
+    tol::S
 end
-Lanczos(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,
-    maxiter::Int = KrylovDefaults.maxiter, tol = KrylovDefaults.tol) =
+Lanczos(; krylovdim::Integer = KrylovDefaults.krylovdim, maxiter::Integer = KrylovDefaults.maxiter,
+    tol::Real = KrylovDefaults.tol, orth::Orthogonalizer = KrylovDefaults.orth) =
     Lanczos(orth, krylovdim, maxiter, tol)
 
 """
-    GKL(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,
-        maxiter::Int = KrylovDefaults.maxiter, tol = KrylovDefaults.tol)
+    GKL(; krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter,
+        tol = KrylovDefaults.tol, orth = KrylovDefaults.orth)
 
 Represents the Golub-Kahan-Lanczos bidiagonalization algorithm for sequentially building a
 Krylov-like factorization of a genereal matrix or linear operator with a bidiagonal reduced
@@ -125,19 +125,19 @@ used to orthogonalize the different Krylov vectors.
 
 See also: `svdsolve`, `Orthogonalizer`
 """
-struct GKL{O<:Orthogonalizer} <: KrylovAlgorithm
+struct GKL{O<:Orthogonalizer, S<:Real} <: KrylovAlgorithm
     orth::O
     krylovdim::Int
     maxiter::Int
-    tol::Real
+    tol::S
 end
-GKL(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,
-    maxiter::Int = KrylovDefaults.maxiter, tol = KrylovDefaults.tol) =
+GKL(; krylovdim::Integer = KrylovDefaults.krylovdim, maxiter::Integer = KrylovDefaults.maxiter,
+    tol::Real = KrylovDefaults.tol, orth::Orthogonalizer = KrylovDefaults.orth) =
     GKL(orth, krylovdim, maxiter, tol)
 
 """
-    Arnoldi(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,
-        maxiter::Int = KrylovDefaults.maxiter, tol = KrylovDefaults.tol)
+    Arnoldi(; krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter,
+        tol = KrylovDefaults.tol, orth = KrylovDefaults.orth)
 
 Represents the Arnoldi algorithm for building the Krylov subspace for a general
 matrix or linear operator. Can be used in `eigsolve` and `exponentiate`.
@@ -148,16 +148,16 @@ residual of the Arnoldi factorization is smaller than `tol`. The orthogonalizer
 
 Use `Lanczos` for real symmetric or complex Hermitian linear operators.
 
-See also: `eigsolve`, `exponentiate`, `Lanczos`, `Orthogonalizer`
+See also: [`eigsolve`](@ref), [`exponentiate`](@ref), [`Lanczos`](@ref), [`Orthogonalizer`](@ref)
 """
-struct Arnoldi{O<:Orthogonalizer} <: KrylovAlgorithm
+struct Arnoldi{O<:Orthogonalizer, S<:Real} <: KrylovAlgorithm
     orth::O
     krylovdim::Int
     maxiter::Int
-    tol::Real
+    tol::S
 end
-Arnoldi(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,
-    maxiter::Int = KrylovDefaults.maxiter, tol = KrylovDefaults.tol) =
+Arnoldi(; krylovdim = KrylovDefaults.krylovdim, maxiter::Int = KrylovDefaults.maxiter,
+    tol = KrylovDefaults.tol, orth::Orthogonalizer = KrylovDefaults.orth) =
     Arnoldi(orth, krylovdim, maxiter, tol)
 
 # Solving linear systems specifically
@@ -182,8 +182,8 @@ end
 CG(; maxiter::Integer = KrylovDefaults.maxiter, atol::Real = 0, rtol::Real = KrylovDefaults.tol) = CG(maxiter, promote(atol, rtol)...)
 
 """
-    GMRES(orth::Orthogonalizer = KrylovDefaults.orth; maxiter = KrylovDefaults.maxiter,
-        krylovdim = KrylovDefaults.krylovdim, atol = 0, rtol = KrylovDefaults.tol)
+    GMRES(; krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter,
+        atol = 0, rtol = KrylovDefaults.tol, orth::Orthogonalizer = KrylovDefaults.orth)
 
 Construct an instance of the GMRES algorithm with specified parameters, which
 can be passed to `linsolve` in order to iteratively solve a linear system. The
@@ -207,8 +207,8 @@ struct GMRES{O<:Orthogonalizer,S<:Real} <: LinearSolver
     atol::S
     rtol::S
 end
-GMRES(orth::Orthogonalizer = KrylovDefaults.orth; krylovdim = KrylovDefaults.krylovdim,
-    maxiter = KrylovDefaults.maxiter, atol = 0, rtol = KrylovDefaults.tol) =
+GMRES(; krylovdim::Integer = KrylovDefaults.krylovdim, maxiter::Integer = KrylovDefaults.maxiter,
+    atol::Real = 0, rtol::Real = KrylovDefaults.tol, orth::Orthogonalizer = KrylovDefaults.orth) =
     GMRES(orth, maxiter, krylovdim, promote(atol, rtol)...)
 
 # TODO

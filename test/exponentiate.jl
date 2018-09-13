@@ -5,7 +5,7 @@
             A = (A+A')/2
             V = one(A)
             W = zero(A)
-            alg = Lanczos(orth; krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)))
+            alg = Lanczos(orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)))
             for k = 1:n
                 W[:,k], =  @inferred exponentiate(A, 1, view(V,:,k), alg)
             end
@@ -21,7 +21,7 @@ end
             A = (A+A')/2
             v = rand(T,N)
             t = rand(complex(T))
-            alg = Lanczos(orth; krylovdim = n, maxiter = 30, tol = 10*N*eps(real(T))*abs(t))
+            alg = Lanczos(orth = orth, krylovdim = n, maxiter = 30, tol = 10*N*eps(real(T))*abs(t))
             w, info =  @inferred exponentiate(A, t, v, alg)
             @test info.converged > 0
             @test w ≈ exp(t*A)*v
