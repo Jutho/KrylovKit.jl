@@ -57,8 +57,9 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number = 0, a₁::Number 
             end
 
             # Apply Givens rotations
+            Rk = view(R, :, k)
             @inbounds for i=1:k-1
-                lmul!(gs[i], view(R, :, k:k))
+                lmul!(gs[i], Rk)
             end
             gs[k], R[k,k] = givens(R[k,k], α₁*normres(fact), k, k+1)
 

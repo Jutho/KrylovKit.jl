@@ -120,8 +120,9 @@ function LinearAlgebra.rmul!(A::AbstractMatrix, H::Householder, rows=axes(A,1))
         l = 1
         for k in r
             j = 1
+            vl = v[l]
             @simd for i in rows
-                w[j] += A[i,k]*v[l]
+                w[j] += A[i,k]*vl
                 j += 1
             end
             l += 1
@@ -129,8 +130,9 @@ function LinearAlgebra.rmul!(A::AbstractMatrix, H::Householder, rows=axes(A,1))
         l = 1
         for k in r
             j = 1
+            vl = β*conj(v[l])
             @simd for i in rows
-                A[i,k] -= β*w[j]*conj(v[l])
+                A[i,k] -= w[j]*vl
                 j += 1
             end
             l += 1
@@ -143,18 +145,10 @@ function LinearAlgebra.rmul!(b::OrthonormalBasis, H::Householder)
     r = H.r
     β = H.β
     β == 0 && return b
-    w = fill!(similar(b[first(r)]), zero(eltype(b[first(r)])))
+    w = similar(b[first(r)])
     @inbounds begin
-        l = 1
-        for k in r
-            axpy!(v[l], b[k], w)
-            l += 1
-        end
-        l = 1
-        for k in r
-            axpy!(-conj(v[l])*β, w, b[k])
-            l += 1
-        end
+        unproject!(w, b, v, 1, 0, r)
+        rank1update!(b, w, v, -β, 1, r)
     end
     return b
 end

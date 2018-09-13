@@ -55,29 +55,155 @@ function Base.:*(b::OrthonormalBasis, x::AbstractVector)
     y = similar(first(b), S)
     mul!(y, b, x)
 end
-# function Base.Ac_mul_B(b::OrthonormalBasis, x)
-#     S = promote_type(eltype(first(b)), eltype(x))
-#     y = Vector{S}(undef, length(b))
-#     Ac_mul_B!(y, b, x)
-# end
+LinearAlgebra.mul!(y, b::OrthonormalBasis, x::AbstractVector) = unproject!(y, b, x, 1, 0)
 
-function LinearAlgebra.mul!(y, b::OrthonormalBasis, x::AbstractVector)
-    @assert length(x) <= length(b)
-
-    y = fill!(y, zero(eltype(y)))
-    @inbounds for (i, xi) = enumerate(x)
-        y = axpy!(xi, b[i], y)
+@fastmath function project!(y::AbstractVector, b::OrthonormalBasis, x, α::Number = 1, β::Number = 0, r = Base.OneTo(length(b)))
+    if x isa AbstractArray && IndexStyle(x) isa IndexLinear
+        return project_linear!(y, b, x, α, β, r)
+    end
+    # general case: using only vector operations, i.e dot (similar to BLAS level 1)
+    length(y) == length(r) || throw(DimensionMismatch())
+    @inbounds for (j, rj) = enumerate(r)
+        if β == 0
+            y[j] = α * dot(b[rj], x)
+        else
+            y[j] = β*y[j] + α * dot(b[rj], x)
+        end
     end
     return y
 end
-# function Base.Ac_mul_B!(y::AbstractVector, b::OrthonormalBasis, x)
-#     @assert length(y) == length(b)
-#
-#     @inbounds for (i, q) = enumerate(b)
-#         y[i] = dot(q, x)
-#     end
-#     return y
-# end
+@fastmath function project_linear!(y::AbstractVector, b::OrthonormalBasis{<:AbstractArray}, x::AbstractArray, α::Number = 1, β::Number = 0, r = Base.OneTo(length(b)))
+    n = length(r)
+    length(y) == n || throw(DimensionMismatch())
+    m = length(x)
+    for rj in r
+        length(b[rj]) == m || throw(DimensionMismatch())
+    end
+    Threads.@threads for j in 1:n
+        @inbounds begin
+            yj = zero(y[j])
+            Vj = b[r[j]]
+            @simd for i = 1:length(x)
+                yj += conj(Vj[i])*x[i]
+            end
+            yj *= α
+            if β == 0
+                y[j] = yj
+            else
+                y[j] = β*y[j] + yj
+            end
+        end
+    end
+    return y
+end
+
+@fastmath function unproject!(y, b::OrthonormalBasis, x::AbstractVector, α::Number = 1, β::Number = 0, r = Base.OneTo(length(b)))
+    if y isa AbstractArray && IndexStyle(y) isa IndexLinear
+        return unproject_linear!(y, b, x, α, β, r)
+    end
+    # general case: using only vector operations, i.e. axpy! (similar to BLAS level 1)
+    length(x) == length(r) || throw(DimensionMismatch())
+    if β == 0
+        fill!(y, zero(eltype(y)))
+    elseif β != 1
+        rmul!(y, β)
+    end
+    @inbounds for (i, ri) = enumerate(r)
+        y = axpy!(α*x[i], b[ri], y)
+    end
+    return y
+end
+const BLOCKSIZE = 32
+@fastmath function unproject_linear!(y::AbstractArray, b::OrthonormalBasis{<:AbstractArray}, x::AbstractVector, α::Number = 1, β::Number = 0, r = Base.OneTo(length(b)))
+    # multi-threaded implementation, similar to BLAS level 2 matrix vector multiplication
+    m = length(y)
+    n = length(r)
+    length(x) == n || throw(DimensionMismatch())
+    for rj in r
+        length(b[rj]) == m || throw(DimensionMismatch())
+    end
+    Threads.@threads for I = 1:BLOCKSIZE:m
+        @inbounds begin
+            if β == 0
+                @simd for i = I:min(I+BLOCKSIZE-1, m)
+                    y[i] = zero(y[i])
+                end
+            elseif β != 1
+                @simd for i = I:min(I+BLOCKSIZE-1, m)
+                    y[i] *= β
+                end
+            end
+            for (j,rj) in enumerate(r)
+                xj = α*x[j]
+                Vj = b[rj]
+                if I + BLOCKSIZE-1 <= m
+                    @simd for i = Base.OneTo(BLOCKSIZE)
+                        y[I-1+i] += Vj[I-1+i]*xj
+                    end
+                else
+                    @simd for i = I:m
+                        y[i] += Vj[i]*xj
+                    end
+                end
+            end
+        end
+    end
+    return y
+end
+
+@fastmath function rank1update!(b::OrthonormalBasis, y, x::AbstractVector, α::Number = 1, β::Number = 1, r = Base.OneTo(length(b)))
+    if y isa AbstractArray && IndexStyle(y) isa IndexLinear
+        return rank1update_linear!(b, y, x, α, β, r)
+    end
+    # general case: using only vector operations, i.e. axpy! (similar to BLAS level 1)
+    length(x) == length(r) || throw(DimensionMismatch())
+    @inbounds for (i, ri) = enumerate(r)
+        if β == 1
+            b[ri] = axpy!(α*conj(x[i]), y, b[ri])
+        elseif β == 0
+            b[ri] = mul!(b[ri], α*x[i], y)
+        else
+            b[ri] = axpby!(α*x[i], y, β, b[ri])
+        end
+    end
+    return b
+end
+@fastmath function rank1update_linear!(b::OrthonormalBasis{<:AbstractArray}, y::AbstractArray, x::AbstractVector, α::Number = 1, β::Number = 1, r = Base.OneTo(length(b)))
+    # multi-threaded implementation, similar to BLAS level 2 matrix vector multiplication
+    m = length(y)
+    n = length(r)
+    length(x) == n || throw(DimensionMismatch())
+    for rj in r
+        length(b[rj]) == m || throw(DimensionMismatch())
+    end
+    Threads.@threads for I = 1:BLOCKSIZE:m
+        @inbounds begin
+            for (j,rj) in enumerate(r)
+                xj = α*conj(x[j])
+                Vj = b[rj]
+                if β == 0
+                    @simd for i = I:min(I+BLOCKSIZE-1, m)
+                        Vj[i] = zero(Vj[i])
+                    end
+                elseif β != 1
+                    @simd for i = I:min(I+BLOCKSIZE-1, m)
+                        Vj[i] *= β
+                    end
+                end
+                if I + BLOCKSIZE-1 <= m
+                    @simd for i = Base.OneTo(BLOCKSIZE)
+                        Vj[I-1+i] += y[I-1+i]*xj
+                    end
+                else
+                    @simd for i = I:m
+                        Vj[i] += y[i]*xj
+                    end
+                end
+            end
+        end
+    end
+    return b
+end
 
 # Orthogonalization of a vector against a given OrthonormalBasis
 orthogonalize(v, args...) = orthogonalize!(copy(v), args...)
@@ -89,23 +215,15 @@ function orthogonalize!(v::T, b::OrthonormalBasis{T}, alg::Orthogonalizer) where
 end
 
 function orthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::ClassicalGramSchmidt) where {T}
-    for (i, q) = enumerate(b)
-        x[i] = dot(q, v)
-    end
-    for (i, q) = enumerate(b)
-        v = axpy!(-x[i], q, v)
-    end
+    x = project!(x, b, v)
+    v = unproject!(v, b, x, -1, 1)
     return (v, x)
 end
 function reorthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::ClassicalGramSchmidt) where {T}
     s = similar(x) ## EXTRA ALLOCATION
-    for (i, q) = enumerate(b)
-        s[i] = dot(q, v)
-        x[i] += s[i]
-    end
-    for (i, q) = enumerate(b)
-        v = axpy!(-s[i], q, v)
-    end
+    s = project!(s, b, v)
+    v = unproject!(v, b, s, -1, 1)
+    x .+= s
     return (v, x)
 end
 function orthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::ClassicalGramSchmidt2) where {T}

@@ -298,6 +298,15 @@ struct ConvergenceInfo{S,T}
     numops::Int
 end
 
+function Base.show(io::IO, info::ConvergenceInfo)
+    print(io, "ConvergenceInfo: ")
+    info.converged == 0 && print(io, "no converged values ")
+    info.converged == 1 && print(io, "one converged value ")
+    info.converged > 1 && print(io, "$(info.converged) converged values ")
+    println(io, "after $(info.numiter) iterations and $(info.numops) applications of the linear map;")
+    println(io, "norms of residuals are given by $((info.normres...,)).")
+end
+
 # eigsolve en schursolve
 include("eigsolve/eigsolve.jl")
 include("eigsolve/lanczos.jl")

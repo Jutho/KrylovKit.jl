@@ -135,21 +135,21 @@ function eigsolve(f, x₀, howmany::Int = 1, which::Selector = :LM; kwargs...)
 end
 
 function eigselector(f, T::Type;
-    issymmetric = false, ishermitian = T<:Real && issymmetric,
+    issymmetric = false, ishermitian = T<:Real && issymmetric, orth = KrylovDefaults.orth,
     krylovdim::Int = KrylovDefaults.krylovdim, maxiter::Int = KrylovDefaults.maxiter, tol::Real = KrylovDefaults.tol)
     if (T<:Real && issymmetric) || ishermitian
-        return Lanczos(krylovdim = krylovdim, maxiter = maxiter, tol=tol)
+        return Lanczos(orth; krylovdim = krylovdim, maxiter = maxiter, tol=tol)
     else
-        return Arnoldi(krylovdim = krylovdim, maxiter = maxiter, tol=tol)
+        return Arnoldi(orth; krylovdim = krylovdim, maxiter = maxiter, tol=tol)
     end
 end
 function eigselector(A::AbstractMatrix, T::Type;
-    issymmetric = issymmetric(A), ishermitian = ishermitian(A),
+    issymmetric = issymmetric(A), ishermitian = ishermitian(A), orth = KrylovDefaults.orth,
     krylovdim::Int = KrylovDefaults.krylovdim, maxiter::Int = KrylovDefaults.maxiter, tol::Real = KrylovDefaults.tol)
     if (T<:Real && issymmetric) || ishermitian
-        return Lanczos(krylovdim = krylovdim, maxiter = maxiter, tol=tol)
+        return Lanczos(orth; krylovdim = krylovdim, maxiter = maxiter, tol=tol)
     else
-        return Arnoldi(krylovdim = krylovdim, maxiter = maxiter, tol=tol)
+        return Arnoldi(orth; krylovdim = krylovdim, maxiter = maxiter, tol=tol)
     end
 end
 

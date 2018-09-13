@@ -9,7 +9,25 @@ using LinearAlgebra: Givens
 #     s::T
 # end
 
-function LinearAlgebra.rmul!(b::OrthonormalBasis, G::Givens)
+function LinearAlgebra.rmul!(b::OrthonormalBasis{T}, G::Givens) where {T}
+    if T isa AbstractArray && IndexStyle(T) isa IndexLinear
+        return _rmul_linear!(b, G)
+    else
+        return _rmul!(b, G)
+    end
+end
+
+@fastmath function _rmul_linear!(b::OrthonormalBasis{<:AbstractArray}, G::Givens)
+    q1, q2 = b[G.i1], b[G.i2]
+    c = G.c
+    s = G.s
+    @inbounds @simd for i = 1:length(q1)
+        q1[i], q2[i] = c*q1[i] - conj(s)*q2[i], s*q1[i] + c*q2[i]
+    end
+    return b
+end
+
+function _rmul!(b::OrthonormalBasis, G::Givens)
     q1, q2 = b[G.i1], b[G.i2]
     q1old = copyto!(similar(q1), q1)
     q1 = axpby!(-conj(G.s), q2, G.c, q1)

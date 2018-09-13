@@ -10,7 +10,7 @@ to vectors.
 
 ## Overview
 KrylovKit.jl accepts general functions or callable objects as linear maps, and general Julia
-objects with vector like behavior (ad defined in the docs) as vectors.
+objects with vector like behavior (as defined in the docs) as vectors.
 
 The high level interface of KrylovKit is provided by the following functions:
 *   `linsolve`: solve linear systems

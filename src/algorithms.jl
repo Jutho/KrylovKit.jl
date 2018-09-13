@@ -60,24 +60,28 @@ end
 """
     ClassicalGramSchmidtIR(η::Real)
 
-Represents the classical Gram Schmidt algorithm with zero or more reorthogonalization
-steps being applied untill the norm of the vector after an orthogonalization step
-has not decreased by a factor smaller than `η` with respect to the norm before the step.
+Represents the classical Gram Schmidt algorithm with iterative (i.e. zero or more) reorthogonalization
+untill the norm of the vector after an orthogonalization step has not decreased by a factor
+smaller than `η` with respect to the norm before the step. The default value corresponds to the
+Daniel-Gragg-Kaufman-Stewart condition.
 """
 struct ClassicalGramSchmidtIR{S<:Real} <: Reorthogonalizer
     η::S
 end
+ClassicalGramSchmidtIR() = ClassicalGramSchmidtIR(1/sqrt(2)) # Daniel-Gragg-Kaufman-Stewart value
 
 """
-    ModifiedGramSchmidtIR(η::Real)
+    ModifiedGramSchmidtIR(η::Real = 1/sqrt(2))
 
-Represents the modified Gram Schmidt algorithm with zero or more reorthogonalization
-steps being applied untill the norm of the vector after an orthogonalization step
-has not decreased by a factor smaller than `η` with respect to the norm before the step.
+Represents the modified Gram Schmidt algorithm with iterative (i.e. zero or more) reorthogonalization
+untill the norm of the vector after an orthogonalization step has not decreased by a factor
+smaller than `η` with respect to the norm before the step. The default value corresponds to the
+Daniel-Gragg-Kaufman-Stewart condition.
 """
 struct ModifiedGramSchmidtIR{S<:Real} <: Reorthogonalizer
     η::S
 end
+ModifiedGramSchmidtIR() = ModifiedGramSchmidtIR(1/sqrt(2)) # Daniel-Gragg-Kaufman-Stewart value
 
 # Solving eigenvalue problems
 abstract type KrylovAlgorithm end
@@ -276,7 +280,7 @@ end
 # Default values
 """
     module KrylovDefaults
-        const orth = KrylovKit.ModifiedGramSchmidt2
+        const orth = KrylovKit.ModifiedGramSchmidtIR()
         const krylovdim = 30
         const maxiter = 100
         const tol = 1e-12
