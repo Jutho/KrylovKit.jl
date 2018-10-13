@@ -48,6 +48,25 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
         # Determine how many to keep
         keep = div(3*krylovdim + 2*converged, 5) # strictly smaller than krylovdim since converged < howmany <= krylovdim, at least equal to converged
 
+        # Restore Lanczos form in the first keep columns
+        H = fill!(view(HH, 1:keep+1, 1:keep), 0)
+        @inbounds for j = 1:keep
+            H[j,j] = D[j]
+            H[keep+1,j] = f[j]
+        end
+        @inbounds for j = keep:-1:1
+            h, ν = householder(H, j+1, 1:j, j)
+            H[j+1,j] = ν
+            H[j+1,1:j-1] .= 0
+            lmul!(h, H)
+            rmul!(view(H, 1:j, :), h')
+            rmul!(U, h')
+        end
+        @inbounds for j = 1:keep
+            fact.αs[j] = H[j,j]
+            fact.βs[j] = H[j+1,j]
+        end
+
         # Update B by applying U using Householder reflections
         B = basis(fact)
         basistransform!(B, view(U, :, 1:keep))
@@ -56,29 +75,10 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
         #     lmul!(h, view(U, :, j+1:krylovdim))
         #     rmul!(B, h')
         # end
-
-        # Shrink Lanczos factorization (no longer strictly Lanczos)
         r = residual(fact)
         B[keep+1] = rmul!(r, 1/normres(fact))
-        H = fill!(view(HH, 1:keep+1, 1:keep), 0)
-        @inbounds for j = 1:keep
-            H[j,j] = D[j]
-            H[keep+1,j] = f[j]
-        end
 
-        # Restore Lanczos form in the first keep columns
-        for j = keep:-1:1
-            h, ν = householder(H, j+1, 1:j, j)
-            H[j+1,j] = ν
-            @inbounds H[j+1,1:j-1] .= 0
-            lmul!(h, H)
-            rmul!(view(H, 1:j, :), h')
-            rmul!(B, h')
-        end
-        @inbounds for j = 1:keep
-            fact.αs[j] = H[j,j]
-            fact.βs[j] = H[j+1,j]
-        end
+        # Shrink Lanczos factorization
         fact = shrink!(fact, keep)
 
         # Lanczos factorization: recylce fact

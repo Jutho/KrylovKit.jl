@@ -131,7 +131,21 @@ function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
             keep >= krylovdim && error("krylov dimension $(krylovdim) too small to compute $howmany eigenvalues")
         end
 
-        # Update B by applying U using Householder reflections
+        # Restore Arnoldi form in the first keep columns
+        @inbounds for j = 1:keep
+            H[keep+1,j] = f[j]
+        end
+        @inbounds for j = keep:-1:1
+            h, ν = householder(H, j+1, 1:j, j)
+            H[j+1,j] = ν
+            H[j+1,1:j-1] .= 0
+            lmul!(h, H)
+            rmul!(view(H, 1:j,:), h')
+            rmul!(U, h')
+        end
+        copyto!(rayleighquotient(fact), H) # copy back into fact
+
+        # Update B by applying U
         B = basis(fact)
         basistransform!(B, view(U, :, 1:keep))
         # for j = 1:m
@@ -139,24 +153,10 @@ function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
         #     lmul!(h, view(U, :, j+1:krylovdim))
         #     rmul!(B, h')
         # end
-
-        # Shrink Arnoldi factorization (no longer strictly Arnoldi but still Krylov)
         r = residual(fact)
         B[keep+1] = rmul!(r, 1/normres(fact))
-        for j = 1:keep
-            H[keep+1,j] = f[j]
-        end
 
-        # Restore Arnoldi form in the first keep columns
-        for j = keep:-1:1
-            h, ν = householder(H, j+1, 1:j, j)
-            H[j+1,j] = ν
-            @inbounds H[j+1,1:j-1] .= 0
-            lmul!(h, H)
-            rmul!(view(H, 1:j,:), h')
-            rmul!(B, h')
-        end
-        copyto!(rayleighquotient(fact), H) # copy back into fact
+        # Shrink Arnoldi factorization
         fact = shrink!(fact, keep)
 
         # Arnoldi factorization: recylce fact
