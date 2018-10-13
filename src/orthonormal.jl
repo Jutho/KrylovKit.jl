@@ -213,6 +213,68 @@ end
     return b
 end
 
+function basistransform!(b::OrthonormalBasis{T}, U::AbstractMatrix) where {T} # U should be unitary or isometric
+    if T<:AbstractArray && IndexStyle(T) isa IndexLinear
+        return basistransform_linear!(b, U)
+    end
+    m, n = size(U)
+    m == length(b) || throw(DimensionMismatch())
+
+    b2 = [similar(b[1]) for j = 1:n]
+    Threads.@threads for j = 1:n
+        mul!(b2[j], b[1], U[1,j])
+        for i = 2:m
+            axpy!(U[i,j], b[i], b2[j])
+        end
+    end
+    for j = 1:n
+        b[j] = b2[j]
+    end
+    return b
+end
+
+function basistransform_linear!(b::OrthonormalBasis{<:AbstractArray}, U::AbstractMatrix) # U should be unitary or isometric
+    m, n = size(U)
+    m == length(b) || throw(DimensionMismatch())
+    K = length(b[1])
+
+    blocksize = prevpow(2, div(BLOCKSIZE, m))
+    let b2 = [similar(b[1]) for j = 1:n], K = K, m = m, n = n
+        Threads.@threads for I = 1:blocksize:K
+            @inbounds for j = 1:n
+                b2j = b2[j]
+                @simd for i = I:min(I+blocksize-1, K)
+                    b2j[i] = zero(b2j[i])
+                end
+                for k = 1:m
+                    bk = b[k]
+                    Ukj = U[k,j]
+                    @simd for i = I:min(I+blocksize-1, K)
+                        b2j[i] += bk[i] * Ukj
+                    end
+                end
+            end
+        end
+        for j = 1:n
+            b[j] = b2[j]
+        end
+    end
+    return b
+end
+
+# function basistransform2!(b::OrthonormalBasis, U::AbstractMatrix) # U should be unitary or isometric
+#     m, n = size(U)
+#     m == length(b) || throw(DimensionMismatch())
+#
+#     # apply basis transform via householder reflections
+#     for j = 1:size(U,2)
+#         h, ν = householder(U, j:m, j)
+#         lmul!(h, view(U, :, j+1:n))
+#         rmul!(b, h')
+#     end
+#     return b
+# end
+
 # Orthogonalization of a vector against a given OrthonormalBasis
 orthogonalize(v, args...) = orthogonalize!(copy(v), args...)
 

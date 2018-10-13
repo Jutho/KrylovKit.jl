@@ -158,17 +158,19 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
 
         # Update basis by applying P and Q using Householder reflections
         U = basis(fact, :U)
-        for j = 1:m
-            h, ν = householder(P, j:m, j)
-            lmul!(h, view(P, :, j+1:krylovdim))
-            rmul!(U, h')
-        end
+        basistransform!(U, view(P, :, 1:keep))
+        # for j = 1:m
+        #     h, ν = householder(P, j:m, j)
+        #     lmul!(h, view(P, :, j+1:krylovdim))
+        #     rmul!(U, h')
+        # end
         V = basis(fact, :V)
-        for j = 1:m
-            h, ν = householder(Q, j, j:m)
-            rmul!(view(Q, j+1:krylovdim, :), h)
-            rmul!(V, h)
-        end
+        basistransform!(V, view(Q', :, 1:keep))
+        # for j = 1:m
+        #     h, ν = householder(Q, j, j:m)
+        #     rmul!(view(Q, j+1:krylovdim, :), h)
+        #     rmul!(V, h)
+        # end
 
         # Shrink GKL factorization (no longer strictly GKL)
         r = residual(fact)

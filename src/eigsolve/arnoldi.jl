@@ -133,11 +133,12 @@ function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
 
         # Update B by applying U using Householder reflections
         B = basis(fact)
-        for j = 1:m
-            h, ν = householder(U, j:m, j)
-            lmul!(h, view(U, :, j+1:krylovdim))
-            rmul!(B, h')
-        end
+        basistransform!(B, view(U, :, 1:keep))
+        # for j = 1:m
+        #     h, ν = householder(U, j:m, j)
+        #     lmul!(h, view(U, :, j+1:krylovdim))
+        #     rmul!(B, h')
+        # end
 
         # Shrink Arnoldi factorization (no longer strictly Arnoldi but still Krylov)
         r = residual(fact)
