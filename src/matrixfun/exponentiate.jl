@@ -76,7 +76,7 @@ function exponentiate(A, t::Number, v, alg::Lanczos)
     w = mul!(similar(Av, T), v, 1/β)
 
     # krylovdim and related allocations
-    krylovdim = min(alg.krylovdim, length(v))
+    krylovdim = alg.krylovdim
     UU = Matrix{S}(undef, (krylovdim, krylovdim))
     yy1 = Vector{T}(undef, krylovdim)
     yy2 = Vector{T}(undef, krylovdim)
