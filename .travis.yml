@@ -33,4 +33,4 @@ after_success:
   # push coverage results to Coveralls
   - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder()); Codecov.submit(Codecov.process_folder())'
   # create documentation
-  - julia -e 'using Pkg; Pkg.add("Documenter"); cd(Pkg.dir("KrylovKit")); include(joinpath("docs", "make.jl"))'
+  - julia -e 'using Pkg; ps=Pkg.PackageSpec(name="Documenter", version="0.19"); Pkg.add(ps); Pkg.pin(ps); cd(Pkg.dir("KrylovKit")); include(joinpath("docs", "make.jl"))'
