@@ -57,10 +57,12 @@ function Base.:*(b::OrthonormalBasis, x::AbstractVector)
 end
 LinearAlgebra.mul!(y, b::OrthonormalBasis, x::AbstractVector) = unproject!(y, b, x, 1, 0)
 
-@fastmath function project!(y::AbstractVector, b::OrthonormalBasis, x, α::Number = 1, β::Number = 0, r = Base.OneTo(length(b)))
-    if x isa AbstractArray && IndexStyle(x) isa IndexLinear
-        return project_linear!(y, b, x, α, β, r)
-    end
+const BLOCKSIZE = 4096
+
+function project!(y::AbstractVector, b::OrthonormalBasis, x, α::Number = 1, β::Number = 0, r = Base.OneTo(length(b)))
+    # if x isa AbstractArray && IndexStyle(x) isa IndexLinear && Threads.nthreads() > 1 && !(Threads.in_threaded_loop[])
+    #     return project_linear_multithreaded!(y, b, x, α, β, r)
+    # end
     # general case: using only vector operations, i.e dot (similar to BLAS level 1)
     length(y) == length(r) || throw(DimensionMismatch())
     @inbounds for (j, rj) = enumerate(r)
@@ -72,34 +74,54 @@ LinearAlgebra.mul!(y, b::OrthonormalBasis, x::AbstractVector) = unproject!(y, b,
     end
     return y
 end
-@fastmath function project_linear!(y::AbstractVector, b::OrthonormalBasis{<:AbstractArray}, x::AbstractArray, α::Number = 1, β::Number = 0, r = Base.OneTo(length(b)))
-    n = length(r)
-    length(y) == n || throw(DimensionMismatch())
-    m = length(x)
-    for rj in r
-        length(b[rj]) == m || throw(DimensionMismatch())
-    end
-    Threads.@threads for j in 1:n
-        @inbounds begin
-            yj = zero(y[j])
-            Vj = b[r[j]]
-            @simd for i = 1:length(x)
-                yj += conj(Vj[i])*x[i]
-            end
-            yj *= α
-            if β == 0
-                y[j] = yj
-            else
-                y[j] = β*y[j] + yj
-            end
-        end
-    end
-    return y
-end
+# function project_linear_multithreaded!(y::AbstractVector, b::OrthonormalBasis{<:AbstractArray}, x::AbstractArray, α::Number, β::Number, r)
+# # Problem: large dimension is the reduction dimension, so we need some locks and/or temporary storage
+#     n = length(r)
+#     length(y) == n || throw(DimensionMismatch())
+#     m = length(x)
+#     for rj in r
+#         length(b[rj]) == m || throw(DimensionMismatch())
+#     end
+#     if β == 0
+#         fill!(y, zero(eltype(y)))
+#     elseif β != 1
+#         rmul!(y, β)
+#     end
+#     let m = m, n = n, y = y, x = x, b = b, blocksize = prevpow(2, div(BLOCKSIZE, n)), slock = Threads.SpinLock(), K = Threads.nthreads()
+#         # for I = 1:blocksize:m
+#         #     Threads.@threads for j in 1:n
+#         #         yj = zero(y[j])
+#         #         Vj = b[r[j]]
+#         #         @simd for i = I:min(I+blocksize-1, m)
+#         #             yj += conj(Vj[i])*x[i]
+#         #         end
+#         #         y[j] += α*yj
+#         #     end
+#         # end
+#         Threads.@threads for k = 1:K
+#             ylocal = zero(y)
+#             I0 = 1 + (k-1)*blocksize
+#             for I = I0:(K*blocksize):m
+#                 for j = 1:n
+#                     yj = zero(y[j])
+#                     Vj = b[r[j]]
+#                     @simd for i = I:min(I+blocksize-1, m)
+#                         yj += conj(Vj[i])*x[i]
+#                     end
+#                     ylocal[j] += α*yj
+#                 end
+#             end
+#             lock(slock)
+#             y .+= ylocal
+#             unlock(slock)
+#         end
+#     end
+#     return y
+# end
 
-@fastmath function unproject!(y, b::OrthonormalBasis, x::AbstractVector, α::Number = 1, β::Number = 0, r = Base.OneTo(length(b)))
-    if y isa AbstractArray && IndexStyle(y) isa IndexLinear
-        return unproject_linear!(y, b, x, α, β, r)
+function unproject!(y, b::OrthonormalBasis, x::AbstractVector, α::Number = 1, β::Number = 0, r = Base.OneTo(length(b)))
+    if y isa AbstractArray && IndexStyle(x) isa IndexLinear && Threads.nthreads() > 1 && !(Threads.in_threaded_loop[])
+        return unproject_linear_multithreaded!(y, b, x, α, β, r)
     end
     # general case: using only vector operations, i.e. axpy! (similar to BLAS level 1)
     length(x) == length(r) || throw(DimensionMismatch())
@@ -113,8 +135,7 @@ end
     end
     return y
 end
-const BLOCKSIZE = 2048
-@fastmath function unproject_linear!(y::AbstractArray, b::OrthonormalBasis{<:AbstractArray}, x::AbstractVector, α::Number = 1, β::Number = 0, r = Base.OneTo(length(b)))
+function unproject_linear_multithreaded!(y::AbstractArray, b::OrthonormalBasis{<:AbstractArray}, x::AbstractVector, α::Number, β::Number, r)
     # multi-threaded implementation, similar to BLAS level 2 matrix vector multiplication
     m = length(y)
     n = length(r)
@@ -125,27 +146,22 @@ const BLOCKSIZE = 2048
     if n == 0
         return β == 1 ? y : β == 0 ? fill!(y, 0) : rmul!(y, β)
     end
-    blocksize = prevpow(2, div(BLOCKSIZE, n))
-    Threads.@threads for I = 1:blocksize:m
-        @inbounds begin
-            if β == 0
-                @simd for i = I:min(I+blocksize-1, m)
-                    y[i] = zero(y[i])
-                end
-            elseif β != 1
-                @simd for i = I:min(I+blocksize-1, m)
-                    y[i] *= β
-                end
-            end
-            for (j,rj) in enumerate(r)
-                xj = α*x[j]
-                Vj = b[rj]
-                if I + blocksize-1 <= m
-                    @simd for i = Base.OneTo(blocksize)
-                        y[I-1+i] += Vj[I-1+i]*xj
+    let m = m, n = n, y = y, x = x, b = b, blocksize = prevpow(2, div(BLOCKSIZE, n))
+        Threads.@threads for I = 1:blocksize:m
+            @inbounds begin
+                if β == 0
+                    @simd for i = I:min(I+blocksize-1, m)
+                        y[i] = zero(y[i])
                     end
-                else
-                    @simd for i = I:m
+                elseif β != 1
+                    @simd for i = I:min(I+blocksize-1, m)
+                        y[i] *= β
+                    end
+                end
+                for (j,rj) in enumerate(r)
+                    xj = α*x[j]
+                    Vj = b[rj]
+                    @simd for i = I:min(I+blocksize-1, m)
                         y[i] += Vj[i]*xj
                     end
                 end
@@ -156,8 +172,8 @@ const BLOCKSIZE = 2048
 end
 
 @fastmath function rank1update!(b::OrthonormalBasis, y, x::AbstractVector, α::Number = 1, β::Number = 1, r = Base.OneTo(length(b)))
-    if y isa AbstractArray && IndexStyle(y) isa IndexLinear
-        return rank1update_linear!(b, y, x, α, β, r)
+    if y isa AbstractArray && IndexStyle(x) isa IndexLinear && Threads.nthreads() > 1 && !(Threads.in_threaded_loop[])
+        return rank1update_linear_multithreaded!(b, y, x, α, β, r)
     end
     # general case: using only vector operations, i.e. axpy! (similar to BLAS level 1)
     length(x) == length(r) || throw(DimensionMismatch())
@@ -172,7 +188,7 @@ end
     end
     return b
 end
-@fastmath function rank1update_linear!(b::OrthonormalBasis{<:AbstractArray}, y::AbstractArray, x::AbstractVector, α::Number = 1, β::Number = 1, r = Base.OneTo(length(b)))
+@fastmath function rank1update_linear_multithreaded!(b::OrthonormalBasis{<:AbstractArray}, y::AbstractArray, x::AbstractVector, α::Number, β::Number, r)
     # multi-threaded implementation, similar to BLAS level 2 matrix vector multiplication
     m = length(y)
     n = length(r)
@@ -184,27 +200,29 @@ end
         return b
     end
     blocksize = prevpow(2, div(BLOCKSIZE, n))
-    Threads.@threads for I = 1:blocksize:m
-        @inbounds begin
-            for (j,rj) in enumerate(r)
-                xj = α*conj(x[j])
-                Vj = b[rj]
-                if β == 0
-                    @simd for i = I:min(I+blocksize-1, m)
-                        Vj[i] = zero(Vj[i])
+    let m = m, n = n, y = y, x = x, b = b, blocksize = prevpow(2, div(BLOCKSIZE, n))
+        Threads.@threads for I = 1:blocksize:m
+            @inbounds begin
+                for (j,rj) in enumerate(r)
+                    xj = α*conj(x[j])
+                    Vj = b[rj]
+                    if β == 0
+                        @simd for i = I:min(I+blocksize-1, m)
+                            Vj[i] = zero(Vj[i])
+                        end
+                    elseif β != 1
+                        @simd for i = I:min(I+blocksize-1, m)
+                            Vj[i] *= β
+                        end
                     end
-                elseif β != 1
-                    @simd for i = I:min(I+blocksize-1, m)
-                        Vj[i] *= β
-                    end
-                end
-                if I + blocksize-1 <= m
-                    @simd for i = Base.OneTo(blocksize)
-                        Vj[I-1+i] += y[I-1+i]*xj
-                    end
-                else
-                    @simd for i = I:m
-                        Vj[i] += y[i]*xj
+                    if I + blocksize-1 <= m
+                        @simd for i = Base.OneTo(blocksize)
+                            Vj[I-1+i] += y[I-1+i]*xj
+                        end
+                    else
+                        @simd for i = I:m
+                            Vj[i] += y[i]*xj
+                        end
                     end
                 end
             end
@@ -214,8 +232,8 @@ end
 end
 
 function basistransform!(b::OrthonormalBasis{T}, U::AbstractMatrix) where {T} # U should be unitary or isometric
-    if T<:AbstractArray && IndexStyle(T) isa IndexLinear
-        return basistransform_linear!(b, U)
+    if T<:AbstractArray && IndexStyle(T) isa IndexLinear && Threads.nthreads() > 1 && !(Threads.in_threaded_loop[])
+        return basistransform_linear_multithreaded!(b, U)
     end
     m, n = size(U)
     m == length(b) || throw(DimensionMismatch())
@@ -233,7 +251,7 @@ function basistransform!(b::OrthonormalBasis{T}, U::AbstractMatrix) where {T} # 
     return b
 end
 
-function basistransform_linear!(b::OrthonormalBasis{<:AbstractArray}, U::AbstractMatrix) # U should be unitary or isometric
+function basistransform_linear_multithreaded!(b::OrthonormalBasis{<:AbstractArray}, U::AbstractMatrix) # U should be unitary or isometric
     m, n = size(U)
     m == length(b) || throw(DimensionMismatch())
     K = length(b[1])
