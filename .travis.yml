@@ -26,13 +26,18 @@ matrix:
 #before_script: # homebrew for mac
 #  - if [ $TRAVIS_OS_NAME = osx ]; then brew install gcc; fi
 
+env:
+  matrix:
+    - JULIA_NUM_THREADS=1
+    - JULIA_NUM_THREADS=4
+
 ## uncomment the following lines to override the default test script
 script:
-  - julia -e 'Pkg.clone(pwd()); Pkg.build("KrylovKit"); Pkg.test("KrylovKit"; coverage=true)'
-  - JULIA_NUM_THREADS=4 julia -e 'Pkg.test("KrylovKit"; coverage=true)'
+  - julia -e 'using Pkg; Pkg.clone(pwd()); Pkg.build("KrylovKit"); Pkg.test("KrylovKit"; coverage=true)'
+  # - JULIA_NUM_THREADS=4 julia -e 'using Pkg; Pkg.test("KrylovKit"; coverage=true)'
 
 after_success:
-  # push coverage results to Coveralls
+  # push coverage results to Codecov and Coveralls
   - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder()); Coveralls.submit(Coveralls.process_folder())'
   # create documentation
   - julia -e 'using Pkg; Pkg.add("Documenter"); cd(Pkg.dir("KrylovKit")); include(joinpath("docs", "make.jl"))'
