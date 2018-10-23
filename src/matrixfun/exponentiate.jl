@@ -94,10 +94,6 @@ function exponentiate(A, t::Number, v, alg::Lanczos)
 
     # tolerance
     η::S = alg.tol / τ # tolerance per unit step
-    if η < length(w)*eps(typeof(η))
-        η = length(w)*eps(typeof(η))
-        warn("tolerance too small, increasing to $(η*τ)")
-    end
     totalerr = zero(η)
 
     δ::S = 0.9 # safety factor
