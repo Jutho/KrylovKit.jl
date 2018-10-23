@@ -32,7 +32,7 @@ should nevertheless be specified. Since `schursolve` is less commonly used as `e
 convenient keyword syntax is currently available.
 
 ### Return values:
-The return value is always of the form `T, vecs, vals, info = eigsolve(...)` with
+The return value is always of the form `T, vecs, vals, info = schursolve(...)` with
 *   `T`: a `Matrix` containing the partial Schur decomposition of the linear map, i.e. it's
     elements are given by `T[i,j] = dot(vecs[i], f(vecs[j]))`. It is of Schur form, i.e. upper
     triangular in case of complex arithmetic, and block upper triangular (with at most 2x2 blocks)
