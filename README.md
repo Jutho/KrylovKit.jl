@@ -6,7 +6,6 @@ to vectors.
 
 [![Build Status](https://travis-ci.org/Jutho/KrylovKit.jl.svg?branch=master)](https://travis-ci.org/jutho/KrylovKit.jl)
 [![License](http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](LICENSE.md)
-[![Coverage Status](https://coveralls.io/repos/github/Jutho/KrylovKit.jl/badge.svg?branch=master)](https://coveralls.io/github/Jutho/KrylovKit.jl?branch=master)
 [![codecov.io](http://codecov.io/github/Jutho/KrylovKit.jl/coverage.svg?branch=master)](http://codecov.io/github/jutho/KrylovKit.jl?branch=master)
 
 ## Overview
@@ -20,9 +19,15 @@ The high level interface of KrylovKit is provided by the following functions:
 *   `exponentiate`: apply the exponential of a linear map to a vector
 
 ## Installation
-`KrylovKit.jl` runs on Julia 0.7 or 1.0 and can be installed with
+`KrylovKit.jl` runs on Julia 0.7 or 1.0 and can be installed by entering the package REPL mode
+(i.e. typing `]`) and then
+```
+pkg> add KrylovKit
+```
+or directly in the Julia REPL
 ```julia
-Pkg.add("KrylovKit.jl")
+julia> using Pkg
+julia> Pkg.add("KrylovKit.jl")
 ```
 
 ## Getting started
