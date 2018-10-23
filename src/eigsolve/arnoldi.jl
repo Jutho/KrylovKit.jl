@@ -73,6 +73,51 @@ dynamically grown and shrunk, i.e. the restarts are so-called thick restarts whe
 current Krylov subspace is kept.
 """
 function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
+    T, U, fact, converged, numiter, numops = _schursolve(A, x₀, howmany, which, alg)
+    if eltype(T) <: Real && howmany < length(fact) && T[howmany+1,howmany] != 0
+        howmany += 1
+    end
+    if converged > howmany
+        howmany = converged
+    end
+    TT = view(T,1:howmany,1:howmany)
+    values = schur2eigvals(TT)
+    vectors = let B = basis(fact)
+        [B*u for u in cols(U, 1:howmany)]
+    end
+    residuals = let r = residual(fact)
+        [mul!(similar(r), r, last(u)) for u in cols(U, 1:howmany)]
+    end
+    normres = [abs(last(u)) for u in cols(U, 1:howmany)]
+
+    return TT, vectors, values, ConvergenceInfo(converged, residuals, normres, numiter, numops)
+end
+
+function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
+    T, U, fact, converged, numiter, numops = _schursolve(A, x₀, howmany, which, alg)
+    if eltype(T) <: Real && howmany < length(fact) && T[howmany+1,howmany] != 0
+        howmany += 1
+    end
+    if converged > howmany
+        howmany = converged
+    end
+    TT = view(T,1:howmany,1:howmany)
+    values = schur2eigvals(TT)
+
+    # Compute eigenvectors
+    V = view(U, :, 1:howmany)*schur2eigvecs(TT)
+    vectors = let B = basis(fact)
+        [B*v for v in cols(V)]
+    end
+    residuals = let r = residual(fact)
+        [mul!(similar(r), r, last(v)) for v in cols(V)]
+    end
+    normres = [abs(last(v)) for v in cols(V)]
+
+    return values, vectors, ConvergenceInfo(converged, residuals, normres, numiter, numops)
+end
+
+function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     krylovdim = alg.krylovdim
     maxiter = alg.maxiter
     howmany > krylovdim && error("krylov dimension $(krylovdim) too small to compute $howmany eigenvalues")
@@ -189,39 +234,5 @@ function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
             converged -= 1
         end
     end
-    if eltype(T) <: Real && howmany < length(fact) && T[howmany+1,howmany] != 0
-        howmany += 1
-    end
-    if converged > howmany
-        howmany = converged
-    end
-    TT = view(T,1:howmany,1:howmany)
-    values = schur2eigvals(TT)
-    vectors = let B = basis(fact)
-        [B*u for u in cols(U, 1:howmany)]
-    end
-    residuals = let r = residual(fact)
-        [mul!(similar(r), r, last(u)) for u in cols(U, 1:howmany)]
-    end
-    normresiduals = let f = f
-        map(i->abs(f[i]), 1:howmany)
-    end
-
-    return view(T,1:howmany,1:howmany), vectors, values, ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
-end
-
-function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
-    T, schurvectors, values, info = schursolve(A, x₀, howmany, which, alg)
-
-    # Transform schurvectors to eigenvectors
-    V = schur2eigvecs(T)
-    vectors = let B = OrthonormalBasis(schurvectors)
-        [B*v for v in cols(V)]
-    end
-
-    # Recompute residuals
-    residual = transpose(V) * info.residual
-    normres = norm.(residual)
-
-    return values, vectors, ConvergenceInfo(info.converged, residual, normres, info.numiter, info.numops)
+    return T, U, fact, converged, numiter, numops
 end
