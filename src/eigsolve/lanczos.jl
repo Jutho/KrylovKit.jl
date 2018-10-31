@@ -12,10 +12,12 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
     sizehint!(fact, krylovdim)
     β = normres(fact)
     tol::eltype(β) = alg.tol
-    while length(fact) < krylovdim
-        fact = expand!(iter, fact)
-        numops += 1
-        normres(fact) < tol && length(fact) >= howmany && break
+    if normres(fact) > tol || howmany > 1
+        while length(fact) < krylovdim
+            fact = expand!(iter, fact)
+            numops += 1
+            normres(fact) <= tol && length(fact) >= howmany && break
+        end
     end
 
     # Process

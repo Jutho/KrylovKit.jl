@@ -88,9 +88,9 @@ function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     residuals = let r = residual(fact)
         [mul!(similar(r), r, last(u)) for u in cols(U, 1:howmany)]
     end
-    normres = [abs(last(u)) for u in cols(U, 1:howmany)]
+    normresiduals = [normres(fact)*abs(last(u)) for u in cols(U, 1:howmany)]
 
-    return TT, vectors, values, ConvergenceInfo(converged, residuals, normres, numiter, numops)
+    return TT, vectors, values, ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end
 
 function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
@@ -112,9 +112,9 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     residuals = let r = residual(fact)
         [mul!(similar(r, complex(eltype(r))), r, last(v)) for v in cols(V)]
     end
-    normres = [abs(last(v)) for v in cols(V)]
+    normresiduals = [normres(fact)*abs(last(v)) for v in cols(V)]
 
-    return values, vectors, ConvergenceInfo(converged, residuals, normres, numiter, numops)
+    return values, vectors, ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end
 
 function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
@@ -131,10 +131,12 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     sizehint!(fact, krylovdim)
     β = normres(fact)
     tol::eltype(β) = alg.tol
-    while length(fact) < krylovdim
-        fact = expand!(iter, fact)
-        numops += 1
-        normres(fact) < tol && length(fact) >= howmany && break
+    if normres(fact) > tol || howmany > 1
+        while length(fact) < krylovdim
+            fact = expand!(iter, fact)
+            numops += 1
+            normres(fact) < tol && length(fact) >= howmany && break
+        end
     end
 
     # Process
