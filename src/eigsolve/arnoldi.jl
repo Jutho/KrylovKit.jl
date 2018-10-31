@@ -110,7 +110,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
         [B*v for v in cols(V)]
     end
     residuals = let r = residual(fact)
-        [mul!(similar(r, complex(eltype(r))), r, last(v)) for v in cols(V)]
+        [mul!(similar(r, Base.promote_type(eltype(V), eltype(r))), r, last(v)) for v in cols(V)]
     end
     normresiduals = [normres(fact)*abs(last(v)) for v in cols(V)]
 
