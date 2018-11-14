@@ -16,7 +16,7 @@ The high level interface of KrylovKit is provided by the following functions:
 module KrylovKit
 
 using LinearAlgebra
-const IndexRange = AbstractRange{Int64}
+const IndexRange = AbstractRange{Int}
 
 export linsolve, eigsolve, svdsolve, schursolve, exponentiate
 export orthogonalize, orthogonalize!, orthonormalize, orthonormalize!

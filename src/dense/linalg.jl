@@ -32,7 +32,7 @@ end
 Base.IteratorSize(::Type{<:RowIterator}) = Base.HasLength()
 Base.IteratorEltype(::Type{<:RowIterator}) = Base.HasEltype()
 Base.length(iter::RowIterator) = length(iter.r)
-Base.eltype(iter::RowIterator{A}) where {T,A<:DenseArray{T}} = SubArray{T,1,A,Tuple{Int64,Base.Slice{Base.OneTo{Int64}}},true}
+Base.eltype(iter::RowIterator{A}) where {T,A<:DenseArray{T}} = SubArray{T,1,A,Tuple{Int,Base.Slice{Base.OneTo{Int}}},true}
 
 struct ColumnIterator{A<:AbstractMatrix,R<:IndexRange}
     a::A
@@ -62,7 +62,7 @@ end
 Base.IteratorSize(::Type{<:ColumnIterator}) = Base.HasLength()
 Base.IteratorEltype(::Type{<:ColumnIterator}) = Base.HasEltype()
 Base.length(iter::ColumnIterator) = length(iter.r)
-Base.eltype(iter::ColumnIterator{A}) where {T,A<:DenseArray{T}} = SubArray{T,1,A,Tuple{Base.Slice{Base.OneTo{Int64}},Int64},true}
+Base.eltype(iter::ColumnIterator{A}) where {T,A<:DenseArray{T}} = SubArray{T,1,A,Tuple{Base.Slice{Base.OneTo{Int}},Int},true}
 
 # # QR decomposition
 # function qr!(A::StridedMatrix{<:BlasFloat})
