@@ -2,7 +2,7 @@ using Documenter
 using KrylovKit
 
 makedocs(modules=[KrylovKit],
-            sitename = "KrylovKit.jl"
+            sitename = "KrylovKit.jl",
             pages = [
                 "Home" => "index.md",
                 "Manual" => [
