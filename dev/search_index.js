@@ -1,7 +1,7 @@
 var documenterSearchIndex = {"docs": [
 
 {
-    "location": "index.html#",
+    "location": "#",
     "page": "Home",
     "title": "Home",
     "category": "page",
@@ -9,7 +9,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#KrylovKit.jl-1",
+    "location": "#KrylovKit.jl-1",
     "page": "Home",
     "title": "KrylovKit.jl",
     "category": "section",
@@ -17,7 +17,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#Overview-1",
+    "location": "#Overview-1",
     "page": "Home",
     "title": "Overview",
     "category": "section",
@@ -25,7 +25,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#Package-features-and-alternatives-1",
+    "location": "#Package-features-and-alternatives-1",
     "page": "Home",
     "title": "Package features and alternatives",
     "category": "section",
@@ -33,7 +33,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#Current-functionality-1",
+    "location": "#Current-functionality-1",
     "page": "Home",
     "title": "Current functionality",
     "category": "section",
@@ -41,7 +41,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#Future-functionality?-1",
+    "location": "#Future-functionality?-1",
     "page": "Home",
     "title": "Future functionality?",
     "category": "section",
@@ -49,7 +49,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/intro.html#",
+    "location": "man/intro/#",
     "page": "Introduction",
     "title": "Introduction",
     "category": "page",
@@ -57,7 +57,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/intro.html#Introduction-1",
+    "location": "man/intro/#Introduction-1",
     "page": "Introduction",
     "title": "Introduction",
     "category": "section",
@@ -65,7 +65,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/intro.html#Installing-1",
+    "location": "man/intro/#Installing-1",
     "page": "Introduction",
     "title": "Installing",
     "category": "section",
@@ -73,7 +73,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/intro.html#KrylovKit",
+    "location": "man/intro/#KrylovKit",
     "page": "Introduction",
     "title": "KrylovKit",
     "category": "module",
@@ -81,7 +81,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/intro.html#Getting-started-1",
+    "location": "man/intro/#Getting-started-1",
     "page": "Introduction",
     "title": "Getting started",
     "category": "section",
@@ -89,7 +89,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/intro.html#KrylovKit.ConvergenceInfo",
+    "location": "man/intro/#KrylovKit.ConvergenceInfo",
     "page": "Introduction",
     "title": "KrylovKit.ConvergenceInfo",
     "category": "type",
@@ -97,7 +97,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/intro.html#Common-interface-1",
+    "location": "man/intro/#Common-interface-1",
     "page": "Introduction",
     "title": "Common interface",
     "category": "section",
@@ -105,7 +105,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/linear.html#",
+    "location": "man/linear/#",
     "page": "Solving linear systems",
     "title": "Solving linear systems",
     "category": "page",
@@ -113,7 +113,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/linear.html#KrylovKit.linsolve",
+    "location": "man/linear/#KrylovKit.linsolve",
     "page": "Solving linear systems",
     "title": "KrylovKit.linsolve",
     "category": "function",
@@ -121,7 +121,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/linear.html#Solving-linear-systems-1",
+    "location": "man/linear/#Solving-linear-systems-1",
     "page": "Solving linear systems",
     "title": "Solving linear systems",
     "category": "section",
@@ -129,7 +129,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/eig.html#",
+    "location": "man/eig/#",
     "page": "Finding eigenvalues and eigenvectors",
     "title": "Finding eigenvalues and eigenvectors",
     "category": "page",
@@ -137,7 +137,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/eig.html#KrylovKit.eigsolve",
+    "location": "man/eig/#KrylovKit.eigsolve",
     "page": "Finding eigenvalues and eigenvectors",
     "title": "KrylovKit.eigsolve",
     "category": "function",
@@ -145,7 +145,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/eig.html#KrylovKit.schursolve",
+    "location": "man/eig/#KrylovKit.schursolve",
     "page": "Finding eigenvalues and eigenvectors",
     "title": "KrylovKit.schursolve",
     "category": "function",
@@ -153,7 +153,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/eig.html#Finding-eigenvalues-and-eigenvectors-1",
+    "location": "man/eig/#Finding-eigenvalues-and-eigenvectors-1",
     "page": "Finding eigenvalues and eigenvectors",
     "title": "Finding eigenvalues and eigenvectors",
     "category": "section",
@@ -161,7 +161,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/svd.html#",
+    "location": "man/svd/#",
     "page": "Finding singular values and singular vectors",
     "title": "Finding singular values and singular vectors",
     "category": "page",
@@ -169,7 +169,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/svd.html#KrylovKit.svdsolve",
+    "location": "man/svd/#KrylovKit.svdsolve",
     "page": "Finding singular values and singular vectors",
     "title": "KrylovKit.svdsolve",
     "category": "function",
@@ -177,7 +177,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/svd.html#Finding-singular-values-and-singular-vectors-1",
+    "location": "man/svd/#Finding-singular-values-and-singular-vectors-1",
     "page": "Finding singular values and singular vectors",
     "title": "Finding singular values and singular vectors",
     "category": "section",
@@ -185,7 +185,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/matfun.html#",
+    "location": "man/matfun/#",
     "page": "Functions of matrices and linear maps",
     "title": "Functions of matrices and linear maps",
     "category": "page",
@@ -193,7 +193,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/matfun.html#KrylovKit.exponentiate",
+    "location": "man/matfun/#KrylovKit.exponentiate",
     "page": "Functions of matrices and linear maps",
     "title": "KrylovKit.exponentiate",
     "category": "function",
@@ -201,7 +201,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/matfun.html#Functions-of-matrices-and-linear-maps-1",
+    "location": "man/matfun/#Functions-of-matrices-and-linear-maps-1",
     "page": "Functions of matrices and linear maps",
     "title": "Functions of matrices and linear maps",
     "category": "section",
@@ -209,7 +209,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/algorithms.html#",
+    "location": "man/algorithms/#",
     "page": "Available algorithms",
     "title": "Available algorithms",
     "category": "page",
@@ -217,7 +217,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/algorithms.html#Available-algorithms-1",
+    "location": "man/algorithms/#Available-algorithms-1",
     "page": "Available algorithms",
     "title": "Available algorithms",
     "category": "section",
@@ -225,7 +225,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/algorithms.html#KrylovKit.ClassicalGramSchmidt",
+    "location": "man/algorithms/#KrylovKit.ClassicalGramSchmidt",
     "page": "Available algorithms",
     "title": "KrylovKit.ClassicalGramSchmidt",
     "category": "type",
@@ -233,7 +233,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/algorithms.html#KrylovKit.ModifiedGramSchmidt",
+    "location": "man/algorithms/#KrylovKit.ModifiedGramSchmidt",
     "page": "Available algorithms",
     "title": "KrylovKit.ModifiedGramSchmidt",
     "category": "type",
@@ -241,7 +241,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/algorithms.html#KrylovKit.ClassicalGramSchmidt2",
+    "location": "man/algorithms/#KrylovKit.ClassicalGramSchmidt2",
     "page": "Available algorithms",
     "title": "KrylovKit.ClassicalGramSchmidt2",
     "category": "type",
@@ -249,7 +249,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/algorithms.html#KrylovKit.ModifiedGramSchmidt2",
+    "location": "man/algorithms/#KrylovKit.ModifiedGramSchmidt2",
     "page": "Available algorithms",
     "title": "KrylovKit.ModifiedGramSchmidt2",
     "category": "type",
@@ -257,7 +257,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/algorithms.html#KrylovKit.ClassicalGramSchmidtIR",
+    "location": "man/algorithms/#KrylovKit.ClassicalGramSchmidtIR",
     "page": "Available algorithms",
     "title": "KrylovKit.ClassicalGramSchmidtIR",
     "category": "type",
@@ -265,7 +265,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/algorithms.html#KrylovKit.ModifiedGramSchmidtIR",
+    "location": "man/algorithms/#KrylovKit.ModifiedGramSchmidtIR",
     "page": "Available algorithms",
     "title": "KrylovKit.ModifiedGramSchmidtIR",
     "category": "type",
@@ -273,7 +273,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/algorithms.html#Orthogonalization-algorithms-1",
+    "location": "man/algorithms/#Orthogonalization-algorithms-1",
     "page": "Available algorithms",
     "title": "Orthogonalization algorithms",
     "category": "section",
@@ -281,7 +281,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/algorithms.html#KrylovKit.Lanczos",
+    "location": "man/algorithms/#KrylovKit.Lanczos",
     "page": "Available algorithms",
     "title": "KrylovKit.Lanczos",
     "category": "type",
@@ -289,7 +289,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/algorithms.html#KrylovKit.Arnoldi",
+    "location": "man/algorithms/#KrylovKit.Arnoldi",
     "page": "Available algorithms",
     "title": "KrylovKit.Arnoldi",
     "category": "type",
@@ -297,7 +297,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/algorithms.html#General-Krylov-algorithms-1",
+    "location": "man/algorithms/#General-Krylov-algorithms-1",
     "page": "Available algorithms",
     "title": "General Krylov algorithms",
     "category": "section",
@@ -305,7 +305,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/algorithms.html#KrylovKit.CG",
+    "location": "man/algorithms/#KrylovKit.CG",
     "page": "Available algorithms",
     "title": "KrylovKit.CG",
     "category": "type",
@@ -313,7 +313,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/algorithms.html#KrylovKit.MINRES",
+    "location": "man/algorithms/#KrylovKit.MINRES",
     "page": "Available algorithms",
     "title": "KrylovKit.MINRES",
     "category": "type",
@@ -321,7 +321,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/algorithms.html#KrylovKit.GMRES",
+    "location": "man/algorithms/#KrylovKit.GMRES",
     "page": "Available algorithms",
     "title": "KrylovKit.GMRES",
     "category": "type",
@@ -329,7 +329,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/algorithms.html#KrylovKit.BiCG",
+    "location": "man/algorithms/#KrylovKit.BiCG",
     "page": "Available algorithms",
     "title": "KrylovKit.BiCG",
     "category": "type",
@@ -337,7 +337,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/algorithms.html#KrylovKit.BiCGStab",
+    "location": "man/algorithms/#KrylovKit.BiCGStab",
     "page": "Available algorithms",
     "title": "KrylovKit.BiCGStab",
     "category": "type",
@@ -345,7 +345,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/algorithms.html#Specific-algorithms-for-linear-systems-1",
+    "location": "man/algorithms/#Specific-algorithms-for-linear-systems-1",
     "page": "Available algorithms",
     "title": "Specific algorithms for linear systems",
     "category": "section",
@@ -353,7 +353,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/algorithms.html#KrylovKit.GKL",
+    "location": "man/algorithms/#KrylovKit.GKL",
     "page": "Available algorithms",
     "title": "KrylovKit.GKL",
     "category": "type",
@@ -361,7 +361,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/algorithms.html#Specific-algorithms-for-sigular-values-1",
+    "location": "man/algorithms/#Specific-algorithms-for-sigular-values-1",
     "page": "Available algorithms",
     "title": "Specific algorithms for sigular values",
     "category": "section",
@@ -369,7 +369,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/algorithms.html#KrylovKit.KrylovDefaults",
+    "location": "man/algorithms/#KrylovKit.KrylovDefaults",
     "page": "Available algorithms",
     "title": "KrylovKit.KrylovDefaults",
     "category": "module",
@@ -377,7 +377,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/algorithms.html#Default-values-1",
+    "location": "man/algorithms/#Default-values-1",
     "page": "Available algorithms",
     "title": "Default values",
     "category": "section",
@@ -385,7 +385,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/implementation.html#",
+    "location": "man/implementation/#",
     "page": "Details of the implementation",
     "title": "Details of the implementation",
     "category": "page",
@@ -393,7 +393,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/implementation.html#Details-of-the-implementation-1",
+    "location": "man/implementation/#Details-of-the-implementation-1",
     "page": "Details of the implementation",
     "title": "Details of the implementation",
     "category": "section",
@@ -401,7 +401,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/implementation.html#KrylovKit.Basis",
+    "location": "man/implementation/#KrylovKit.Basis",
     "page": "Details of the implementation",
     "title": "KrylovKit.Basis",
     "category": "type",
@@ -409,7 +409,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/implementation.html#KrylovKit.OrthonormalBasis",
+    "location": "man/implementation/#KrylovKit.OrthonormalBasis",
     "page": "Details of the implementation",
     "title": "KrylovKit.OrthonormalBasis",
     "category": "type",
@@ -417,7 +417,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/implementation.html#KrylovKit.orthogonalize",
+    "location": "man/implementation/#KrylovKit.orthogonalize",
     "page": "Details of the implementation",
     "title": "KrylovKit.orthogonalize",
     "category": "function",
@@ -425,7 +425,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/implementation.html#KrylovKit.orthonormalize",
+    "location": "man/implementation/#KrylovKit.orthonormalize",
     "page": "Details of the implementation",
     "title": "KrylovKit.orthonormalize",
     "category": "function",
@@ -433,7 +433,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/implementation.html#Orthogonalization-1",
+    "location": "man/implementation/#Orthogonalization-1",
     "page": "Details of the implementation",
     "title": "Orthogonalization",
     "category": "section",
@@ -441,7 +441,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/implementation.html#Dense-linear-algebra-1",
+    "location": "man/implementation/#Dense-linear-algebra-1",
     "page": "Details of the implementation",
     "title": "Dense linear algebra",
     "category": "section",
@@ -449,7 +449,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/implementation.html#KrylovKit.KrylovFactorization",
+    "location": "man/implementation/#KrylovKit.KrylovFactorization",
     "page": "Details of the implementation",
     "title": "KrylovKit.KrylovFactorization",
     "category": "type",
@@ -457,7 +457,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/implementation.html#KrylovKit.basis",
+    "location": "man/implementation/#KrylovKit.basis",
     "page": "Details of the implementation",
     "title": "KrylovKit.basis",
     "category": "function",
@@ -465,7 +465,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/implementation.html#KrylovKit.rayleighquotient",
+    "location": "man/implementation/#KrylovKit.rayleighquotient",
     "page": "Details of the implementation",
     "title": "KrylovKit.rayleighquotient",
     "category": "function",
@@ -473,7 +473,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/implementation.html#KrylovKit.residual",
+    "location": "man/implementation/#KrylovKit.residual",
     "page": "Details of the implementation",
     "title": "KrylovKit.residual",
     "category": "function",
@@ -481,7 +481,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/implementation.html#KrylovKit.normres",
+    "location": "man/implementation/#KrylovKit.normres",
     "page": "Details of the implementation",
     "title": "KrylovKit.normres",
     "category": "function",
@@ -489,7 +489,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/implementation.html#KrylovKit.rayleighextension",
+    "location": "man/implementation/#KrylovKit.rayleighextension",
     "page": "Details of the implementation",
     "title": "KrylovKit.rayleighextension",
     "category": "function",
@@ -497,7 +497,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/implementation.html#Krylov-factorizations-1",
+    "location": "man/implementation/#Krylov-factorizations-1",
     "page": "Details of the implementation",
     "title": "Krylov factorizations",
     "category": "section",
@@ -505,7 +505,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/implementation.html#KrylovKit.KrylovIterator",
+    "location": "man/implementation/#KrylovKit.KrylovIterator",
     "page": "Details of the implementation",
     "title": "KrylovKit.KrylovIterator",
     "category": "type",
@@ -513,7 +513,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/implementation.html#KrylovKit.expand!",
+    "location": "man/implementation/#KrylovKit.expand!",
     "page": "Details of the implementation",
     "title": "KrylovKit.expand!",
     "category": "function",
@@ -521,7 +521,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/implementation.html#KrylovKit.shrink!",
+    "location": "man/implementation/#KrylovKit.shrink!",
     "page": "Details of the implementation",
     "title": "KrylovKit.shrink!",
     "category": "function",
@@ -529,7 +529,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/implementation.html#KrylovKit.initialize!",
+    "location": "man/implementation/#KrylovKit.initialize!",
     "page": "Details of the implementation",
     "title": "KrylovKit.initialize!",
     "category": "function",
@@ -537,7 +537,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/implementation.html#KrylovKit.initialize",
+    "location": "man/implementation/#KrylovKit.initialize",
     "page": "Details of the implementation",
     "title": "KrylovKit.initialize",
     "category": "function",
@@ -545,7 +545,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/implementation.html#Krylov-iterators-1",
+    "location": "man/implementation/#Krylov-iterators-1",
     "page": "Details of the implementation",
     "title": "Krylov iterators",
     "category": "section",
