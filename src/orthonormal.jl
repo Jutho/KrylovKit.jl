@@ -120,7 +120,7 @@ end
 # end
 
 function unproject!(y, b::OrthonormalBasis, x::AbstractVector, α::Number = 1, β::Number = 0, r = Base.OneTo(length(b)))
-    if y isa AbstractArray && IndexStyle(x) isa IndexLinear && Threads.nthreads() > 1 && !(Threads.in_threaded_loop[])
+    if y isa AbstractArray && IndexStyle(y) isa IndexLinear && Threads.nthreads() > 1 && !(Threads.in_threaded_loop[])
         return unproject_linear_multithreaded!(y, b, x, α, β, r)
     end
     # general case: using only vector operations, i.e. axpy! (similar to BLAS level 1)
@@ -172,7 +172,7 @@ function unproject_linear_multithreaded!(y::AbstractArray, b::OrthonormalBasis{<
 end
 
 @fastmath function rank1update!(b::OrthonormalBasis, y, x::AbstractVector, α::Number = 1, β::Number = 1, r = Base.OneTo(length(b)))
-    if y isa AbstractArray && IndexStyle(x) isa IndexLinear && Threads.nthreads() > 1 && !(Threads.in_threaded_loop[])
+    if y isa AbstractArray && IndexStyle(y) isa IndexLinear && Threads.nthreads() > 1 && !(Threads.in_threaded_loop[])
         return rank1update_linear_multithreaded!(b, y, x, α, β, r)
     end
     # general case: using only vector operations, i.e. axpy! (similar to BLAS level 1)
