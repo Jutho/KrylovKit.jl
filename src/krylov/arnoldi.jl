@@ -29,8 +29,8 @@ struct ArnoldiIterator{F,T,O<:Orthogonalizer} <: KrylovIterator{F,T}
     orth::O
 end
 ArnoldiIterator(A, x₀) = ArnoldiIterator(A, x₀, KrylovDefaults.orth)
-ArnoldiIterator(A::AbstractMatrix, x₀::AbstractVector, orth::Orthogonalizer = KrylovDefaults.orth) =
-    ArnoldiIterator(x->A*x, x₀, orth)
+ArnoldiIterator(A::AbstractMatrix, x₀::AbstractVector, orth::Orthogonalizer =
+                KrylovDefaults.orth) = ArnoldiIterator(x->A*x, x₀, orth)
 
 Base.IteratorSize(::Type{<:ArnoldiIterator}) = Base.SizeUnknown()
 Base.IteratorEltype(::Type{<:ArnoldiIterator}) = Base.EltypeUnknown()
@@ -62,7 +62,7 @@ function initialize(iter::ArnoldiIterator)
     H = [α, β]
     state = ArnoldiFactorization(1, V, H, r)
 end
-function initialize!(iter::ArnoldiIterator, state::ArnoldiFactorization) # recylcle existing state
+function initialize!(iter::ArnoldiIterator, state::ArnoldiFactorization)
     x₀ = iter.x₀
     V = state.V
     while length(V) > 1
@@ -109,7 +109,8 @@ function shrink!(state::ArnoldiFactorization, k)
 end
 
 # Arnoldi recurrence: simply use provided orthonormalization routines
-function arnoldirecurrence!(operator, V::OrthonormalBasis, h::AbstractVector, orth::Orthogonalizer)
+function arnoldirecurrence!(operator, V::OrthonormalBasis, h::AbstractVector,
+                            orth::Orthogonalizer)
     w = operator(last(V))
     r, h = orthogonalize!(w, V, h, orth)
     return r, norm(r)

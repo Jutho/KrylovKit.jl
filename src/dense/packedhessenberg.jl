@@ -6,10 +6,12 @@ struct PackedHessenberg{T,V<:AbstractVector{T}} <: AbstractMatrix{T}
         new{T,V}(data, n)
     end
 end
-PackedHessenberg(data::AbstractVector, n::Int) = PackedHessenberg{eltype(data),typeof(data)}(data, n)
+PackedHessenberg(data::AbstractVector, n::Int) =
+    PackedHessenberg{eltype(data),typeof(data)}(data, n)
 Base.size(A::PackedHessenberg) = (A.n,A.n)
 
-function Base.replace_in_print_matrix(A::PackedHessenberg, i::Integer, j::Integer, s::AbstractString)
+function Base.replace_in_print_matrix(A::PackedHessenberg, i::Integer, j::Integer,
+                                        s::AbstractString)
     i<=j+1 ? s : Base.replace_with_centered_mark(s)
 end
 

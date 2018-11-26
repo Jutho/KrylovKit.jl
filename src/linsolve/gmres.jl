@@ -69,9 +69,9 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number = 0, a₁::Number 
 
             # New error
             β = convert(S, abs(y[k+1]))
-            # info("iter $numiter, step $k : normres = $β")
+            # @info "iter $numiter, step $k : normres = $β"
         end
-        # info("iter $numiter, finished at step $k : normres = $β")
+        # @info "iter $numiter, finished at step $k : normres = $β"
 
         # Solve upper triangular system
         ldiv!(UpperTriangular(R), y, 1:k)

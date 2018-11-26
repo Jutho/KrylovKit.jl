@@ -32,7 +32,8 @@ end
 Base.IteratorSize(::Type{<:RowIterator}) = Base.HasLength()
 Base.IteratorEltype(::Type{<:RowIterator}) = Base.HasEltype()
 Base.length(iter::RowIterator) = length(iter.r)
-Base.eltype(iter::RowIterator{A}) where {T,A<:DenseArray{T}} = SubArray{T,1,A,Tuple{Int,Base.Slice{Base.OneTo{Int}}},true}
+Base.eltype(iter::RowIterator{A}) where {T,A<:DenseArray{T}} =
+    SubArray{T,1,A,Tuple{Int,Base.Slice{Base.OneTo{Int}}},true}
 
 struct ColumnIterator{A<:AbstractMatrix,R<:IndexRange}
     a::A
@@ -62,7 +63,8 @@ end
 Base.IteratorSize(::Type{<:ColumnIterator}) = Base.HasLength()
 Base.IteratorEltype(::Type{<:ColumnIterator}) = Base.HasEltype()
 Base.length(iter::ColumnIterator) = length(iter.r)
-Base.eltype(iter::ColumnIterator{A}) where {T,A<:DenseArray{T}} = SubArray{T,1,A,Tuple{Base.Slice{Base.OneTo{Int}},Int},true}
+Base.eltype(iter::ColumnIterator{A}) where {T,A<:DenseArray{T}} =
+    SubArray{T,1,A,Tuple{Base.Slice{Base.OneTo{Int}},Int},true}
 
 # # QR decomposition
 # function qr!(A::StridedMatrix{<:BlasFloat})
@@ -87,10 +89,12 @@ function ldiv!(A::UpperTriangular, y::AbstractVector, r::UnitRange{Int} = 1:leng
 end
 
 # Eigenvalue decomposition of SymTridiagonal matrix
-eig!(A::SymTridiagonal{T}, Z::StridedMatrix{T} = one(A)) where {T<:BlasFloat} = steqr!(A.dv, A.ev, Z)
+eig!(A::SymTridiagonal{T}, Z::StridedMatrix{T} = one(A)) where {T<:BlasFloat} =
+    steqr!(A.dv, A.ev, Z)
 
 # Singular value decomposition of a Bidiagonal matrix
-function bidiagsvd!(B::Bidiagonal{T}, U::StridedMatrix{T} = one(B), VT::StridedMatrix{T} = one(B)) where {T<:BlasReal}
+function bidiagsvd!(B::Bidiagonal{T}, U::StridedMatrix{T} = one(B),
+        VT::StridedMatrix{T} = one(B)) where {T<:BlasReal}
     s, Vt, U, = LAPACK.bdsqr!(B.uplo, B.dv, B.ev, VT, U, similar(U, (size(B,1), 0)))
     return U, s, Vt
 end
@@ -115,21 +119,24 @@ function reverserows!(V::AbstractVecOrMat)
 end
 
 # Schur factorization of a Hessenberg matrix
-hschur!(H::StridedMatrix{T}, Z::StridedMatrix{T} = one(H)) where {T<:BlasFloat} = hseqr!(H, Z)
+hschur!(H::StridedMatrix{T}, Z::StridedMatrix{T} = one(H)) where {T<:BlasFloat} =
+    hseqr!(H, Z)
 
 schur2eigvals(T::StridedMatrix{<:BlasFloat}) = schur2eigvals(T, 1:size(T,1))
 
 function schur2eigvals(T::StridedMatrix{<:BlasComplex}, which::AbstractVector{Int})
     n = checksquare(T)
     which2 = unique(which)
-    length(which2) == length(which) || throw(ArgumentError("which should contain unique values"))
+    length(which2) == length(which) ||
+        throw(ArgumentError("which should contain unique values"))
     return [T[i,i] for i in which2]
 end
 
 function schur2eigvals(T::StridedMatrix{<:BlasReal}, which::AbstractVector{Int})
     n = checksquare(T)
     which2 = unique(which)
-    length(which2) == length(which) || throw(ArgumentError("which should contain unique values"))
+    length(which2) == length(which) ||
+        throw(ArgumentError("which should contain unique values"))
     D = zeros(Complex{eltype(T)}, length(which2))
     for k = 1:length(which)
         i = which[k]
@@ -161,7 +168,8 @@ end
 function schur2eigvecs(T::StridedMatrix{<:BlasComplex}, which::AbstractVector{Int})
     n = checksquare(T)
     which2 = unique(which)
-    length(which2) == length(which) || throw(ArgumentError("which should contain unique values"))
+    length(which2) == length(which) ||
+        throw(ArgumentError("which should contain unique values"))
     m = BlasInt(length(which2))
     VR = similar(T, n, m)
     VL = similar(T, n, 0)
@@ -202,7 +210,8 @@ end
 function schur2eigvecs(T::StridedMatrix{<:BlasReal}, which::AbstractVector{Int})
     n = checksquare(T)
     which2 = unique(which)
-    length(which2) == length(which) || throw(ArgumentError("which should contain unique values"))
+    length(which2) == length(which) ||
+        throw(ArgumentError("which should contain unique values"))
     m = length(which2)
     VR = similar(T, Complex{eltype(T)}, n, m)
     VR′ = similar(T, n, 2)
@@ -246,10 +255,12 @@ function schur2eigvecs(T::StridedMatrix{<:BlasReal}, which::AbstractVector{Int})
     return VR
 end
 
-function permuteeig!(D::StridedVector{S}, V::StridedMatrix{S}, perm::AbstractVector{Int}) where {S}
+function permuteeig!(D::StridedVector{S}, V::StridedMatrix{S},
+                        perm::AbstractVector{Int}) where {S}
     n = checksquare(V)
     p = collect(perm) # makes copy cause will be overwritten
-    isperm(p) && length(p) == n || throw(ArgumentError("not a valid permutation of length $n"))
+    isperm(p) && length(p) == n ||
+        throw(ArgumentError("not a valid permutation of length $n"))
     i = 1
     @inbounds while true
         if p[i] == i
@@ -274,11 +285,14 @@ function permuteeig!(D::StridedVector{S}, V::StridedMatrix{S}, perm::AbstractVec
     return D, V
 end
 
-permuteschur!(T::StridedMatrix{<:BlasFloat}, p::AbstractVector{Int}) = permuteschur!(T, one(T), p)
-function permuteschur!(T::StridedMatrix{S}, Q::StridedMatrix{S}, perm::AbstractVector{Int}) where {S<:BlasComplex}
+permuteschur!(T::StridedMatrix{<:BlasFloat}, p::AbstractVector{Int}) =
+    permuteschur!(T, one(T), p)
+function permuteschur!(T::StridedMatrix{S}, Q::StridedMatrix{S},
+        perm::AbstractVector{Int}) where {S<:BlasComplex}
     n = checksquare(T)
     p = collect(perm) # makes copy cause will be overwritten
-    isperm(p) && length(p) == n || throw(ArgumentError("not a valid permutation of length $n"))
+    isperm(p) && length(p) == n ||
+        throw(ArgumentError("not a valid permutation of length $n"))
     @inbounds for i = 1:n
         ifirst::BlasInt = p[i]
         ilast::BlasInt = i
@@ -292,10 +306,12 @@ function permuteschur!(T::StridedMatrix{S}, Q::StridedMatrix{S}, perm::AbstractV
     return T, Q
 end
 
-function permuteschur!(T::StridedMatrix{S}, Q::StridedMatrix{S}, perm::AbstractVector{Int}) where {S<:BlasReal}
+function permuteschur!(T::StridedMatrix{S}, Q::StridedMatrix{S},
+        perm::AbstractVector{Int}) where {S<:BlasReal}
     n = checksquare(T)
     p = collect(perm) # makes copy cause will be overwritten
-    isperm(p) && length(p) == n || throw(ArgumentError("not a valid permutation of length $n"))
+    isperm(p) && length(p) == n ||
+        throw(ArgumentError("not a valid permutation of length $n"))
     i = 1
     @inbounds while i <= n
         ifirst::BlasInt = p[i]
@@ -309,7 +325,8 @@ function permuteschur!(T::StridedMatrix{S}, Q::StridedMatrix{S}, perm::AbstractV
             end
             i += 1
         else
-            p[i+1] == ifirst+1 || error("cannot split 2x2 blocks when permuting schur decomposition")
+            p[i+1] == ifirst+1 ||
+                error("cannot split 2x2 blocks when permuting schur decomposition")
             T, Q = trexc!(ifirst, ilast, T, Q)
             @inbounds for k = (i+2):n
                 if p[k] < p[i]
@@ -345,8 +362,8 @@ for (steqr, elty) in ((:dsteqr_, :Float64), (:ssteqr_, :Float32))
 end
 
 # redefine LAPACK interface to schur
-trexc!(ifst::BlasInt, ilst::BlasInt, T::StridedMatrix{S}, Q::StridedMatrix{S}) where {S<:BlasFloat}=
-    trexc!('V', ifst, ilst, T, Q)
+trexc!(ifst::BlasInt, ilst::BlasInt, T::StridedMatrix{S}, Q::StridedMatrix{S}) where
+        {S<:BlasFloat} = trexc!('V', ifst, ilst, T, Q)
 
 for (hseqr, trevc, trexc, trsen, elty) in
     ((:dhseqr_, :dtrevc_, :dtrexc_, :dtrsen_, :Float64),
@@ -383,8 +400,8 @@ for (hseqr, trevc, trexc, trsen, elty) in
             end
             H, Z, complex.(wr, wi)
         end
-        function trevc!(side::Char, howmny::Char, select::StridedVector{BlasInt}, T::StridedMatrix{$elty},
-                        VL::StridedMatrix{$elty},
+        function trevc!(side::Char, howmny::Char, select::StridedVector{BlasInt},
+                        T::StridedMatrix{$elty}, VL::StridedMatrix{$elty},
                         VR::StridedMatrix{$elty})
             # Extract
             if side ∉ ['L','R','B']
@@ -511,8 +528,8 @@ end
             end
             H, Z, w
         end
-        function trevc!(side::Char, howmny::Char, select::StridedVector{BlasInt}, T::StridedMatrix{$elty},
-                        VL::StridedMatrix{$elty} = similar(T),
+        function trevc!(side::Char, howmny::Char, select::StridedVector{BlasInt},
+                        T::StridedMatrix{$elty}, VL::StridedMatrix{$elty} = similar(T),
                         VR::StridedMatrix{$elty} = similar(T))
 
             # Extract
@@ -544,7 +561,8 @@ end
 
             return VL, VR, m
         end
-        function trexc!(compq::Char, ifst::BlasInt, ilst::BlasInt, T::StridedMatrix{$elty}, Q::StridedMatrix{$elty})
+        function trexc!(compq::Char, ifst::BlasInt, ilst::BlasInt, T::StridedMatrix{$elty},
+                        Q::StridedMatrix{$elty})
             chkstride1(T, Q)
             n = checksquare(T)
             ldt = max(1, stride(T, 2))

@@ -18,7 +18,8 @@ end
 Base.eltype(F::LanczosFactorization) = eltype(typeof(F))
 Base.eltype(::Type{<:LanczosFactorization{<:Any,S}}) where {S} = S
 
-basis(F::LanczosFactorization) = length(F.V) == F.k ? F.V : error("Not keeping vectors during Lanczos factorization")
+basis(F::LanczosFactorization) = length(F.V) == F.k ? F.V :
+    error("Not keeping vectors during Lanczos factorization")
 rayleighquotient(F::LanczosFactorization) = SymTridiagonal(F.αs, F.βs)
 residual(F::LanczosFactorization) = F.r
 @inbounds normres(F::LanczosFactorization) = F.βs[F.k]
@@ -30,15 +31,21 @@ struct LanczosIterator{F,T,O<:Orthogonalizer} <: KrylovIterator{F,T}
     x₀::T
     orth::O
     keepvecs::Bool
-    function LanczosIterator{F,T,O}(operator::F, x₀::T, orth::O, keepvecs::Bool) where {F,T,O<:Orthogonalizer}
+    function LanczosIterator{F,T,O}(operator::F, x₀::T, orth::O, keepvecs::Bool) where
+        {F,T,O<:Orthogonalizer}
+
         if !keepvecs && isa(orth, Reorthogonalizer)
             error("Cannot use reorthogonalization without keeping all Krylov vectors")
         end
         new{F,T,O}(operator, x₀, orth, keepvecs)
     end
 end
-LanczosIterator(operator::F, x₀::T, orth::O = KrylovDefaults.orth, keepvecs::Bool = true) where {F,T,O<:Orthogonalizer} = LanczosIterator{F,T,O}(operator, x₀, orth, keepvecs)
-LanczosIterator(A::AbstractMatrix, x₀::AbstractVector, orth::O = KrylovDefaults.orth, keepvecs::Bool = true) where {O<:Orthogonalizer} = LanczosIterator(x->A*x, x₀, orth, keepvecs)
+LanczosIterator(operator::F, x₀::T, orth::O = KrylovDefaults.orth,
+                keepvecs::Bool = true) where {F,T,O<:Orthogonalizer} =
+    LanczosIterator{F,T,O}(operator, x₀, orth, keepvecs)
+LanczosIterator(A::AbstractMatrix, x₀::AbstractVector, orth::O = KrylovDefaults.orth,
+                keepvecs::Bool = true) where {O<:Orthogonalizer} =
+    LanczosIterator(x->A*x, x₀, orth, keepvecs)
 
 Base.IteratorSize(::Type{<:LanczosIterator}) = Base.SizeUnknown()
 Base.IteratorEltype(::Type{<:LanczosIterator}) = Base.EltypeUnknown()
@@ -67,7 +74,8 @@ function initialize(iter::LanczosIterator)
     r, α = orthogonalize!(w, v, iter.orth)
     β = norm(r)
     n = hypot(α,2*β)
-    imag(α) <= sqrt(max(eps(n),eps(one(n)))) || error("operator does not appear to be hermitian: $(imag(α)) vs $n")
+    imag(α) <= sqrt(max(eps(n),eps(one(n)))) ||
+        error("operator does not appear to be hermitian: $(imag(α)) vs $n")
 
     V = OrthonormalBasis([v])
     S = eltype(β)
@@ -90,7 +98,8 @@ function initialize!(iter::LanczosIterator, state::LanczosFactorization)
     r, α = orthogonalize!(w, v, iter.orth)
     β = norm(r)
     n = hypot(α,β)
-    imag(α) <= sqrt(max(eps(n),eps(one(n)))) || error("operator does not appear to be hermitian: $(imag(α)) vs $n")
+    imag(α) <= sqrt(max(eps(n),eps(one(n)))) ||
+        error("operator does not appear to be hermitian: $(imag(α)) vs $n")
 
     state.k = 1
     push!(αs, real(α))
@@ -105,7 +114,8 @@ function expand!(iter::LanczosIterator, state::LanczosFactorization)
     V = push!(V, rmul!(r, 1/βold))
     r, α, β = lanczosrecurrence(iter.operator, V, βold, iter.orth)
     n = hypot(α, β, βold)
-    imag(α) <= sqrt(max(eps(n),eps(one(n)))) || error("operator does not appear to be hermitian: $(imag(α)) vs $n")
+    imag(α) <= sqrt(max(eps(n),eps(one(n)))) ||
+        error("operator does not appear to be hermitian: $(imag(α)) vs $n")
 
     αs = push!(state.αs, real(α))
     βs = push!(state.βs, β)
@@ -118,7 +128,8 @@ function expand!(iter::LanczosIterator, state::LanczosFactorization)
     return state
 end
 function shrink!(state::LanczosFactorization, k)
-    length(state) == length(state.V) || error("we cannot shrink LanczosFactorization without keeping Lanczos vectors")
+    length(state) == length(state.V) ||
+        error("we cannot shrink LanczosFactorization without keeping Lanczos vectors")
     length(state) <= k && return state
     V = state.V
     while length(V) > k+1

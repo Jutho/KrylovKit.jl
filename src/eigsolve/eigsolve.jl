@@ -106,16 +106,21 @@ function eigsolve end
 
 
 """
-    ClosestTo(λ)
+    EigSorter(by; rev = false)
 
-A simple `struct` to be used in combination with [`eigsolve`](@ref) or [`schursolve`](@ref) to
-indicate which eigenvalues need to be targetted, namely those closest to `λ`.
+A simple `struct` to be used in combination with [`eigsolve`](@ref) or [`schursolve`](@ref)
+to indicate which eigenvalues need to be targetted, namely those that appear first when
+sorted by `by` and possibly in reverse order if `rev == true`.
 """
-struct ClosestTo{T}
-    λ::T
+struct EigSorter{F}
+    by::F
+    rev::Bool
 end
+EigSorter(f::F; rev = false) where F = EigSorter{F}(f, rev)
 
-const Selector = Union{ClosestTo, Symbol}
+Base.@deprecate  ClosestTo(λ) EigSorter(z->abs(z-λ))
+
+const Selector = Union{Symbol, EigSorter}
 
 function eigsolve(A::AbstractMatrix, howmany::Int = 1, which::Selector = :LM, T::Type = eltype(A); kwargs...)
     eigsolve(A, rand(T, size(A,1)), howmany, which; kwargs...)
@@ -127,46 +132,62 @@ function eigsolve(f, x₀, howmany::Int = 1, which::Selector = :LM; kwargs...)
     alg = eigselector(f, eltype(x₀); kwargs...)
     checkwhich(which) || error("Unknown eigenvalue selector: which = $which")
     if alg isa Lanczos
-        if which == :LI || which == :SI || which isa ClosestTo{<:Complex}
+        if which == :LI || which == :SI
             error("Eigenvalue selector which = $which invalid: real eigenvalues expected with Lanczos algorithm")
         end
     elseif eltype(x₀) <: Real
-        if which == :LI || which == :SI || which isa ClosestTo{<:Complex}
-            error("Eigenvalue selector which = $which invalid: work in complex arithmetic by providing a complex starting vector `x₀`")
+        if which == :LI || which == :SI ||
+            (which isa EigSorter && which.by(+im) != which.by(-im))
+
+            error("Eigenvalue selector which = $which invalid because it does not treat
+            `λ` and `conj(λ)` equally: work in complex arithmetic by providing a complex starting vector `x₀`")
         end
     end
     eigsolve(f, x₀, howmany, which, alg)
 end
 
-function eigselector(f, T::Type;
-    issymmetric::Bool = false, ishermitian::Bool = T<:Real && issymmetric,
-    krylovdim::Int = KrylovDefaults.krylovdim, maxiter::Int = KrylovDefaults.maxiter,
-    tol::Real = KrylovDefaults.tol, orth::Orthogonalizer = KrylovDefaults.orth)
+function eigselector(f, T::Type; issymmetric::Bool = false,
+                                    ishermitian::Bool = T<:Real && issymmetric,
+                                    krylovdim::Int = KrylovDefaults.krylovdim,
+                                    maxiter::Int = KrylovDefaults.maxiter,
+                                    tol::Real = KrylovDefaults.tol,
+                                    orth::Orthogonalizer = KrylovDefaults.orth,
+                                    info::Int = 0, kwargs...)
     if (T<:Real && issymmetric) || ishermitian
-        return Lanczos(krylovdim = krylovdim, maxiter = maxiter, tol=tol, orth = orth)
+        return Lanczos(krylovdim = krylovdim, maxiter = maxiter, tol = tol, orth = orth,
+        info = info)
     else
-        return Arnoldi(krylovdim = krylovdim, maxiter = maxiter, tol=tol, orth = orth)
+        return Arnoldi(krylovdim = krylovdim, maxiter = maxiter, tol = tol, orth = orth,
+        info = info)
     end
 end
 function eigselector(A::AbstractMatrix, T::Type;
-    issymmetric::Bool = issymmetric(A), ishermitian::Bool = ishermitian(A),
-    krylovdim::Int = KrylovDefaults.krylovdim, maxiter::Int = KrylovDefaults.maxiter,
-    tol::Real = KrylovDefaults.tol, orth::Orthogonalizer = KrylovDefaults.orth)
+                        issymmetric::Bool = T <: Real && LinearAlgebra.issymmetric(A),
+                        ishermitian::Bool = issymmetric || LinearAlgebra.ishermitian(A),
+                        krylovdim::Int = KrylovDefaults.krylovdim,
+                        maxiter::Int = KrylovDefaults.maxiter,
+                        tol::Real = KrylovDefaults.tol,
+                        orth::Orthogonalizer = KrylovDefaults.orth,
+                        info::Int = 0, kwargs...)
     if (T<:Real && issymmetric) || ishermitian
-        return Lanczos(krylovdim = krylovdim, maxiter = maxiter, tol=tol, orth = orth)
+        return Lanczos(krylovdim = krylovdim, maxiter = maxiter, tol = tol, orth = orth,
+        info = info)
     else
-        return Arnoldi(krylovdim = krylovdim, maxiter = maxiter, tol=tol, orth = orth)
+        return Arnoldi(krylovdim = krylovdim, maxiter = maxiter, tol = tol, orth = orth,
+        info= info)
     end
 end
 
-checkwhich(::ClosestTo) = true
+checkwhich(::EigSorter) = true
+# checkwhich(::ClosestTo) = true
 checkwhich(s::Symbol) = s in (:LM, :LR, :SR, :LI, :SI)
 
-function eigsort(which::ClosestTo)
-    by = x->abs(x-which.λ)
-    rev = false
-    return by, rev
-end
+eigsort(s::EigSorter) = s.by, s.rev
+# function eigsort(which::ClosestTo)
+#     by = x->abs(x-which.λ)
+#     rev = false
+#     return by, rev
+# end
 function eigsort(which::Symbol)
     if which == :LM
         by = abs

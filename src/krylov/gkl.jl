@@ -25,7 +25,8 @@ function basis(F::GKLFactorization, which::Symbol)
     which == :U || which == :V || error("invalid flag for specifying basis")
     return which == :U ? F.U : F.V
 end
-rayleighquotient(F::GKLFactorization) = Bidiagonal(view(F.αs,1:F.k), view(F.βs,1:(F.k-1)),:L)
+rayleighquotient(F::GKLFactorization) = Bidiagonal(view(F.αs,1:F.k),
+                                        view(F.βs,1:(F.k-1)),:L)
 residual(F::GKLFactorization) = F.r
 @inbounds normres(F::GKLFactorization) = F.βs[F.k]
 rayleighextension(F::GKLFactorization) = SimpleBasisVector(F.k, F.k)
@@ -36,15 +37,20 @@ struct GKLIterator{F,T,O<:Orthogonalizer} <: KrylovIterator{F,T}
     u₀::T
     orth::O
     keepvecs::Bool
-    function GKLIterator{F,T,O}(operator::F, u₀::T, orth::O, keepvecs::Bool) where {F,T,O<:Orthogonalizer}
+    function GKLIterator{F,T,O}(operator::F, u₀::T, orth::O, keepvecs::Bool) where
+        {F,T,O<:Orthogonalizer}
+
         if !keepvecs && isa(orth, Reorthogonalizer)
             error("Cannot use reorthogonalization without keeping all Krylov vectors")
         end
         new{F,T,O}(operator, u₀, orth, keepvecs)
     end
 end
-GKLIterator(operator::F, u₀::T, orth::O = KrylovDefaults.orth, keepvecs::Bool = true) where {F,T,O<:Orthogonalizer} = GKLIterator{F,T,O}(operator, u₀, orth, keepvecs)
-GKLIterator(A::AbstractMatrix, u₀::AbstractVector, orth::O = KrylovDefaults.orth, keepvecs::Bool = true) where {O<:Orthogonalizer} = GKLIterator((x,flag)->flag ? A'*x : A*x, u₀, orth, keepvecs)
+GKLIterator(operator::F, u₀::T, orth::O = KrylovDefaults.orth, keepvecs::Bool = true) where
+                {F,T,O<:Orthogonalizer} = GKLIterator{F,T,O}(operator, u₀, orth, keepvecs)
+GKLIterator(A::AbstractMatrix, u₀::AbstractVector, orth::O = KrylovDefaults.orth,
+                keepvecs::Bool = true) where {O<:Orthogonalizer} =
+    GKLIterator((x,flag)->flag ? A'*x : A*x, u₀, orth, keepvecs)
 
 Base.IteratorSize(::Type{<:GKLIterator}) = Base.SizeUnknown()
 Base.IteratorEltype(::Type{<:GKLIterator}) = Base.EltypeUnknown()
@@ -128,7 +134,8 @@ function expand!(iter::GKLIterator, state::GKLFactorization)
     return state
 end
 function shrink!(state::GKLFactorization, k)
-    length(state) == length(state.V) || error("we cannot shrink GKLFactorization without keeping vectors")
+    length(state) == length(state.V) ||
+        error("we cannot shrink GKLFactorization without keeping vectors")
     length(state) <= k && return state
     U = state.U
     V = state.V
@@ -146,7 +153,8 @@ function shrink!(state::GKLFactorization, k)
 end
 
 # Golub-Kahan-Lanczos recurrence relation
-function gklrecurrence(operator, U::OrthonormalBasis, V::OrthonormalBasis, β, orth::Union{ClassicalGramSchmidt,ModifiedGramSchmidt})
+function gklrecurrence(operator, U::OrthonormalBasis, V::OrthonormalBasis, β,
+                        orth::Union{ClassicalGramSchmidt,ModifiedGramSchmidt})
     u = U[end]
     v = operator(u, true)
     v = axpy!(-β, V[end], v)
@@ -158,7 +166,8 @@ function gklrecurrence(operator, U::OrthonormalBasis, V::OrthonormalBasis, β, o
     β = norm(r)
     return v, r, α, β
 end
-function gklrecurrence(operator, U::OrthonormalBasis, V::OrthonormalBasis, β, orth::ClassicalGramSchmidt2)
+function gklrecurrence(operator, U::OrthonormalBasis, V::OrthonormalBasis, β,
+                        orth::ClassicalGramSchmidt2)
     u = U[end]
     v = operator(u, true)
     v = axpy!(-β, V[end], v)
@@ -172,7 +181,8 @@ function gklrecurrence(operator, U::OrthonormalBasis, V::OrthonormalBasis, β, o
     β = norm(r)
     return v, r, α, β
 end
-function gklrecurrence(operator, U::OrthonormalBasis, V::OrthonormalBasis, β, orth::ModifiedGramSchmidt2)
+function gklrecurrence(operator, U::OrthonormalBasis, V::OrthonormalBasis, β,
+                        orth::ModifiedGramSchmidt2)
     u = U[end]
     v = operator(u, true)
     v = axpy!(-β, V[end], v)
@@ -190,7 +200,8 @@ function gklrecurrence(operator, U::OrthonormalBasis, V::OrthonormalBasis, β, o
     β = norm(r)
     return v, r, α, β
 end
-function gklrecurrence(operator, U::OrthonormalBasis, V::OrthonormalBasis, β, orth::ClassicalGramSchmidtIR)
+function gklrecurrence(operator, U::OrthonormalBasis, V::OrthonormalBasis, β,
+                        orth::ClassicalGramSchmidtIR)
     u = U[end]
     v = operator(u, true)
     v = axpy!(-β, V[end], v)
@@ -215,7 +226,8 @@ function gklrecurrence(operator, U::OrthonormalBasis, V::OrthonormalBasis, β, o
 
     return v, r, α, β
 end
-function gklrecurrence(operator, U::OrthonormalBasis, V::OrthonormalBasis, β, orth::ModifiedGramSchmidtIR)
+function gklrecurrence(operator, U::OrthonormalBasis, V::OrthonormalBasis, β,
+                        orth::ModifiedGramSchmidtIR)
     u = U[end]
     v = operator(u, true)
     v = axpy!(-β, V[end], v)

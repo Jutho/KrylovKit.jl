@@ -2,30 +2,33 @@
     function exponentiate(A, t::Number, x; kwargs...)
     function exponentiate(A, t::Number, x, algorithm)
 
-Compute ``y = exp(t*A) x``, where `A` is a general linear map, i.e. a `AbstractMatrix` or just
-a general function or callable object and `x` is of any Julia type with vector like behavior.
+Compute ``y = exp(t*A) x``, where `A` is a general linear map, i.e. a `AbstractMatrix` or
+just a general function or callable object and `x` is of any Julia type with vector like
+behavior.
 
 ### Arguments:
-The linear map `A` can be an `AbstractMatrix` (dense or sparse) or a general function or callable
-object that implements the action of the linear map on a vector. If `A` is an `AbstractMatrix`,
-`x` is expected to be an `AbstractVector`, otherwise `x` can be of any type that behaves as a
-vector and supports the required methods (see KrylovKit docs).
+The linear map `A` can be an `AbstractMatrix` (dense or sparse) or a general function or
+callable object that implements the action of the linear map on a vector. If `A` is an
+`AbstractMatrix`, `x` is expected to be an `AbstractVector`, otherwise `x` can be of any
+type that behaves as a vector and supports the required methods (see KrylovKit docs).
 
 The time parameter `t` can be real or complex, and it is better to choose `t` e.g. imaginary
-and `A` hermitian, then to absorb the imaginary unit in an antihermitian `A`. For the former,
-the Lanczos scheme is used to built a Krylov subspace, in which an approximation to the exponential
-action of the linear map is obtained. The argument `x` can be of any type and should be in the
-domain of `A`.
+and `A` hermitian, then to absorb the imaginary unit in an antihermitian `A`. For the
+former, the Lanczos scheme is used to built a Krylov subspace, in which an approximation to
+the exponential action of the linear map is obtained. The argument `x` can be of any type
+and should be in the domain of `A`.
 
 
 ### Return values:
 The return value is always of the form `y, info = eigsolve(...)` with
 *   `y`: the result of the computation, i.e. `y = exp(t*A)*x`
 *   `info`: an object of type [`ConvergenceInfo`], which has the following fields
-    -   `info.converged::Int`: 0 or 1 if the solution `y` was approximated up to the requested
-        tolerance `tol`.
-    -   `info.residual::Nothing`: value `nothing`, there is no concept of a residual in this case
-    -   `info.normres::Real`: an estimate (upper bound) of the error between the approximate and exact solution
+    -   `info.converged::Int`: 0 or 1 if the solution `y` was approximated up to the
+        requested tolerance `tol`.
+    -   `info.residual::Nothing`: value `nothing`, there is no concept of a residual in
+        this case
+    -   `info.normres::Real`: an estimate (upper bound) of the error between the
+        approximate and exact solution
     -   `info.numops::Int`: number of times the linear map was applied, i.e. number of times
         `f` was called, or a vector was multiplied with `A`
     -   `info.numiter::Int`: number of times the Krylov subspace was restarted (see below)
@@ -36,26 +39,28 @@ The return value is always of the form `y, info = eigsolve(...)` with
 ### Keyword arguments:
 Keyword arguments and their default values are given by:
 *   `krylovdim = 30`: the maximum dimension of the Krylov subspace that will be constructed.
-    Note that the dimension of the vector space is not known or checked, e.g. `x₀` should not
-    necessarily support the `Base.length` function. If you know the actual problem dimension
-    is smaller than the default value, it is useful to reduce the value of `krylovdim`, though
-    in principle this should be detected.
+    Note that the dimension of the vector space is not known or checked, e.g. `x₀` should
+    not necessarily support the `Base.length` function. If you know the actual problem
+    dimension is smaller than the default value, it is useful to reduce the value of
+    `krylovdim`, though in principle this should be detected.
 *   `tol = 1e-12`: the requested accuracy (corresponding to the 2-norm of the residual for
     Schur vectors, not the eigenvectors). If you work in e.g. single precision (`Float32`),
     you should definitely change the default value.
-*   `maxiter = 100`: the number of times the Krylov subspace can be rebuilt; see below for
-    further details on the algorithms.
+*   `maxiter::Int = 100`: the number of times the Krylov subspace can be rebuilt; see below
+    for further details on the algorithms.
+*   `info::Int = 0`: the level of verbosity, default is zero (no output)
 *   `issymmetric`: if the linear map is symmetric, only meaningful if `T<:Real`
 *   `ishermitian`: if the linear map is hermitian
 The default value for the last two depends on the method. If an `AbstractMatrix` is used,
-`issymmetric` and `ishermitian` are checked for that matrix, ortherwise the default values are
-`issymmetric = false` and `ishermitian = T <: Real && issymmetric`.
+`issymmetric` and `ishermitian` are checked for that matrix, ortherwise the default values
+are `issymmetric = false` and `ishermitian = T <: Real && issymmetric`.
 
 ### Algorithm
-The last method, without default values and keyword arguments, is the one that is finally called,
-and can also be used directly. Here, one specifies the algorithm explicitly as either [`Lanczos`](@ref),
-for real symmetric or complex hermitian problems, or [`Arnoldi`](@ref), for general problems.
-Note that these names refer to the process for building the Krylov subspace.
+The last method, without default values and keyword arguments, is the one that is finally
+called, and can also be used directly. Here, one specifies the algorithm explicitly as
+either [`Lanczos`](@ref), for real symmetric or complex hermitian problems, or
+[`Arnoldi`](@ref), for general problems. Note that these names refer to the process for
+building the Krylov subspace.
 
 !!! warning "`Arnoldi` not yet implented"
 """
@@ -109,6 +114,9 @@ function exponentiate(A, t::Number, v, alg::Lanczos)
         while normres(fact) > η && length(fact) < krylovdim
             fact = expand!(iter, fact)
             numops += 1
+            if alg.info > 2
+                @info "Lanczos exponentiate in iteration $numiter: Krylov step $(length(fact)): normres of Kryov factorization $(normres(fact))"
+            end
         end
         K = fact.k # current Krylov dimension
         V = basis(fact)
@@ -128,7 +136,8 @@ function exponentiate(A, t::Number, v, alg::Lanczos)
                 ϵ₁ += U[K,k] * exp(sgn * Δτ/2 * D[k]) * conj(U[1,k])
                 ϵ₂ += U[K,k] * exp(sgn * Δτ * D[k]) * conj(U[1,k])
             end
-            ϵ = normres(fact) * ( 2*abs(ϵ₁)/3 + abs(ϵ₂)/6 ) # error per unit time: see Lubich
+            ϵ = normres(fact) * ( 2*abs(ϵ₁)/3 + abs(ϵ₂)/6 )
+            # error per unit time: see Lubich
 
             if ϵ < δ * η || numiter == maxiter
                 break
@@ -150,9 +159,21 @@ function exponentiate(A, t::Number, v, alg::Lanczos)
         w = mul!(w, V, y2)
         τ -= Δτ
 
+        if alg.info > 1
+            @info "Lanczos exponentiate in iteration $numiter: step size $Δτ, total accumulated error $totalerr"
+        end
+
         if iszero(τ) # should always be true if numiter == maxiter
             w = rmul!(w, β)
             converged = totalerr < alg.tol ? 1 : 0
+            if alg.info > 0
+                if converged == 0
+                    @warn """Lanczos exponentiate finished without convergence after $numiter iterations:
+                    total error = $totalerrs"""
+                else
+                    @info """Lanczos exponentiate finished after $numiter iterations: total error = $totalerr"""
+                end
+            end
             return w, ConvergenceInfo(converged, nothing, totalerr, numiter, numops)
         else
             normw = norm(w)

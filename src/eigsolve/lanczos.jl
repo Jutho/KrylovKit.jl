@@ -16,6 +16,9 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
         while length(fact) < krylovdim
             fact = expand!(iter, fact)
             numops += 1
+            if alg.info > 2
+                @info "Lanczos eigsolve in iteration $numiter: krylov step $(length(fact)): normres of Kryov factorization $(normres(fact))"
+            end
             normres(fact) <= tol && length(fact) >= howmany && break
         end
     end
@@ -42,6 +45,11 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
     while converged < length(fact) && abs(f[converged+1]) < tol
         converged += 1
     end
+
+    if alg.info > 1
+        @info "Lanczos eigsolve in iteration $numiter: $converged eigvals converged, norm residuals = $(abs.(f[1:howmany]...,))"
+    end
+
 
     ## OTHER ITERATIONS: recycle
     while numiter < maxiter && converged < howmany
@@ -87,6 +95,9 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
         while length(fact) < krylovdim
             fact = expand!(iter, fact)
             numops += 1
+            if alg.info > 2
+                @info "Lanczos eigsolve in iteration $numiter: krylov step $(length(fact)): normres of Kryov factorization $(normres(fact))"
+            end
             normres(fact) < tol && length(fact) >= howmany && break
         end
 
@@ -107,6 +118,10 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
         while converged < length(fact) && abs(f[converged+1]) < tol
             converged += 1
         end
+
+        if alg.info > 1
+            @info "Lanczos eigsolve in iteration $numiter: $converged eigvals converged, norm residuals = $(abs.(f[1:howmany]...,))"
+        end
     end
 
     if converged > howmany
@@ -126,6 +141,16 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
     end
     normresiduals = let f = f
         map(i->abs(f[i]), 1:howmany)
+    end
+
+    if alg.info > 0
+        if converged < howmany
+            @warn """Lanczos eigsolve finished without convergence after $numiter iterations:
+            $converged eigenvalues converged, norm of residuals = $((normresiduals...,))"""
+        else
+            @info """Lanczos eigsolve finished after $numiter iterations:
+            $converged eigenvalues converged, norm of residuals = $((normresiduals...,))"""
+        end
     end
 
     return values, vectors, ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
