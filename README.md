@@ -9,11 +9,6 @@ to vectors.
 |:-------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------:|
 | [![][docs-stable-img]][docs-stable-url] [![][docs-dev-img]][docs-dev-url] | [![][travis-img]][travis-url] [![][appveyor-img]][appveyor-url] [![][codecov-img]][codecov-url] [![][coveralls-img]][coveralls-url] |
 
-[![Build Status](https://travis-ci.org/Jutho/KrylovKit.jl.svg?branch=master)](https://travis-ci.org/jutho/KrylovKit.jl)
-[![Build status](https://ci.appveyor.com/api/projects/status/github/Jutho/KrylovKit.jl?svg=true&branch=master)](https://ci.appveyor.com/project/jutho/krylovkit-jl/branch/master)
-[![License](http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](LICENSE.md)
-[![codecov.io](http://codecov.io/github/Jutho/KrylovKit.jl/coverage.svg?branch=master)](http://codecov.io/github/jutho/KrylovKit.jl?branch=master)
-
 ## Overview
 KrylovKit.jl accepts general functions or callable objects as linear maps, and general Julia
 objects with vector like behavior (as defined in the docs) as vectors.
