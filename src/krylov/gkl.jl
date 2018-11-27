@@ -69,7 +69,7 @@ function Base.iterate(iter::GKLIterator, state::GKLFactorization)
     end
 end
 
-function initialize(iter::GKLIterator)
+function initialize(iter::GKLIterator; info::Int = 0)
     β₀ = norm(iter.u₀)
     invβ₀ = one(eltype(iter.u₀))/β₀
     T = typeof(invβ₀) # division might change eltype
@@ -87,10 +87,13 @@ function initialize(iter::GKLIterator)
     S = eltype(α)
     αs = S[α]
     βs = S[β]
+    if info > 0
+        @info "GKL iteration step 1: normres = $β"
+    end
 
     return GKLFactorization(1, U, V, αs, βs, r)
 end
-function initialize!(iter::GKLIterator, state::GKLFactorization)
+function initialize!(iter::GKLIterator, state::GKLFactorization; info::Int = 0)
     V = state.V
     while length(U) > 1
         pop!(U)
@@ -112,9 +115,13 @@ function initialize!(iter::GKLIterator, state::GKLFactorization)
     push!(αs, α)
     push!(βs, β)
     state.r = r
+    if info > 0
+        @info "GKL iteration step 1: normres = $β"
+    end
+
     return state
 end
-function expand!(iter::GKLIterator, state::GKLFactorization)
+function expand!(iter::GKLIterator, state::GKLFactorization; info::Int = 0)
     βold = normres(state)
     U = state.U
     V = state.V
@@ -130,6 +137,9 @@ function expand!(iter::GKLIterator, state::GKLFactorization)
 
     state.k += 1
     state.r = r
+    if info > 0
+        @info "GKL iteration step $(state.k): normres = $β"
+    end
 
     return state
 end

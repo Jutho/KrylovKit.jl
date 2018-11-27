@@ -18,7 +18,14 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number = 0, a₁::Number 
     tol = convert(S, alg.rtol == 0 ? alg.atol : max(alg.atol, alg.rtol*norm(b)))::S
 
     # Check for early return
-    β < tol && return (x, ConvergenceInfo(1, r, β, 0, 1))
+    if β < tol
+        if alg.info > 0
+            @info """GMRES linsolve converged without any iterations:
+             *  norm of residual = $β
+             *  number of operations = 1"""
+        end
+        return (x, ConvergenceInfo(1, r, β, 0, 1))
+    end
 
     # Initialize data structures
     y = Vector{T}(undef, krylovdim+1)
@@ -30,6 +37,7 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number = 0, a₁::Number 
     iter = ArnoldiIterator(operator, r, alg.orth)
     fact = initialize(iter)
     numops += 1 # start applies operator once
+
     while numiter < maxiter # restart loop
         numiter += 1
         y[1] = β
@@ -40,9 +48,14 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number = 0, a₁::Number 
         y[2] = zero(T)
         lmul!(gs[1], y)
         β = convert(S, abs(y[2]))
-        # info("iter $numiter, step $k : normres = $β")
+        if alg.info > 2
+            msg = "GMRES linsolve in iter $numiter; step $k: "
+            msg *= "normres = "
+            msg *= @sprintf("%.12e", β)
+            @info msg
+        end
 
-        while β > tol && length(fact) < krylovdim # inner arnoldi loop
+        while (β > tol && length(fact) < krylovdim) # inner arnoldi loop
             fact = expand!(iter, fact)
             numops += 1 # expand! applies the operator once
             k = length(fact)
@@ -69,11 +82,22 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number = 0, a₁::Number 
 
             # New error
             β = convert(S, abs(y[k+1]))
-            # @info "iter $numiter, step $k : normres = $β"
+            if alg.info > 2
+                msg = "GMRES linsolve in iter $numiter; step $k: "
+                msg *= "normres = "
+                msg *= @sprintf("%.12e", β)
+                @info msg
+            end
         end
-        # @info "iter $numiter, finished at step $k : normres = $β"
+        if alg.info > 1
+            msg = "GMRES linsolve in iter $numiter; finised at step $k: "
+            msg *= "normres = "
+            msg *= @sprintf("%.12e", β)
+            @info msg
+        end
 
         # Solve upper triangular system
+        y2 = copy(y)
         ldiv!(UpperTriangular(R), y, 1:k)
 
         # Update x
@@ -98,12 +122,25 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number = 0, a₁::Number 
             r = axpy!(-α₁, apply(operator, x), r)  #      - α₁ * operator(x)
             numops += 1
             β = norm(r)
-            β < tol && return (x, ConvergenceInfo(1, r, β, numiter, numops))
+            if β < tol
+                if alg.info > 0
+                    @info """GMRES linsolve converged at iteration $numiter, step $k:
+                     *  norm of residual = $β
+                     *  number of operations = $numops"""
+                end
+                return (x, ConvergenceInfo(1, r, β, numiter, numops))
+            end
         end
 
         # Restart Arnoldi factorization with new r
         iter = ArnoldiIterator(operator, r, alg.orth)
         fact = initialize!(iter, fact)
+    end
+
+    if alg.info > 0
+        @warn """GMRES linsolve finished without converging after $numiter iterations:
+         *  norm of residual = $β
+         *  number of operations = $numops"""
     end
     return (x, ConvergenceInfo(0, r, β, numiter, numops))
 end

@@ -93,10 +93,12 @@ function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     if alg.info > 0
         if converged < howmany
             @warn """Arnoldi schursolve finished without convergence after $numiter iterations:
-            $converged eigenvalues converged, norm of residuals = $((normresiduals...,))"""
+             *  $converged eigenvalues converged
+             *  norm of residuals = $((normresiduals...,))"""
         else
             @info """Arnoldi schursolve finished after $numiter iterations:
-            $converged eigenvalues converged, norm of residuals = $((normresiduals...,))"""
+             *  $converged eigenvalues converged
+             *  norm of residuals = $((normresiduals...,))"""
         end
     end
     return TT, vectors, values, ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
@@ -126,10 +128,14 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     if alg.info > 0
         if converged < howmany
             @warn """Arnoldi eigsolve finished without convergence after $numiter iterations:
-            $converged eigenvalues converged, norm of residuals = $((normresiduals...,))"""
+             *  $converged eigenvalues converged
+             *  norm of residuals = $((normresiduals...,))
+             *  number of operations = $numops"""
         else
             @info """Arnoldi eigsolve finished after $numiter iterations:
-            $converged eigenvalues converged, norm of residuals = $((normresiduals...,))"""
+             *  $converged eigenvalues converged
+             *  norm of residuals = $((normresiduals...,))
+             *  number of operations = $numops"""
         end
     end
     return values, vectors, ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
@@ -144,18 +150,15 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     numiter = 1
     # Compute arnoldi factorization
     iter = ArnoldiIterator(A, x₀, alg.orth)
-    fact = initialize(iter)
+    fact = initialize(iter; info = alg.info - 2)
     numops = 1
     sizehint!(fact, krylovdim)
     β = normres(fact)
     tol::eltype(β) = alg.tol
     if normres(fact) > tol || howmany > 1
         while length(fact) < krylovdim
-            fact = expand!(iter, fact)
+            fact = expand!(iter, fact; info = alg.info-2)
             numops += 1
-            if alg.info > 2
-                @info "Lanczos eigsolve in iteration $numiter: krylov step $(length(fact)): normres of Kryov factorization $(normres(fact))"
-            end
             normres(fact) < tol && length(fact) >= howmany && break
         end
     end
@@ -189,7 +192,15 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     end
 
     if alg.info > 1
-        @info "Arnoldi schursolve in iteration $numiter: $converged eigvals converged, norm residuals = $(abs.(f[1:howmany]...,))"
+        msg = "Arnoldi schursolve in iter $numiter: "
+        msg *= "$converged values converged, normres = ("
+        msg *= @sprintf("%.2e", abs(f[1]))
+        for i = 2:howmany
+            msg *= ", "
+            msg *= @sprintf("%.2e", abs(f[i]))
+        end
+        msg *= ")"
+        @info msg
     end
     ## OTHER ITERATIONS: recycle
     while numiter < maxiter && converged < howmany
@@ -232,11 +243,8 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
 
         # Arnoldi factorization: recylce fact
         while length(fact) < krylovdim
-            fact = expand!(iter, fact)
+            fact = expand!(iter, fact; info = alg.info-2)
             numops += 1
-            if alg.info > 2
-                @info "Lanczos eigsolve in iteration $numiter: krylov step $(length(fact)): normres of Kryov factorization $(normres(fact))"
-            end
             normres(fact) < tol && length(fact) >= howmany && break
         end
 
@@ -263,7 +271,15 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
             converged -= 1
         end
         if alg.info > 1
-            @info "Arnoldi schursolve in iteration $numiter: $converged eigvals converged, norm residuals = $(abs.(f[1:howmany]...,))"
+            msg = "Arnoldi schursolve in iter $numiter: "
+            msg *= "$converged values converged, normres = ("
+            msg *= @sprintf("%.2e", abs(f[1]))
+            for i = 2:howmany
+                msg *= ", "
+                msg *= @sprintf("%.2e", abs(f[i]))
+            end
+            msg *= ")"
+            @info msg
         end
     end
     return T, U, fact, converged, numiter, numops

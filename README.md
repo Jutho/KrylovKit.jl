@@ -5,8 +5,8 @@ value and eigenvalue problems and the application of functions of linear maps or
 to vectors.
 
 
-| **Documentation**  | **Build Status** |
-|:-------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------:|
+| **Documentation** | **Build Status** |
+|:-----------------:|:----------------:|
 | [![][docs-stable-img]][docs-stable-url] [![][docs-dev-img]][docs-dev-url] | [![][travis-img]][travis-url] [![][appveyor-img]][appveyor-url] [![][codecov-img]][codecov-url] [![][coveralls-img]][coveralls-url] |
 
 ## Overview

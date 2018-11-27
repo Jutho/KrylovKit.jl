@@ -7,18 +7,15 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
     numiter = 1
     # Compute Lanczos factorization
     iter = LanczosIterator(A, x₀, alg.orth)
-    fact = initialize(iter)
+    fact = initialize(iter; info = alg.info - 2)
     numops = 1
     sizehint!(fact, krylovdim)
     β = normres(fact)
     tol::eltype(β) = alg.tol
     if normres(fact) > tol || howmany > 1
         while length(fact) < krylovdim
-            fact = expand!(iter, fact)
+            fact = expand!(iter, fact; info = alg.info-2)
             numops += 1
-            if alg.info > 2
-                @info "Lanczos eigsolve in iteration $numiter: krylov step $(length(fact)): normres of Kryov factorization $(normres(fact))"
-            end
             normres(fact) <= tol && length(fact) >= howmany && break
         end
     end
@@ -47,9 +44,16 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
     end
 
     if alg.info > 1
-        @info "Lanczos eigsolve in iteration $numiter: $converged eigvals converged, norm residuals = $(abs.(f[1:howmany]...,))"
+        msg = "Lanczos eigsolve in iter $numiter: "
+        msg *= "$converged values converged, normres = ("
+        msg *= @sprintf("%.2e", abs(f[1]))
+        for i = 2:howmany
+            msg *= ", "
+            msg *= @sprintf("%.2e", abs(f[i]))
+        end
+        msg *= ")"
+        @info msg
     end
-
 
     ## OTHER ITERATIONS: recycle
     while numiter < maxiter && converged < howmany
@@ -93,11 +97,8 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
 
         # Lanczos factorization: recylce fact
         while length(fact) < krylovdim
-            fact = expand!(iter, fact)
+            fact = expand!(iter, fact; info = alg.info-2)
             numops += 1
-            if alg.info > 2
-                @info "Lanczos eigsolve in iteration $numiter: krylov step $(length(fact)): normres of Kryov factorization $(normres(fact))"
-            end
             normres(fact) < tol && length(fact) >= howmany && break
         end
 
@@ -120,7 +121,15 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
         end
 
         if alg.info > 1
-            @info "Lanczos eigsolve in iteration $numiter: $converged eigvals converged, norm residuals = $(abs.(f[1:howmany]...,))"
+            msg = "Lanczos eigsolve in iter $numiter: "
+            msg *= "$converged values converged, normres = ("
+            msg *= @sprintf("%.2e", abs(f[1]))
+            for i = 2:howmany
+                msg *= ", "
+                msg *= @sprintf("%.2e", abs(f[i]))
+            end
+            msg *= ")"
+            @info msg
         end
     end
 
@@ -146,10 +155,14 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
     if alg.info > 0
         if converged < howmany
             @warn """Lanczos eigsolve finished without convergence after $numiter iterations:
-            $converged eigenvalues converged, norm of residuals = $((normresiduals...,))"""
+             *  $converged eigenvalues converged
+             *  norm of residuals = $((normresiduals...,))
+             *  number of operations = $numops"""
         else
             @info """Lanczos eigsolve finished after $numiter iterations:
-            $converged eigenvalues converged, norm of residuals = $((normresiduals...,))"""
+             *  $converged eigenvalues converged
+             *  norm of residuals = $((normresiduals...,))
+             *  number of operations = $numops"""
         end
     end
 

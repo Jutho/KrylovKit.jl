@@ -100,16 +100,16 @@ function linselector(f, T::Type; issymmetric::Bool = false,
                                     info::Int = 0, kwargs...)
     if (T<:Real && issymmetric) || ishermitian
         if isposdef
-            return CG(maxiter = krylovdim*maxiter, atol = atol, rtol = rtol)
+            return CG(maxiter = krylovdim*maxiter, atol = atol, rtol = rtol, info = info)
         # else
         # TODO
         #     return MINRES(krylovdim*maxiter, tol=tol)
         end
         return GMRES(krylovdim = krylovdim, maxiter = maxiter, atol = atol, rtol = rtol,
-                        orth = orth)
+                        orth = orth, info = info)
     else
         return GMRES(krylovdim = krylovdim, maxiter = maxiter, atol = atol, rtol = rtol,
-                        orth = orth)
+                        orth = orth, info = info)
     end
 end
 function linselector(A::AbstractMatrix, T::Type;
@@ -124,15 +124,15 @@ function linselector(A::AbstractMatrix, T::Type;
                         info::Int = 0, kwargs...)
     if (T<:Real && issymmetric) || ishermitian
         if isposdef
-            return CG(maxiter = krylovdim*maxiter, atol = atol, rtol = rtol)
+            return CG(maxiter = krylovdim*maxiter, atol = atol, rtol = rtol, info = info)
         # else
         # TODO
-        #     return MINRES(krylovdim*maxiter, tol=tol)
+        #     return MINRES(krylovdim*maxiter, tol=tol, info = info)
         end
         return GMRES(krylovdim = krylovdim, maxiter = maxiter, atol = atol, rtol = rtol,
-                orth = orth)
+                orth = orth, info = info)
     else
         return GMRES(krylovdim = krylovdim, maxiter = maxiter, atol = atol, rtol = rtol,
-                orth = orth)
+                orth = orth, info = info)
     end
 end

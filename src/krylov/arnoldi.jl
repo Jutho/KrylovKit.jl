@@ -49,7 +49,7 @@ function Base.iterate(iter::ArnoldiIterator, state)
     end
 end
 
-function initialize(iter::ArnoldiIterator)
+function initialize(iter::ArnoldiIterator; info::Int = 0)
     β₀ = norm(iter.x₀)
     invβ₀ = one(eltype(iter.x₀))/β₀
     T = typeof(invβ₀) # division might change eltype
@@ -60,9 +60,13 @@ function initialize(iter::ArnoldiIterator)
     β = norm(r)
     V = OrthonormalBasis([v])
     H = [α, β]
+    if info > 0
+        @info "Arnoldi iteration step 1: normres = $β"
+    end
+
     state = ArnoldiFactorization(1, V, H, r)
 end
-function initialize!(iter::ArnoldiIterator, state::ArnoldiFactorization)
+function initialize!(iter::ArnoldiIterator, state::ArnoldiFactorization; info::Int = 0)
     x₀ = iter.x₀
     V = state.V
     while length(V) > 1
@@ -77,9 +81,12 @@ function initialize!(iter::ArnoldiIterator, state::ArnoldiFactorization)
     state.k = 1
     push!(H, α, β)
     state.r = r
+    if info > 0
+        @info "Arnoldi iteration step 1: normres = $β"
+    end
     return state
 end
-function expand!(iter::ArnoldiIterator, state::ArnoldiFactorization)
+function expand!(iter::ArnoldiIterator, state::ArnoldiFactorization; info::Int = 0)
     state.k += 1
     k = state.k
     V = state.V
@@ -92,6 +99,9 @@ function expand!(iter::ArnoldiIterator, state::ArnoldiFactorization)
     r, β = arnoldirecurrence!(iter.operator, V, view(H, (m+1):(m+k)), iter.orth)
     H[m+k+1] = β
     state.r = r
+    if info > 0
+        @info "Arnoldi iteration step $k: normres = $β"
+    end
     return state
 end
 function shrink!(state::ArnoldiFactorization, k)

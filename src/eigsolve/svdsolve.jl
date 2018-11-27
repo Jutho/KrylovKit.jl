@@ -111,13 +111,13 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
     numiter = 1
     # Compute Lanczos factorization
     iter = GKLIterator(svdfun(A), x₀, alg.orth)
-    fact = initialize(iter)
+    fact = initialize(iter; info = alg.info-2)
     numops = 2
     sizehint!(fact, krylovdim)
     β = normres(fact)
     tol::eltype(β) = alg.tol
     while length(fact) < krylovdim
-        fact = expand!(iter, fact)
+        fact = expand!(iter, fact; info = alg.info-2)
         numops += 2
         normres(fact) < tol && length(fact) >= howmany && break
     end
@@ -150,6 +150,18 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
     converged = 0
     while converged < length(fact) && abs(f[converged+1]) < tol
         converged += 1
+    end
+
+    if alg.info > 1
+        msg = "GKL svdsolve in iter $numiter: "
+        msg *= "$converged values converged, normres = ("
+        msg *= @sprintf("%.2e", abs(f[1]))
+        for i = 2:howmany
+            msg *= ", "
+            msg *= @sprintf("%.2e", abs(f[i]))
+        end
+        msg *= ")"
+        @info msg
     end
 
     ## OTHER ITERATIONS: recycle
@@ -205,7 +217,7 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
 
         # GKL factorization: recylce fact
         while length(fact) < krylovdim
-            fact = expand!(iter, fact)
+            fact = expand!(iter, fact; info = alg.info-2)
             numops += 2
             normres(fact) < tol && length(fact) >= howmany && break
         end
@@ -232,6 +244,18 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
         while converged < length(fact) && abs(f[converged+1]) < tol
             converged += 1
         end
+
+        if alg.info > 1
+            msg = "GKL svdsolve in iter $numiter: "
+            msg *= "$converged values converged, normres = ("
+            msg *= @sprintf("%.2e", abs(f[1]))
+            for i = 2:howmany
+                msg *= ", "
+                msg *= @sprintf("%.2e", abs(f[i]))
+            end
+            msg *= ")"
+            @info msg
+        end
     end
 
     if converged > howmany
@@ -255,6 +279,19 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
     end
     normresiduals = let f = f
         map(i->abs(f[i]), 1:howmany)
+    end
+    if alg.info > 0
+        if converged < howmany
+            @warn """GKL svdsolve finished without convergence after $numiter iterations:
+             *  $converged singular values converged
+             *  norm of residuals = $((normresiduals...,))
+             *  number of operations = $numops"""
+        else
+            @info """GKL svdsolve finished after $numiter iterations:
+             *  $converged singular values converged
+             *  norm of residuals = $((normresiduals...,))
+             *  number of operations = $numops"""
+        end
     end
 
     return values, leftvectors, rightvectors,
