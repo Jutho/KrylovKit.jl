@@ -63,5 +63,5 @@ KrylovKit.ConvergenceInfo
 There is also an expert interface where the user specifies the algorithm that should be used
 explicitly, i.e.
 ```julia
-results..., info = method(A, args..., algorithm)
+results..., info = problemsolver(A, args..., algorithm)
 ```

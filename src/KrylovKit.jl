@@ -21,14 +21,14 @@ using LinearAlgebra
 using Printf
 const IndexRange = AbstractRange{Int}
 
-export linsolve, eigsolve, svdsolve, schursolve, exponentiate
+export linsolve, eigsolve, geneigsolve, svdsolve, schursolve, exponentiate
 export orthogonalize, orthogonalize!, orthonormalize, orthonormalize!
 export basis, rayleighquotient, residual, normres, rayleighextension
 export initialize, initialize!, expand!, shrink!
 export ClassicalGramSchmidt, ClassicalGramSchmidt2, ClassicalGramSchmidtIR
 export ModifiedGramSchmidt, ModifiedGramSchmidt2, ModifiedGramSchmidtIR
 export LanczosIterator, ArnoldiIterator, GKLIterator
-export CG, GMRES, Lanczos, Arnoldi, GKL
+export CG, GMRES, Lanczos, Arnoldi, GKL, GolubYe
 export KrylovDefaults, ClosestTo, EigSorter
 export RecursiveVec, InnerProductVec
 
@@ -322,6 +322,8 @@ end
 include("eigsolve/eigsolve.jl")
 include("eigsolve/lanczos.jl")
 include("eigsolve/arnoldi.jl")
+include("eigsolve/geneigsolve.jl")
+include("eigsolve/golubye.jl")
 include("eigsolve/svdsolve.jl")
 
 # linsolve

@@ -13,10 +13,11 @@ b`, possibly using a starting guess `x₀`. Return the approximate solution `x` 
 
 ### Arguments:
 The linear map can be an `AbstractMatrix` (dense or sparse) or a general function or
-callable object. If no initial guess is specified, it is chosen as `fill!(similar(b, T),
-0)`. The numbers `a₀` and `a₁` are optional arguments; they are applied implicitly, i.e.
-they do not contribute the computation time of applying the linear map or to the number of
-operations on vectors of type `x` and `b`.
+callable object. If no initial guess is specified, it is chosen as `rmul!(similar(b, T),
+false)` which generates a similar object to `b`, but with element type `T` and initialized
+with zeros. The numbers `a₀` and `a₁` are optional arguments; they are applied implicitly,
+i.e. they do not contribute the computation time of applying the linear map or to the number
+of operations on vectors of type `x` and `b`.
 
 Finally, the optional argument `T` acts as a hint in which `Number` type the computation
 should be performed, but is not restrictive. If the linear map automatically produces
@@ -78,11 +79,11 @@ function linsolve end
 
 linsolve(A::AbstractMatrix, b::AbstractVector, a₀::Number = 0, a₁::Number = 1,
             T::Type = promote_type(eltype(A), eltype(b), typeof(a₀), typeof(a₁));
-            kwargs...) = linsolve(A, b, fill!(similar(b, T), 0), a₀, a₁; kwargs...)
+            kwargs...) = linsolve(A, b, rmul!(similar(b, T), false), a₀, a₁; kwargs...)
 
 linsolve(f, b, a₀::Number = 0, a₁::Number = 1,
             T::Type = promote_type(eltype(b), typeof(a₀), typeof(a₁));
-            kwargs...) = linsolve(f, b, fill!(similar(b, T), 0), a₀, a₁; kwargs...)
+            kwargs...) = linsolve(f, b, rmul!(similar(b, T), false), a₀, a₁; kwargs...)
 
 function linsolve(f, b, x₀, a₀::Number = 0, a₁::Number = 1; kwargs...)
     alg = linselector(f, promote_type(eltype(x₀), typeof(a₀), typeof(a₁)); kwargs...)

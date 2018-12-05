@@ -18,9 +18,10 @@ Random.seed!(1234567);
 
 include("linalg.jl")
 include("factorize.jl")
+include("linsolve.jl")
 include("eigsolve.jl")
 include("schursolve.jl")
+include("geneigsolve.jl")
 include("svdsolve.jl")
-include("linsolve.jl")
 include("exponentiate.jl")
 include("recursivevec.jl")

@@ -33,11 +33,11 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
     T = rayleighquotient(fact) # symtridiagonal
 
     # compute eigenvalues
-    D, U = eig!(T, U)
+    D, U = tridiageigh!(T, U)
     by, rev = eigsort(which)
     p = sortperm(D, by = by, rev = rev)
     D, U = permuteeig!(D, U, p)
-    mul!(f, view(U,m,:), β)
+    mul!(f, view(U, m, :), β)
     converged = 0
     while converged < length(fact) && abs(f[converged+1]) < tol
         converged += 1
@@ -90,7 +90,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
         #     rmul!(B, h')
         # end
         r = residual(fact)
-        B[keep+1] = rmul!(r, 1/normres(fact))
+        B[keep+1] = rmul!(r, 1/β)
 
         # Shrink Lanczos factorization
         fact = shrink!(fact, keep)
@@ -110,7 +110,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
         T = rayleighquotient(fact) # symtridiagonal
 
         # compute eigenvalues
-        D, U = eig!(T, U)
+        D, U = tridiageigh!(T, U)
         by, rev = eigsort(which)
         p = sortperm(D, by = by, rev = rev)
         D, U = permuteeig!(D, U, p)
@@ -139,7 +139,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
     values = D[1:howmany]
 
     # Compute eigenvectors
-    V = view(U,:,1:howmany)
+    V = view(U, :, 1:howmany)
 
     # Compute convergence information
     vectors = let B = basis(fact)

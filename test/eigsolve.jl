@@ -6,9 +6,10 @@
             v = rand(T,(n,))
             alg = Lanczos(orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)))
             n1 = div(n,2)
-            D1, V1, info = @inferred eigsolve(A, v, n1, :SR, alg)
+            D1, V1, info = eigsolve(A, n1, :SR; orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)))
+            @test KrylovKit.eigselector(A, eltype(v); orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T))) isa Lanczos
             n2 = n-n1
-            D2, V2, info = eigsolve(A, v, n2, :LR, alg)
+            D2, V2, info = @inferred eigsolve(A, v, n2, :LR, alg)
             @test vcat(D1[1:n1],reverse(D2[1:n2])) ≈ eigvals(A)
 
             U1 = hcat(V1...)
@@ -59,9 +60,10 @@ end
             v = rand(T,(n,))
             alg = Arnoldi(orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)))
             n1 = div(n,2)
-            D1, V1, info1 = @inferred eigsolve(A, v, n1, :SR, alg)
+            D1, V1, info1 = eigsolve(A, n1, :SR; orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)))
+            @test KrylovKit.eigselector(A, eltype(v); orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T))) isa Arnoldi
             n2 = n-n1
-            D2, V2, info2 = eigsolve(A, v, n2, :LR, alg)
+            D2, V2, info2 = @inferred eigsolve(A, v, n2, :LR, alg)
             D = sort(sort(eigvals(A), by=imag, rev=true), alg=MergeSort, by=real)
             D2′ = sort(sort(D2, by=imag, rev=true), alg=MergeSort, by=real)
             @test vcat(D1[1:n1],D2′[end-n2+1:end]) ≈ D

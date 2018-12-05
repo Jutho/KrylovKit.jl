@@ -48,13 +48,10 @@ KrylovKit.jl distinguishes itself from the previous packages in the following wa
     *   `Base.similar(v, [T::Type<:Number])`: a way to construct additional similar vectors,
         possibly with a different scalar type `T`.
     *   `Base.copyto!(w, v)`: copy the contents of `v` to a preallocated vector `w`
-    *   `Base.fill!(w, α)`: fill all the scalar entries of `w` with value `α`; this is only
-        used in combination with `α = 0` to create a zero vector. Note that `Base.zero(v)` does
-        not work for this purpose if we want to change the scalar `eltype`. We can also not
-        use `rmul!(v, 0)` (see below), since `NaN*0` yields `NaN`.
     *   `LinearAlgebra.mul!(w, v, α)`: out of place scalar multiplication; multiply
         vector `v` with scalar `α` and store the result in `w`
-    *   `LinearAlgebra.rmul!(v, α)`: in-place scalar multiplication of `v` with `α`.
+    *   `LinearAlgebra.rmul!(v, α)`: in-place scalar multiplication of `v` with `α`; in particular
+        with `α = false`, `v` is initialized with all zeros
     *   `LinearAlgebra.axpy!(α, v, w)`: store in `w` the result of `α*v + w`
     *   `LinearAlgebra.axpby!(α, v, β, w)`: store in `w` the result of `α*v + β*w`
     *   `LinearAlgebra.dot(v,w)`: compute the inner product of two vectors
@@ -91,7 +88,7 @@ Here follows a wish list / to-do list for the future. Any help is welcomed and a
     -   for `linsolve`: MINRES, BiCG, BiCGStab(l), IDR(s), ...
     -   for `eigsolve`: BiLanczos, Jacobi-Davidson (?) JDQR/JDQZ, subspace iteration (?), ...
     -   for `exponentiate`: Arnoldi (currently only Lanczos supported)
-*   Generalized eigenvalue problems: Rayleigh quotient / trace minimization, LO(B)PCG, EIGFP
+*   Generalized eigenvalue problems: Rayleigh quotient / trace minimization, LO(B)PCG, EIGIFP
 *   Least square problems
 *   Nonlinear eigenvalue problems
 *   Preconditioners

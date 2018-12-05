@@ -88,7 +88,7 @@ function exponentiate(A, t::Number, v, alg::Lanczos)
 
     # initialize iterator
     iter = LanczosIterator(A, w, alg.orth, true)
-    fact = initialize(iter)
+    fact = initialize(iter; info = alg.info-2)
     numops += 1
     sizehint!(fact, krylovdim)
 
@@ -112,20 +112,16 @@ function exponentiate(A, t::Number, v, alg::Lanczos)
 
         # Lanczos or Arnoldi factorization
         while normres(fact) > η && length(fact) < krylovdim
-            fact = expand!(iter, fact)
+            fact = expand!(iter, fact; info = alg.info-2)
             numops += 1
-            if alg.info > 2
-                @info "Lanczos exponentiate in iteration $numiter: Krylov step $(length(fact)): normres of Kryov factorization $(normres(fact))"
-            end
         end
         K = fact.k # current Krylov dimension
         V = basis(fact)
-        m = length(fact)
 
         # Small matrix exponential and error estimation
-        U = copyto!(view(UU, 1:m, 1:m), I)
+        U = copyto!(view(UU, 1:K, 1:K), I)
         H = rayleighquotient(fact) # tridiagonal
-        D, U = eig!(H, U)
+        D, U = tridiageigh!(H, U)
 
         # Estimate largest allowed time step
         ϵ::S = zero(η)
@@ -148,9 +144,9 @@ function exponentiate(A, t::Number, v, alg::Lanczos)
 
         # Apply time step
         totalerr += Δτ * ϵ
-        y1 = view(yy1, 1:m)
-        y2 = view(yy2, 1:m)
-        @inbounds for k = 1:m
+        y1 = view(yy1, 1:K)
+        y2 = view(yy2, 1:K)
+        @inbounds for k = 1:K
             y1[k] = exp(sgn*Δτ*D[k])*conj(U[1,k])
         end
         y2 = mul!(y2, U, y1)

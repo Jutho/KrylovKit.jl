@@ -1,6 +1,7 @@
 # Some modified wrappers for Lapack
 import LinearAlgebra: BlasFloat, BlasInt, LAPACKException,
-    DimensionMismatch, SingularException, PosDefException, chkstride1, checksquare
+    DimensionMismatch, SingularException, PosDefException, chkstride1, checksquare,
+    has_offset_axes
 import LinearAlgebra.BLAS: @blasfunc, libblas, BlasReal, BlasComplex
 import LinearAlgebra.LAPACK: liblapack, chklapackerror
 
@@ -89,12 +90,16 @@ function ldiv!(A::UpperTriangular, y::AbstractVector, r::UnitRange{Int} = 1:leng
 end
 
 # Eigenvalue decomposition of SymTridiagonal matrix
-eig!(A::SymTridiagonal{T}, Z::StridedMatrix{T} = one(A)) where {T<:BlasFloat} =
-    steqr!(A.dv, A.ev, Z)
+tridiageigh!(A::SymTridiagonal{T}, Z::StridedMatrix{T} = one(A)) where {T<:BlasFloat} =
+    stegr!(A.dv, A.ev, Z) # redefined
+
+# Generalized eigenvalue decomposition of symmetric / Hermitian problem
+geneigh!(A::StridedMatrix{T}, B::StridedMatrix{T}) where {T<:BlasFloat} =
+    LAPACK.sygvd!(1, 'V', 'U', A, B)
 
 # Singular value decomposition of a Bidiagonal matrix
 function bidiagsvd!(B::Bidiagonal{T}, U::StridedMatrix{T} = one(B),
-        VT::StridedMatrix{T} = one(B)) where {T<:BlasReal}
+                    VT::StridedMatrix{T} = one(B)) where {T<:BlasReal}
     s, Vt, U, = LAPACK.bdsqr!(B.uplo, B.dv, B.ev, VT, U, similar(U, (size(B,1), 0)))
     return U, s, Vt
 end
@@ -340,23 +345,59 @@ function permuteschur!(T::StridedMatrix{S}, Q::StridedMatrix{S},
 end
 
 # redefine LAPACK interface to tridiagonal eigenvalue problem
-for (steqr, elty) in ((:dsteqr_, :Float64), (:ssteqr_, :Float32))
+for (stegr, elty) in
+    ((:dstegr_,:Float64),
+     (:sstegr_,:Float32))
     @eval begin
-        function steqr!(D::StridedVector{$elty}, E::StridedVector{$elty}, Z::StridedMatrix{$elty})
-            n = length(D)
-            chkstride1(Z)
+        function stegr!(dv::AbstractVector{$elty}, ev::AbstractVector{$elty}, Z::AbstractMatrix{$elty})
+            @assert !has_offset_axes(dv, ev, Z)
+            chkstride1(dv, ev, Z)
+            n = length(dv)
+            if length(ev) == n - 1
+                eev = [ev; zero($elty)]
+            elseif length(ev) == n
+                eev = ev
+            else
+                throw(DimensionMismatch("ev has length $(length(ev)) but needs one less than dv's length, $n)"))
+            end
             checksquare(Z) == n || throw(DimensionMismatch())
-            length(E) >= n-1 || throw(DimensionMismatch())
-            compz = 'V'
-            ldz = stride(Z, 2)
-            work = Vector{$elty}(undef, max(1,2*n-2))
+            ldz = max(1, stride(Z,2))
+            jobz = 'V'
+            range = 'A'
+            abstol = Vector{$elty}(undef, 1)
+            il = 1
+            iu = n
+            vl = zero($elty)
+            vu = zero($elty)
+            m = Ref{BlasInt}()
+            w = similar(dv, $elty, n)
+            isuppz = similar(dv, BlasInt, 2*size(Z, 2))
+            work = Vector{$elty}(undef, 1)
+            lwork = BlasInt(-1)
+            iwork = Vector{BlasInt}(undef, 1)
+            liwork = BlasInt(-1)
             info = Ref{BlasInt}()
-            ccall((@blasfunc($steqr), liblapack), Nothing,
-                (Ref{UInt8}, Ref{BlasInt}, Ptr{$elty}, Ptr{$elty},
-                    Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ptr{BlasInt}),
-                    compz, n, D, E, Z, ldz, work, info)
-            chklapackerror(info[])
-            return D, Z
+            for i = 1:2  # first call returns lwork as work[1] and liwork as iwork[1]
+                ccall((@blasfunc($stegr), liblapack), Cvoid,
+                    (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ptr{$elty},
+                    Ptr{$elty}, Ref{$elty}, Ref{$elty}, Ref{BlasInt},
+                    Ref{BlasInt}, Ptr{$elty}, Ptr{BlasInt}, Ptr{$elty},
+                    Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Ptr{$elty},
+                    Ref{BlasInt}, Ptr{BlasInt}, Ref{BlasInt}, Ptr{BlasInt}),
+                    jobz, range, n, dv,
+                    eev, vl, vu, il,
+                    iu, abstol, m, w,
+                    Z, ldz, isuppz, work,
+                    lwork, iwork, liwork, info)
+                chklapackerror(info[])
+                if i == 1
+                    lwork = BlasInt(work[1])
+                    resize!(work, lwork)
+                    liwork = iwork[1]
+                    resize!(iwork, liwork)
+                end
+            end
+            w, Z
         end
     end
 end

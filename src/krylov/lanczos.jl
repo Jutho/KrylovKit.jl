@@ -78,7 +78,6 @@ function initialize(iter::LanczosIterator; info::Int = 0)
         error("operator does not appear to be hermitian: $(imag(α)) vs $n")
 
     V = OrthonormalBasis([v])
-    S = eltype(β)
     αs = [real(α)]
     βs = [β]
     if info > 0
@@ -131,7 +130,7 @@ function expand!(iter::LanczosIterator, state::LanczosFactorization; info::Int =
     state.k += 1
     state.r = r
     if info > 0
-        @info "Arnoldi iteration step $(state.k): normres = $β"
+        @info "Lanczos iteration step $(state.k): normres = $β"
     end
     return state
 end
