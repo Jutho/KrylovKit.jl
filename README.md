@@ -16,6 +16,7 @@ objects with vector like behavior (as defined in the docs) as vectors.
 The high level interface of KrylovKit is provided by the following functions:
 *   `linsolve`: solve linear systems
 *   `eigsolve`: find a few eigenvalues and corresponding eigenvectors
+*   `geneigsolve`: find a few generalized eigenvalues and corresponding eigenvectors
 *   `svdsolve`: find a few singular values and corresponding left and right singular vectors
 *   `exponentiate`: apply the exponential of a linear map to a vector
 
