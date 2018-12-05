@@ -10,8 +10,12 @@ objects with vector like behavior (see below) as vectors.
 
 The high level interface of KrylovKit is provided by the following functions:
 *   [`linsolve`](@ref): solve linear systems
-*   [`eigsolve`](@ref): find a few eigenvalues and corresponding eigenvectors
-*   [`svdsolve`](@ref): find a few singular values and corresponding left and right singular vectors
+*   [`eigsolve`](@ref): find a few eigenvalues and corresponding eigenvectors of a normal
+    eigenvalue problem
+*   [`geneigsolve`](@ref): find a few eigenvalues and corresponding eigenvectors of a
+    generalized eigenvalue problem
+*   [`svdsolve`](@ref): find a few singular values and corresponding left and right
+    singular vectors
 *   [`exponentiate`](@ref): apply the exponential of a linear map to a vector
 
 ## Package features and alternatives
@@ -25,33 +29,39 @@ There are already a fair number of packages with Krylov-based or other iterative
     [JuliaSmoothOptimizers](https://github.com/JuliaSmoothOptimizers) organisation, solves
     linear systems and least square problems, specific for linear operators from
     [LinearOperators.jl](https://github.com/JuliaSmoothOptimizers/LinearOperators.jl).
-*   [KrylovMethods.jl](https://github.com/lruthotto/KrylovMethods.jl): specific for sparse matrices
-*   [Expokit.jl](https://github.com/acroy/Expokit.jl): application of the matrix exponential to a vector
-*   [ArnoldiMethod.jl](https://github.com/haampie/ArnoldiMethod.jl): Implicitly restarted Arnoldi method for eigenvalues of a general matrix
-*   [JacobiDavidson.jl](https://github.com/haampie/JacobiDavidson.jl): Jacobi-Davidson method for eigenvalues of a general matrix
+*   [KrylovMethods.jl](https://github.com/lruthotto/KrylovMethods.jl): specific for sparse
+    matrices
+*   [Expokit.jl](https://github.com/acroy/Expokit.jl): application of the matrix
+    exponential to a vector
+*   [ArnoldiMethod.jl](https://github.com/haampie/ArnoldiMethod.jl): Implicitly restarted
+    Arnoldi method for eigenvalues of a general matrix
+*   [JacobiDavidson.jl](https://github.com/haampie/JacobiDavidson.jl): Jacobi-Davidson
+    method for eigenvalues of a general matrix
 
-These packages have certainly inspired and influenced the development of KrylovKit.jl. However,
-KrylovKit.jl distinguishes itself from the previous packages in the following ways:
+These packages have certainly inspired and influenced the development of KrylovKit.jl.
+However, KrylovKit.jl distinguishes itself from the previous packages in the following ways:
 
 1.  KrylovKit accepts general functions to represent the linear map or operator that defines
-    the problem, without having to wrap them in a [`LinearMap`](https://github.com/Jutho/LinearMaps.jl)
-    or [`LinearOperator`](https://github.com/JuliaSmoothOptimizers/LinearOperators.jl) type.
-    Of course, subtypes of `AbstractMatrix` are also supported. If the linear map (always the first
-    argument) is a subtype of `AbstractMatrix`, matrix vector multiplication is used, otherwise
-    is applied as a function call.
+    the problem, without having to wrap them in a
+    [`LinearMap`](https://github.com/Jutho/LinearMaps.jl) or
+    [`LinearOperator`](https://github.com/JuliaSmoothOptimizers/LinearOperators.jl) type.
+    Of course, subtypes of `AbstractMatrix` are also supported. If the linear map (always
+    the first argument) is a subtype of `AbstractMatrix`, matrix vector multiplication is
+    used, otherwise it is applied as a function call.
 
-2.  KrylovKit does not assume that the vectors involved in the problem are actual subtypes of
-    `AbstractVector`. Any Julia object that behaves as a vector is supported, so in particular
-    higher-dimensional arrays or any custom user type that supports the following functions
-    (with `v` and `w` two instances of this type and `α` a scalar (`Number`)):
+2.  KrylovKit does not assume that the vectors involved in the problem are actual subtypes
+    of `AbstractVector`. Any Julia object that behaves as a vector is supported, so in
+    particular higher-dimensional arrays or any custom user type that supports the
+    following functions (with `v` and `w` two instances of this type and `α` a scalar
+    (`Number`)):
     *   `Base.eltype(v)`: the scalar type (i.e. `<:Number`) of the data in `v`
     *   `Base.similar(v, [T::Type<:Number])`: a way to construct additional similar vectors,
         possibly with a different scalar type `T`.
     *   `Base.copyto!(w, v)`: copy the contents of `v` to a preallocated vector `w`
     *   `LinearAlgebra.mul!(w, v, α)`: out of place scalar multiplication; multiply
         vector `v` with scalar `α` and store the result in `w`
-    *   `LinearAlgebra.rmul!(v, α)`: in-place scalar multiplication of `v` with `α`; in particular
-        with `α = false`, `v` is initialized with all zeros
+    *   `LinearAlgebra.rmul!(v, α)`: in-place scalar multiplication of `v` with `α`; in
+        particular with `α = false`, `v` is initialized with all zeros
     *   `LinearAlgebra.axpy!(α, v, w)`: store in `w` the result of `α*v + w`
     *   `LinearAlgebra.axpby!(α, v, β, w)`: store in `w` the result of `α*v + β*w`
     *   `LinearAlgebra.dot(v,w)`: compute the inner product of two vectors
@@ -59,24 +69,33 @@ KrylovKit.jl distinguishes itself from the previous packages in the following wa
 
     Furthermore, KrylovKit provides two types satisfying the above requirements that might
     facilitate certain applications:
-    *   [`RecursiveVec`](@ref) can be used for grouping a set of vectors into a single vector like
-    structure (can be used recursively). The reason that e.g. `Vector{<:Vector}` cannot be used
-    for this is that it returns the wrong `eltype` and methods like `similar(v, T)` and `fill!(v, α)`
-    don't work correctly.
-    *   [`InnerProductVec`](@ref) can be used to redefine the inner product (i.e. `dot`) and corresponding
-    norm (`norm`) of an already existing vector like object. The latter should help with implementing
-    certain type of preconditioners and solving generalized eigenvalue problems with a positive
-    definite matrix in the right hand side.
+    *   [`RecursiveVec`](@ref) can be used for grouping a set of vectors into a single
+        vector like structure (can be used recursively). The reason that e.g.
+        `Vector{<:Vector}` cannot be used for this is that it returns the wrong `eltype`
+        and methods like `similar(v, T)` and `fill!(v, α)`
+        don't work correctly.
+    *   [`InnerProductVec`](@ref) can be used to redefine the inner product (i.e. `dot`)
+        and corresponding norm (`norm`) of an already existing vector like object. The
+        latter should help with implementing certain type of preconditioners
 
 ## Current functionality
 
 The following algorithms are currently implemented
 *   `linsolve`: [`CG`](@ref), [`GMRES`](@ref)
-*   `eigsolve`: a Krylov-Schur algorithm (i.e. with tick restarts) for extremal eigenvalues of
-    normal (i.e. not generalized) eigenvalue problems, corresponding to [`Lanczos`](@ref) for
-    real symmetric or complex hermitian linear maps, and to [`Arnoldi`](@ref) for general linear maps.
-*   `svdsolve`: finding largest singular values based on Golub-Kahan-Lanczos bidiagonalization
-    (see [`GKL`](@ref))
+*   `eigsolve`: a Krylov-Schur algorithm (i.e. with tick restarts) for extremal eigenvalues
+    of normal (i.e. not generalized) eigenvalue problems, corresponding to
+    [`Lanczos`](@ref) for real symmetric or complex hermitian linear maps, and to
+    [`Arnoldi`](@ref) for general linear maps.
+*   `geneigsolve`: an customized implementation of the inverse-free algorithm of Golub and
+    Ye for symmetric / hermitian generalized eigenvalue problems with positive definite
+    matrix `B` in the right hand side of the generalized eigenvalue problem ``A v = B v λ``.
+    The Matlab implementation was described by Money and Ye and is known as `EIGIFP`; in
+    particular it extends the Krylov subspace with a vector corresponding to the step
+    between the current and previous estimate, analoguous to the locally optimal
+    preconditioned conjugate gradient method (LOPCG). In particular, with Krylov dimension
+    2, it becomes equivalent to the latter.
+*   `svdsolve`: finding largest singular values based on Golub-Kahan-Lanczos
+    bidiagonalization (see [`GKL`](@ref))
 *   `exponentiate`: a [`Lanczos`](@ref) based algorithm for the action of the exponential of
     a real symmetric or complex hermitian linear map.
 
@@ -86,17 +105,23 @@ Here follows a wish list / to-do list for the future. Any help is welcomed and a
 
 *   More algorithms, including biorthogonal methods:
     -   for `linsolve`: MINRES, BiCG, BiCGStab(l), IDR(s), ...
-    -   for `eigsolve`: BiLanczos, Jacobi-Davidson (?) JDQR/JDQZ, subspace iteration (?), ...
-    -   for `exponentiate`: Arnoldi (currently only Lanczos supported)
-*   Generalized eigenvalue problems: Rayleigh quotient / trace minimization, LO(B)PCG, EIGIFP
+    -   for `eigsolve`: BiLanczos, Jacobi-Davidson JDQR/JDQZ, subspace iteration (?), ...
+    -   for `geneigsolve`: trace minimization, block versions
+    -   for `exponentiate`: Arnoldi (currently only Lanczos supported);
+*   Exponential integration, i.e. the ϕ_p functions
+*   Support both in-place / mutating and out-of-place functions as linear maps
 *   Least square problems
 *   Nonlinear eigenvalue problems
 *   Preconditioners
 *   Refined Ritz vectors, Harmonic ritz values and vectors
-*   Support both in-place / mutating and out-of-place functions as linear maps
 *   Reuse memory for storing vectors when restarting algorithms
 *   Block versions of the algorithms
 *   More relevant matrix functions
 
 Partially done:
-*   Improved efficiency for the specific case where `x` is `Vector` (i.e. BLAS level 2 operations): any vector `v::AbstractArray` which has `IndexStyle(v) == IndexLinear()` now benefits from a multithreaded (use `export JULIA_NUM_THREADS = x` with `x` the number of threads you want to use) implementation that resembles BLAS level 2 style for the vector operations, provided `ClassicalGramSchmidt()`, `ClassicalGramSchmidt2()` or `ClassicalGramSchmidtIR()` is chosen as orthogonalization routine.
+*   Improved efficiency for the specific case where `x` is `Vector` (i.e. BLAS level 2
+    operations): any vector `v::AbstractArray` which has `IndexStyle(v) == IndexLinear()`
+    now benefits from a multithreaded (use `export JULIA_NUM_THREADS = x` with `x` the
+    number of threads you want to use) implementation that resembles BLAS level 2 style for
+    the vector operations, provided `ClassicalGramSchmidt()`, `ClassicalGramSchmidt2()` or
+    `ClassicalGramSchmidtIR()` is chosen as orthogonalization routine.

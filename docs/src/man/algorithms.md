@@ -24,8 +24,12 @@ GMRES
 KrylovKit.BiCG
 KrylovKit.BiCGStab
 ```
+## Specific algorithms for generalized eigenvalue problems
+```@docs
+GolubYe
+```
 
-## Specific algorithms for sigular values
+## Specific algorithms for sigular value problems
 ```@docs
 GKL
 ```

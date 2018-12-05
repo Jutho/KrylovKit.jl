@@ -1,4 +1,4 @@
-using Documenter, DocumenterTools
+using Documenter
 using KrylovKit
 
 makedocs(
@@ -17,7 +17,6 @@ makedocs(
             "man/implementation.md"
         ]
     ],
-    html_prettyurls = !("local" in ARGS)
 )
 
 deploydocs(repo = "github.com/Jutho/KrylovKit.jl.git")
