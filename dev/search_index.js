@@ -137,6 +137,14 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
+    "location": "man/eig/#Eigenvalue-problems-1",
+    "page": "Eigenvalue problems",
+    "title": "Eigenvalue problems",
+    "category": "section",
+    "text": ""
+},
+
+{
     "location": "man/eig/#KrylovKit.eigsolve",
     "page": "Eigenvalue problems",
     "title": "KrylovKit.eigsolve",
@@ -153,11 +161,27 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/eig/#Eigenvalue-problems-1",
+    "location": "man/eig/#Eigenvalues-and-eigenvectors-1",
     "page": "Eigenvalue problems",
-    "title": "Eigenvalue problems",
+    "title": "Eigenvalues and eigenvectors",
     "category": "section",
     "text": "Finding a selection of eigenvalues and corresponding (right) eigenvectors of a linear map can be accomplished with the eigsolve routine:eigsolveFor a general matrix, eigenvalues and eigenvectors will always be returned with complex values for reasons of type stability. However, if the linear map and initial guess are real, most of the computation is actually performed using real arithmetic, as in fact the first step is to compute an approximate partial Schur factorization. If one is not interested in the eigenvectors, one can also just compute this partial Schur factorization using schursolve.schursolveNote that, for symmetric or hermitian linear maps, the eigenvalue and Schur factorizaion are equivalent, and one can only use eigsolve.Another example of a possible use case of schursolve is if the linear map is known to have a unique eigenvalue of, e.g. largest magnitude. Then, if the linear map is real valued, that largest magnitude eigenvalue and its corresponding eigenvector are also real valued. eigsolve will automatically return complex valued eigenvectors for reasons of type stability. However, as the first Schur vector will coincide with the first eigenvector, one can instead useT, vecs, vals, info = schursolve(A, x⁠₀, 1, :LM, Arnoldi(...))and use vecs[1] as the real valued eigenvector (after checking info.converged) corresponding to the largest magnitude eigenvalue of A."
+},
+
+{
+    "location": "man/eig/#KrylovKit.geneigsolve",
+    "page": "Eigenvalue problems",
+    "title": "KrylovKit.geneigsolve",
+    "category": "function",
+    "text": "geneigsolve(A::AbstractMatrix, B::AbstractMatrix, [howmany = 1, which = :LM, T = promote_type(eltype(A), eltype(B))]; kwargs...)\ngeneigsolve(A, B, n::Int, [howmany = 1, which = :LM, T = Float64]; kwargs...)\ngeneigsolve(A, B, x₀, [howmany = 1, which = :LM]; kwargs...)\ngeneigsolve(A, B, x₀, howmany, which, algorithm)\n\nCompute howmany generalized eigenvalues λ and generalized eigenvectors x of the form (A - λB)x = 0, where A and B are either instances of AbstractMatrix, or some function that implements the matrix vector product. Return eigenvalues, eigenvectors and a ConvergenceInfo structure.\n\nArguments:\n\nThe linear maps A and B can be an AbstractMatrix (dense or sparse) or a general function or callable object. If an AbstractMatrix is used for either A or B, a starting vector x₀ does not need to be provided, it is then chosen as rand(T, size(A,1)) if A is an AbstractMatrix (or similarly if only B is an AbstractMatrix). Here T = promote_type(eltype(A), eltype(B)) if both A and B are instances of AbstractMatrix, or just the eltype of whichever is an AbstractMatrix. If both A and B are encoded more generally as a callable function or method, the best approach is to provide an explicit starting guess x₀. Note that x₀ does not need to be of type AbstractVector, any type that behaves as a vector and supports the required methods (see KrylovKit docs) is accepted. If instead of x₀ an integer n is specified, it is assumed that x₀ is a regular vector and it is initialized to rand(T,n), where the default value of T is Float64, unless specified differently.\n\nThe next arguments are optional, but should typically be specified. howmany specifies how many eigenvalues should be computed; which specifies which eigenvalues should be targetted. Valid specifications of which are given by\n\nLR: eigenvalues with largest (most positive) real part\nSR: eigenvalues with smallest (most negative) real part\n\nnote: Note about selecting `which` eigenvalues\nKrylov methods work well for extremal eigenvalues, i.e. eigenvalues on the periphery of the spectrum of the linear map. Even with ClosestTo, no shift and invert is performed. This is useful if, e.g., you know the spectrum to be within the unit circle in the complex plane, and want to target the eigenvalues closest to the value λ = 1.\n\nThe argument T acts as a hint in which Number type the computation should be performed, but is not restrictive. If the linear map automatically produces complex values, complex arithmetic will be used even though T<:Real was specified.\n\nReturn values:\n\nThe return value is always of the form vals, vecs, info = eigsolve(...) with\n\nvals: a Vector containing the eigenvalues, of length at least howmany, but could   be longer if more eigenvalues were converged at the same cost.\nvecs: a Vector of corresponding eigenvectors, of the same length as vals.   Note that eigenvectors are not returned as a matrix, as the linear map could act on any   custom Julia type with vector like behavior, i.e. the elements of the list vecs are   objects that are typically similar to the starting guess x₀, up to a possibly   different eltype. When the linear map is a simple AbstractMatrix, vecs will be   Vector{Vector{<:Number}}.\ninfo: an object of type [ConvergenceInfo], which has the following fields\ninfo.converged::Int: indicates how many eigenvalues and eigenvectors were actually   converged to the specified tolerance tol (see below under keyword arguments)\ninfo.residual::Vector: a list of the same length as vals containing the   residuals info.residual[i] = f(vecs[i]) - vals[i] * vecs[i]\ninfo.normres::Vector{<:Real}: list of the same length as vals containing the   norm of the residual info.normres[i] = norm(info.residual[i])\ninfo.numops::Int: number of times the linear map was applied, i.e. number of times   f was called, or a vector was multiplied with A\ninfo.numiter::Int: number of times the Krylov subspace was restarted (see below)\n\nwarning: Check for convergence\nNo warning is printed if not all requested eigenvalues were converged, so always check if info.converged >= howmany.\n\nKeyword arguments:\n\nKeyword arguments and their default values are given by:\n\ntol::Real: the requested accuracy (corresponding to the 2-norm of the residual for   Schur vectors, not the eigenvectors). If you work in e.g. single precision (Float32),   you should definitely change the default value.\nkrylovdim::Integer: the maximum dimension of the Krylov subspace that will be   constructed. Note that the dimension of the vector space is not known or checked, e.g.   x₀ should not necessarily support the Base.length function. If you know the actual   problem dimension is smaller than the default value, it is useful to reduce the value   of krylovdim, though in principle this should be detected.\nmaxiter::Integer: the number of times the Krylov subspace can be rebuilt; see below   for further details on the algorithms.\north::Orthogonalizer: the orthogonalization method to be used, see   Orthogonalizer\nissymmetric::Bool: if both linear maps A and B are symmetric, only meaningful if   T<:Real\nishermitian::Bool: if both linear maps A and B are hermitian\nisposdef::Bool: if the linear map B is positive definites\n\nThe default values are given by tol = KrylovDefaults.tol, krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter, orth = KrylovDefaults.orth; see KrylovDefaults for details.\n\nThe default value for the last three parameters depends on the method. If an AbstractMatrix is used, issymmetric, ishermitian and isposdef are checked for that matrix, ortherwise the default values are issymmetric = false and ishermitian = T <: Real && issymmetric. When values are provided, no checks will be performed even in the matrix case.\n\nAlgorithm\n\nThe last method, without default values and keyword arguments, is the one that is finally called, and can also be used directly. Here, one specifies the algorithm explicitly as either Lanczos, for real symmetric or complex hermitian problems, or Arnoldi, for general problems. Note that these names refer to the process for building the Krylov subspace, but the actual algorithm is an implementation of the Krylov-Schur algorithm, which can dynamically shrink and grow the Krylov subspace, i.e. the restarts are so-called thick restarts where a part of the current Krylov subspace is kept.\n\n\n\n\n\n"
+},
+
+{
+    "location": "man/eig/#Generalized-eigenvalue-problems-1",
+    "page": "Eigenvalue problems",
+    "title": "Generalized eigenvalue problems",
+    "category": "section",
+    "text": "geneigsolve"
 },
 
 {
