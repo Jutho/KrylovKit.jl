@@ -59,7 +59,7 @@ LinearAlgebra.mul!(y, b::OrthonormalBasis, x::AbstractVector) = unproject!(y, b,
 
 const BLOCKSIZE = 4096
 
-function project!(y::AbstractVector, b::OrthonormalBasis, x, α::Number = 1, β::Number = 0, r = Base.OneTo(length(b)))
+function project!(y::AbstractVector, b::OrthonormalBasis, x, α::Number = true, β::Number = false, r = Base.OneTo(length(b)))
     # if x isa AbstractArray && IndexStyle(x) isa IndexLinear && Threads.nthreads() > 1 && !(Threads.in_threaded_loop[])
     #     return project_linear_multithreaded!(y, b, x, α, β, r)
     # end
@@ -128,7 +128,7 @@ this computes
     y = β*y + α * sum(b[r[i]]*x[i] for i = 1:length(r))
 ```
 """
-function unproject!(y, b::OrthonormalBasis, x::AbstractVector, α::Number = 1, β::Number = 0, r = Base.OneTo(length(b)))
+function unproject!(y, b::OrthonormalBasis, x::AbstractVector, α::Number = true, β::Number = false, r = Base.OneTo(length(b)))
     if y isa AbstractArray && IndexStyle(y) isa IndexLinear && Threads.nthreads() > 1 && !(Threads.in_threaded_loop[])
         return unproject_linear_multithreaded!(y, b, x, α, β, r)
     end
@@ -144,7 +144,7 @@ function unproject!(y, b::OrthonormalBasis, x::AbstractVector, α::Number = 1, �
     end
     return y
 end
-function unproject_linear_multithreaded!(y::AbstractArray, b::OrthonormalBasis{<:AbstractArray}, x::AbstractVector, α::Number, β::Number, r)
+function unproject_linear_multithreaded!(y::AbstractArray, b::OrthonormalBasis{<:AbstractArray}, x::AbstractVector, α::Number = true, β::Number = false, r = Base.OneTo(length(b)))
     # multi-threaded implementation, similar to BLAS level 2 matrix vector multiplication
     m = length(y)
     n = length(r)
@@ -157,27 +157,30 @@ function unproject_linear_multithreaded!(y::AbstractArray, b::OrthonormalBasis{<
     end
     let m = m, n = n, y = y, x = x, b = b, blocksize = prevpow(2, div(BLOCKSIZE, n))
         Threads.@threads for I = 1:blocksize:m
-            @inbounds begin
-                if β == 0
-                    @simd for i = I:min(I+blocksize-1, m)
-                        y[i] = zero(y[i])
-                    end
-                elseif β != 1
-                    @simd for i = I:min(I+blocksize-1, m)
-                        y[i] *= β
-                    end
-                end
-                for (j,rj) in enumerate(r)
-                    xj = α*x[j]
-                    Vj = b[rj]
-                    @simd for i = I:min(I+blocksize-1, m)
-                        y[i] += Vj[i]*xj
-                    end
-                end
-            end
+            unproject_linear_kernel!(y, b, x, I:min(I+blocksize-1, m), α, β, r)
         end
     end
     return y
+end
+function unproject_linear_kernel!(y::AbstractArray, b::OrthonormalBasis{<:AbstractArray}, x::AbstractVector, I, α::Number, β::Number, r)
+    @inbounds begin
+        if β == 0
+            @simd for i in I
+                y[i] = zero(y[i])
+            end
+        elseif β != 1
+            @simd for i in I
+                y[i] *= β
+            end
+        end
+        for (j,rj) in enumerate(r)
+            xj = x[j]*α
+            Vj = b[rj]
+            @simd for i in I
+                y[i] += Vj[i]*xj
+            end
+        end
+    end
 end
 
 """
@@ -189,7 +192,7 @@ Perform a rank 1 update of a basis `b`, i.e. update the basis vectors as
 ```
 It is the user's responsibility to make sure that the result is still an orthonormal basis.
 """
-@fastmath function rank1update!(b::OrthonormalBasis, y, x::AbstractVector, α::Number = 1, β::Number = 1, r = Base.OneTo(length(b)))
+@fastmath function rank1update!(b::OrthonormalBasis, y, x::AbstractVector, α::Number = true, β::Number = true, r = Base.OneTo(length(b)))
     if y isa AbstractArray && IndexStyle(y) isa IndexLinear && Threads.nthreads() > 1 && !(Threads.in_threaded_loop[])
         return rank1update_linear_multithreaded!(b, y, x, α, β, r)
     end

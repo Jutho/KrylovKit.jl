@@ -1,4 +1,6 @@
 # Eigenvalue problems
+
+## Eigenvalues and eigenvectors
 Finding a selection of eigenvalues and corresponding (right) eigenvectors of a linear map
 can be accomplished with the `eigsolve` routine:
 ```@docs
@@ -28,3 +30,9 @@ T, vecs, vals, info = schursolve(A, x⁠₀, 1, :LM, Arnoldi(...))
 ```
 and use `vecs[1]` as the real valued eigenvector (after checking `info.converged`)
 corresponding to the largest magnitude eigenvalue of `A`.
+
+## Generalized eigenvalue problems
+
+```@docs
+geneigsolve
+```

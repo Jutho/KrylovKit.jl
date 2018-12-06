@@ -1,4 +1,4 @@
-@testset "Lanczos - Exponentiate full" begin
+@testset "Lanczos - exponentiate full" begin
     @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
         @testset for orth in (cgs2, mgs2, cgsr, mgsr)
             A = rand(T,(n,n)) .- one(T)/2
@@ -14,7 +14,7 @@
     end
 end
 
-@testset "Lanczos - Exponentiate iteratively" begin
+@testset "Lanczos - exponentiate iteratively" begin
     @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
         @testset for orth in (cgs2, mgs2, cgsr, mgsr)
             A = rand(T,(N,N)) .- one(T)/2

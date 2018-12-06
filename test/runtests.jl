@@ -6,7 +6,7 @@ using KrylovKit
 const n = 10
 const N = 100
 
-const η₀   = 1/sqrt(2) # conservative choice, probably 1/2 is sufficient
+const η₀   = 0.75 # seems to be necessary to get sufficient convergence for GKL iteration with Float32 precision
 const cgs = ClassicalGramSchmidt()
 const mgs = ModifiedGramSchmidt()
 const cgs2 = ClassicalGramSchmidt2()
@@ -21,7 +21,6 @@ include("factorize.jl")
 include("linsolve.jl")
 include("eigsolve.jl")
 include("schursolve.jl")
-include("geneigsolve.jl")
 include("svdsolve.jl")
 include("exponentiate.jl")
 include("recursivevec.jl")

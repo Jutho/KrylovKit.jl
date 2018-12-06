@@ -180,7 +180,7 @@ function gklrecurrence(operator, U::OrthonormalBasis, V::OrthonormalBasis, β,
                         orth::ClassicalGramSchmidt2)
     u = U[end]
     v = operator(u, true)
-    v = axpy!(-β, V[end], v)
+    v = axpy!(-β, V[end], v) # not necessary if we definitely reorthogonalize next step and previous step
     # v, = orthogonalize!(v, V, ClassicalGramSchmidt())
     α = norm(v)
     rmul!(v, inv(α))
@@ -196,7 +196,7 @@ function gklrecurrence(operator, U::OrthonormalBasis, V::OrthonormalBasis, β,
     u = U[end]
     v = operator(u, true)
     v = axpy!(-β, V[end], v)
-    # for q in V
+    # for q in V # not necessary if we definitely reorthogonalize next step and previous step
     #     v, = orthogonalize!(v, q, ModifiedGramSchmidt())
     # end
     α = norm(v)

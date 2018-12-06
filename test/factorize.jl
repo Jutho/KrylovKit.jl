@@ -1,4 +1,3 @@
-
 # Test complete Lanczos factorization
 @testset "Complete Lanczos factorization" begin
     @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
@@ -46,7 +45,7 @@ end
 # Test complete Arnoldi factorization
 @testset "Complete Golub-Kahan-Lanczos factorization" begin
     @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
-        @testset for orth in (cgs2, mgs2)
+        @testset for orth in (cgs2, mgs2, cgsr, mgsr)
             A = rand(T,(n,n))
             v = A*rand(T,(n,)) # ensure v is in column space of A
             iter = GKLIterator(A, v, orth)
@@ -141,7 +140,7 @@ end
 # Test incomplete Arnoldi factorization
 @testset "Incomplete GKL factorization" begin
     @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
-        @testset for orth in (cgs2, mgs2)
+        @testset for orth in (cgs2, mgs2, cgsr, mgsr)
             A = rand(T,(N,N))
             v = rand(T,(N,))
             iter = @inferred GKLIterator(A, v, orth)

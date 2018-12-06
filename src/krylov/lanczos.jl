@@ -156,7 +156,6 @@ function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ClassicalGra
     v = V[end]
     w = apply(operator, v)
     α = dot(v, w)
-
     w = axpy!(-β, V[end-1], w)
     w = axpy!(-α, v, w)
     β = norm(w)
@@ -166,8 +165,8 @@ function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ModifiedGram
     v = V[end]
     w = apply(operator, v)
     w = axpy!( -β, V[end-1], w)
-
-    w, α = orthogonalize!(w, v, orth)
+    α = dot(v, w)
+    w = axpy!(-α, v, w)
     β = norm(w)
     return w, α, β
 end

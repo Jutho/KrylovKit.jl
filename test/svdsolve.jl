@@ -1,6 +1,6 @@
 @testset "GKL - svdsolve full" begin
     @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
-        @testset for orth in (cgs2, mgs2)
+        @testset for orth in (cgs2, mgs2, cgsr, mgsr)
             A = rand(T, (n,n))
             alg = GKL(orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)))
             S, lvecs, rvecs, info = @inferred svdsolve(A, A[:,1], n, :LR, alg)
@@ -18,7 +18,7 @@ end
 
 @testset "GKL - svdsolve iteratively" begin
     @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
-        @testset for orth in (cgs2, mgs2)
+        @testset for orth in (cgs2, mgs2, cgsr, mgsr)
             A = rand(T, (2*N,N))
             v = rand(T, (2*N,))
             n₁ = div(n, 2)
