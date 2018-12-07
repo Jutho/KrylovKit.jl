@@ -33,6 +33,16 @@ corresponding to the largest magnitude eigenvalue of `A`.
 
 ## Generalized eigenvalue problems
 
+Generalized eigenvalues `λ` and corresponding vectors `x` of the generalized eigenvalue
+problem ``A x = λ B x`` can be obtained using the method `geneigsolve`. Currently, there is
+only one algorithm, which does not require inverses of `A` or `B`, but is restricted to
+symmetric or hermitian generalized eigenvalue problems where the matrix or linear map `B`
+is positive definite. Note that this is not reflected in the default values for the keyword
+arguments `issymmetric`, `ishermitian` and `isposdef`, so that these should be set
+explicitly in order to comply with this restriction. If `A` and `B` are actual instances of
+`AbstractMatrix`, the default value for the keyword arguments will try to check these
+properties explicitly.
+
 ```@docs
 geneigsolve
 ```

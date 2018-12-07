@@ -31,8 +31,8 @@ KrylovKit
 
 ## Common interface
 
-The for high-level function [`linsolve`](@ref), [`eigsolve`](@ref), [`svdsolve`](@ref) and
-[`exponentiate`](@ref) follow a common interface
+The for high-level function [`linsolve`](@ref), [`eigsolve`](@ref), [`geneigsolve`](@ref),
+[`svdsolve`](@ref) and [`exponentiate`](@ref) follow a common interface
 ```julia
 results..., info = problemsolver(A, args...; kwargs...)
 ```
@@ -47,7 +47,8 @@ results..., info = problemsolver(args...; kwargs...) do x
 end
 ```
 Read the documentation for problems that require both the linear map and its adjoint to be
-implemented, e.g. [`svdsolve`](@ref).
+implemented, e.g. [`svdsolve`](@ref), or that require two different linear maps, e.g.
+[`geneigsolve`](@ref).
 
 Furthermore, `args` is a set of additional arguments to specify the problem. The keyword
 arguments `kwargs` contain information about the linear map (`issymmetric`, `ishermitian`,
