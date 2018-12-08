@@ -153,6 +153,14 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
+    "location": "man/eig/#KrylovKit.EigSorter",
+    "page": "Eigenvalue problems",
+    "title": "KrylovKit.EigSorter",
+    "category": "type",
+    "text": "EigSorter(by; rev = false)\n\nA simple struct to be used in combination with eigsolve or schursolve to indicate which eigenvalues need to be targetted, namely those that appear first when sorted by by and possibly in reverse order if rev == true.\n\n\n\n\n\n"
+},
+
+{
     "location": "man/eig/#KrylovKit.schursolve",
     "page": "Eigenvalue problems",
     "title": "KrylovKit.schursolve",
@@ -165,7 +173,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Eigenvalue problems",
     "title": "Eigenvalues and eigenvectors",
     "category": "section",
-    "text": "Finding a selection of eigenvalues and corresponding (right) eigenvectors of a linear map can be accomplished with the eigsolve routine:eigsolveFor a general matrix, eigenvalues and eigenvectors will always be returned with complex values for reasons of type stability. However, if the linear map and initial guess are real, most of the computation is actually performed using real arithmetic, as in fact the first step is to compute an approximate partial Schur factorization. If one is not interested in the eigenvectors, one can also just compute this partial Schur factorization using schursolve.schursolveNote that, for symmetric or hermitian linear maps, the eigenvalue and Schur factorizaion are equivalent, and one can only use eigsolve.Another example of a possible use case of schursolve is if the linear map is known to have a unique eigenvalue of, e.g. largest magnitude. Then, if the linear map is real valued, that largest magnitude eigenvalue and its corresponding eigenvector are also real valued. eigsolve will automatically return complex valued eigenvectors for reasons of type stability. However, as the first Schur vector will coincide with the first eigenvector, one can instead useT, vecs, vals, info = schursolve(A, x⁠₀, 1, :LM, Arnoldi(...))and use vecs[1] as the real valued eigenvector (after checking info.converged) corresponding to the largest magnitude eigenvalue of A."
+    "text": "Finding a selection of eigenvalues and corresponding (right) eigenvectors of a linear map can be accomplished with the eigsolve routine:eigsolveWhich eigenvalues are targetted can be specified using one of the symbols :LM, :LR, :SR, :LI and :SI for largest magnitude, largest and smallest real part, and largest and smallest imaginary part respectively. Alternatively, one can just specify a general sorting operation using EigSorterEigSorterFor a general matrix, eigenvalues and eigenvectors will always be returned with complex values for reasons of type stability. However, if the linear map and initial guess are real, most of the computation is actually performed using real arithmetic, as in fact the first step is to compute an approximate partial Schur factorization. If one is not interested in the eigenvectors, one can also just compute this partial Schur factorization using schursolve.schursolveNote that, for symmetric or hermitian linear maps, the eigenvalue and Schur factorizaion are equivalent, and one can only use eigsolve.Another example of a possible use case of schursolve is if the linear map is known to have a unique eigenvalue of, e.g. largest magnitude. Then, if the linear map is real valued, that largest magnitude eigenvalue and its corresponding eigenvector are also real valued. eigsolve will automatically return complex valued eigenvectors for reasons of type stability. However, as the first Schur vector will coincide with the first eigenvector, one can instead useT, vecs, vals, info = schursolve(A, x⁠₀, 1, :LM, Arnoldi(...))and use vecs[1] as the real valued eigenvector (after checking info.converged) corresponding to the largest magnitude eigenvalue of A."
 },
 
 {
