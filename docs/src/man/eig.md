@@ -7,6 +7,14 @@ can be accomplished with the `eigsolve` routine:
 eigsolve
 ```
 
+Which eigenvalues are targetted can be specified using one of the symbols `:LM`, `:LR`,
+`:SR`, `:LI` and `:SI` for largest magnitude, largest and smallest real part, and largest
+and smallest imaginary part respectively. Alternatively, one can just specify a general
+sorting operation using `EigSorter`
+```@docs
+EigSorter
+```
+
 For a general matrix, eigenvalues and eigenvectors will always be returned with complex
 values for reasons of type stability. However, if the linear map and initial guess are
 real, most of the computation is actually performed using real arithmetic, as in fact the
