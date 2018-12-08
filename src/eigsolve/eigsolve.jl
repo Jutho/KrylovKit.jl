@@ -75,6 +75,8 @@ The return value is always of the form `vals, vecs, info = eigsolve(...)` with
 
 ### Keyword arguments:
 Keyword arguments and their default values are given by:
+*   `verbosity::Int = 0`: verbosity level, i.e. 0 (no messages), 1 (single message
+    at the end), 2 (information after every iteration), 3 (information per Krylov step)
 *   `tol::Real`: the requested accuracy (corresponding to the 2-norm of the residual for
     Schur vectors, not the eigenvectors). If you work in e.g. single precision (`Float32`),
     you should definitely change the default value.
@@ -167,13 +169,13 @@ function eigselector(f, T::Type; issymmetric::Bool = false,
                                     maxiter::Int = KrylovDefaults.maxiter,
                                     tol::Real = KrylovDefaults.tol,
                                     orth::Orthogonalizer = KrylovDefaults.orth,
-                                    info::Int = 0, kwargs...)
+                                    verbosity::Int = 0, kwargs...)
     if (T<:Real && issymmetric) || ishermitian
         return Lanczos(krylovdim = krylovdim, maxiter = maxiter, tol = tol, orth = orth,
-        info = info)
+        verbosity = verbosity)
     else
         return Arnoldi(krylovdim = krylovdim, maxiter = maxiter, tol = tol, orth = orth,
-        info = info)
+        verbosity = verbosity)
     end
 end
 function eigselector(A::AbstractMatrix, T::Type;
@@ -184,13 +186,13 @@ function eigselector(A::AbstractMatrix, T::Type;
                         maxiter::Int = KrylovDefaults.maxiter,
                         tol::Real = KrylovDefaults.tol,
                         orth::Orthogonalizer = KrylovDefaults.orth,
-                        info::Int = 0, kwargs...)
+                        verbosity::Int = 0, kwargs...)
     if (T<:Real && issymmetric) || ishermitian
         return Lanczos(krylovdim = krylovdim, maxiter = maxiter, tol = tol, orth = orth,
-        info = info)
+        verbosity = verbosity)
     else
         return Arnoldi(krylovdim = krylovdim, maxiter = maxiter, tol = tol, orth = orth,
-        info= info)
+        verbosity= verbosity)
     end
 end
 

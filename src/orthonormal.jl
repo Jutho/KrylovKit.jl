@@ -60,64 +60,20 @@ LinearAlgebra.mul!(y, b::OrthonormalBasis, x::AbstractVector) = unproject!(y, b,
 const BLOCKSIZE = 4096
 
 function project!(y::AbstractVector, b::OrthonormalBasis, x, α::Number = true, β::Number = false, r = Base.OneTo(length(b)))
-    # if x isa AbstractArray && IndexStyle(x) isa IndexLinear && Threads.nthreads() > 1 && !(Threads.in_threaded_loop[])
-    #     return project_linear_multithreaded!(y, b, x, α, β, r)
-    # end
-    # general case: using only vector operations, i.e dot (similar to BLAS level 1)
+    # no specialized routine for IndexLinear x because reduction dimension is large dimension
     length(y) == length(r) || throw(DimensionMismatch())
-    @inbounds for (j, rj) = enumerate(r)
-        if β == 0
-            y[j] = α * dot(b[rj], x)
-        else
-            y[j] = β*y[j] + α * dot(b[rj], x)
+    Threads.@threads for j = 1:length(r)
+        @inbounds begin
+            if β == 0
+                y[j] = α * dot(b[r[j]], x)
+            else
+                y[j] = β*y[j] + α * dot(b[r[j]], x)
+            end
         end
     end
     return y
 end
-# function project_linear_multithreaded!(y::AbstractVector, b::OrthonormalBasis{<:AbstractArray}, x::AbstractArray, α::Number, β::Number, r)
-# # Problem: large dimension is the reduction dimension, so we need some locks and/or temporary storage
-#     n = length(r)
-#     length(y) == n || throw(DimensionMismatch())
-#     m = length(x)
-#     for rj in r
-#         length(b[rj]) == m || throw(DimensionMismatch())
-#     end
-#     if β == 0
-#         fill!(y, zero(eltype(y)))
-#     elseif β != 1
-#         rmul!(y, β)
-#     end
-#     let m = m, n = n, y = y, x = x, b = b, blocksize = prevpow(2, div(BLOCKSIZE, n)), slock = Threads.SpinLock(), K = Threads.nthreads()
-#         # for I = 1:blocksize:m
-#         #     Threads.@threads for j in 1:n
-#         #         yj = zero(y[j])
-#         #         Vj = b[r[j]]
-#         #         @simd for i = I:min(I+blocksize-1, m)
-#         #             yj += conj(Vj[i])*x[i]
-#         #         end
-#         #         y[j] += α*yj
-#         #     end
-#         # end
-#         Threads.@threads for k = 1:K
-#             ylocal = zero(y)
-#             I0 = 1 + (k-1)*blocksize
-#             for I = I0:(K*blocksize):m
-#                 for j = 1:n
-#                     yj = zero(y[j])
-#                     Vj = b[r[j]]
-#                     @simd for i = I:min(I+blocksize-1, m)
-#                         yj += conj(Vj[i])*x[i]
-#                     end
-#                     ylocal[j] += α*yj
-#                 end
-#             end
-#             lock(slock)
-#             y .+= ylocal
-#             unlock(slock)
-#         end
-#     end
-#     return y
-# end
+
 """
     unproject!(y, b::OrthonormalBasis, x::AbstractVector, α::Number = 1, β::Number = 0, r = Base.OneTo(length(b)))
 

@@ -4,7 +4,7 @@
         A = rand(T,(n,n))
         A = sqrt(A*A')
         b = rand(T,n)
-        alg = CG(maxiter = 2n, rtol = 10n*eps(real(T))) # because of loss of orthogonality, we choose maxiter = 2n
+        alg = CG(maxiter = 2n, tol = 10n*eps(real(T))*norm(b)) # because of loss of orthogonality, we choose maxiter = 2n
         x, info = @inferred linsolve(A, b, zero(b), alg)
         @test b ≈ A*x
         @test info.converged > 0
@@ -40,7 +40,7 @@ end
     @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
         A = rand(T,(n,n)).-one(T)/2
         b = rand(T,n)
-        alg = GMRES(krylovdim = n, maxiter = 2, rtol = 2*n*eps(real(T)))
+        alg = GMRES(krylovdim = n, maxiter = 2, tol = 2*n*eps(real(T))*norm(b))
         x, info = @inferred linsolve(A, b, zero(b), alg)
         @test info.converged > 0
         @test b ≈ A*x

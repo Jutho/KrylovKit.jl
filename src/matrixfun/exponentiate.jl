@@ -38,6 +38,8 @@ The return value is always of the form `y, info = eigsolve(...)` with
 
 ### Keyword arguments:
 Keyword arguments and their default values are given by:
+*   `verbosity::Int = 0`: verbosity level, i.e. 0 (no messages), 1 (single message
+    at the end), 2 (information after every iteration), 3 (information per Krylov step)
 *   `krylovdim = 30`: the maximum dimension of the Krylov subspace that will be constructed.
     Note that the dimension of the vector space is not known or checked, e.g. `x₀` should
     not necessarily support the `Base.length` function. If you know the actual problem
@@ -48,7 +50,6 @@ Keyword arguments and their default values are given by:
     you should definitely change the default value.
 *   `maxiter::Int = 100`: the number of times the Krylov subspace can be rebuilt; see below
     for further details on the algorithms.
-*   `info::Int = 0`: the level of verbosity, default is zero (no output)
 *   `issymmetric`: if the linear map is symmetric, only meaningful if `T<:Real`
 *   `ishermitian`: if the linear map is hermitian
 The default value for the last two depends on the method. If an `AbstractMatrix` is used,
@@ -88,7 +89,7 @@ function exponentiate(A, t::Number, v, alg::Lanczos)
 
     # initialize iterator
     iter = LanczosIterator(A, w, alg.orth, true)
-    fact = initialize(iter; info = alg.info-2)
+    fact = initialize(iter; verbosity = alg.verbosity-2)
     numops += 1
     sizehint!(fact, krylovdim)
 
@@ -112,7 +113,7 @@ function exponentiate(A, t::Number, v, alg::Lanczos)
 
         # Lanczos or Arnoldi factorization
         while normres(fact) > η && length(fact) < krylovdim
-            fact = expand!(iter, fact; info = alg.info-2)
+            fact = expand!(iter, fact; verbosity = alg.verbosity-2)
             numops += 1
         end
         K = fact.k # current Krylov dimension
@@ -155,14 +156,14 @@ function exponentiate(A, t::Number, v, alg::Lanczos)
         w = mul!(w, V, y2)
         τ -= Δτ
 
-        if alg.info > 1
+        if alg.verbosity > 1
             @info "Lanczos exponentiate in iteration $numiter: step size $Δτ, total accumulated error $totalerr"
         end
 
         if iszero(τ) # should always be true if numiter == maxiter
             w = rmul!(w, β)
             converged = totalerr < alg.tol ? 1 : 0
-            if alg.info > 0
+            if alg.verbosity > 0
                 if converged == 0
                     @warn """Lanczos exponentiate finished without convergence after $numiter iterations:
                     total error = $totalerrs"""

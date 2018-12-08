@@ -46,17 +46,19 @@ However, the largest singular values tend to converge more rapidly.
 The return value is always of the form `vals, lvecs, rvecs, info = svdsolve(...)` with
 *   `vals`: a `Vector{<:Real}` containing the singular values, of length at least `howmany`,
     but could be longer if more singular values were converged at the same cost.
-*   `lvecs`: a `Vector` of corresponding left singular vectors, of the same length as `vals`.
-*   `rvecs`: a `Vector` of corresponding right singular vectors, of the same length as `vals`.
-    Note that singular vectors are not returned as a matrix, as the linear map could act on
-    any custom Julia type with vector like behavior, i.e. the elements of the lists
-    `lvecs`(`rvecs`) are objects that are typically similar to the starting guess `y₀`
+*   `lvecs`: a `Vector` of corresponding left singular vectors, of the same length as
+    `vals`.
+*   `rvecs`: a `Vector` of corresponding right singular vectors, of the same length as
+    `vals`. Note that singular vectors are not returned as a matrix, as the linear map
+    could act on any custom Julia type with vector like behavior, i.e. the elements of the
+    lists `lvecs`(`rvecs`) are objects that are typically similar to the starting guess `y₀`
     (`x₀`), up to a possibly different `eltype`. When the linear map is a simple
     `AbstractMatrix`, `lvecs` and `rvecs` will be `Vector{Vector{<:Number}}`.
 *   `info`: an object of type [`ConvergenceInfo`], which has the following fields
     -   `info.converged::Int`: indicates how many singular values and vectors were actually
         converged to the specified tolerance `tol` (see below under keyword arguments)
-    -   `info.residual::Vector`: a list of the same length as `vals` containing the residuals
+    -   `info.residual::Vector`: a list of the same length as `vals` containing the
+        residuals
         `info.residual[i] = A * rvecs[i] - vals[i] * lvecs[i]`.
     -   `info.normres::Vector{<:Real}`: list of the same length as `vals` containing the
         norm of the residual `info.normres[i] = norm(info.residual[i])`
@@ -69,6 +71,8 @@ The return value is always of the form `vals, lvecs, rvecs, info = svdsolve(...)
 
 ### Keyword arguments:
 Keyword arguments and their default values are given by:
+*   `verbosity::Int = 0`: verbosity level, i.e. 0 (no messages), 1 (single message
+    at the end), 2 (information after every iteration), 3 (information per Krylov step)
 *   `krylovdim`: the maximum dimension of the Krylov subspace that will be constructed.
     Note that the dimension of the vector space is not known or checked, e.g. `x₀` should not
     necessarily support the `Base.length` function. If you know the actual problem dimension
@@ -111,13 +115,13 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
     numiter = 1
     # Compute Lanczos factorization
     iter = GKLIterator(svdfun(A), x₀, alg.orth)
-    fact = initialize(iter; info = alg.info-2)
+    fact = initialize(iter; verbosity = alg.verbosity-2)
     numops = 2
     sizehint!(fact, krylovdim)
     β = normres(fact)
     tol::eltype(β) = alg.tol
     while length(fact) < krylovdim
-        fact = expand!(iter, fact; info = alg.info-2)
+        fact = expand!(iter, fact; verbosity = alg.verbosity-2)
         numops += 2
         normres(fact) < tol && length(fact) >= howmany && break
     end
@@ -152,7 +156,7 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
         converged += 1
     end
 
-    if alg.info > 1
+    if alg.verbosity > 1
         msg = "GKL svdsolve in iter $numiter: "
         msg *= "$converged values converged, normres = ("
         msg *= @sprintf("%.2e", abs(f[1]))
@@ -217,7 +221,7 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
 
         # GKL factorization: recylce fact
         while length(fact) < krylovdim
-            fact = expand!(iter, fact; info = alg.info-2)
+            fact = expand!(iter, fact; verbosity = alg.verbosity-2)
             numops += 2
             normres(fact) < tol && length(fact) >= howmany && break
         end
@@ -245,7 +249,7 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
             converged += 1
         end
 
-        if alg.info > 1
+        if alg.verbosity > 1
             msg = "GKL svdsolve in iter $numiter: "
             msg *= "$converged values converged, normres = ("
             msg *= @sprintf("%.2e", abs(f[1]))
@@ -280,7 +284,7 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
     normresiduals = let f = f
         map(i->abs(f[i]), 1:howmany)
     end
-    if alg.info > 0
+    if alg.verbosity > 0
         if converged < howmany
             @warn """GKL svdsolve finished without convergence after $numiter iterations:
              *  $converged singular values converged

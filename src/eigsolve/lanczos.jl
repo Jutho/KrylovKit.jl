@@ -7,14 +7,14 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
     numiter = 1
     # Compute Lanczos factorization
     iter = LanczosIterator(A, x₀, alg.orth)
-    fact = initialize(iter; info = alg.info - 2)
+    fact = initialize(iter; verbosity = alg.verbosity - 2)
     numops = 1
     sizehint!(fact, krylovdim)
     β = normres(fact)
     tol::eltype(β) = alg.tol
     if normres(fact) > tol || howmany > 1
         while length(fact) < krylovdim
-            fact = expand!(iter, fact; info = alg.info-2)
+            fact = expand!(iter, fact; verbosity = alg.verbosity-2)
             numops += 1
             normres(fact) <= tol && length(fact) >= howmany && break
         end
@@ -43,7 +43,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
         converged += 1
     end
 
-    if alg.info > 1
+    if alg.verbosity > 1
         msg = "Lanczos eigsolve in iter $numiter: "
         msg *= "$converged values converged, normres = ("
         msg *= @sprintf("%.2e", abs(f[1]))
@@ -97,7 +97,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
 
         # Lanczos factorization: recylce fact
         while length(fact) < krylovdim
-            fact = expand!(iter, fact; info = alg.info-2)
+            fact = expand!(iter, fact; verbosity = alg.verbosity-2)
             numops += 1
             normres(fact) < tol && length(fact) >= howmany && break
         end
@@ -120,7 +120,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
             converged += 1
         end
 
-        if alg.info > 1
+        if alg.verbosity > 1
             msg = "Lanczos eigsolve in iter $numiter: "
             msg *= "$converged values converged, normres = ("
             msg *= @sprintf("%.2e", abs(f[1]))
@@ -152,7 +152,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
         map(i->abs(f[i]), 1:howmany)
     end
 
-    if alg.info > 0
+    if alg.verbosity > 0
         if converged < howmany
             @warn """Lanczos eigsolve finished without convergence after $numiter iterations:
              *  $converged eigenvalues converged

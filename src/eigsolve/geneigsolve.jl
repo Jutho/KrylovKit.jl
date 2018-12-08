@@ -74,6 +74,8 @@ The return value is always of the form `vals, vecs, info = geneigsolve(...)` wit
 
 ### Keyword arguments:
 Keyword arguments and their default values are given by:
+*   `verbosity::Int = 0`: verbosity level, i.e. 0 (no messages), 1 (single message
+    at the end), 2 (information after every iteration), 3 (information per Krylov step)
 *   `tol::Real`: the requested accuracy (corresponding to the 2-norm of the residual for
     Schur vectors, not the eigenvectors). If you work in e.g. single precision (`Float32`),
     you should definitely change the default value.

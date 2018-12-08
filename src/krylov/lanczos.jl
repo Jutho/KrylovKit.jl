@@ -64,7 +64,7 @@ function Base.iterate(iter::LanczosIterator, state::LanczosFactorization)
     end
 end
 
-function initialize(iter::LanczosIterator; info::Int = 0)
+function initialize(iter::LanczosIterator; verbosity::Int = 0)
     β₀ = norm(iter.x₀)
     invβ₀ = one(eltype(iter.x₀))/β₀
     T = typeof(invβ₀) # division might change eltype
@@ -80,13 +80,13 @@ function initialize(iter::LanczosIterator; info::Int = 0)
     V = OrthonormalBasis([v])
     αs = [real(α)]
     βs = [β]
-    if info > 0
+    if verbosity > 0
         @info "Lanczos iteration step 1: normres = $β"
     end
 
     return LanczosFactorization(1, V, αs, βs, r)
 end
-function initialize!(iter::LanczosIterator, state::LanczosFactorization; info::Int = 0)
+function initialize!(iter::LanczosIterator, state::LanczosFactorization; verbosity::Int = 0)
     x₀ = iter.x₀
     V = state.V
     while length(V) > 1
@@ -107,12 +107,12 @@ function initialize!(iter::LanczosIterator, state::LanczosFactorization; info::I
     push!(αs, real(α))
     push!(βs, β)
     state.r = r
-    if info > 0
+    if verbosity > 0
         @info "Lanczos iteration step 1: normres = $β"
     end
     return state
 end
-function expand!(iter::LanczosIterator, state::LanczosFactorization; info::Int = 0)
+function expand!(iter::LanczosIterator, state::LanczosFactorization; verbosity::Int = 0)
     βold = normres(state)
     V = state.V
     r = state.r
@@ -129,7 +129,7 @@ function expand!(iter::LanczosIterator, state::LanczosFactorization; info::Int =
 
     state.k += 1
     state.r = r
-    if info > 0
+    if verbosity > 0
         @info "Lanczos iteration step $(state.k): normres = $β"
     end
     return state

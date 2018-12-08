@@ -45,7 +45,7 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
         HHA[m,m] = checkhermitian(α, n)
         push!(BV, bv)
 
-        if alg.info > 2
+        if alg.verbosity > 2
             @info "Golub Ye iteration step $m: normres = $β"
         end
         β < tol && m >= howmany && break
@@ -91,7 +91,7 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
         normr = norm(r)
     end
 
-    if alg.info > 1
+    if alg.verbosity > 1
         msg = "Golub-Ye generalized eigsolve in iter $numiter: "
         msg *= "$converged values converged: $ρ, normres = ("
         for i = 1:converged
@@ -138,7 +138,7 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
             HHA[m,m] = checkhermitian(α, n)
             push!(BV, bv)
 
-            if alg.info > 2
+            if alg.verbosity > 2
                 @info "Golub Ye iteration step $m: normres = $β"
             end
             β < tol && m >= howmany && break
@@ -210,7 +210,7 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
             converged += 1
         end
 
-        if alg.info > 1
+        if alg.verbosity > 1
             msg = "Golub-Ye generalized eigsolve in iter $numiter: "
             msg *= "$converged values converged: $ρ, normres = ("
             for i = 1:converged
@@ -243,7 +243,7 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
         push!(normresiduals, normr)
     end
 
-    if alg.info > 0
+    if alg.verbosity > 0
         if converged < howmany
             @warn """GolubYe eigsolve finished without convergence after $numiter iterations:
              *  $converged eigenvalues converged

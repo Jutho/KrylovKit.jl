@@ -14,7 +14,7 @@ function linsolve(operator, b, x₀, alg::CG, a₀::Real = 0, a₁::Real = 1)
 
     # Algorithm parameters
     maxiter = alg.maxiter
-    tol = convert(S, alg.rtol == 0 ? alg.atol : max(alg.atol, alg.rtol*norm(b)))
+    tol::S = alg.tol
     numops = 1 # operator has been applied once to determine r
     numiter = 0
 

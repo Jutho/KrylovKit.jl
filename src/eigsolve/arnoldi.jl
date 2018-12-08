@@ -90,7 +90,7 @@ function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     end
     normresiduals = [normres(fact)*abs(last(u)) for u in cols(U, 1:howmany)]
 
-    if alg.info > 0
+    if alg.verbosity > 0
         if converged < howmany
             @warn """Arnoldi schursolve finished without convergence after $numiter iterations:
              *  $converged eigenvalues converged
@@ -125,7 +125,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     end
     normresiduals = [normres(fact)*abs(last(v)) for v in cols(V)]
 
-    if alg.info > 0
+    if alg.verbosity > 0
         if converged < howmany
             @warn """Arnoldi eigsolve finished without convergence after $numiter iterations:
              *  $converged eigenvalues converged
@@ -150,14 +150,14 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     numiter = 1
     # Compute arnoldi factorization
     iter = ArnoldiIterator(A, x₀, alg.orth)
-    fact = initialize(iter; info = alg.info - 2)
+    fact = initialize(iter; verbosity = alg.verbosity - 2)
     numops = 1
     sizehint!(fact, krylovdim)
     β = normres(fact)
     tol::eltype(β) = alg.tol
     if normres(fact) > tol || howmany > 1
         while length(fact) < krylovdim
-            fact = expand!(iter, fact; info = alg.info-2)
+            fact = expand!(iter, fact; verbosity = alg.verbosity-2)
             numops += 1
             normres(fact) < tol && length(fact) >= howmany && break
         end
@@ -191,7 +191,7 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
         converged -= 1
     end
 
-    if alg.info > 1
+    if alg.verbosity > 1
         msg = "Arnoldi schursolve in iter $numiter: "
         msg *= "$converged values converged, normres = ("
         msg *= @sprintf("%.2e", abs(f[1]))
@@ -243,7 +243,7 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
 
         # Arnoldi factorization: recylce fact
         while length(fact) < krylovdim
-            fact = expand!(iter, fact; info = alg.info-2)
+            fact = expand!(iter, fact; verbosity = alg.verbosity-2)
             numops += 1
             normres(fact) < tol && length(fact) >= howmany && break
         end
@@ -270,7 +270,7 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
         if eltype(T) <: Real && 0 < converged < length(fact) && T[converged+1,converged] != 0
             converged -= 1
         end
-        if alg.info > 1
+        if alg.verbosity > 1
             msg = "Arnoldi schursolve in iter $numiter: "
             msg *= "$converged values converged, normres = ("
             msg *= @sprintf("%.2e", abs(f[1]))

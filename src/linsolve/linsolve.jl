@@ -41,11 +41,13 @@ The return value is always of the form `x, info = linsolve(...)` with
 
 ### Keyword arguments:
 Keyword arguments are given by:
-*   `atol::Real`: the requested accuracy, i.e. absolute tolerance, on the norm of the
+*   `verbosity::Int = 0`: verbosity level, i.e. 0 (no messages), 1 (single message
+    at the end), 2 (information after every iteration), 3 (information per Krylov step)
+*   `tol::Real`: the requested accuracy, i.e. absolute tolerance, on the norm of the
     residual.
 *   `rtol::Real`: the requested accuracy on the norm of the residual, relative to the norm
     of the right hand side `b`. Together, the solution is considered converged when the
-    norm of the residual is smaller than `max(atol, rtol*norm(b))`.
+    norm of the residual is smaller than `max(tol, rtol*norm(b))`.
 *   `krylovdim::Integer`: the maximum dimension of the Krylov subspace that will be
     constructed.
 *   `maxiter::Integer: the number of times the Krylov subspace can be rebuilt; see below for
@@ -55,8 +57,8 @@ Keyword arguments are given by:
 *   `issymmetric::Bool`: if the linear map is symmetric, only meaningful if `T<:Real`
 *   `ishermitian::Bool`: if the linear map is hermitian
 *   `isposdef::Bool`: if the linear map is positive definite
-The default values are given by `atol = 0`, `rtol = KrylovDefaults.tol`, `krylovdim =
-KrylovDefaults.krylovdim`, `maxiter = KrylovDefaults.maxiter`, `orth =
+The default values are given by `tol = KrylovDefaults.tol`, `rtol = KrylovDefaults.tol`,
+`krylovdim = KrylovDefaults.krylovdim`, `maxiter = KrylovDefaults.maxiter`, `orth =
 KrylovDefaults.orth`; see [`KrylovDefaults`](@ref) for details.
 
 The default value for the last three parameters depends on the method. If an
@@ -86,54 +88,60 @@ linsolve(f, b, a₀::Number = 0, a₁::Number = 1,
             kwargs...) = linsolve(f, b, rmul!(similar(b, T), false), a₀, a₁; kwargs...)
 
 function linsolve(f, b, x₀, a₀::Number = 0, a₁::Number = 1; kwargs...)
-    alg = linselector(f, promote_type(eltype(x₀), typeof(a₀), typeof(a₁)); kwargs...)
+    alg = linselector(f, b, promote_type(eltype(x₀), typeof(a₀), typeof(a₁)); kwargs...)
     linsolve(f, b, x₀, alg, a₀, a₁)
 end
 
-function linselector(f, T::Type; issymmetric::Bool = false,
+function linselector(f, b, T::Type; issymmetric::Bool = false,
                                     ishermitian::Bool = T<:Real && issymmetric,
                                     isposdef::Bool = false,
                                     krylovdim::Int = KrylovDefaults.krylovdim,
                                     maxiter::Int = KrylovDefaults.maxiter,
-                                    atol::Real = 0,
+                                    tol::Real = KrylovDefaults.tol,
                                     rtol::Real = KrylovDefaults.tol,
+                                    atol::Real = 0,
                                     orth = KrylovDefaults.orth,
-                                    info::Int = 0, kwargs...)
+                                    verbosity::Int = 0, kwargs...)
+    atol == 0 || @warn "`atol` is deprecated, use `tol` for absolute tolerance"
+    tol = max(tol, atol, rtol*norm(b))
     if (T<:Real && issymmetric) || ishermitian
         if isposdef
-            return CG(maxiter = krylovdim*maxiter, atol = atol, rtol = rtol, info = info)
+            return CG(maxiter = krylovdim*maxiter, tol = tol, verbosity = verbosity)
         # else
         # TODO
         #     return MINRES(krylovdim*maxiter, tol=tol)
         end
-        return GMRES(krylovdim = krylovdim, maxiter = maxiter, atol = atol, rtol = rtol,
-                        orth = orth, info = info)
+        return GMRES(krylovdim = krylovdim, maxiter = maxiter, tol = tol, orth = orth,
+                        verbosity = verbosity)
     else
-        return GMRES(krylovdim = krylovdim, maxiter = maxiter, atol = atol, rtol = rtol,
-                        orth = orth, info = info)
+        return GMRES(krylovdim = krylovdim, maxiter = maxiter, tol = tol, orth = orth,
+                        verbosity = verbosity)
     end
 end
-function linselector(A::AbstractMatrix, T::Type;
+function linselector(A::AbstractMatrix, b, T::Type;
                         issymmetric::Bool = T <: Real && LinearAlgebra.issymmetric(A),
                         ishermitian::Bool = issymmetric || LinearAlgebra.ishermitian(A),
                         isposdef::Bool = ishermitian ? LinearAlgebra.isposdef(A) : false,
                         krylovdim::Int = KrylovDefaults.krylovdim,
                         maxiter::Int = KrylovDefaults.maxiter,
-                        atol::Real = 0,
+                        tol::Real = KrylovDefaults.tol,
                         rtol::Real = KrylovDefaults.tol,
+                        atol::Real = 0,
                         orth = KrylovDefaults.orth,
-                        info::Int = 0, kwargs...)
+                        verbosity::Int = 0, kwargs...)
+    atol == 0 || @warn "`atol` is deprecated, use `tol` for absolute tolerance"
+    tol = max(tol, atol, rtol*norm(b))
     if (T<:Real && issymmetric) || ishermitian
         if isposdef
-            return CG(maxiter = krylovdim*maxiter, atol = atol, rtol = rtol, info = info)
+            return CG(maxiter = krylovdim*maxiter, tol = tol, verbosity = verbosity)
         # else
         # TODO
-        #     return MINRES(krylovdim*maxiter, tol=tol, info = info)
+        #     return MINRES(krylovdim*maxiter, tol=tol, verbosity = verbosity)
         end
-        return GMRES(krylovdim = krylovdim, maxiter = maxiter, atol = atol, rtol = rtol,
-                orth = orth, info = info)
+        return GMRES(krylovdim = krylovdim, maxiter = maxiter, tol = tol, orth = orth,
+                        verbosity = verbosity)
     else
-        return GMRES(krylovdim = krylovdim, maxiter = maxiter, atol = atol, rtol = rtol,
-                orth = orth, info = info)
+        return GMRES(krylovdim = krylovdim, maxiter = maxiter, tol = tol, orth = orth,
+                        verbosity = verbosity)
     end
 end
