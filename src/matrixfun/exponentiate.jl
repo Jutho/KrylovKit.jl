@@ -157,7 +157,10 @@ function exponentiate(A, t::Number, v, alg::Lanczos)
         τ -= Δτ
 
         if alg.verbosity > 1
-            @info "Lanczos exponentiate in iteration $numiter: step size $Δτ, total accumulated error $totalerr"
+            msg = "Lanczos exponentiate in iteration $numiter: "
+            msg *= "reached time " * @sprintf("%.2e", abs(t)-τ)
+            msg *= ", total error = " * @sprintf("%.4e", totalerr)
+            @info msg
         end
 
         if iszero(τ) # should always be true if numiter == maxiter
@@ -166,7 +169,7 @@ function exponentiate(A, t::Number, v, alg::Lanczos)
             if alg.verbosity > 0
                 if converged == 0
                     @warn """Lanczos exponentiate finished without convergence after $numiter iterations:
-                    total error = $totalerrs"""
+                    total error = $totalerr"""
                 else
                     @info """Lanczos exponentiate finished after $numiter iterations: total error = $totalerr"""
                 end

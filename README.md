@@ -9,6 +9,15 @@ to vectors.
 |:-----------------:|:----------------:|
 | [![][docs-stable-img]][docs-stable-url] [![][docs-dev-img]][docs-dev-url] | [![][travis-img]][travis-url] [![][appveyor-img]][appveyor-url] [![][codecov-img]][codecov-url] [![][coveralls-img]][coveralls-url] |
 
+## Release notes for the latest version
+
+*   a new method `geneigsolve` for generalized eigenvalue problems ``A x = λ B x``, with a
+    single implementation for symmetric/hermitian problems with positive definite `B`, based
+    on the Golub-Ye inverse free algorithm.
+
+*   a `verbosity` keyword that takes integer values to control the amount of information
+    that is printed while the algorithm is running.
+
 ## Overview
 KrylovKit.jl accepts general functions or callable objects as linear maps, and general Julia
 objects with vector like behavior (as defined in the docs) as vectors.
@@ -16,7 +25,7 @@ objects with vector like behavior (as defined in the docs) as vectors.
 The high level interface of KrylovKit is provided by the following functions:
 *   `linsolve`: solve linear systems
 *   `eigsolve`: find a few eigenvalues and corresponding eigenvectors
-*   `geneigsolve`: find a few generalized eigenvalues and corresponding eigenvectors
+*   `geneigsolve`: find a few generalized eigenvalues and corresponding vectors
 *   `svdsolve`: find a few singular values and corresponding left and right singular vectors
 *   `exponentiate`: apply the exponential of a linear map to a vector
 

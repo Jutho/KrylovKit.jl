@@ -9,13 +9,13 @@ KrylovKit.jl accepts general functions or callable objects as linear maps, and g
 objects with vector like behavior (see below) as vectors.
 
 The high level interface of KrylovKit is provided by the following functions:
-*   [`linsolve`](@ref): solve linear systems
-*   [`eigsolve`](@ref): find a few eigenvalues and corresponding eigenvectors of a normal
-    eigenvalue problem
-*   [`geneigsolve`](@ref): find a few eigenvalues and corresponding eigenvectors of a
-    generalized eigenvalue problem
+*   [`linsolve`](@ref): solve linear systems `A*x = b`
+*   [`eigsolve`](@ref): find a few eigenvalues and corresponding eigenvectors of an
+    eigenvalue problem `A*x = λ x`
+*   [`geneigsolve`](@ref): find a few eigenvalues and corresponding vectors of a
+    generalized eigenvalue problem `A*x = λ*B*x`
 *   [`svdsolve`](@ref): find a few singular values and corresponding left and right
-    singular vectors
+    singular vectors `A*x = σ * y` and `A'*y = σ*x`.
 *   [`exponentiate`](@ref): apply the exponential of a linear map to a vector
 
 ## Package features and alternatives
@@ -52,8 +52,8 @@ However, KrylovKit.jl distinguishes itself from the previous packages in the fol
 2.  KrylovKit does not assume that the vectors involved in the problem are actual subtypes
     of `AbstractVector`. Any Julia object that behaves as a vector is supported, so in
     particular higher-dimensional arrays or any custom user type that supports the
-    following functions (with `v` and `w` two instances of this type and `α` a scalar
-    (`Number`)):
+    following functions (with `v` and `w` two instances of this type and `α, β` scalars
+    (i.e. `Number`)):
     *   `Base.eltype(v)`: the scalar type (i.e. `<:Number`) of the data in `v`
     *   `Base.similar(v, [T::Type<:Number])`: a way to construct additional similar vectors,
         possibly with a different scalar type `T`.

@@ -37,6 +37,12 @@ function linsolve(operator, b, x₀, alg::CG, a₀::Real = 0, a₁::Real = 1)
     β = ρ/ρold
     numops += 1
     numiter += 1
+    if alg.verbosity > 1
+        msg = "CG linsolve in iter $numiter: "
+        msg *= "normres = "
+        msg *= @sprintf("%.12e", normr)
+        @info msg
+    end
 
     # Check for early return
     normr < tol && return (x, ConvergenceInfo(1, r, normr, numiter, numops))
@@ -63,9 +69,27 @@ function linsolve(operator, b, x₀, alg::CG, a₀::Real = 0, a₁::Real = 1)
             ρ = normr^2
             β = ρ/ρold
         end
-        normr < tol && return (x, ConvergenceInfo(1, r, normr, numiter, numops))
+        if normr < tol
+            if alg.verbosity > 0
+                @info """CG linsolve converged at iteration $numiter:
+                 *  norm of residual = $normr
+                 *  number of operations = $numops"""
+            end
+            return (x, ConvergenceInfo(1, r, normr, numiter, numops))
+        end
         numops += 1
         numiter += 1
+        if alg.verbosity > 1
+            msg = "CG linsolve in iter $numiter: "
+            msg *= "normres = "
+            msg *= @sprintf("%.12e", normr)
+            @info msg
+        end
+    end
+    if alg.verbosity > 0
+        @warn """CG linsolve finished without converging after $numiter iterations:
+         *  norm of residual = $normr
+         *  number of operations = $numops"""
     end
     return (x, ConvergenceInfo(0, r, normr, numiter, numops))
 end
