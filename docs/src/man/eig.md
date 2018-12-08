@@ -24,8 +24,8 @@ using `schursolve`.
 ```@docs
 schursolve
 ```
-Note that, for symmetric or hermitian linear maps, the eigenvalue and Schur factorizaion are
-equivalent, and one can only use `eigsolve`.
+Note that, for symmetric or hermitian linear maps, the eigenvalue and Schur factorization
+are equivalent, and one can only use `eigsolve`.
 
 Another example of a possible use case of `schursolve` is if the linear map is known to have
 a unique eigenvalue of, e.g. largest magnitude. Then, if the linear map is real valued, that

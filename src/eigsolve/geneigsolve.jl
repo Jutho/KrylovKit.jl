@@ -10,10 +10,12 @@ form ``(A - λB)x = 0``, where `A` and `B` are either instances of `AbstractMatr
 function that implements the matrix vector product. In case functions are used, one could
 either specify the action of `A` and `B` via a tuple of two functions (or a function and an
 `AbstractMatrix`), or one could use a single function that takes a single argument `x` and
-returns two results, corresponding to `A*x` and `B*x`. Return eigenvalues, eigenvectors and a `ConvergenceInfo` structure.
+returns two results, corresponding to `A*x` and `B*x`. Return the computed eigenvalues,
+eigenvectors and a `ConvergenceInfo` structure.
 
 ### Arguments:
-The first argument is either a tuple of two linear maps, so a function or an `AbstractMatrix` for either of them, representing the action of `A` and `B`. Alternatively,
+The first argument is either a tuple of two linear maps, so a function or an
+`AbstractMatrix` for either of them, representing the action of `A` and `B`. Alternatively,
 a single function can be used that takes a single argument `x` and returns the equivalent of
 `(A*x, B*x)` as result. This latter form is compatible with the `do` block syntax of Julia.
 If an `AbstractMatrix` is used for either `A` or `B`, a starting vector `x₀` does not need

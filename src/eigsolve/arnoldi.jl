@@ -2,8 +2,8 @@
     schursolve(A, x₀, howmany, which, algorithm)
 
 Compute a partial Schur decomposition containing `howmany` eigenvalues from the linear map
-encoded in the matrix or function `A`. Return the reduced Schur matrix, the basis of Schur vectors,
-the extracted eigenvalues and a `ConvergenceInfo` structure.
+encoded in the matrix or function `A`. Return the reduced Schur matrix, the basis of Schur
+vectors, the extracted eigenvalues and a `ConvergenceInfo` structure.
 
 See also [`eigsolve`](@eigsolve) to obtain the eigenvectors instead. For real symmetric or
 complex hermitian problems, the (partial) Schur decomposition is identical to the (partial)
