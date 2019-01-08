@@ -43,11 +43,13 @@ The return value is always of the form `x, info = linsolve(...)` with
 Keyword arguments are given by:
 *   `verbosity::Int = 0`: verbosity level, i.e. 0 (no messages), 1 (single message
     at the end), 2 (information after every iteration), 3 (information per Krylov step)
-*   `tol::Real`: the requested accuracy, i.e. absolute tolerance, on the norm of the
+*   `atol::Real`: the requested accuracy, i.e. absolute tolerance, on the norm of the
     residual.
 *   `rtol::Real`: the requested accuracy on the norm of the residual, relative to the norm
-    of the right hand side `b`. Together, the solution is considered converged when the
-    norm of the residual is smaller than `max(tol, rtol*norm(b))`.
+    of the right hand side `b`.
+*   `tol::Real`: the requested accuracy on the norm of the residual which is actually used,
+    but which defaults to `max(atol, rtol*norm(b))`. So either `atol` and `rtol` or directly
+    use `tol` (in which case the value of `atol` and `rtol` will be ignored).
 *   `krylovdim::Integer`: the maximum dimension of the Krylov subspace that will be
     constructed.
 *   `maxiter::Integer: the number of times the Krylov subspace can be rebuilt; see below for
@@ -57,9 +59,10 @@ Keyword arguments are given by:
 *   `issymmetric::Bool`: if the linear map is symmetric, only meaningful if `T<:Real`
 *   `ishermitian::Bool`: if the linear map is hermitian
 *   `isposdef::Bool`: if the linear map is positive definite
-The default values are given by `tol = KrylovDefaults.tol`, `rtol = KrylovDefaults.tol`,
-`krylovdim = KrylovDefaults.krylovdim`, `maxiter = KrylovDefaults.maxiter`, `orth =
-KrylovDefaults.orth`; see [`KrylovDefaults`](@ref) for details.
+The default values are given by `atol = KrylovDefaults.tol`, `rtol = KrylovDefaults.tol`,
+`tol = max(atol, rtol*norm(b))`, `krylovdim = KrylovDefaults.krylovdim`,
+`maxiter = KrylovDefaults.maxiter`, `orth = KrylovDefaults.orth`;
+see [`KrylovDefaults`](@ref) for details.
 
 The default value for the last three parameters depends on the method. If an
 `AbstractMatrix` is used, `issymmetric`, `ishermitian` and `isposdef` are checked for that
@@ -97,13 +100,11 @@ function linselector(f, b, T::Type; issymmetric::Bool = false,
                                     isposdef::Bool = false,
                                     krylovdim::Int = KrylovDefaults.krylovdim,
                                     maxiter::Int = KrylovDefaults.maxiter,
-                                    tol::Real = KrylovDefaults.tol,
                                     rtol::Real = KrylovDefaults.tol,
-                                    atol::Real = 0,
+                                    atol::Real = KrylovDefaults.tol,
+                                    tol::Real = max(atol, rtol*norm(b)),
                                     orth = KrylovDefaults.orth,
                                     verbosity::Int = 0, kwargs...)
-    atol == 0 || @warn "`atol` is deprecated, use `tol` for absolute tolerance"
-    tol = max(tol, atol, rtol*norm(b))
     if (T<:Real && issymmetric) || ishermitian
         if isposdef
             return CG(maxiter = krylovdim*maxiter, tol = tol, verbosity = verbosity)
@@ -124,13 +125,11 @@ function linselector(A::AbstractMatrix, b, T::Type;
                         isposdef::Bool = ishermitian ? LinearAlgebra.isposdef(A) : false,
                         krylovdim::Int = KrylovDefaults.krylovdim,
                         maxiter::Int = KrylovDefaults.maxiter,
-                        tol::Real = KrylovDefaults.tol,
                         rtol::Real = KrylovDefaults.tol,
-                        atol::Real = 0,
+                        atol::Real = KrylovDefaults.tol,
+                        tol::Real = max(atol, rtol*norm(b)),
                         orth = KrylovDefaults.orth,
                         verbosity::Int = 0, kwargs...)
-    atol == 0 || @warn "`atol` is deprecated, use `tol` for absolute tolerance"
-    tol = max(tol, atol, rtol*norm(b))
     if (T<:Real && issymmetric) || ishermitian
         if isposdef
             return CG(maxiter = krylovdim*maxiter, tol = tol, verbosity = verbosity)

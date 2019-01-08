@@ -83,7 +83,8 @@ Keyword arguments and their default values are given by:
 *   `krylovdim::Integer`: the maximum dimension of the Krylov subspace that will be
     constructed. Note that the dimension of the vector space is not known or checked, e.g.
     `x₀` should not necessarily support the `Base.length` function. If you know the actual
-    problem dimension is smaller than the default value, it is useful to reduce the value of `krylovdim`, though in principle this should be detected.
+    problem dimension is smaller than the default value, it is useful to reduce the value of
+    `krylovdim`, though in principle this should be detected.
 *   `maxiter::Integer`: the number of times the Krylov subspace can be rebuilt; see below
     for further details on the algorithms.
 *   `orth::Orthogonalizer`: the orthogonalization method to be used, see

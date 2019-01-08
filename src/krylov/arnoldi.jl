@@ -51,6 +51,7 @@ end
 
 function initialize(iter::ArnoldiIterator; verbosity::Int = 0)
     β₀ = norm(iter.x₀)
+    β₀ == 0 && throw(ArgumentError("initial vector should not have norm zero"))
     invβ₀ = one(eltype(iter.x₀))/β₀
     T = typeof(invβ₀) # division might change eltype
     x₀ = mul!(similar(iter.x₀, T), iter.x₀, invβ₀)
