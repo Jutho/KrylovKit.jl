@@ -8,6 +8,7 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
     ax₀, bx₀ = apply(geneigfun(f), x₀)
     numops = 1
     β₀ = norm(x₀)
+    β₀ == 0 && throw(ArgumentError("initial vector should not have norm zero"))
     invβ₀ = one(promote_type(eltype(x₀), eltype(ax₀), eltype(bx₀)))/β₀
     T = typeof(invβ₀) # division might change eltype
     v = mul!(similar(x₀, T), x₀, invβ₀)
