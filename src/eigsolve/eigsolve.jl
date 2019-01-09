@@ -140,12 +140,11 @@ Base.@deprecate  ClosestTo(λ) EigSorter(z->abs(z-λ))
 
 const Selector = Union{Symbol, EigSorter}
 
-function eigsolve(A::AbstractMatrix, howmany::Int = 1, which::Selector = :LM, T::Type = eltype(A); kwargs...)
-    eigsolve(A, rand(T, size(A,1)), howmany, which; kwargs...)
-end
-function eigsolve(f, n::Int, howmany::Int = 1, which::Selector = :LM, T::Type = Float64; kwargs...)
+eigsolve(A::AbstractMatrix, howmany::Int = 1, which::Selector = :LM, T::Type = eltype(A);
+    kwargs...) = eigsolve(A, rand(T, size(A,1)), howmany, which; kwargs...)
+
+eigsolve(f, n::Int, howmany::Int = 1, which::Selector = :LM, T::Type = Float64; kwargs...) =
     eigsolve(f, rand(T, n), howmany, which; kwargs...)
-end
 function eigsolve(f, x₀, howmany::Int = 1, which::Selector = :LM; kwargs...)
     alg = eigselector(f, eltype(x₀); kwargs...)
     checkwhich(which) || error("Unknown eigenvalue selector: which = $which")
@@ -170,7 +169,7 @@ function eigselector(f, T::Type; issymmetric::Bool = false,
                                     maxiter::Int = KrylovDefaults.maxiter,
                                     tol::Real = KrylovDefaults.tol,
                                     orth::Orthogonalizer = KrylovDefaults.orth,
-                                    verbosity::Int = 0, kwargs...)
+                                    verbosity::Int = 0)
     if (T<:Real && issymmetric) || ishermitian
         return Lanczos(krylovdim = krylovdim, maxiter = maxiter, tol = tol, orth = orth,
         verbosity = verbosity)
@@ -187,7 +186,7 @@ function eigselector(A::AbstractMatrix, T::Type;
                         maxiter::Int = KrylovDefaults.maxiter,
                         tol::Real = KrylovDefaults.tol,
                         orth::Orthogonalizer = KrylovDefaults.orth,
-                        verbosity::Int = 0, kwargs...)
+                        verbosity::Int = 0)
     if (T<:Real && issymmetric) || ishermitian
         return Lanczos(krylovdim = krylovdim, maxiter = maxiter, tol = tol, orth = orth,
         verbosity = verbosity)

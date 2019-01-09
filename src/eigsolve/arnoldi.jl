@@ -34,22 +34,23 @@ convenient keyword syntax is currently available.
 ### Return values:
 The return value is always of the form `T, vecs, vals, info = schursolve(...)` with
 *   `T`: a `Matrix` containing the partial Schur decomposition of the linear map, i.e. it's
-    elements are given by `T[i,j] = dot(vecs[i], f(vecs[j]))`. It is of Schur form, i.e. upper
-    triangular in case of complex arithmetic, and block upper triangular (with at most 2x2 blocks)
-    in case of real arithmetic.
-*   `vecs`: a `Vector` of corresponding Schur vectors, of the same length as `vals`. Note that
-    Schur vectors are not returned as a matrix, as the linear map could act on any custom Julia
-    type with vector like behavior, i.e. the elements of the list `vecs` are objects that are
-    typically similar to the starting guess `x₀`, up to a possibly different `eltype`. When
-    the linear map is a simple `AbstractMatrix`, `vecs` will be `Vector{Vector{<:Number}}`.
-    Schur vectors are by definition orthogonal, i.e. `dot(vecs[i],vecs[j]) = I[i,j]`. Note that
-    Schur vectors are real if the problem (i.e. the linear map and the initial guess) are real.
+    elements are given by `T[i,j] = dot(vecs[i], f(vecs[j]))`. It is of Schur form, i.e.
+    upper triangular in case of complex arithmetic, and block upper triangular (with at most
+    2x2 blocks) in case of real arithmetic.
+*   `vecs`: a `Vector` of corresponding Schur vectors, of the same length as `vals`. Note
+    that Schur vectors are not returned as a matrix, as the linear map could act on any
+    custom  Julia type with vector like behavior, i.e. the elements of the list `vecs` are
+    objects that are typically similar to the starting guess `x₀`, up to a possibly
+    different `eltype`. When the linear map is a simple `AbstractMatrix`, `vecs` will be
+    `Vector{Vector{<:Number}}`. Schur vectors are by definition orthogonal, i.e.
+    `dot(vecs[i],vecs[j]) = I[i,j]`. Note that Schur vectors are real if the problem (i.e.
+    the linear map and the initial guess) are real.
 *   `vals`: a `Vector` of eigenvalues, i.e. the diagonal elements of `T` in case of complex
     arithmetic, or extracted from the diagonal blocks in case of real arithmetic. Note that
     `vals` will always be complex, independent of the underlying arithmetic.
 *   `info`: an object of type [`ConvergenceInfo`], which has the following fields
-    -   `info.converged::Int`: indicates how many eigenvalues and Schur vectors were actually
-        converged to the specified tolerance (see below under keyword arguments)
+    -   `info.converged::Int`: indicates how many eigenvalues and Schur vectors were
+        actually converged to the specified tolerance (see below under keyword arguments)
     -   `info.residuals::Vector`: a list of the same length as `vals` containing the actual
         residuals
         ```julia
@@ -57,8 +58,9 @@ The return value is always of the form `T, vecs, vals, info = schursolve(...)` w
         ```
         where `T[i+1,i]` is definitely zero in case of complex arithmetic and possibly zero
         in case of real arithmetic
-    -   `info.normres::Vector{<:Real}`: list of the same length as `vals` containing the norm
-        of the residual for every Schur vector, i.e. `info.normes[i] = norm(info.residual[i])`
+    -   `info.normres::Vector{<:Real}`: list of the same length as `vals` containing the
+        norm of the residual for every Schur vector, i.e.
+        `info.normes[i] = norm(info.residual[i])`
     -   `info.numops::Int`: number of times the linear map was applied, i.e. number of times
         `f` was called, or a vector was multiplied with `A`
     -   `info.numiter::Int`: number of times the Krylov subspace was restarted (see below)
@@ -67,10 +69,10 @@ The return value is always of the form `T, vecs, vals, info = schursolve(...)` w
     if `info.converged >= howmany`.
 
 ### Algorithm
-The actual algorithm is an implementation of the Krylov-Schur algorithm, where the [`Arnoldi`](@ref)
-algorithm is used to generate the Krylov subspace. During the algorith, the Krylov subspace is
-dynamically grown and shrunk, i.e. the restarts are so-called thick restarts where a part of the
-current Krylov subspace is kept.
+The actual algorithm is an implementation of the Krylov-Schur algorithm, where the
+[`Arnoldi`](@ref) algorithm is used to generate the Krylov subspace. During the algorith,
+the Krylov subspace is dynamically grown and shrunk, i.e. the restarts are so-called thick
+restarts where a part of the current Krylov subspace is kept.
 """
 function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     T, U, fact, converged, numiter, numops = _schursolve(A, x₀, howmany, which, alg)
