@@ -104,7 +104,7 @@ function linselector(f, b, T::Type; issymmetric::Bool = false,
                                     atol::Real = KrylovDefaults.tol,
                                     tol::Real = max(atol, rtol*norm(b)),
                                     orth = KrylovDefaults.orth,
-                                    verbosity::Int = 0, kwargs...)
+                                    verbosity::Int = 0)
     if (T<:Real && issymmetric) || ishermitian
         if isposdef
             return CG(maxiter = krylovdim*maxiter, tol = tol, verbosity = verbosity)
@@ -129,7 +129,7 @@ function linselector(A::AbstractMatrix, b, T::Type;
                         atol::Real = KrylovDefaults.tol,
                         tol::Real = max(atol, rtol*norm(b)),
                         orth = KrylovDefaults.orth,
-                        verbosity::Int = 0, kwargs...)
+                        verbosity::Int = 0)
     if (T<:Real && issymmetric) || ishermitian
         if isposdef
             return CG(maxiter = krylovdim*maxiter, tol = tol, verbosity = verbosity)
