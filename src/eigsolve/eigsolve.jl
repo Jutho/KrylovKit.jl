@@ -4,8 +4,8 @@
     eigsolve(f, x₀, [howmany = 1, which = :LM]; kwargs...)
     eigsolve(f, x₀, howmany, which, algorithm)
 
-Compute `howmany` eigenvalues from the linear map encoded in the matrix `A` or by the
-function `f`. Return eigenvalues, eigenvectors and a `ConvergenceInfo` structure.
+Compute at least `howmany` eigenvalues from the linear map encoded in the matrix `A` or by
+the function `f`. Return eigenvalues, eigenvectors and a `ConvergenceInfo` structure.
 
 ### Arguments:
 The linear map can be an `AbstractMatrix` (dense or sparse) or a general function or

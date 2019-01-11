@@ -5,13 +5,13 @@
     geneigsolve(f, x₀, [howmany = 1, which = :LM]; kwargs...)
     geneigsolve(f, x₀, howmany, which, algorithm)
 
-Compute `howmany` generalized eigenvalues ``λ`` and generalized eigenvectors ``x`` of the
-form ``(A - λB)x = 0``, where `A` and `B` are either instances of `AbstractMatrix`, or some
-function that implements the matrix vector product. In case functions are used, one could
-either specify the action of `A` and `B` via a tuple of two functions (or a function and an
-`AbstractMatrix`), or one could use a single function that takes a single argument `x` and
-returns two results, corresponding to `A*x` and `B*x`. Return the computed eigenvalues,
-eigenvectors and a `ConvergenceInfo` structure.
+Compute at least `howmany` generalized eigenvalues ``λ`` and generalized eigenvectors ``x``
+of the form ``(A - λB)x = 0``, where `A` and `B` are either instances of `AbstractMatrix`,
+or some function that implements the matrix vector product. In case functions are used, one
+could either specify the action of `A` and `B` via a tuple of two functions (or a function
+and an `AbstractMatrix`), or one could use a single function that takes a single argument
+`x` and returns two results, corresponding to `A*x` and `B*x`. Return the computed
+eigenvalues, eigenvectors and a `ConvergenceInfo` structure.
 
 ### Arguments:
 The first argument is either a tuple of two linear maps, so a function or an
