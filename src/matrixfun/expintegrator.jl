@@ -80,7 +80,6 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
     u₀ = first(u)
     β₀ = norm(u₀)
     Au₀ = apply(A, u₀) # used to determine return type
-    β₀′ = norm(Au₀) # used to estimate norm(A)
     numops = 1
     T = promote_type(promote_type(eltype(Au₀), typeof(β₀), typeof(t)),
                         promote_type(eltype.(u)...))
@@ -91,15 +90,13 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
     krylovdim = alg.krylovdim
     K = krylovdim
     HH = zeros(T, (krylovdim+p+1, krylovdim+p+1))
-    # yy1 = Vector{T}(undef, krylovdim)
-    # yy2 = Vector{T}(undef, krylovdim)
 
     # time step parameters
     η::S = alg.tol # tol is per unit time
     totalerr = zero(η)
     sgn = sign(t)
     τ::S = abs(t)
-    Δτ::S = 10*(β₀/β₀′)*(η*((K+1)/exp(1.))^(K+1)*sqrt(2*pi*(K+1))/4*β₀′)^(1/K)
+    Δτ::S = one(τ) # don't try any clever initial guesses, rely on correction mechanism
     τ₀ = zero(τ)
 
     # safety factors
@@ -136,8 +133,8 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
     maxiter = alg.maxiter
     numiter = 0
     while true
-        if β < alg.tol
-            return w[p+1], ConvergenceInfo(converged, nothing, totalerr, numiter, numops)
+        if β < alg.tol && p == 1 # w₀ is fixed point of ODE
+            return w₀, ConvergenceInfo(1, nothing, β, numiter, numops)
         end
 
         numiter += 1
