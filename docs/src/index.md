@@ -17,6 +17,8 @@ The high level interface of KrylovKit is provided by the following functions:
 *   [`svdsolve`](@ref): find a few singular values and corresponding left and right
     singular vectors `A*x = σ * y` and `A'*y = σ*x`.
 *   [`exponentiate`](@ref): apply the exponential of a linear map to a vector
+*   [`expintegrator`](@ref): exponential integrator for a linear non-homogeneous ODE,
+    generalization of `exponentiate`
 
 ## Package features and alternatives
 This section could also be titled "Why did I create KrylovKit.jl"?
@@ -98,6 +100,8 @@ The following algorithms are currently implemented
     bidiagonalization (see [`GKL`](@ref))
 *   `exponentiate`: a [`Lanczos`](@ref) based algorithm for the action of the exponential of
     a real symmetric or complex hermitian linear map.
+*   `expintegrator`: exponential integrator for a linear non-homogeneous ODE, computes a
+    linear combination of the so-called `ϕⱼ` functions which generalize `ϕ₀(z) = exp(z)`.
 
 ## Future functionality?
 
@@ -107,8 +111,6 @@ Here follows a wish list / to-do list for the future. Any help is welcomed and a
     -   for `linsolve`: MINRES, BiCG, BiCGStab(l), IDR(s), ...
     -   for `eigsolve`: BiLanczos, Jacobi-Davidson JDQR/JDQZ, subspace iteration (?), ...
     -   for `geneigsolve`: trace minimization, block versions
-    -   for `exponentiate`: Arnoldi (currently only Lanczos supported);
-*   Exponential integration, i.e. the ϕ_p functions
 *   Support both in-place / mutating and out-of-place functions as linear maps
 *   Least square problems
 *   Nonlinear eigenvalue problems

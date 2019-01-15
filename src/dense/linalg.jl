@@ -1,9 +1,15 @@
 # Some modified wrappers for Lapack
 import LinearAlgebra: BlasFloat, BlasInt, LAPACKException,
-    DimensionMismatch, SingularException, PosDefException, chkstride1, checksquare,
-    has_offset_axes
+    DimensionMismatch, SingularException, PosDefException, chkstride1, checksquare
 import LinearAlgebra.BLAS: @blasfunc, libblas, BlasReal, BlasComplex
 import LinearAlgebra.LAPACK: liblapack, chklapackerror
+
+@static if isdefined(Base, :require_one_based_indexing)
+    import Base: require_one_based_indexing
+else
+    require_one_based_indexing(A...) = !Base.has_offset_axes(A...) || throw(ArgumentError("offset arrays are not supported but got an array with index other than 1"))
+end
+
 
 struct RowIterator{A<:AbstractMatrix,R<:IndexRange}
     a::A
@@ -350,7 +356,7 @@ for (stegr, elty) in
      (:sstegr_,:Float32))
     @eval begin
         function stegr!(dv::AbstractVector{$elty}, ev::AbstractVector{$elty}, Z::AbstractMatrix{$elty})
-            @assert !has_offset_axes(dv, ev, Z)
+            require_one_based_indexing(dv, ev, Z)
             chkstride1(dv, ev, Z)
             n = length(dv)
             if length(ev) == n - 1
