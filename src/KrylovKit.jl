@@ -11,7 +11,7 @@ objects with vector like behavior as vectors.
 The high level interface of KrylovKit is provided by the following functions:
 *   [`linsolve`](@ref): solve linear systems
 *   [`eigsolve`](@ref): find a few eigenvalues and corresponding eigenvectors
-*   [`geneigsolve`](@ref): find a few generalized eigenvalues and corresponding vectors 
+*   [`geneigsolve`](@ref): find a few generalized eigenvalues and corresponding vectors
 *   [`svdsolve`](@ref): find a few singular values and corresponding left and right
     singular vectors
 *   [`exponentiate`](@ref): apply the exponential of a linear map to a vector
@@ -22,7 +22,7 @@ using LinearAlgebra
 using Printf
 const IndexRange = AbstractRange{Int}
 
-export linsolve, eigsolve, geneigsolve, svdsolve, schursolve, exponentiate
+export linsolve, eigsolve, geneigsolve, svdsolve, schursolve, exponentiate, expintegrator
 export orthogonalize, orthogonalize!, orthonormalize, orthonormalize!
 export basis, rayleighquotient, residual, normres, rayleighextension
 export initialize, initialize!, expand!, shrink!
@@ -334,6 +334,7 @@ include("linsolve/gmres.jl")
 
 # exponentiate
 include("matrixfun/exponentiate.jl")
+include("matrixfun/expintegrator.jl")
 
 apply(A::AbstractMatrix, x::AbstractVector) = A*x
 apply(f, x) = f(x)

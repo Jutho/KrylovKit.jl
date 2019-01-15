@@ -14,7 +14,7 @@ const mgs2 = ModifiedGramSchmidt2()
 const cgsr = ClassicalGramSchmidtIR(η₀)
 const mgsr = ModifiedGramSchmidtIR(η₀)
 
-Random.seed!(1234567);
+Random.seed!(1234567)
 
 include("linalg.jl")
 include("factorize.jl")
@@ -22,5 +22,5 @@ include("linsolve.jl")
 include("eigsolve.jl")
 include("schursolve.jl")
 include("svdsolve.jl")
-include("exponentiate.jl")
+include("expintegrator.jl")
 include("recursivevec.jl")
