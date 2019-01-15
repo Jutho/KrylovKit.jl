@@ -11,12 +11,23 @@ to vectors.
 
 ## Release notes for the latest version
 
+### v0.3
+*   a new method `expintegrator` that generalizes `exponentiate` (and the latter is now a
+    special case of the former), i.e. it computes a linear combination of the so-called
+    ``ϕⱼ`` functions that corresponds to the solution of a linear inhomogeneous ODE.
+
+*   stricter handling of keyword arguments; unknown keyword arguments are no longer ignored
+    but give an error.
+
+### v0.2
 *   a new method `geneigsolve` for generalized eigenvalue problems ``A x = λ B x``, with a
     single implementation for symmetric/hermitian problems with positive definite `B`, based
     on the Golub-Ye inverse free algorithm.
 
 *   a `verbosity` keyword that takes integer values to control the amount of information
     that is printed while the algorithm is running.
+
+### v0.1: first official release
 
 ## Overview
 KrylovKit.jl accepts general functions or callable objects as linear maps, and general Julia
