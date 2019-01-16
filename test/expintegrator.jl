@@ -122,3 +122,25 @@ end
         end
     end
 end
+
+@testset "Arnoldi - expintegrator fixed point branch" begin
+    @testset for T in (ComplexF32, ComplexF64) # less probable that :LR eig is degenerate
+        A = rand(T,(N,N))
+        v₀ = rand(T, N)
+        λs, vs, infoR = eigsolve(A, v₀, 1, :LR)
+        @test infoR.converged > 0
+        r = vs[1]
+        A = A - λs[1]*I
+        λs, vs, infoL = eigsolve(A', v₀, 1, :LR)
+        @test infoL.converged > 0
+        l = vs[1]
+        w1, info1 = expintegrator(A, 1000., v₀)
+        @test info1.converged > 0
+        @test abs(dot(r, w1))/norm(r)/norm(w1) ≈ 1
+        v₁ = rand(T, N)
+        v₁ -= r*dot(l,v₁)/dot(l,r)
+        w2, info2 = expintegrator(A, 1000., v₀, v₁)
+        @test info2.converged > 0
+        @test A*w2 ≈ -v₁
+    end
+end
