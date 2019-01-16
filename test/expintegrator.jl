@@ -136,7 +136,7 @@ end
         l = vs[1]
         w1, info1 = expintegrator(A, 1000., v₀)
         @test info1.converged > 0
-        @test abs(dot(r, w1))/norm(r)/norm(w1) ≈ 1
+        @test abs(dot(r, w1))/norm(r)/norm(w1) ≈ 1 atol=1e-4
         v₁ = rand(T, N)
         v₁ -= r*dot(l,v₁)/dot(l,r)
         w2, info2 = expintegrator(A, 1000., v₀, v₁)
