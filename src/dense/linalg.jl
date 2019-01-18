@@ -168,13 +168,19 @@ function schur2eigvals(T::StridedMatrix{<:BlasReal}, which::AbstractVector{Int})
     return D
 end
 
+function _normalizevecs!(V)
+    @inbounds for k = 1:size(V,2)
+        normalize!(view(V, :, k))
+    end
+    return V
+end
 function schur2eigvecs(T::StridedMatrix{<:BlasComplex})
     n = checksquare(T)
     VR = similar(T, n, n)
     VL = similar(T, n, 0)
     select = Vector{BlasInt}(undef, 0)
     trevc!('R','A', select, T, VL, VR)
-    return VR
+    return _normalizevecs!(VR)
 end
 function schur2eigvecs(T::StridedMatrix{<:BlasComplex}, which::AbstractVector{Int})
     n = checksquare(T)
@@ -192,7 +198,7 @@ function schur2eigvecs(T::StridedMatrix{<:BlasComplex}, which::AbstractVector{In
         trevc!('R','S', select, T, VL, view(VR,:,k:k))
         select[i] = zero(BlasInt)
     end
-    return VR
+    return _normalizevecs!(VR)
 end
 function schur2eigvecs(T::StridedMatrix{<:BlasReal})
     n = checksquare(T)
@@ -216,7 +222,7 @@ function schur2eigvecs(T::StridedMatrix{<:BlasReal})
             i += 2
         end
     end
-    return VR
+    return _normalizevecs!(VR)
 end
 function schur2eigvecs(T::StridedMatrix{<:BlasReal}, which::AbstractVector{Int})
     n = checksquare(T)
@@ -263,7 +269,7 @@ function schur2eigvecs(T::StridedMatrix{<:BlasReal}, which::AbstractVector{Int})
             i += 2
         end
     end
-    return VR
+    return _normalizevecs!(VR)
 end
 
 function permuteeig!(D::StridedVector{S}, V::StridedMatrix{S},

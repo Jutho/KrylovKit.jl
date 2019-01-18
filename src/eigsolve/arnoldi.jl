@@ -120,7 +120,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     # Compute eigenvectors
     V = view(U, :, 1:howmany)*schur2eigvecs(TT)
     vectors = let B = basis(fact)
-        [normalize!(B*v) for v in cols(V)]
+        [B*v for v in cols(V)]
     end
     residuals = let r = residual(fact)
         [mul!(similar(r, Base.promote_type(eltype(V), eltype(r))), r, last(v)) for v in cols(V)]
