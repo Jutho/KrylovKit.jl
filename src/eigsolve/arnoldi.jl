@@ -189,6 +189,12 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     while converged < length(fact) && abs(f[converged+1]) < tol
         converged += 1
     end
+    if m == 1 && converged == 0
+        @show normres(fact)
+        @show β
+        @show f
+        @show view(U,m,:)
+    end
     if eltype(T) <: Real && 0< converged < length(fact) && T[converged+1,converged] != 0
         converged -= 1
     end
@@ -209,7 +215,7 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
         numiter += 1
 
         # Determine how many to keep
-        keep = div(3*krylovdim + 2*converged, 5) # strictly smaller than krylovdim since converged < howmany <= krylovdim, at least equal to converged
+        keep = div(3*m + 2*converged, 5) # strictly smaller than krylovdim since converged < howmany <= krylovdim, at least equal to converged
         if eltype(H) <: Real && H[keep+1,keep] != 0 # we are in the middle of a 2x2 block
             keep += 1 # conservative choice
             keep >= krylovdim && error("krylov dimension $(krylovdim) too small to compute $howmany eigenvalues")
