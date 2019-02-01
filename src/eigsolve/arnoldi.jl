@@ -184,16 +184,10 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     by, rev = eigsort(which)
     p = sortperm(values, by = by, rev = rev)
     T, U = permuteschur!(T, U, p)
-    mul!(f, view(U,m,:), β)
+    f = mul!(f, view(U, m, :), β)
     converged = 0
     while converged < length(fact) && abs(f[converged+1]) < tol
         converged += 1
-    end
-    if m == 1 && converged == 0
-        @show normres(fact)
-        @show β
-        @show f
-        @show view(U,m,:)
     end
     if eltype(T) <: Real && 0< converged < length(fact) && T[converged+1,converged] != 0
         converged -= 1
