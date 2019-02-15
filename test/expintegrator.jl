@@ -18,7 +18,7 @@ end
             A = (A+A')/2
             V = one(A)
             W = zero(A)
-            alg = Lanczos(orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)))
+            alg = Lanczos(orth = orth, krylovdim = n, maxiter = 2, tol = 10*n*eps(real(T)))
             for k = 1:n
                 W[:,k], =  @inferred exponentiate(A, 1, view(V,:,k), alg)
             end
@@ -28,11 +28,12 @@ end
             for t in (rand(real(T)), -rand(real(T)), im*randn(real(T)), randn(real(T))+im*randn(real(T)))
                 for p = 1:pmax
                     u = ntuple(i->rand(T, n), p+1)
-                    w, = @inferred expintegrator(A, t, u, alg)
+                    w, info = @inferred expintegrator(A, t, u, alg)
                     w2 = exp(t*A)*u[1]
                     for j = 1:p
                         w2 .+= t^j*ϕ(t*A, u[j+1], j)
                     end
+                    @test info.converged > 0
                     @test w2 ≈ w
                 end
             end
@@ -46,7 +47,7 @@ end
             A = rand(T,(n,n)) .- one(T)/2
             V = one(A)
             W = zero(A)
-            alg = Arnoldi(orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)))
+            alg = Arnoldi(orth = orth, krylovdim = n, maxiter = 2, tol = 10*n*eps(real(T)))
             for k = 1:n
                 W[:,k], =  @inferred exponentiate(A, 1, view(V,:,k), alg)
             end
@@ -56,11 +57,12 @@ end
             for t in (rand(real(T)), -rand(real(T)), im*randn(real(T)), randn(real(T))+im*randn(real(T)))
                 for p = 1:pmax
                     u = ntuple(i->rand(T, n), p+1)
-                    w, = @inferred expintegrator(A, t, u, alg)
+                    w, info = @inferred expintegrator(A, t, u, alg)
                     w2 = exp(t*A)*u[1]
                     for j = 1:p
                         w2 .+= t^j*ϕ(t*A, u[j+1], j)
                     end
+                    @test info.converged > 0
                     @test w2 ≈ w
                 end
             end

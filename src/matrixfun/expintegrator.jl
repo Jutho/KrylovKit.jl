@@ -6,6 +6,16 @@
 Compute ``y = ϕ₀(t*A)*u₀ + t*ϕ₁(t*A)*u₁ + t^2*ϕ₂(t*A)*u₂ + …``, where `A` is a general linear map, i.e. a `AbstractMatrix` or just a general function or callable object and `u₀`, `u₁` are of any Julia type with vector like behavior. Here, ``ϕ₀(z) = exp(z)`` and ``ϕⱼ₊₁ = (ϕⱼ(z) - 1/j!)/z``. In particular, ``y = x(t)`` represents the solution of the ODE
 ``x' = A*x + ∑ⱼ t^j/j! uⱼ₊₁`` with ``x(0) = u₀``.
 
+!!! note
+    When there are only input vectors `u₀` and `u₁`, `t` can equal `Inf`, in which the
+    algorithm tries to evolve all the way to the fixed point `y = - A \\ u₁ + P₀ u₀` with
+    `P₀` the projector onto the eigenspace of eigenvalue zero (if any) of `A`. If `A` has
+    any eigenvalues with real part larger than zero, however, the solution to the ODE will
+    diverge, i.e. the fixed point is not stable.
+
+!!! warning
+    The returned solution might be the solution of the ODE integrated up to a smaller time ``t̃ = sign(t) * |t̃|`` with ``|t̃| < |t|``, when the required precision could not be attained. Always check `info.converged > 0` or `info.residual == 0` (see below).
+
 ### Arguments:
 The linear map `A` can be an `AbstractMatrix` (dense or sparse) or a general function or
 callable object that implements the action of the linear map on a vector. If `A` is an
@@ -21,20 +31,19 @@ of any type and should be in the domain of `A`.
 ### Return values:
 The return value is always of the form `y, info = expintegrator(...)` with
 *   `y`: the result of the computation, i.e.
-    ``y = ϕ₀(t*A)*u₀ + t*ϕ₁(t*A)*u₁ + t^2*ϕ₂(t*A)*u₂ + …``
+    ``y = ϕ₀(t̃*A)*u₀ + t̃*ϕ₁(t̃*A)*u₁ + t̃^2*ϕ₂(t̃*A)*u₂ + …``
+    with ``t̃ = sign(t) * |t̃|`` with ``|t̃| <= |t|``, such that the accumulated error in
+    `y` per unit time is at most equal to the keyword argument `tol`
 *   `info`: an object of type [`ConvergenceInfo`], which has the following fields
-    -   `info.converged::Int`: 0 or 1 if the solution `y` was approximated up to the
-        requested tolerance `tol`.
-    -   `info.residual::Nothing`: value `nothing`, there is no concept of a residual in
-        this case
-    -   `info.normres::Real`: a (rough) estimate of the error between the approximate and
-        exact solution
+    -   `info.converged::Int`: 0 or 1 if the solution `y` was evolved all the way up to the
+        requested time `t`.
+    -   `info.residual`: there is no residual in the conventional sense, however, this
+        value equals the residual time `t - t̃`, i.e. it is zero if `info.converged == 1`
+    -   `info.normres::Real`: a (rough) estimate of the total error accumulated in the
+        solution, should be smaller than `tol * |t̃|`
     -   `info.numops::Int`: number of times the linear map was applied, i.e. number of times
         `f` was called, or a vector was multiplied with `A`
     -   `info.numiter::Int`: number of times the Krylov subspace was restarted (see below)
-!!! warning "Check for convergence"
-    By default (i.e. if `verbosity = 0`, see below), no warning is printed if the solution
-    was not found with the requested precion, so be sure to check `info.converged == 1`.
 
 ### Keyword arguments:
 Keyword arguments and their default values are given by:
@@ -134,11 +143,14 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
     numiter = 0
     while true
         if β < alg.tol && p == 1 # w₀ is fixed point of ODE
-            return w₀, ConvergenceInfo(1, nothing, β, numiter, numops)
+            if alg.verbosity > 0
+                @info """expintegrate finished after $numiter iterations, converged to fixed point up to error = $β"""
+            end
+            return w₀, ConvergenceInfo(1, zero(τ), β, numiter, numops)
         end
 
         numiter += 1
-        Δτ = numiter == maxiter ? τ-τ₀ : min(Δτ, τ-τ₀)
+        Δτ = min(Δτ, τ-τ₀)
 
         # Lanczos or Arnoldi factorization
         while normres(fact) > η && length(fact) < krylovdim
@@ -160,7 +172,7 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
         ω = ϵ / (Δτ * η)
 
         q = K/2
-        while ω > one(ω) && numiter < maxiter
+        while ω > one(ω)
             ϵ_prev = ϵ
             Δτ_prev = Δτ
             Δτ *= (γ/ω)^(1/(q+1))
@@ -201,17 +213,17 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
             @info msg
         end
 
-        if τ₀ >= τ # should always be true if numiter == maxiter
-            converged = totalerr/τ < η ? 1 : 0
+        if τ₀ >= τ
             if alg.verbosity > 0
-                if converged == 0
-                    @warn """expintegrate finished without convergence after $numiter iterations:
-                    total error = $totalerr"""
-                else
-                    @info """expintegrate finished after $numiter iterations: total error = $totalerr"""
-                end
+                @info """expintegrate finished after $numiter iterations: total error = $totalerr"""
             end
-            return w₀, ConvergenceInfo(converged, nothing, totalerr, numiter, numops)
+            return w₀, ConvergenceInfo(1, zero(τ), totalerr, numiter, numops)
+        elseif numiter == maxiter
+            if alg.verbosity > 0
+                @warn """expintegrate finished without convergence after $numiter iterations:
+                total error = $totalerr, residual time = $(τ - τ₀)"""
+            end
+            return w₀, ConvergenceInfo(0, τ-τ₀, totalerr, numiter, numops)
         else
             for j = 1:p
                 w[j+1] = apply(A, w[j])
