@@ -15,6 +15,8 @@ Base.:\(a, v::InnerProductVec) = InnerProductVec(a\v.vec, v.dotf)
 
 Base.similar(v::InnerProductVec, ::Type{T} = eltype(v)) where {T} = InnerProductVec(similar(v.vec), v.dotf)
 
+Base.getindex(v::InnerProductVec) = v.vec
+
 function Base.fill!(v::InnerProductVec, a)
     fill!(v.vec, a)
     return v

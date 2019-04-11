@@ -126,6 +126,12 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
     end
     v = similar(w₀)
     β = norm(w[p+1])
+    if β < alg.tol && p == 1
+        if alg.verbosity > 0
+            @info """expintegrate finished after 0 iterations, converged to fixed point up to error = $β"""
+        end
+        return w₀, ConvergenceInfo(1, zero(τ), β, 0, numops)
+    end
     mul!(v, w[p+1], 1/β)
 
     # initialize iterator
@@ -153,7 +159,7 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
         Δτ = min(Δτ, τ-τ₀)
 
         # Lanczos or Arnoldi factorization
-        while normres(fact) > η && length(fact) < krylovdim
+        while normres(fact) > eps() && length(fact) < krylovdim
             fact = expand!(iter, fact; verbosity = alg.verbosity-2)
             numops += 1
         end
