@@ -75,12 +75,10 @@ end
         @testset for orth in (cgs2, mgs2, cgsr, mgsr)
             A = rand(T,(N,N)) .- one(T)/2
             A = (A+A')/2
+            s = norm(eigvals(A), 1)
+            rmul!(A, 1/(10*s))
             pmax = 5
             for t in (rand(real(T)), -rand(real(T)), im*randn(real(T)), randn(real(T))+im*randn(real(T)))
-                s = maximum(real(eigvals(t*A)))
-                if s > 1
-                    t *= 1/s
-                end
                 for p = 1:pmax
                     u = ntuple(i->rand(T, N), p+1)
                     w1, info = @inferred expintegrator(A, t, u...; maxiter = 100, krylovdim = n)
@@ -102,12 +100,10 @@ end
     @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
         @testset for orth in (cgs2, mgs2, cgsr, mgsr)
             A = rand(T,(N,N)) .- one(T)/2
+            s = norm(eigvals(A), 1)
+            rmul!(A, 1/(10*s))
             pmax = 5
             for t in (rand(real(T)), -rand(real(T)), im*randn(real(T)), randn(real(T))+im*randn(real(T)))
-                s = maximum(real(eigvals(t*A)))
-                if s > 1
-                    t *= 1/s
-                end
                 for p = 1:pmax
                     u = ntuple(i->rand(T, N), p+1)
                     w1, info = @inferred expintegrator(A, t, u...; maxiter = 100, krylovdim = n)
