@@ -55,7 +55,7 @@ end
 
 @testset "Dense Schur factorisation and associated methods" begin
     @testset for S in (Float32, Float64, ComplexF32, ComplexF64)
-        H = hessenberg(rand(S,n,n)).H
+        H = convert(Matrix, hessenberg(rand(S,n,n)).H) # convert for compatibility with 1.3
 
         # schur factorisation of Hessenberg matrix
         T,U,w = hschur!(copy(H))
