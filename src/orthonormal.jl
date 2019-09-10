@@ -85,7 +85,7 @@ this computes
 ```
 """
 function unproject!(y, b::OrthonormalBasis, x::AbstractVector, α::Number = true, β::Number = false, r = Base.OneTo(length(b)))
-    if y isa AbstractArray && IndexStyle(y) isa IndexLinear && Threads.nthreads() > 1 && !(Threads.in_threaded_loop[])
+    if y isa AbstractArray && IndexStyle(y) isa IndexLinear && Threads.nthreads() > 1
         return unproject_linear_multithreaded!(y, b, x, α, β, r)
     end
     # general case: using only vector operations, i.e. axpy! (similar to BLAS level 1)
@@ -149,7 +149,7 @@ Perform a rank 1 update of a basis `b`, i.e. update the basis vectors as
 It is the user's responsibility to make sure that the result is still an orthonormal basis.
 """
 @fastmath function rank1update!(b::OrthonormalBasis, y, x::AbstractVector, α::Number = true, β::Number = true, r = Base.OneTo(length(b)))
-    if y isa AbstractArray && IndexStyle(y) isa IndexLinear && Threads.nthreads() > 1 && !(Threads.in_threaded_loop[])
+    if y isa AbstractArray && IndexStyle(y) isa IndexLinear && Threads.nthreads() > 1
         return rank1update_linear_multithreaded!(b, y, x, α, β, r)
     end
     # general case: using only vector operations, i.e. axpy! (similar to BLAS level 1)
@@ -209,7 +209,7 @@ end
 end
 
 function basistransform!(b::OrthonormalBasis{T}, U::AbstractMatrix) where {T} # U should be unitary or isometric
-    if T<:AbstractArray && IndexStyle(T) isa IndexLinear && Threads.nthreads() > 1 && !(Threads.in_threaded_loop[])
+    if T<:AbstractArray && IndexStyle(T) isa IndexLinear && Threads.nthreads() > 1
         return basistransform_linear_multithreaded!(b, U)
     end
     m, n = size(U)
