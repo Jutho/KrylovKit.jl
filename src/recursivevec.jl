@@ -1,5 +1,13 @@
-struct RecursiveVec{T<:Tuple}
+struct RecursiveVec{T<:Union{Tuple,AbstractVector}}
     vecs::T
+
+end
+function RecursiveVec(arg1::AbstractVector{T}) where T
+    if isbitstype(T)
+        return RecursiveVec((arg1,))
+    else
+        return RecursiveVec{typeof(arg1)}(arg1)
+    end
 end
 RecursiveVec(arg1, args...) = RecursiveVec((arg1, args...))
 
@@ -16,6 +24,7 @@ Base.last(v::RecursiveVec) = last(v.vecs)
 
 Base.eltype(v::RecursiveVec) = eltype(typeof(v))
 Base.eltype(::Type{RecursiveVec{T}}) where {T<:Tuple} = _eltype(T)
+Base.eltype(::Type{RecursiveVec{T}}) where {T<:AbstractVector} = eltype(eltype(T))
 
 _eltype(::Type{Tuple{T}}) where {T} = eltype(T)
 function _eltype(::Type{TT}) where {TT<:Tuple}
