@@ -39,6 +39,13 @@ There are already a fair number of packages with Krylov-based or other iterative
     Arnoldi method for eigenvalues of a general matrix
 *   [JacobiDavidson.jl](https://github.com/haampie/JacobiDavidson.jl): Jacobi-Davidson
     method for eigenvalues of a general matrix
+*   [ExponentialUtilities.jl](https://github.com/JuliaDiffEq/ExponentialUtilities.jl): Krylov
+    subspace methods for matrix exponentials and `phiv` exponential integrator products. It
+    has specialized methods for subspace caching, time stepping, and error testing which are
+    essential for use in high order exponential integrators.
+*   [OrdinaryDiffEq.jl](https://github.com/JuliaDiffEq/OrdinaryDiffEq.jl):
+    contains implementations of [high order exponential integrators](https://docs.juliadiffeq.org/latest/solvers/split_ode_solve/#OrdinaryDiffEq.jl-2)
+    with adaptive Krylov-subspace calculations for solving semilinear and nonlinear ODEs.
 
 These packages have certainly inspired and influenced the development of KrylovKit.jl.
 However, KrylovKit.jl distinguishes itself from the previous packages in the following ways:
