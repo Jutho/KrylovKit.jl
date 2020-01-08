@@ -1,8 +1,8 @@
 """
     svdsolve(A::AbstractMatrix, [howmany = 1, which = :LR, T = eltype(A)]; kwargs...)
-    svdsolve(f, m::Int, n::Int, [howmany = 1, which = :LR, T = Float64]; kwargs...)
-    svdsolve(f, x₀, y₀, [howmany = 1, which = :LM]; kwargs...)
-    svdsolve(f, x₀, y₀, howmany, which, algorithm)
+    svdsolve(f, m::Int, [howmany = 1, which = :LR, T = Float64]; kwargs...)
+    svdsolve(f, x₀, [howmany = 1, which = :LM]; kwargs...)
+    svdsolve(f, x₀, howmany, which, algorithm)
 
 Compute `howmany` singular values from the linear map encoded in the matrix `A` or by the
 function `f`. Return singular values, left and right singular vectors and a
@@ -29,11 +29,11 @@ end
 ```
 
 For a general linear map encoded using either the tuple or the two-argument form, the best
-approach is to provide a start vector `x₀` (in the domain of the linear map).
-Alternatively, one can specify the number `n` of columns of the linear map, in which case
-`x₀ = rand(T, n)` is used, where the default value of `T` is `Float64`, unless specified
-differently. If an `AbstractMatrix` is used, a starting vector `x₀` does not need to be
-provided; it is chosen as `rand(T, size(A,1))`.
+approach is to provide a start vector `x₀` (in the codomain, i.e. column space, of the
+linear map). Alternatively, one can specify the number `m` of rows of the linear map, in
+which case `x₀ = rand(T, m)` is used, where the default value of `T` is `Float64`, unless
+specified differently. If an `AbstractMatrix` is used, a starting vector `x₀` does not need
+to be provided; it is chosen as `rand(T, size(A,1))`.
 
 The next arguments are optional, but should typically be specified. `howmany` specifies how
 many singular values and vectors should be computed; `which` specifies which singular
@@ -74,10 +74,10 @@ Keyword arguments and their default values are given by:
 *   `verbosity::Int = 0`: verbosity level, i.e. 0 (no messages), 1 (single message
     at the end), 2 (information after every iteration), 3 (information per Krylov step)
 *   `krylovdim`: the maximum dimension of the Krylov subspace that will be constructed.
-    Note that the dimension of the vector space is not known or checked, e.g. `x₀` should not
-    necessarily support the `Base.length` function. If you know the actual problem dimension
-    is smaller than the default value, it is useful to reduce the value of `krylovdim`, though
-    in principle this should be detected.
+    Note that the dimension of the vector space is not known or checked, e.g. `x₀` should
+    not necessarily support the `Base.length` function. If you know the actual problem
+    dimension is smaller than the default value, it is useful to reduce the value of
+    `krylovdim`, though in principle this should be detected.
 *   `tol`: the requested accuracy according to `normres` as defined above. If you work in
     e.g. single precision (`Float32`), you should definitely change the default value.
 *   `maxiter`: the number of times the Krylov subspace can be rebuilt; see below for further
@@ -94,14 +94,14 @@ to the Krylov-Schur factorization for eigenvalues.
 """
 function svdsolve end
 
-function svdsolve(A::AbstractMatrix, howmany::Int = 1, which::Selector = :LR, T::Type = eltype(A); kwargs...)
-    svdsolve(A, rand(T, size(A,1)), howmany, which; kwargs...)
-end
-function svdsolve(f, n::Int, howmany::Int = 1, which::Selector = :LR, T::Type = Float64; kwargs...)
+svdsolve(A::AbstractMatrix, howmany::Int = 1, which::Selector = :LR, T::Type = eltype(A);
+            kwargs...) = svdsolve(A, rand(T, size(A,1)), howmany, which; kwargs...)
+svdsolve(f, n::Int, howmany::Int = 1, which::Selector = :LR, T::Type = Float64; kwargs...) =
     svdsolve(f, rand(T, n), howmany, which; kwargs...)
-end
+
 function svdsolve(f, x₀, howmany::Int = 1, which::Symbol = :LR; kwargs...)
-    which == :LR || which == :SR || error("invalid specification of which singular values to target: which = $which")
+    which == :LR || which == :SR ||
+        error("invalid specification of which singular values to target: which = $which")
     alg = GKL(; kwargs...)
     svdsolve(f, x₀, howmany, which, alg)
 end
@@ -109,7 +109,8 @@ end
 function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
     krylovdim = alg.krylovdim
     maxiter = alg.maxiter
-    howmany > krylovdim && error("krylov dimension $(krylovdim) too small to compute $howmany singular values")
+    howmany > krylovdim &&
+        error("krylov dimension $(krylovdim) too small to compute $howmany singular values")
 
     ## FIRST ITERATION: setting up
     numiter = 1
