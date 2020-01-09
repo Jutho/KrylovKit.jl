@@ -113,7 +113,7 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number = 0, a₁::Number 
             for i = 1:k
                 rmul!(V, gs[i]')
             end
-            r = mul!(r, y[k+1], V[k+1])
+            r = mul!(r, V[k+1], y[k+1])
         else
             # Recompute residual and its norm explicitly, to ensure that no
             # numerical errors have accumulated
