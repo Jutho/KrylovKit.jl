@@ -52,7 +52,7 @@ Keyword arguments are given by:
     use `tol` (in which case the value of `atol` and `rtol` will be ignored).
 *   `krylovdim::Integer`: the maximum dimension of the Krylov subspace that will be
     constructed.
-*   `maxiter::Integer: the number of times the Krylov subspace can be rebuilt; see below for
+*   `maxiter::Integer`: the number of times the Krylov subspace can be rebuilt; see below for
     further details on the algorithms.
 *   `orth::Orthogonalizer`: the orthogonalization method to be used, see
     [`Orthogonalizer`](@ref)
