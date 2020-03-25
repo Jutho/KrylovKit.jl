@@ -44,7 +44,7 @@ function _householder!(v::AbstractVector{T}, i::Int) where {T}
         vi = v[i]
         ν = sqrt(abs2(vi)+σ)
 
-        if σ == 0 && vi == ν
+        if iszero(σ) && vi == ν
             β = zero(vi)
         else
             if real(vi) < 0
@@ -69,9 +69,9 @@ function LinearAlgebra.lmul!(H::Householder, x::AbstractVector)
     v = H.v
     r = H.r
     β = H.β
-    β == 0 && return x
+    iszero(β) && return x
     @inbounds begin
-        μ::eltype(x) = 0
+        μ::eltype(x) = zero(eltype(x))
         i = 1
         @simd for j in r
             μ += conj(v[i])*x[j]
@@ -90,10 +90,10 @@ function LinearAlgebra.lmul!(H::Householder, A::AbstractMatrix, cols=axes(A,2))
     v = H.v
     r = H.r
     β = H.β
-    β == 0 && return A
+    iszero(β) && return A
     @inbounds begin
         for k in cols
-            μ::eltype(A) = 0
+            μ::eltype(A) = zero(eltype(A))
             i = 1
             @simd for j in r
                 μ += conj(v[i])*A[j,k]
@@ -113,9 +113,9 @@ function LinearAlgebra.rmul!(A::AbstractMatrix, H::Householder, rows=axes(A,1))
     v = H.v
     r = H.r
     β = H.β
-    β == 0 && return A
+    iszero(β) && return A
     w = similar(A, length(rows))
-    fill!(w, 0)
+    fill!(w, zero(eltype(w)))
     @inbounds begin
         l = 1
         for k in r
@@ -144,7 +144,7 @@ function LinearAlgebra.rmul!(b::OrthonormalBasis, H::Householder)
     v = H.v
     r = H.r
     β = H.β
-    β == 0 && return b
+    iszero(β) && return b
     w = similar(b[first(r)])
     @inbounds begin
         unproject!(w, b, v, 1, 0, r)

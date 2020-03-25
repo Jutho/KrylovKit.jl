@@ -6,7 +6,7 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number = 0, a₁::Number 
     α₁ = convert(T, a₁)::T
     # Continue computing r = b - a₀ * x₀ - a₁ * operator(x₀)
     r = copyto!(similar(b, T), b)
-    r = α₀ == 0 ? r : axpy!(-α₀, x₀, r)
+    r = iszero(α₀) ? r : axpy!(-α₀, x₀, r)
     r = axpy!(-α₁, y₀, r)
     x = copyto!(similar(r), x₀)
     β = norm(r)
@@ -118,7 +118,7 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number = 0, a₁::Number 
             # Recompute residual and its norm explicitly, to ensure that no
             # numerical errors have accumulated
             r = copyto!(r, b)                      # r = b
-            r = α₀ == 0 ? r : axpy!(-α₀, x, r)     #      - α₀ * x
+            r = iszero(α₀) ? r : axpy!(-α₀, x, r)     #      - α₀ * x
             r = axpy!(-α₁, apply(operator, x), r)  #      - α₁ * operator(x)
             numops += 1
             β = norm(r)

@@ -63,7 +63,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
         keep = div(3*krylovdim + 2*converged, 5) # strictly smaller than krylovdim since converged < howmany <= krylovdim, at least equal to converged
 
         # Restore Lanczos form in the first keep columns
-        H = fill!(view(HH, 1:keep+1, 1:keep), 0)
+        H = fill!(view(HH, 1:keep+1, 1:keep), zero(eltype(HH)))
         @inbounds for j = 1:keep
             H[j,j] = D[j]
             H[keep+1,j] = f[j]
@@ -71,7 +71,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
         @inbounds for j = keep:-1:1
             h, ν = householder(H, j+1, 1:j, j)
             H[j+1,j] = ν
-            H[j+1,1:j-1] .= 0
+            H[j+1,1:j-1] .= zero(eltype(H))
             lmul!(h, H)
             rmul!(view(H, 1:j, :), h')
             rmul!(U, h')

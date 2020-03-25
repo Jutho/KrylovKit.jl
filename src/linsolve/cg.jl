@@ -6,7 +6,7 @@ function linsolve(operator, b, x₀, alg::CG, a₀::Real = 0, a₁::Real = 1)
     α₁ = convert(T, a₁)
     # Continue computing r = b - a₀ * x₀ - a₁ * operator(x₀)
     r = copyto!(similar(b, T), b)
-    r = α₀ == 0 ? r : axpy!(-α₀, x₀, r)
+    r = iszero(α₀) ? r : axpy!(-α₀, x₀, r)
     r = axpy!(-α₁, y₀, r)
     x = copyto!(similar(r), x₀)
     normr = norm(r)
@@ -59,11 +59,11 @@ function linsolve(operator, b, x₀, alg::CG, a₀::Real = 0, a₁::Real = 1)
         normr = norm(r)
         if normr < tol # recompute to account for buildup of floating point errors
             r = copyto!(similar(b, T), b)
-            r = α₀ == 0 ? r : axpy!(-α₀, x, r)
+            r = iszero(α₀) ? r : axpy!(-α₀, x, r)
             r = axpy!(-α₁, apply(operator, x), r)
             normr = norm(r)
             ρ = normr^2
-            β = 0 # restart CG
+            β = zero(β) # restart CG
         else
             ρold = ρ
             ρ = normr^2

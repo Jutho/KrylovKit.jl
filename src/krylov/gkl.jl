@@ -71,7 +71,7 @@ end
 
 function initialize(iter::GKLIterator; verbosity::Int = 0)
     β₀ = norm(iter.u₀)
-    β₀ == 0 && throw(ArgumentError("initial vector should not have norm zero"))
+    iszero(β₀) && throw(ArgumentError("initial vector should not have norm zero"))
     invβ₀ = one(eltype(iter.u₀))/β₀
     T = typeof(invβ₀) # division might change eltype
     u₀ = mul!(similar(iter.u₀, T), iter.u₀, invβ₀)

@@ -91,7 +91,7 @@ function unproject!(y, b::OrthonormalBasis, x::AbstractVector, α::Number = true
     # general case: using only vector operations, i.e. axpy! (similar to BLAS level 1)
     length(x) == length(r) || throw(DimensionMismatch())
     if β == 0
-        fill!(y, zero(eltype(y)))
+        rmul!(y, false) # should be hard zero
     elseif β != 1
         rmul!(y, β)
     end

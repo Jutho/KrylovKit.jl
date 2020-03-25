@@ -8,7 +8,7 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
     ax₀, bx₀ = apply(geneigfun(f), x₀)
     numops = 1
     β₀ = norm(x₀)
-    β₀ == 0 && throw(ArgumentError("initial vector should not have norm zero"))
+    iszero(β₀) && throw(ArgumentError("initial vector should not have norm zero"))
     invβ₀ = one(promote_type(eltype(x₀), eltype(ax₀), eltype(bx₀)))/β₀
     T = typeof(invβ₀) # division might change eltype
     v = mul!(similar(x₀, T), x₀, invβ₀)
@@ -19,8 +19,8 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
     tol::typeof(ρ) = alg.tol
 
     # allocate storage
-    HHA = fill(zero(eltype(r)), krylovdim+1, krylovdim+1)
-    HHB = fill(zero(eltype(r)), krylovdim+1, krylovdim+1)
+    HHA = fill(zero(T), krylovdim+1, krylovdim+1)
+    HHB = fill(zero(T), krylovdim+1, krylovdim+1)
 
     # Start Lanczos iteration with A - ρ ⋅ B
     V = OrthonormalBasis([v])
@@ -109,8 +109,8 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
     ## OTHER ITERATIONS: recycle
     while numiter < maxiter && converged < howmany
         numiter += 1
-        fill!(HHA, 0)
-        fill!(HHB, 0)
+        fill!(HHA, zero(T))
+        fill!(HHB, zero(T))
         resize!(V, 0)
         resize!(BV, 0)
 

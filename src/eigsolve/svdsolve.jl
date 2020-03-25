@@ -195,7 +195,7 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
         # Shrink GKL factorization (no longer strictly GKL)
         r = residual(fact)
         U[keep+1] = rmul!(r, 1/normres(fact))
-        H = fill!(view(HH, 1:keep+1, 1:keep), 0)
+        H = fill!(view(HH, 1:keep+1, 1:keep), zero(eltype(HH)))
         @inbounds for j = 1:keep
             H[j,j] = S[j]
             H[keep+1,j] = f[j]
@@ -205,12 +205,12 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
         @inbounds for j = keep:-1:1
             h, ν = householder(H, j+1, 1:j, j)
             H[j+1,j] = ν
-            H[j+1,1:j-1] .= 0
+            H[j+1,1:j-1] .= zero(eltype(H))
             rmul!(view(H, 1:j, :), h')
             rmul!(V, h')
             h, ν = householder(H, 1:j, j, j)
             H[j,j] = ν
-            @inbounds H[1:j-1,j] .= 0
+            @inbounds H[1:j-1,j] .= zero(eltype(H))
             lmul!(h, view(H, :, 1:j-1))
             rmul!(U, h')
         end
