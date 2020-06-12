@@ -161,6 +161,19 @@ Base.iterate(F::KrylovFactorization, ::Val{:normres}) = (normres(F), Val(:raylei
 Base.iterate(F::KrylovFactorization, ::Val{:rayleighextension}) = (rayleighextension(F), Val(:done))
 Base.iterate(F::KrylovFactorization, ::Val{:done}) = nothing
 
+# some often used tools
+function checkposdef(z)
+    r = checkhermitian(z)
+    r > 0 ||
+        error("operator does not appear to be postive definite: diagonal element $z")
+    return r
+end
+function checkhermitian(z, n = abs(z))
+    imag(z) <= sqrt(max(eps(n),eps(one(n)))) ||
+        error("operator does not appear to be hermitian: diagonal element $z")
+    return real(z)
+end
+
 include("krylov/lanczos.jl")
 include("krylov/arnoldi.jl")
 include("krylov/gkl.jl")

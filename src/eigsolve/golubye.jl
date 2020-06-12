@@ -9,12 +9,14 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
     numops = 1
     β₀ = norm(x₀)
     iszero(β₀) && throw(ArgumentError("initial vector should not have norm zero"))
-    invβ₀ = one(promote_type(eltype(x₀), eltype(ax₀), eltype(bx₀)))/β₀
-    T = typeof(invβ₀) # division might change eltype
+    xax = dot(x₀, ax₀)/β₀^2
+    xbx = dot(x₀, bx₀)/β₀^2
+    T = promote_type(typeof(xax), typeof(xbx))
+    invβ₀ = inv(β₀)
     v = mul!(similar(x₀, T), x₀, invβ₀)
     av = mul!(similar(x₀, T), ax₀, invβ₀)
     bv = mul!(similar(x₀, T), bx₀, invβ₀)
-    ρ = checkhermitian(dot(v, av)) / checkposdef(dot(v, bv))
+    ρ = checkhermitian(xax) / checkposdef(xbx)
     r = axpy!(-ρ, bv, av)
     tol::typeof(ρ) = alg.tol
 
@@ -360,17 +362,6 @@ function buildHB!(HB, V, BV)
             HB[j,i] = conj(HB[i,j])
         end
     end
-end
-
-function checkposdef(z)
-    real(z) > 0 ||
-        error("operator does not appear to be postive definite: diagonal element $z")
-    return checkhermitian(z)
-end
-function checkhermitian(z, n = abs(z))
-    imag(z) <= sqrt(max(eps(n),eps(one(n)))) ||
-        error("operator does not appear to be hermitian: diagonal element $z")
-    return real(z)
 end
 
 geneigfun((A,B)::Tuple{Any,Any}) = x->(apply(A,x), apply(B,x))

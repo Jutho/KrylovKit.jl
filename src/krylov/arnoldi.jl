@@ -50,21 +50,42 @@ function Base.iterate(iter::ArnoldiIterator, state)
 end
 
 function initialize(iter::ArnoldiIterator; verbosity::Int = 0)
-    β₀ = norm(iter.x₀)
+    # initialize without using eltype
+    x₀ = iter.x₀
+    β₀ = norm(x₀)
     iszero(β₀) && throw(ArgumentError("initial vector should not have norm zero"))
-    invβ₀ = one(eltype(iter.x₀))/β₀
-    T = typeof(invβ₀) # division might change eltype
-    x₀ = mul!(similar(iter.x₀, T), iter.x₀, invβ₀)
-    w = iter.operator(x₀) # applying the operator might change eltype
-    v = eltype(x₀) == eltype(w) ? x₀ : copyto!(similar(w), x₀)
-    r, α = orthogonalize!(w, v, iter.orth)
+    Ax₀ = iter.operator(x₀)
+    α = dot(x₀, Ax₀) / (β₀*β₀)
+    T = typeof(α)
+    v = mul!(similar(x₀, T), x₀, 1/β₀)
+    if typeof(Ax₀) != typeof(v)
+        r = mul!(similar(v), Ax₀, 1/β₀)
+    else
+        r = rmul!(Ax₀, 1/β₀)
+    end
+    βold = norm(r)
+    r = axpy!(-α, v, r)
     β = norm(r)
+    # possibly reorthogonalize
+    if iter.orth isa Union{ClassicalGramSchmidt2,ModifiedGramSchmidt2}
+        dα = dot(v, r)
+        α += dα
+        r = axpy!(-dα, v, r)
+        β = norm(r)
+    elseif iter.orth isa Union{ClassicalGramSchmidtIR,ModifiedGramSchmidtIR}
+        while eps(one(β)) < β < iter.orth.η * βold
+            βold = β
+            dα = dot(v, r)
+            α += dα
+            r = axpy!(-dα, v, r)
+            β = norm(r)
+        end
+    end
     V = OrthonormalBasis([v])
-    H = [α, β]
+    H = T[α, β]
     if verbosity > 0
         @info "Arnoldi iteration step 1: normres = $β"
     end
-
     state = ArnoldiFactorization(1, V, H, r)
 end
 function initialize!(iter::ArnoldiIterator, state::ArnoldiFactorization; verbosity::Int = 0)

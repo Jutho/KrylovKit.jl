@@ -120,7 +120,7 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
     numops = 2
     sizehint!(fact, krylovdim)
     β = normres(fact)
-    tol::eltype(β) = alg.tol
+    tol::typeof(β) = alg.tol
     while length(fact) < krylovdim
         fact = expand!(iter, fact; verbosity = alg.verbosity-2)
         numops += 2

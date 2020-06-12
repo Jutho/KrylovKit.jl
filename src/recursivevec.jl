@@ -13,8 +13,7 @@ RecursiveVec(arg1, args...) = RecursiveVec((arg1, args...))
 
 Base.getindex(v::RecursiveVec, i) = v.vecs[i]
 
-Base.iterate(v::RecursiveVec) = iterate(v.vecs)
-Base.iterate(v::RecursiveVec, s) = iterate(v.vecs, s)
+Base.iterate(v::RecursiveVec, args...) = iterate(v.vecs, args...)
 Base.IteratorEltype(::Type{<:RecursiveVec}) = Base.EltypeUnknown() # since `eltype` is not the eltype of the iterator
 Base.IteratorSize(::Type{<:RecursiveVec}) = Base.HasLength()
 Base.length(v::RecursiveVec) = length(v.vecs)
@@ -41,8 +40,9 @@ Base.:*(a, v::RecursiveVec) = RecursiveVec(map(x->a*x, v.vecs))
 Base.:/(v::RecursiveVec, a) = RecursiveVec(map(x->x/a, v.vecs))
 Base.:\(a, v::RecursiveVec) = RecursiveVec(map(x->a\x, v.vecs))
 
-function Base.similar(v::RecursiveVec, ::Type{T} = eltype(v)) where {T}
-    RecursiveVec(map(x->similar(x,T), v.vecs))
+# function Base.similar(v::RecursiveVec, T::Type = Base.promote_eltypeof(v...))
+function Base.similar(v::RecursiveVec, T::Type = eltype(v))
+    RecursiveVec(map(x->similar(x, T), v.vecs))
 end
 
 function Base.fill!(v::RecursiveVec, a)

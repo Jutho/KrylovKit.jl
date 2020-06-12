@@ -86,12 +86,15 @@ linsolve(A::AbstractMatrix, b::AbstractVector, a₀::Number = 0, a₁::Number = 
             T::Type = promote_type(eltype(A), eltype(b), typeof(a₀), typeof(a₁));
             kwargs...) = linsolve(A, b, rmul!(similar(b, T), false), a₀, a₁; kwargs...)
 
-linsolve(f, b, a₀::Number = 0, a₁::Number = 1,
-            T::Type = promote_type(eltype(b), typeof(a₀), typeof(a₁));
-            kwargs...) = linsolve(f, b, rmul!(similar(b, T), false), a₀, a₁; kwargs...)
+linsolve(f, b, a₀::Number = 0, a₁::Number = 1; kwargs...) =
+            linsolve(f, b, rmul!(similar(b), false), a₀, a₁; kwargs...)
 
 function linsolve(f, b, x₀, a₀::Number = 0, a₁::Number = 1; kwargs...)
-    alg = linselector(f, b, promote_type(eltype(x₀), typeof(a₀), typeof(a₁)); kwargs...)
+    Tx = promote_type(typeof(x₀), typeof(a₀), typeof(a₁))
+    Tb = typeof(b)
+    Tfx = Core.Compiler.return_type(apply, Tuple{typeof(f), Tx})
+    T = Core.Compiler.return_type(dot, Tuple{Tb, Tfx})
+    alg = linselector(f, b, T; kwargs...)
     linsolve(f, b, x₀, alg, a₀, a₁)
 end
 

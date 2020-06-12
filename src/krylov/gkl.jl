@@ -70,22 +70,33 @@ function Base.iterate(iter::GKLIterator, state::GKLFactorization)
 end
 
 function initialize(iter::GKLIterator; verbosity::Int = 0)
-    β₀ = norm(iter.u₀)
+    # initialize without using eltype
+    u₀ = iter.u₀
+    β₀ = norm(u₀)
     iszero(β₀) && throw(ArgumentError("initial vector should not have norm zero"))
-    invβ₀ = one(eltype(iter.u₀))/β₀
-    T = typeof(invβ₀) # division might change eltype
-    u₀ = mul!(similar(iter.u₀, T), iter.u₀, invβ₀)
-    v = iter.operator(u₀, true) # apply adjoint operator, might change eltype
-    u = eltype(v) == eltype(u₀) ? u₀ : copyto!(similar(v), u₀)
-    α = norm(v)
-    rmul!(v, 1/α)
-    r = iter.operator(v, false) # apply operator
+    v₀ = iter.operator(u₀, true) # apply adjoint operator, might change eltype
+    α = norm(v₀)/β₀
+    Av₀ = iter.operator(v₀, false) # apply operator
+    α² = dot(u₀, Av₀)/β₀^2
+    α² ≈ α*α || throw(ArgumentError("operator and its adjoint are not compatible"))
+    T = typeof(α²)
+    u = mul!(similar(u₀, T), u₀, 1/β₀)
+    if typeof(v₀) == typeof(u)
+        v = rmul!(v₀, 1/(α*β₀))
+    else
+        v = mul!(similar(u), v₀, 1/(α*β₀))
+    end
+    if typeof(Av₀) == typeof(u)
+        r = rmul!(Av₀, 1/(α*β₀))
+    else
+        r = mul!(similar(u), Av₀, 1/(α*β₀))
+    end
     r = axpy!(-α, u, r)
     β = norm(r)
 
     U = OrthonormalBasis([u])
     V = OrthonormalBasis([v])
-    S = eltype(α)
+    S = real(T)
     αs = S[α]
     βs = S[β]
     if verbosity > 0

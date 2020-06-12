@@ -68,15 +68,20 @@ end
 
 # Test incomplete Lanczos factorization
 @testset "Incomplete Lanczos factorization" begin
-    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
+    @testset for T in (Float32, Float64, ComplexF32, ComplexF64, Complex{Int})
         @testset for orth in (cgs2, mgs2, cgsr, mgsr) # tests fail miserably for cgs and mgs
-            A = rand(T,(N,N))
-            v = rand(T,(N,))
+            if T == Complex{Int}
+                A = rand(-100:100, (N, N)) + im * rand(-100:100, (N, N))
+                v = rand(-100:100, (N,))
+            else
+                A = rand(T,(N,N))
+                v = rand(T,(N,))
+            end
             A = (A+A')
             iter = @inferred LanczosIterator(A, v, orth)
             krylovdim = n
             fact = @inferred initialize(iter)
-            while normres(fact) > eps(real(T)) && length(fact) < krylovdim
+            while normres(fact) > eps(float(real(T))) && length(fact) < krylovdim
                 @inferred expand!(iter, fact)
 
                 V = hcat(basis(fact)...)
@@ -104,14 +109,19 @@ end
 
 # Test incomplete Arnoldi factorization
 @testset "Incomplete Arnoldi factorization" begin
-    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
+    @testset for T in (Float32, Float64, ComplexF32, ComplexF64, Complex{Int})
         @testset for orth in (cgs, mgs, cgs2, mgs2, cgsr, mgsr)
-            A = rand(T,(N,N))
-            v = rand(T,(N,))
+            if T == Complex{Int}
+                A = rand(-100:100, (N, N)) + im * rand(-100:100, (N, N))
+                v = rand(-100:100, (N,))
+            else
+                A = rand(T,(N,N))
+                v = rand(T,(N,))
+            end
             iter = @inferred ArnoldiIterator(A, v, orth)
             krylovdim = 3*n
             fact = @inferred initialize(iter)
-            while normres(fact) > eps(real(T)) && length(fact) < krylovdim
+            while normres(fact) > eps(float(real(T))) && length(fact) < krylovdim
                 @inferred expand!(iter, fact)
 
                 V = hcat(basis(fact)...)
@@ -139,14 +149,19 @@ end
 
 # Test incomplete Arnoldi factorization
 @testset "Incomplete GKL factorization" begin
-    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
+    @testset for T in (Float32, Float64, ComplexF32, ComplexF64, Complex{Int})
         @testset for orth in (cgs2, mgs2, cgsr, mgsr)
-            A = rand(T,(N,N))
-            v = rand(T,(N,))
+            if T == Complex{Int}
+                A = rand(-100:100, (N, N)) + im * rand(-100:100, (N, N))
+                v = rand(-100:100, (N,))
+            else
+                A = rand(T,(N,N))
+                v = rand(T,(N,))
+            end
             iter = @inferred GKLIterator(A, v, orth)
             krylovdim = 3*n
             fact = @inferred initialize(iter)
-            while normres(fact) > eps(real(T)) && length(fact) < krylovdim
+            while normres(fact) > eps(float(real(T))) && length(fact) < krylovdim
                 @inferred expand!(iter, fact)
 
                 U = hcat(basis(fact, :U)...)

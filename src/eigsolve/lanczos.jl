@@ -11,7 +11,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
     numops = 1
     sizehint!(fact, krylovdim)
     β = normres(fact)
-    tol::eltype(β) = alg.tol
+    tol::typeof(β) = alg.tol
     if normres(fact) > tol || howmany > 1
         while length(fact) < krylovdim
             fact = expand!(iter, fact; verbosity = alg.verbosity-2)

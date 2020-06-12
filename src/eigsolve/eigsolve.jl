@@ -146,13 +146,16 @@ eigsolve(A::AbstractMatrix, howmany::Int = 1, which::Selector = :LM, T::Type = e
 eigsolve(f, n::Int, howmany::Int = 1, which::Selector = :LM, T::Type = Float64; kwargs...) =
     eigsolve(f, rand(T, n), howmany, which; kwargs...)
 function eigsolve(f, x₀, howmany::Int = 1, which::Selector = :LM; kwargs...)
-    alg = eigselector(f, eltype(x₀); kwargs...)
+    Tx = typeof(x₀)
+    Tfx = Core.Compiler.return_type(apply, Tuple{typeof(f), Tx})
+    T = Core.Compiler.return_type(dot, Tuple{Tx, Tfx})
+    alg = eigselector(f, T; kwargs...)
     checkwhich(which) || error("Unknown eigenvalue selector: which = $which")
     if alg isa Lanczos
         if which == :LI || which == :SI
             error("Eigenvalue selector which = $which invalid: real eigenvalues expected with Lanczos algorithm")
         end
-    elseif eltype(x₀) <: Real
+    elseif T <: Real
         if which == :LI || which == :SI ||
             (which isa EigSorter && which.by(+im) != which.by(-im))
 
@@ -179,8 +182,7 @@ function eigselector(f, T::Type; issymmetric::Bool = false,
     end
 end
 function eigselector(A::AbstractMatrix, T::Type;
-                        issymmetric::Bool = eltype(A) <:Real && T <: Real &&
-                                                LinearAlgebra.issymmetric(A),
+                        issymmetric::Bool = T <: Real && LinearAlgebra.issymmetric(A),
                         ishermitian::Bool = issymmetric || LinearAlgebra.ishermitian(A),
                         krylovdim::Int = KrylovDefaults.krylovdim,
                         maxiter::Int = KrylovDefaults.maxiter,

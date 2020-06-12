@@ -143,7 +143,14 @@ geneigsolve(f, n::Int, howmany::Int = 1, which::Selector = :LM, T = Float64; kwa
     geneigsolve(f, rand(T, n), howmany, which; kwargs...)
 
 function geneigsolve(f, x₀, howmany::Int = 1, which::Selector = :LM; kwargs...)
-    alg = geneigselector(f, eltype(x₀); kwargs...)
+    Tx = typeof(x₀)
+    Tfx = Core.Compiler.return_type(geneigfun(f), Tuple{Tx}) # should be a tuple type
+    Tfx1 = Base.tuple_type_head(Tfx)
+    Tfx2 = Base.tuple_type_head(Base.tuple_type_tail(Tfx))
+    T1 = Core.Compiler.return_type(dot, Tuple{Tx, Tfx1})
+    T2 = Core.Compiler.return_type(dot, Tuple{Tx, Tfx2})
+    T = promote_type(T1, T2)
+    alg = geneigselector(f, T; kwargs...)
     if alg isa GolubYe && (which == :LI || which == :SI)
         error("Eigenvalue selector which = $which invalid: real eigenvalues expected with Lanczos algorithm")
     end
@@ -151,8 +158,7 @@ function geneigsolve(f, x₀, howmany::Int = 1, which::Selector = :LM; kwargs...
 end
 
 function geneigselector(AB::Tuple{AbstractMatrix,AbstractMatrix}, T::Type;
-                        issymmetric = eltype(AB[1]) <: Real && eltype(AB[2]) <:Real &&
-                                    T <: Real && all(LinearAlgebra.issymmetric, AB),
+                        issymmetric = T <: Real && all(LinearAlgebra.issymmetric, AB),
                         ishermitian = issymmetric || all(LinearAlgebra.ishermitian, AB),
                         isposdef = ishermitian && LinearAlgebra.isposdef(AB[2]), kwargs...)
     if (issymmetric || ishermitian) && isposdef
