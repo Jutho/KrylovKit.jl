@@ -63,7 +63,6 @@ However, KrylovKit.jl distinguishes itself from the previous packages in the fol
     particular higher-dimensional arrays or any custom user type that supports the
     following functions (with `v` and `w` two instances of this type and `α, β` scalars
     (i.e. `Number`)):
-    *   `Base.eltype(v)`: the scalar type (i.e. `<:Number`) of the data in `v`
     *   `Base.similar(v, [T::Type<:Number])`: a way to construct additional similar vectors,
         possibly with a different scalar type `T`.
     *   `Base.copyto!(w, v)`: copy the contents of `v` to a preallocated vector `w`
