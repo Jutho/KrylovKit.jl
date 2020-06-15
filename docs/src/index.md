@@ -63,28 +63,30 @@ However, KrylovKit.jl distinguishes itself from the previous packages in the fol
     particular higher-dimensional arrays or any custom user type that supports the
     following functions (with `v` and `w` two instances of this type and `α, β` scalars
     (i.e. `Number`)):
-    *   `Base.similar(v, [T::Type<:Number])`: a way to construct additional similar vectors,
-        possibly with a different scalar type `T`.
-    *   `Base.copyto!(w, v)`: copy the contents of `v` to a preallocated vector `w`
+    *   `Base.:*(α, v)`: multiply `v` with a scalar `α`, which can be of a different scalar
+        type; in particular this method is used to create vectors similar to `v` but with a
+        different type of underlying scalars.
+    *   `Base.similar(v)`: a way to construct vectors which are exactly similar to `v`
     *   `LinearAlgebra.mul!(w, v, α)`: out of place scalar multiplication; multiply
         vector `v` with scalar `α` and store the result in `w`
     *   `LinearAlgebra.rmul!(v, α)`: in-place scalar multiplication of `v` with `α`; in
-        particular with `α = false`, `v` is initialized with all zeros
+        particular with `α = false`, `v` is the corresponding zero vector
     *   `LinearAlgebra.axpy!(α, v, w)`: store in `w` the result of `α*v + w`
     *   `LinearAlgebra.axpby!(α, v, β, w)`: store in `w` the result of `α*v + β*w`
     *   `LinearAlgebra.dot(v,w)`: compute the inner product of two vectors
     *   `LinearAlgebra.norm(v)`: compute the 2-norm of a vector
 
-    Furthermore, KrylovKit provides two types satisfying the above requirements that might
-    facilitate certain applications:
+    Algorithms in KrylovKit.jl are tested against such a minimal implementation (named
+    `MinimalVec`) in the test suite. This type is only defined in the tests. However,
+    KrylovKit provides two types implementing this interface and slightly more, to make
+    them behave more like `AbstractArrays` (e.g. also `Base.:+` etc), which can facilitate
+    certain applications:
     *   [`RecursiveVec`](@ref) can be used for grouping a set of vectors into a single
-        vector like structure (can be used recursively). The reason that e.g.
-        `Vector{<:Vector}` cannot be used for this is that it returns the wrong `eltype`
-        and methods like `similar(v, T)` and `fill!(v, α)`
-        don't work correctly.
+        vector like structure (can be used recursively). This is more robust than trying to
+        use nested `Vector{<:Vector}` types.
     *   [`InnerProductVec`](@ref) can be used to redefine the inner product (i.e. `dot`)
         and corresponding norm (`norm`) of an already existing vector like object. The
-        latter should help with implementing certain type of preconditioners
+        latter should help with implementing certain type of preconditioners.
 
 ## Current functionality
 
