@@ -2,28 +2,24 @@ struct InnerProductVec{F,T}
     vec::T
     dotf::F
 end
-Base.eltype(v::InnerProductVec) = eltype(typeof(v))
-Base.eltype(::Type{InnerProductVec{F,T}}) where {F,T} = eltype(T)
 
 Base.:-(v::InnerProductVec) = InnerProductVec(-v.vec, v.dotf)
-Base.:+(v::InnerProductVec{F}, w::InnerProductVec{F}) where F = InnerProductVec(v.vec+w.vec, v.dotf)
-Base.:-(v::InnerProductVec{F}, w::InnerProductVec{F}) where F = InnerProductVec(v.vec-w.vec, v.dotf)
+Base.:+(v::InnerProductVec{F}, w::InnerProductVec{F}) where F =
+    InnerProductVec(v.vec+w.vec, v.dotf)
+Base.:-(v::InnerProductVec{F}, w::InnerProductVec{F}) where F =
+    InnerProductVec(v.vec-w.vec, v.dotf)
 Base.:*(v::InnerProductVec, a) = InnerProductVec(v.vec*a, v.dotf)
 Base.:*(a, v::InnerProductVec) = InnerProductVec(a*v.vec, v.dotf)
 Base.:/(v::InnerProductVec, a) = InnerProductVec(v.vec/a, v.dotf)
 Base.:\(a, v::InnerProductVec) = InnerProductVec(a\v.vec, v.dotf)
 
-Base.similar(v::InnerProductVec, ::Type{T} = eltype(v)) where {T} = InnerProductVec(similar(v.vec), v.dotf)
+Base.similar(v::InnerProductVec, ::Type{T} = eltype(v)) where {T} =
+    InnerProductVec(similar(v.vec), v.dotf)
 
 Base.getindex(v::InnerProductVec) = v.vec
 
-function Base.fill!(v::InnerProductVec, a)
-    fill!(v.vec, a)
-    return v
-end
-
-function Base.copyto!(w::InnerProductVec{F}, v::InnerProductVec{F}) where F
-    copyto!(w.vec, v.vec)
+function Base.copy!(w::InnerProductVec{F}, v::InnerProductVec{F}) where F
+    copy!(w.vec, v.vec)
     return w
 end
 

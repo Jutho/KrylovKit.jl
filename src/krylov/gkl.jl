@@ -80,7 +80,8 @@ function initialize(iter::GKLIterator; verbosity::Int = 0)
     α² = dot(u₀, Av₀)/β₀^2
     α² ≈ α*α || throw(ArgumentError("operator and its adjoint are not compatible"))
     T = typeof(α²)
-    u = mul!(similar(u₀, T), u₀, 1/β₀)
+    # this line determines the type that we will henceforth use
+    u = (one(T)/β₀)*u₀ # u = mul!(similar(u₀, T), u₀, 1/β₀)
     if typeof(v₀) == typeof(u)
         v = rmul!(v₀, 1/(α*β₀))
     else

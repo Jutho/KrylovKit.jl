@@ -76,7 +76,9 @@ use complex time steps in combination with e.g. a real symmetric map.
 function expintegrator end
 
 function expintegrator(A, t::Number, u₀, us...; kwargs...)
-    alg = eigselector(A, promote_type(typeof(t), eltype(u₀), eltype.(us)...); kwargs...)
+    Ts = typeof.(dot.((u₀, us...), (u₀,)))
+    T = promote_type(typeof(t), Ts...)
+    alg = eigselector(A, T; kwargs...)
     expintegrator(A, t, (u₀, us...), alg)
 end
 
@@ -90,10 +92,9 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
     β₀ = norm(u₀)
     Au₀ = apply(A, u₀) # used to determine return type
     numops = 1
-    T = promote_type(promote_type(eltype(Au₀), typeof(β₀), typeof(t)),
-                        promote_type(eltype.(u)...))
+    T = promote_type(typeof(t), (typeof.(dot.(u, (Au₀,))))...)
     S = real(T)
-    w₀ = copyto!(similar(u₀, T), u₀)
+    w₀ = one(T) * u₀
 
     # krylovdim and related allocations
     krylovdim = alg.krylovdim

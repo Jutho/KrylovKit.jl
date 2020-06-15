@@ -280,7 +280,7 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
         [V*v for v in cols(Qv')]
     end
     residuals = let r = residual(fact)
-        [r*last(v) for v in cols(Qv')]
+        [last(v)*r for v in cols(Qv')]
     end
     normresiduals = let f = f
         map(i->abs(f[i]), 1:howmany)

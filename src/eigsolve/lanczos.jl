@@ -146,7 +146,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
         [B*v for v in cols(V)]
     end
     residuals = let r = residual(fact)
-        [r*last(v) for v in cols(V)]
+        [last(v)*r for v in cols(V)]
     end
     normresiduals = let f = f
         map(i->abs(f[i]), 1:howmany)

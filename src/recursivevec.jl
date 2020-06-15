@@ -14,23 +14,16 @@ RecursiveVec(arg1, args...) = RecursiveVec((arg1, args...))
 Base.getindex(v::RecursiveVec, i) = v.vecs[i]
 
 Base.iterate(v::RecursiveVec, args...) = iterate(v.vecs, args...)
-Base.IteratorEltype(::Type{<:RecursiveVec}) = Base.EltypeUnknown() # since `eltype` is not the eltype of the iterator
-Base.IteratorSize(::Type{<:RecursiveVec}) = Base.HasLength()
+
+Base.IteratorEltype(::Type{RecursiveVec{T}}) where T = Base.IteratorEltype(T)
+Base.IteratorSize(::Type{RecursiveVec{T}}) where T = Base.IteratorSize(T)
+
+Base.eltype(v::RecursiveVec) = eltype(v.vecs)
+Base.size(v::RecursiveVec) = size(v.vecs)
 Base.length(v::RecursiveVec) = length(v.vecs)
 
 Base.first(v::RecursiveVec) = first(v.vecs)
 Base.last(v::RecursiveVec) = last(v.vecs)
-
-Base.eltype(v::RecursiveVec) = eltype(typeof(v))
-Base.eltype(::Type{RecursiveVec{T}}) where {T<:Tuple} = _eltype(T)
-Base.eltype(::Type{RecursiveVec{T}}) where {T<:AbstractVector} = eltype(eltype(T))
-
-_eltype(::Type{Tuple{T}}) where {T} = eltype(T)
-function _eltype(::Type{TT}) where {TT<:Tuple}
-    T = eltype(Base.tuple_type_head(TT))
-    T2 = _eltype(Base.tuple_type_tail(TT))
-    T == T2 ? T : error("all elements of a `RecursiveVec` should have same `eltype`")
-end
 
 Base.:-(v::RecursiveVec) = RecursiveVec(map(-,v.vecs))
 Base.:+(v::RecursiveVec, w::RecursiveVec) = RecursiveVec(map(+,v.vecs, w.vecs))
@@ -40,19 +33,11 @@ Base.:*(a, v::RecursiveVec) = RecursiveVec(map(x->a*x, v.vecs))
 Base.:/(v::RecursiveVec, a) = RecursiveVec(map(x->x/a, v.vecs))
 Base.:\(a, v::RecursiveVec) = RecursiveVec(map(x->a\x, v.vecs))
 
-# function Base.similar(v::RecursiveVec, T::Type = Base.promote_eltypeof(v...))
-function Base.similar(v::RecursiveVec, T::Type = eltype(v))
-    RecursiveVec(map(x->similar(x, T), v.vecs))
+function Base.similar(v::RecursiveVec)
+    RecursiveVec(similar.(v.vecs))
 end
 
-function Base.fill!(v::RecursiveVec, a)
-    for x in v.vecs
-        fill!(x, a)
-    end
-    return v
-end
-
-function Base.copyto!(w::RecursiveVec, v::RecursiveVec)
+function Base.copy!(w::RecursiveVec, v::RecursiveVec)
     @assert length(w.vecs) == length(v.vecs)
     @inbounds for i = 1:length(w.vecs)
         copyto!(w.vecs[i], v.vecs[i])

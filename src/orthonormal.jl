@@ -51,8 +51,7 @@ Base.resize!(b::OrthonormalBasis, k::Int) = (resize!(b.basis, k); return b)
 
 # Multiplication methods with OrthonormalBasis
 function Base.:*(b::OrthonormalBasis, x::AbstractVector)
-    S = promote_type(eltype(first(b)), eltype(x))
-    y = similar(first(b), S)
+    y = zero(eltype(x))*first(b)
     mul!(y, b, x)
 end
 LinearAlgebra.mul!(y, b::OrthonormalBasis, x::AbstractVector) = unproject!(y, b, x, 1, 0)

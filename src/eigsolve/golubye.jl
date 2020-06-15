@@ -12,10 +12,10 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
     xax = dot(x₀, ax₀)/β₀^2
     xbx = dot(x₀, bx₀)/β₀^2
     T = promote_type(typeof(xax), typeof(xbx))
-    invβ₀ = inv(β₀)
-    v = mul!(similar(x₀, T), x₀, invβ₀)
-    av = mul!(similar(x₀, T), ax₀, invβ₀)
-    bv = mul!(similar(x₀, T), bx₀, invβ₀)
+    invβ₀ = one(T)/β₀
+    v = invβ₀ * x₀ # v = mul!(similar(x₀, T), x₀, invβ₀)
+    av = mul!(similar(v), ax₀, invβ₀)
+    bv = mul!(similar(v), bx₀, invβ₀)
     ρ = checkhermitian(xax) / checkposdef(xbx)
     r = axpy!(-ρ, bv, av)
     tol::typeof(ρ) = alg.tol

@@ -75,7 +75,8 @@ function initialize(iter::LanczosIterator; verbosity::Int = 0)
     imag(α) <= sqrt(max(eps(n),eps(one(n)))) ||
         error("operator does not appear to be hermitian: $(imag(α)) vs $n")
     T = typeof(α)
-    v = mul!(similar(x₀, T), x₀, 1/β₀)
+    # this line determines the vector type that we will henceforth use
+    v = (one(T)/β₀)*x₀ # v = mul!(similar(x₀, T), x₀, 1/β₀)
     if typeof(Ax₀) != typeof(v)
         r = mul!(similar(v), Ax₀, 1/β₀)
     else

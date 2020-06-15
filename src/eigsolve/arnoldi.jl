@@ -88,7 +88,7 @@ function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
         [B*u for u in cols(U, 1:howmany)]
     end
     residuals = let r = residual(fact)
-        [mul!(similar(r), r, last(u)) for u in cols(U, 1:howmany)]
+        [last(u)*r for u in cols(U, 1:howmany)]
     end
     normresiduals = [normres(fact)*abs(last(u)) for u in cols(U, 1:howmany)]
 
@@ -123,7 +123,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
         [B*v for v in cols(V)]
     end
     residuals = let r = residual(fact)
-        [mul!(similar(r, Base.promote_type(eltype(V), eltype(r))), r, last(v)) for v in cols(V)]
+        [last(v)*r for v in cols(V)]
     end
     normresiduals = [normres(fact)*abs(last(v)) for v in cols(V)]
 

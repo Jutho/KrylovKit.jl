@@ -1,9 +1,7 @@
 """
-    linsolve(A::AbstractMatrix, b::AbstractVector, [a₀::Number = 0, a₁::Number = 1,
-                T::Type = promote_type(eltype(A), eltype(b), typeof(a₀), typeof(a₁))];
+    linsolve(A::AbstractMatrix, b::AbstractVector, [a₀::Number = 0, a₁::Number = 1];
                 kwargs...)
-    linsolve(f, b, [a₀::Number = 0, a₁::Number = 1,
-                T::Type = promote_type(eltype(b), typeof(a₀), typeof(a₁))]; kwargs...)
+    linsolve(f, b, [a₀::Number = 0, a₁::Number = 1]; kwargs...)
     linsolve(f, b, x₀, [a₀::Number = 0, a₁::Number = 1]; kwargs...)
     linsolve(f, b, x₀, algorithm, [a₀::Number = 0, a₁::Number = 1])
 
@@ -13,15 +11,11 @@ b`, possibly using a starting guess `x₀`. Return the approximate solution `x` 
 
 ### Arguments:
 The linear map can be an `AbstractMatrix` (dense or sparse) or a general function or
-callable object. If no initial guess is specified, it is chosen as `rmul!(similar(b, T),
-false)` which generates a similar object to `b`, but with element type `T` and initialized
-with zeros. The numbers `a₀` and `a₁` are optional arguments; they are applied implicitly,
-i.e. they do not contribute the computation time of applying the linear map or to the number
-of operations on vectors of type `x` and `b`.
-
-Finally, the optional argument `T` acts as a hint in which `Number` type the computation
-should be performed, but is not restrictive. If the linear map automatically produces
-complex values, complex arithmetic will be used even though `T<:Real` was specified.
+callable object. If no initial guess is specified, it is chosen as `(zero(a₀)*zero(a₁))*b`
+which should generate an object similar to `b` but initialized with zeros. The numbers `a₀`
+and `a₁` are optional arguments; they are applied implicitly, i.e. they do not contribute
+the computation time of applying the linear map or to the number of operations on vectors of
+type `x` and `b`.
 
 ### Return values:
 The return value is always of the form `x, info = linsolve(...)` with
@@ -82,12 +76,11 @@ used by the `CG` algorithm.
 """
 function linsolve end
 
-linsolve(A::AbstractMatrix, b::AbstractVector, a₀::Number = 0, a₁::Number = 1,
-            T::Type = promote_type(eltype(A), eltype(b), typeof(a₀), typeof(a₁));
-            kwargs...) = linsolve(A, b, rmul!(similar(b, T), false), a₀, a₁; kwargs...)
+linsolve(A::AbstractMatrix, b::AbstractVector, a₀::Number = 0, a₁::Number = 1;
+            kwargs...) = linsolve(A, b, (zero(a₀)*zero(a₁))*b, a₀, a₁; kwargs...)
 
 linsolve(f, b, a₀::Number = 0, a₁::Number = 1; kwargs...) =
-            linsolve(f, b, rmul!(similar(b), false), a₀, a₁; kwargs...)
+            linsolve(f, b, (zero(a₀)*zero(a₁))*b, a₀, a₁; kwargs...)
 
 function linsolve(f, b, x₀, a₀::Number = 0, a₁::Number = 1; kwargs...)
     Tx = promote_type(typeof(x₀), typeof(a₀), typeof(a₁))

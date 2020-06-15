@@ -20,7 +20,7 @@ end
             W = zero(A)
             alg = Lanczos(orth = orth, krylovdim = n, maxiter = 2, tol = 10*n*eps(real(T)))
             for k = 1:n
-                W[:,k], =  @inferred exponentiate(A, 1, view(V,:,k), alg)
+                W[:,k] =  unwrapvec(first(@inferred exponentiate(wrapop(A), 1, wrapvec(view(V,:,k)), alg)))
             end
             @test W ≈ exp(A)
 
@@ -28,13 +28,13 @@ end
             for t in (rand(real(T)), -rand(real(T)), im*randn(real(T)), randn(real(T))+im*randn(real(T)))
                 for p = 1:pmax
                     u = ntuple(i->rand(T, n), p+1)
-                    w, info = @inferred expintegrator(A, t, u, alg)
+                    w, info = @inferred expintegrator(wrapop(A), t, wrapvec.(u), alg)
                     w2 = exp(t*A)*u[1]
                     for j = 1:p
                         w2 .+= t^j*ϕ(t*A, u[j+1], j)
                     end
                     @test info.converged > 0
-                    @test w2 ≈ w
+                    @test w2 ≈ unwrapvec(w)
                 end
             end
         end
@@ -49,7 +49,7 @@ end
             W = zero(A)
             alg = Arnoldi(orth = orth, krylovdim = n, maxiter = 2, tol = 10*n*eps(real(T)))
             for k = 1:n
-                W[:,k], =  @inferred exponentiate(A, 1, view(V,:,k), alg)
+                W[:,k] =  unwrapvec(first(@inferred exponentiate(wrapop(A), 1, wrapvec(view(V,:,k)), alg)))
             end
             @test W ≈ exp(A)
 
@@ -57,13 +57,13 @@ end
             for t in (rand(real(T)), -rand(real(T)), im*randn(real(T)), randn(real(T))+im*randn(real(T)))
                 for p = 1:pmax
                     u = ntuple(i->rand(T, n), p+1)
-                    w, info = @inferred expintegrator(A, t, u, alg)
+                    w, info = @inferred expintegrator(wrapop(A), t, wrapvec.(u), alg)
                     w2 = exp(t*A)*u[1]
                     for j = 1:p
                         w2 .+= t^j*ϕ(t*A, u[j+1], j)
                     end
                     @test info.converged > 0
-                    @test w2 ≈ w
+                    @test w2 ≈ unwrapvec(w)
                 end
             end
         end
@@ -81,15 +81,15 @@ end
             for t in (rand(real(T)), -rand(real(T)), im*randn(real(T)), randn(real(T))+im*randn(real(T)))
                 for p = 1:pmax
                     u = ntuple(i->rand(T, N), p+1)
-                    w1, info = @inferred expintegrator(A, t, u...; maxiter = 100, krylovdim = n)
+                    w1, info = @inferred expintegrator(wrapop(A), t, wrapvec.(u)...; maxiter = 100, krylovdim = n)
                     @assert info.converged > 0
                     w2 = exp(t*A)*u[1]
                     for j = 1:p
                         w2 .+= t^j*ϕ(t*A, u[j+1], j)
                     end
-                    @test w2 ≈ w1
-                    w1, info = @inferred expintegrator(A, t, u...; maxiter = 100, krylovdim = n, tol = 1e-3)
-                    @test norm(w1 - w2) < 1e-2*abs(t)
+                    @test w2 ≈ unwrapvec(w1)
+                    w1, info = @inferred expintegrator(wrapop(A), t, wrapvec.(u)...; maxiter = 100, krylovdim = n, tol = 1e-3)
+                    @test norm(unwrapvec(w1) - w2) < 1e-2*abs(t)
                 end
             end
         end
@@ -106,15 +106,15 @@ end
             for t in (rand(real(T)), -rand(real(T)), im*randn(real(T)), randn(real(T))+im*randn(real(T)))
                 for p = 1:pmax
                     u = ntuple(i->rand(T, N), p+1)
-                    w1, info = @inferred expintegrator(A, t, u...; maxiter = 100, krylovdim = n)
+                    w1, info = @inferred expintegrator(wrapop(A), t, wrapvec.(u)...; maxiter = 100, krylovdim = n)
                     @test info.converged > 0
                     w2 = exp(t*A)*u[1]
                     for j = 1:p
                         w2 .+= t^j*ϕ(t*A, u[j+1], j)
                     end
-                    @test w2 ≈ w1
-                    w1, info = @inferred expintegrator(A, t, u...; maxiter = 100, krylovdim = n, tol = 1e-3)
-                    @test norm(w1 - w2) < 1e-2*abs(t)
+                    @test w2 ≈ unwrapvec(w1)
+                    w1, info = @inferred expintegrator(wrapop(A), t, wrapvec.(u)...; maxiter = 100, krylovdim = n, tol = 1e-3)
+                    @test norm(unwrapvec(w1) - w2) < 1e-2*abs(t)
                 end
             end
         end

@@ -5,13 +5,13 @@
             A = rand(T,(n,n))
             v = rand(T,(n,))
             A = (A+A')
-            iter = LanczosIterator(A, v, orth)
+            iter = LanczosIterator(wrapop(A), wrapvec(v), orth)
             fact = initialize(iter)
             while length(fact) < n
                 expand!(iter, fact)
             end
 
-            V = hcat(basis(fact)...)
+            V = hcat(unwrapvec.(basis(fact))...)
             H = rayleighquotient(fact)
             @test normres(fact) < 10*n*eps(real(T))
             @test V'*V ≈ I
@@ -26,13 +26,13 @@ end
         @testset for orth in (cgs, mgs, cgs2, mgs2, cgsr, mgsr)
             A = rand(T,(n,n))
             v = rand(T,(n,))
-            iter = ArnoldiIterator(A, v, orth)
+            iter = ArnoldiIterator(wrapop(A), wrapvec(v), orth)
             fact = initialize(iter)
             while length(fact) < n
                 expand!(iter, fact)
             end
 
-            V = hcat(basis(fact)...)
+            V = hcat(unwrapvec.(basis(fact))...)
             H = rayleighquotient(fact)
             factor = (orth == cgs || orth == mgs ? 100 : 10)
             @test normres(fact) < factor*n*eps(real(T))
@@ -48,14 +48,14 @@ end
         @testset for orth in (cgs2, mgs2, cgsr, mgsr)
             A = rand(T,(n,n))
             v = A*rand(T,(n,)) # ensure v is in column space of A
-            iter = GKLIterator(A, v, orth)
+            iter = GKLIterator(wrapop(A), wrapvec(v), orth)
             fact = initialize(iter)
             while length(fact) < n
                 expand!(iter, fact)
             end
 
-            U = hcat(basis(fact, :U)...)
-            V = hcat(basis(fact, :V)...)
+            U = hcat(unwrapvec.(basis(fact, :U))...)
+            V = hcat(unwrapvec.(basis(fact, :V))...)
             B = rayleighquotient(fact)
             @test normres(fact) < 10*n*eps(real(T))
             @test U'*U ≈ I
@@ -78,15 +78,15 @@ end
                 v = rand(T,(N,))
             end
             A = (A+A')
-            iter = @inferred LanczosIterator(A, v, orth)
+            iter = @inferred LanczosIterator(wrapop(A), wrapvec(v), orth)
             krylovdim = n
             fact = @inferred initialize(iter)
             while normres(fact) > eps(float(real(T))) && length(fact) < krylovdim
                 @inferred expand!(iter, fact)
 
-                V = hcat(basis(fact)...)
+                V = hcat(unwrapvec.(basis(fact))...)
                 H = rayleighquotient(fact)
-                r = residual(fact)
+                r = unwrapvec(residual(fact))
                 β = normres(fact)
                 e = rayleighextension(fact)
                 @test V'*V ≈ I
@@ -95,9 +95,9 @@ end
             end
 
             fact = @inferred shrink!(fact, div(n,2))
-            V = hcat((@inferred basis(fact))...)
+            V = hcat(unwrapvec.(@inferred basis(fact))...)
             H = @inferred rayleighquotient(fact)
-            r = @inferred residual(fact)
+            r = unwrapvec(@inferred residual(fact))
             β = @inferred normres(fact)
             e = @inferred rayleighextension(fact)
             @test V'*V ≈ I
@@ -118,15 +118,15 @@ end
                 A = rand(T,(N,N))
                 v = rand(T,(N,))
             end
-            iter = @inferred ArnoldiIterator(A, v, orth)
+            iter = @inferred ArnoldiIterator(wrapop(A), wrapvec(v), orth)
             krylovdim = 3*n
             fact = @inferred initialize(iter)
             while normres(fact) > eps(float(real(T))) && length(fact) < krylovdim
                 @inferred expand!(iter, fact)
 
-                V = hcat(basis(fact)...)
+                V = hcat(unwrapvec.(basis(fact))...)
                 H = rayleighquotient(fact)
-                r = residual(fact)
+                r = unwrapvec(residual(fact))
                 β = normres(fact)
                 e = rayleighextension(fact)
                 @test V'*V ≈ I
@@ -135,9 +135,9 @@ end
             end
 
             fact = @inferred shrink!(fact, div(n,2))
-            V = hcat((@inferred basis(fact))...)
+            V = hcat(unwrapvec.(@inferred basis(fact))...)
             H = @inferred rayleighquotient(fact)
-            r = @inferred residual(fact)
+            r = unwrapvec(@inferred residual(fact))
             β = @inferred normres(fact)
             e = @inferred rayleighextension(fact)
             @test V'*V ≈ I
@@ -158,16 +158,16 @@ end
                 A = rand(T,(N,N))
                 v = rand(T,(N,))
             end
-            iter = @inferred GKLIterator(A, v, orth)
+            iter = @inferred GKLIterator(wrapop(A), wrapvec(v), orth)
             krylovdim = 3*n
             fact = @inferred initialize(iter)
             while normres(fact) > eps(float(real(T))) && length(fact) < krylovdim
                 @inferred expand!(iter, fact)
 
-                U = hcat(basis(fact, :U)...)
-                V = hcat(basis(fact, :V)...)
+                U = hcat(unwrapvec.(basis(fact, :U))...)
+                V = hcat(unwrapvec.(basis(fact, :V))...)
                 B = rayleighquotient(fact)
-                r = residual(fact)
+                r = unwrapvec(residual(fact))
                 β = normres(fact)
                 e = rayleighextension(fact)
                 @test U'*U ≈ I
@@ -178,10 +178,10 @@ end
             end
 
             fact = @inferred shrink!(fact, div(n,2))
-            U = hcat((@inferred basis(fact, :U))...)
-            V = hcat((@inferred basis(fact, :V))...)
+            U = hcat(unwrapvec.(@inferred basis(fact, :U))...)
+            V = hcat(unwrapvec.(@inferred basis(fact, :V))...)
             B = @inferred rayleighquotient(fact)
-            r = @inferred residual(fact)
+            r = unwrapvec(@inferred residual(fact))
             β = @inferred normres(fact)
             e = @inferred rayleighextension(fact)
             @test U'*U ≈ I

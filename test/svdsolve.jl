@@ -3,12 +3,12 @@
         @testset for orth in (cgs2, mgs2, cgsr, mgsr)
             A = rand(T, (n,n))
             alg = GKL(orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)))
-            S, lvecs, rvecs, info = @inferred svdsolve(A, A[:,1], n, :LR, alg)
+            S, lvecs, rvecs, info = @inferred svdsolve(wrapop(A), wrapvec(A[:,1]), n, :LR, alg)
 
             @test S ≈ svdvals(A)
 
-            U = hcat(lvecs...)
-            V = hcat(rvecs...)
+            U = hcat(unwrapvec.(lvecs)...)
+            V = hcat(unwrapvec.(rvecs)...)
             @test U'*U ≈ I
             @test V'*V ≈ I
             @test A*V ≈ U*Diagonal(S)
@@ -23,17 +23,17 @@ end
             v = rand(T, (2*N,))
             n₁ = div(n, 2)
             alg = GKL(orth = orth, krylovdim = n, maxiter = 10, tol = 10*n*eps(real(T)))
-            S, lvecs, rvecs, info = @inferred svdsolve(A, v, n₁, :LR, alg)
+            S, lvecs, rvecs, info = @inferred svdsolve(wrapop(A), wrapvec(v), n₁, :LR, alg)
 
             l = info.converged
             @test S[1:l] ≈ svdvals(A)[1:l]
 
-            U = hcat(lvecs...)
-            V = hcat(rvecs...)
+            U = hcat(unwrapvec.(lvecs)...)
+            V = hcat(unwrapvec.(rvecs)...)
             @test U[:,1:l]'*U[:,1:l] ≈ I
             @test V[:,1:l]'*V[:,1:l] ≈ I
 
-            R = hcat(info.residual...)
+            R = hcat(unwrapvec.(info.residual)...)
             @test A' * U ≈ V * Diagonal(S)
             @test A * V ≈ U * Diagonal(S) + R
         end
