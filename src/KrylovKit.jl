@@ -252,7 +252,7 @@ of [`KrylovFactorization`](@ref), which can be immediately destructured into a
 [`basis`](@ref), [`rayleighquotient`](@ref), [`residual`](@ref), [`normres`](@ref) and
 [`rayleighextension`](@ref), for example as
 ```julia
-for V,B,r,nr,b in ArnoldiIterator(f, v₀)
+for (V,B,r,nr,b) in ArnoldiIterator(f, v₀)
     # do something
     nr < tol && break # a typical stopping criterion
 end
@@ -273,13 +273,13 @@ interface, e.g. for the same example above
 iterator = ArnoldiIterator(f, v₀)
 factorization = initialize(iterator)
 while normres(factorization) > tol
-    expand!(iterator, f)
+    expand!(iterator, factorization)
     V,B,r,nr,b = factorization
     # do something
 end
 ```
 Here, [`initialize(::KrylovIterator)`](@ref) produces the first Krylov factorization of
-length 1, and `expand!(::KrylovIterator,::KrylovFactorization)`(@ref) expands the
+length 1, and `expand!(::KrylovIterator, ::KrylovFactorization)`(@ref) expands the
 factorization in place. See also
 [`initialize!(::KrylovIterator,::KrylovFactorization)`](@ref) to initialize in an already
 existing factorization (most information will be discarded) and
