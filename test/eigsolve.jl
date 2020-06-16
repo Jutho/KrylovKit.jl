@@ -29,7 +29,8 @@ end
             A = rand(T,(N,N)) .- one(T)/2
             A = (A+A')/2
             v = rand(T,(N,))
-            alg = Lanczos(orth = orth, krylovdim = n, maxiter = 18, tol = 10*n*eps(real(T)))
+            alg = Lanczos(orth = orth, krylovdim = n, maxiter = 18,
+                            tol = 10*n*eps(real(T)), eager = true)
             n1 = div(n,2)
             D1, V1, info1 = @inferred eigsolve(wrapop(A), wrapvec(v), n1, :SR, alg)
             n2 = n-n1
@@ -96,7 +97,8 @@ end
         @testset for orth in (cgs2, mgs2, cgsr, mgsr)
             A = rand(T,(N,N)) .- one(T)/2
             v = rand(T,(N,))
-            alg = Arnoldi(orth = orth, krylovdim = 3*n, maxiter = 10, tol = 10*n*eps(real(T)))
+            alg = Arnoldi(orth = orth, krylovdim = 3*n, maxiter = 10,
+                            tol = 10*n*eps(real(T)), eager = true)
             D1, V1, info1 = @inferred eigsolve(wrapop(A), wrapvec(v), n, :SR, alg)
             D2, V2, info2 = eigsolve(wrapop(A), wrapvec(v), n, :LR, alg)
             D3, V3, info3 = eigsolve(wrapop(A), wrapvec(v), n, :LM, alg)

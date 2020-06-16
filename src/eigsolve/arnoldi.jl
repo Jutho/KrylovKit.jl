@@ -150,138 +150,115 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
 
     ## FIRST ITERATION: setting up
     numiter = 1
-    # Compute arnoldi factorization
+    # initialize arnoldi factorization
     iter = ArnoldiIterator(A, x₀, alg.orth)
     fact = initialize(iter; verbosity = alg.verbosity - 2)
     numops = 1
     sizehint!(fact, krylovdim)
     β = normres(fact)
     tol::eltype(β) = alg.tol
-    if normres(fact) > tol || howmany > 1
-        while length(fact) < krylovdim
-            fact = expand!(iter, fact; verbosity = alg.verbosity-2)
-            numops += 1
-            normres(fact) < tol && length(fact) >= howmany && break
-        end
-    end
 
-    # Process
     # allocate storage
     HH = fill(zero(eltype(fact)), krylovdim+1, krylovdim)
     UU = fill(zero(eltype(fact)), krylovdim, krylovdim)
 
-    # initialize
+    # initialize storage
     β = normres(fact)
-    m = length(fact)
-    H = view(HH, 1:m, 1:m)
-    U = view(UU, 1:m, 1:m)
-    f = view(HH, m+1, 1:m)
+    K = length(fact) # == 1
+    H = view(HH, 1:K, 1:K)
+    U = view(UU, 1:K, 1:K)
+    f = view(HH, K+1, 1:K)
     copyto!(U, I)
     copyto!(H, rayleighquotient(fact))
-
-    # compute dense schur factorization
-    T, U, values = hschur!(H, U)
-    by, rev = eigsort(which)
-    p = sortperm(values, by = by, rev = rev)
-    T, U = permuteschur!(T, U, p)
-    f = mul!(f, view(U, m, :), β)
-    converged = 0
-    while converged < length(fact) && abs(f[converged+1]) < tol
-        converged += 1
-    end
-    if eltype(T) <: Real && 0< converged < length(fact) && T[converged+1,converged] != 0
-        converged -= 1
-    end
-
-    if alg.verbosity > 1
-        msg = "Arnoldi schursolve in iter $numiter: "
-        msg *= "$converged values converged, normres = ("
-        msg *= @sprintf("%.2e", abs(f[1]))
-        for i = 2:howmany
-            msg *= ", "
-            msg *= @sprintf("%.2e", abs(f[i]))
-        end
-        msg *= ")"
-        @info msg
-    end
-    ## OTHER ITERATIONS: recycle
-    while numiter < maxiter && converged < howmany
-        numiter += 1
-
-        # Determine how many to keep
-        keep = div(3*m + 2*converged, 5) # strictly smaller than krylovdim since converged < howmany <= krylovdim, at least equal to converged
-        if eltype(H) <: Real && H[keep+1,keep] != 0 # we are in the middle of a 2x2 block
-            keep += 1 # conservative choice
-            keep >= krylovdim && error("krylov dimension $(krylovdim) too small to compute $howmany eigenvalues")
-        end
-
-        # Restore Arnoldi form in the first keep columns
-        @inbounds for j = 1:keep
-            H[keep+1,j] = f[j]
-        end
-        @inbounds for j = keep:-1:1
-            h, ν = householder(H, j+1, 1:j, j)
-            H[j+1,j] = ν
-            H[j+1,1:j-1] .= 0
-            lmul!(h, H)
-            rmul!(view(H, 1:j,:), h')
-            rmul!(U, h')
-        end
-        copyto!(rayleighquotient(fact), H) # copy back into fact
-
-        # Update B by applying U
-        B = basis(fact)
-        basistransform!(B, view(U, :, 1:keep))
-        # for j = 1:m
-        #     h, ν = householder(U, j:m, j)
-        #     lmul!(h, view(U, :, j+1:krylovdim))
-        #     rmul!(B, h')
-        # end
-        r = residual(fact)
-        B[keep+1] = rmul!(r, 1/normres(fact))
-
-        # Shrink Arnoldi factorization
-        fact = shrink!(fact, keep)
-
-        # Arnoldi factorization: recylce fact
-        while length(fact) < krylovdim
-            fact = expand!(iter, fact; verbosity = alg.verbosity-2)
-            numops += 1
-            normres(fact) < tol && length(fact) >= howmany && break
-        end
-
-        # post process
-        β = normres(fact)
-        m = length(fact)
-        H = view(HH, 1:m, 1:m)
-        U = view(UU, 1:m, 1:m)
-        f = view(HH, m+1, 1:m)
-        copyto!(U, I)
-        copyto!(H, rayleighquotient(fact))
-
-        # compute dense schur factorization
-        T, U, values = hschur!(H, U)
-        by, rev = eigsort(which)
-        p = sortperm(values, by = by, rev = rev)
-        T, U = permuteschur!(T, U, p)
-        mul!(f, view(U,m,:), β)
+    T, U, values = H, U, [H[1,1]]
+    if β <= tol
+        converged = 1
+    else
         converged = 0
-        while converged < length(fact) && abs(f[converged+1]) < tol
-            converged += 1
-        end
-        if eltype(T) <: Real && 0 < converged < length(fact) && T[converged+1,converged] != 0
-            converged -= 1
-        end
-        if alg.verbosity > 1
-            msg = "Arnoldi schursolve in iter $numiter: "
-            msg *= "$converged values converged, normres = ("
-            msg *= @sprintf("%.2e", abs(f[1]))
-            for i = 2:howmany
-                msg *= ", "
-                msg *= @sprintf("%.2e", abs(f[i]))
+    end
+
+    while converged < howmany
+        fact = expand!(iter, fact; verbosity = alg.verbosity-2)
+        numops += 1
+        β = normres(fact)
+        K = length(fact) # == 1
+
+        if K == krylovdim || (alg.eager && K >= howmany)
+            H = view(HH, 1:K, 1:K)
+            U = view(UU, 1:K, 1:K)
+            f = view(HH, K+1, 1:K)
+            copyto!(U, I)
+            copyto!(H, rayleighquotient(fact))
+
+            # compute dense schur factorization
+            T, U, values = hschur!(H, U)
+            by, rev = eigsort(which)
+            p = sortperm(values, by = by, rev = rev)
+            T, U = permuteschur!(T, U, p)
+            f = mul!(f, view(U, K, :), β)
+            converged = 0
+            while converged < length(fact) && abs(f[converged+1]) <= tol
+                converged += 1
             end
-            msg *= ")"
-            @info msg
+            if eltype(T) <: Real && 0< converged < length(fact) && T[converged+1,converged] != 0
+                converged -= 1
+            end
+
+            if converged >= howmany
+                break
+            elseif alg.verbosity > 1
+                msg = "Arnoldi schursolve in iter $numiter, krylovdim = $K: "
+                msg *= "$converged values converged, normres = ("
+                msg *= @sprintf("%.2e", abs(f[1]))
+                for i = 2:howmany
+                    msg *= ", "
+                    msg *= @sprintf("%.2e", abs(f[i]))
+                end
+                msg *= ")"
+                @info msg
+            end
+        end
+
+        if K == krylovdim ## shrink and restart
+            if numiter == maxiter
+                break
+            end
+
+            # Determine how many to keep
+            keep = div(3*krylovdim + 2*converged, 5) # strictly smaller than krylovdim since converged < howmany <= krylovdim, at least equal to converged
+            if eltype(H) <: Real && H[keep+1,keep] != 0 # we are in the middle of a 2x2 block
+                keep += 1 # conservative choice
+                keep >= krylovdim && error("krylov dimension $(krylovdim) too small to compute $howmany eigenvalues")
+            end
+
+            # Restore Arnoldi form in the first keep columns
+            @inbounds for j = 1:keep
+                H[keep+1,j] = f[j]
+            end
+            @inbounds for j = keep:-1:1
+                h, ν = householder(H, j+1, 1:j, j)
+                H[j+1,j] = ν
+                H[j+1,1:j-1] .= 0
+                lmul!(h, H)
+                rmul!(view(H, 1:j,:), h')
+                rmul!(U, h')
+            end
+            copyto!(rayleighquotient(fact), H) # copy back into fact
+
+            # Update B by applying U
+            B = basis(fact)
+            basistransform!(B, view(U, :, 1:keep))
+            # for j = 1:m
+            #     h, ν = householder(U, j:m, j)
+            #     lmul!(h, view(U, :, j+1:krylovdim))
+            #     rmul!(B, h')
+            # end
+            r = residual(fact)
+            B[keep+1] = rmul!(r, 1/normres(fact))
+
+            # Shrink Arnoldi factorization
+            fact = shrink!(fact, keep)
+            numiter += 1
         end
     end
     return T, U, fact, converged, numiter, numops

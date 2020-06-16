@@ -91,6 +91,10 @@ Keyword arguments and their default values are given by:
     [`Orthogonalizer`](@ref)
 *   `issymmetric::Bool`: if the linear map is symmetric, only meaningful if `T<:Real`
 *   `ishermitian::Bool`: if the linear map is hermitian
+*   `eager::Bool = false`: if true, eagerly compute the eigenvalue or Schur decomposition
+    after every expansion of the Krylov subspace to test for convergence, otherwise wait
+    until the Krylov subspace has dimension `krylovdim`
+
 The default values are given by `tol = KrylovDefaults.tol`, `krylovdim =
 KrylovDefaults.krylovdim`, `maxiter = KrylovDefaults.maxiter`,
 `orth = KrylovDefaults.orth`; see [`KrylovDefaults`](@ref) for details.
@@ -136,8 +140,6 @@ struct EigSorter{F}
 end
 EigSorter(f::F; rev = false) where F = EigSorter{F}(f, rev)
 
-Base.@deprecate  ClosestTo(λ) EigSorter(z->abs(z-λ))
-
 const Selector = Union{Symbol, EigSorter}
 
 eigsolve(A::AbstractMatrix, howmany::Int = 1, which::Selector = :LM, T::Type = eltype(A);
@@ -172,13 +174,14 @@ function eigselector(f, T::Type; issymmetric::Bool = false,
                                     maxiter::Int = KrylovDefaults.maxiter,
                                     tol::Real = KrylovDefaults.tol,
                                     orth::Orthogonalizer = KrylovDefaults.orth,
-                                    verbosity::Int = 0)
+                                    eager::Bool = false,
+                                    verbosity::Int = 0,)
     if (T<:Real && issymmetric) || ishermitian
         return Lanczos(krylovdim = krylovdim, maxiter = maxiter, tol = tol, orth = orth,
-        verbosity = verbosity)
+                        eager = eager, verbosity = verbosity)
     else
         return Arnoldi(krylovdim = krylovdim, maxiter = maxiter, tol = tol, orth = orth,
-        verbosity = verbosity)
+                        eager = eager, verbosity = verbosity)
     end
 end
 function eigselector(A::AbstractMatrix, T::Type;
@@ -188,13 +191,14 @@ function eigselector(A::AbstractMatrix, T::Type;
                         maxiter::Int = KrylovDefaults.maxiter,
                         tol::Real = KrylovDefaults.tol,
                         orth::Orthogonalizer = KrylovDefaults.orth,
+                        eager::Bool = false,
                         verbosity::Int = 0)
     if (T<:Real && issymmetric) || ishermitian
         return Lanczos(krylovdim = krylovdim, maxiter = maxiter, tol = tol, orth = orth,
-        verbosity = verbosity)
+                        eager = eager, verbosity = verbosity)
     else
         return Arnoldi(krylovdim = krylovdim, maxiter = maxiter, tol = tol, orth = orth,
-        verbosity= verbosity)
+                        eager = eager, verbosity= verbosity)
     end
 end
 

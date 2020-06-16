@@ -90,15 +90,18 @@ abstract type KrylovAlgorithm end
 # General purpose; good for linear systems, eigensystems and matrix functions
 """
     Lanczos(; krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter,
-        tol = KrylovDefaults.tol, orth = KrylovDefaults.orth, verbosity = 0)
+        tol = KrylovDefaults.tol, orth = KrylovDefaults.orth, eager = false, verbosity = 0)
 
 Represents the Lanczos algorithm for building the Krylov subspace; assumes the linear
 operator is real symmetric or complex Hermitian. Can be used in `eigsolve` and
 `exponentiate`. The corresponding algorithms will build a Krylov subspace of size at most
 `krylovdim`, which will be repeated at most `maxiter` times and will stop when the norm of
 the residual of the Lanczos factorization is smaller than `tol`. The orthogonalizer `orth`
-will be used to orthogonalize the different Krylov vectors. Default verbosity level `verbosity`
-is zero, meaning that no output will be printed.
+will be used to orthogonalize the different Krylov vectors. Eager mode, as selected by
+`eager = true`, means that the algorithm that uses this Lanczos process (e.g. `eigsolve`)
+can try to finish its computation before the total Krylov subspace of dimension `krylovdim`
+is constructed. Default verbosity level `verbosity` is zero, meaning that no output will be
+printed.
 
 Use `Arnoldi` for non-symmetric or non-Hermitian linear operators.
 
@@ -109,14 +112,16 @@ struct Lanczos{O<:Orthogonalizer, S<:Real} <: KrylovAlgorithm
     krylovdim::Int
     maxiter::Int
     tol::S
+    eager::Bool
     verbosity::Int
 end
 Lanczos(; krylovdim::Int = KrylovDefaults.krylovdim,
             maxiter::Int = KrylovDefaults.maxiter,
             tol::Real = KrylovDefaults.tol,
             orth::Orthogonalizer = KrylovDefaults.orth,
+            eager::Bool = false,
             verbosity::Int = 0) =
-    Lanczos(orth, krylovdim, maxiter, tol, verbosity)
+    Lanczos(orth, krylovdim, maxiter, tol, eager, verbosity)
 
 """
     GKL(; krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter,
@@ -137,14 +142,16 @@ struct GKL{O<:Orthogonalizer, S<:Real} <: KrylovAlgorithm
     krylovdim::Int
     maxiter::Int
     tol::S
+    eager::Bool
     verbosity::Int
 end
 GKL(; krylovdim::Int = KrylovDefaults.krylovdim,
         maxiter::Int = KrylovDefaults.maxiter,
         tol::Real = KrylovDefaults.tol,
         orth::Orthogonalizer = KrylovDefaults.orth,
+        eager::Bool = false,
         verbosity::Int = 0) =
-    GKL(orth, krylovdim, maxiter, tol, verbosity)
+    GKL(orth, krylovdim, maxiter, tol, eager, verbosity)
 
 """
     Arnoldi(; krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter,
@@ -155,8 +162,10 @@ linear operator. Can be used in `eigsolve` and `exponentiate`. The corresponding
 will build a Krylov subspace of size at most `krylovdim`, which will be repeated at most
 `maxiter` times and will stop when the norm of the residual of the Arnoldi factorization is
 smaller than `tol`. The orthogonalizer `orth` will be used to orthogonalize the different
-Krylov vectors. Default verbosity level `verbosity` is zero, meaning that no output will be
-printed.
+Krylov vectors. Eager mode, as selected by `eager = true`, means that the algorithm that
+uses this Arnoldi process (e.g. `eigsolve`) can try to finish its computation before the
+total Krylov subspace of dimension `krylovdim` is constructed. Default verbosity level
+`verbosity` is zero, meaning that no output will be printed.
 
 Use `Lanczos` for real symmetric or complex Hermitian linear operators.
 
@@ -168,14 +177,16 @@ struct Arnoldi{O<:Orthogonalizer, S<:Real} <: KrylovAlgorithm
     krylovdim::Int
     maxiter::Int
     tol::S
+    eager::Bool
     verbosity::Int
 end
 Arnoldi(; krylovdim::Int = KrylovDefaults.krylovdim,
             maxiter::Int = KrylovDefaults.maxiter,
             tol::Real = KrylovDefaults.tol,
             orth::Orthogonalizer = KrylovDefaults.orth,
+            eager::Bool = false,
             verbosity::Int = 0) =
-    Arnoldi(orth, krylovdim, maxiter, tol, verbosity)
+    Arnoldi(orth, krylovdim, maxiter, tol, eager, verbosity)
 
 """
     GolubYe(; krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter,

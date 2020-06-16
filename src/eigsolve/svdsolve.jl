@@ -83,6 +83,9 @@ Keyword arguments and their default values are given by:
 *   `maxiter`: the number of times the Krylov subspace can be rebuilt; see below for further
     details on the algorithms.
 *   `orth`: the orthogonalization method to be used, see [`Orthogonalizer`](@ref)
+*   `eager::Bool = false`: if true, eagerly compute the SVD after every expansion of the
+    Krylov subspace to test for convergence, otherwise wait until the Krylov subspace has
+    dimension `krylovdim`
 
 ### Algorithm
 The last method, without default values and keyword arguments, is the one that is finally
@@ -114,155 +117,133 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
 
     ## FIRST ITERATION: setting up
     numiter = 1
-    # Compute Lanczos factorization
+    # initialize GKL factorization
     iter = GKLIterator(svdfun(A), x₀, alg.orth)
     fact = initialize(iter; verbosity = alg.verbosity-2)
     numops = 2
     sizehint!(fact, krylovdim)
     β = normres(fact)
     tol::typeof(β) = alg.tol
-    while length(fact) < krylovdim
-        fact = expand!(iter, fact; verbosity = alg.verbosity-2)
-        numops += 2
-        normres(fact) < tol && length(fact) >= howmany && break
-    end
 
-    # Process
     # allocate storage
     HH = fill(zero(eltype(fact)), krylovdim+1, krylovdim)
     PP = fill(zero(eltype(fact)), krylovdim, krylovdim)
     QQ = fill(zero(eltype(fact)), krylovdim, krylovdim)
 
-    # initialize
+    # initialize storage
     β = normres(fact)
-    m = length(fact)
-    P = copyto!(view(PP, 1:m, 1:m), I)
-    Q = copyto!(view(QQ, 1:m, 1:m), I)
-    f = view(HH, m+1, 1:m)
+    K = length(fact)
+    P = copyto!(view(PP, 1:K, 1:K), I)
+    Q = copyto!(view(QQ, 1:K, 1:K), I)
+    f = view(HH, K+1, 1:K)
     B = rayleighquotient(fact) # Bidiagional (lower)
-
-    # compute singular value decomposition
-    P, S, Q = bidiagsvd!(B, P, Q)
-    if which == :SR
-        reversecols!(P)
-        reverserows!(S)
-        reverserows!(Q)
-    elseif which != :LR
-        error("invalid specification of which singular values to target: which = $which")
-    end
-    mul!(f, view(Q', m, :), β)
-
-    converged = 0
-    while converged < length(fact) && abs(f[converged+1]) < tol
-        converged += 1
-    end
-
-    if alg.verbosity > 1
-        msg = "GKL svdsolve in iter $numiter: "
-        msg *= "$converged values converged, normres = ("
-        msg *= @sprintf("%.2e", abs(f[1]))
-        for i = 2:howmany
-            msg *= ", "
-            msg *= @sprintf("%.2e", abs(f[i]))
-        end
-        msg *= ")"
-        @info msg
-    end
-
-    ## OTHER ITERATIONS: recycle
-    while numiter < maxiter && converged < howmany
-        numiter += 1
-
-        # Determine how many to keep
-        keep = div(3*krylovdim + 2*converged, 5) # strictly smaller than krylovdim since converged < howmany <= krylovdim, at least equal to converged
-
-        # Update basis by applying P and Q using Householder reflections
-        U = basis(fact, :U)
-        basistransform!(U, view(P, :, 1:keep))
-        # for j = 1:m
-        #     h, ν = householder(P, j:m, j)
-        #     lmul!(h, view(P, :, j+1:krylovdim))
-        #     rmul!(U, h')
-        # end
-        V = basis(fact, :V)
-        basistransform!(V, view(Q', :, 1:keep))
-        # for j = 1:m
-        #     h, ν = householder(Q, j, j:m)
-        #     rmul!(view(Q, j+1:krylovdim, :), h)
-        #     rmul!(V, h)
-        # end
-
-        # Shrink GKL factorization (no longer strictly GKL)
-        r = residual(fact)
-        U[keep+1] = rmul!(r, 1/normres(fact))
-        H = fill!(view(HH, 1:keep+1, 1:keep), zero(eltype(HH)))
-        @inbounds for j = 1:keep
-            H[j,j] = S[j]
-            H[keep+1,j] = f[j]
-        end
-
-        # Restore bidiagonal form in the first keep columns
-        @inbounds for j = keep:-1:1
-            h, ν = householder(H, j+1, 1:j, j)
-            H[j+1,j] = ν
-            H[j+1,1:j-1] .= zero(eltype(H))
-            rmul!(view(H, 1:j, :), h')
-            rmul!(V, h')
-            h, ν = householder(H, 1:j, j, j)
-            H[j,j] = ν
-            @inbounds H[1:j-1,j] .= zero(eltype(H))
-            lmul!(h, view(H, :, 1:j-1))
-            rmul!(U, h')
-        end
-        @inbounds for j = 1:keep
-            fact.αs[j] = H[j,j]
-            fact.βs[j] = H[j+1,j]
-        end
-        fact = shrink!(fact, keep)
-
-        # GKL factorization: recylce fact
-        while length(fact) < krylovdim
-            fact = expand!(iter, fact; verbosity = alg.verbosity-2)
-            numops += 2
-            normres(fact) < tol && length(fact) >= howmany && break
-        end
-
-        # post process
-        β = normres(fact)
-        m = length(fact)
-        P = copyto!(view(PP, 1:m, 1:m), I)
-        Q = copyto!(view(QQ, 1:m, 1:m), I)
-        f = view(HH, m+1, 1:m)
-        B = rayleighquotient(fact) # Bidiagional (lower)
-
-        # compute singular value decomposition
-        P, S, Q = bidiagsvd!(B, P, Q)
-        if which == :SR
-            reversecols!(P)
-            reverserows!(S)
-            reverserows!(Q)
-        elseif which != :LR
-            error("invalid specification of which singular values to target: which = $which")
-        end
-        mul!(f, view(Q', m, :), β)
+    S = B.dv
+    if β <= tol
+        converged = 1
+    else
         converged = 0
-        while converged < length(fact) && abs(f[converged+1]) < tol
-            converged += 1
-        end
-
-        if alg.verbosity > 1
-            msg = "GKL svdsolve in iter $numiter: "
-            msg *= "$converged values converged, normres = ("
-            msg *= @sprintf("%.2e", abs(f[1]))
-            for i = 2:howmany
-                msg *= ", "
-                msg *= @sprintf("%.2e", abs(f[i]))
-            end
-            msg *= ")"
-            @info msg
-        end
     end
 
+    while converged < howmany
+        fact = expand!(iter, fact; verbosity = alg.verbosity-2)
+        numops += 2
+        β = normres(fact)
+        K = length(fact)
+
+        if K == krylovdim || (alg.eager && K >= howmany)
+            P = copyto!(view(PP, 1:K, 1:K), I)
+            Q = copyto!(view(QQ, 1:K, 1:K), I)
+            f = view(HH, K+1, 1:K)
+            B = rayleighquotient(fact) # Bidiagional (lower)
+
+            if K <= krylovdim
+                B = deepcopy(B)
+            end
+            P, S, Q = bidiagsvd!(B, P, Q)
+            if which == :SR
+                reversecols!(P)
+                reverserows!(S)
+                reverserows!(Q)
+            elseif which != :LR
+                error("invalid specification of which singular values to target: which = $which")
+            end
+            mul!(f, view(Q', K, :), β)
+
+            converged = 0
+            while converged < K && abs(f[converged+1]) < tol
+                converged += 1
+            end
+
+            if converged >= howmany
+                break
+            elseif alg.verbosity > 1
+                msg = "GKL svdsolve in iter $numiter, krylovdim $krylovdim: "
+                msg *= "$converged values converged, normres = ("
+                msg *= @sprintf("%.2e", abs(f[1]))
+                for i = 2:howmany
+                    msg *= ", "
+                    msg *= @sprintf("%.2e", abs(f[i]))
+                end
+                msg *= ")"
+                @info msg
+            end
+        end
+
+        if K == krylovdim ## shrink and restart
+            if numiter == maxiter
+                break
+            end
+
+            # Determine how many to keep
+            keep = div(3*krylovdim + 2*converged, 5) # strictly smaller than krylovdim since converged < howmany <= krylovdim, at least equal to converged
+
+            # Update basis by applying P and Q using Householder reflections
+            U = basis(fact, :U)
+            basistransform!(U, view(P, :, 1:keep))
+            # for j = 1:m
+            #     h, ν = householder(P, j:m, j)
+            #     lmul!(h, view(P, :, j+1:krylovdim))
+            #     rmul!(U, h')
+            # end
+            V = basis(fact, :V)
+            basistransform!(V, view(Q', :, 1:keep))
+            # for j = 1:m
+            #     h, ν = householder(Q, j, j:m)
+            #     rmul!(view(Q, j+1:krylovdim, :), h)
+            #     rmul!(V, h)
+            # end
+
+            # Shrink GKL factorization (no longer strictly GKL)
+            r = residual(fact)
+            U[keep+1] = rmul!(r, 1/normres(fact))
+            H = fill!(view(HH, 1:keep+1, 1:keep), zero(eltype(HH)))
+            @inbounds for j = 1:keep
+                H[j,j] = S[j]
+                H[keep+1,j] = f[j]
+            end
+
+            # Restore bidiagonal form in the first keep columns
+            @inbounds for j = keep:-1:1
+                h, ν = householder(H, j+1, 1:j, j)
+                H[j+1,j] = ν
+                H[j+1,1:j-1] .= zero(eltype(H))
+                rmul!(view(H, 1:j, :), h')
+                rmul!(V, h')
+                h, ν = householder(H, 1:j, j, j)
+                H[j,j] = ν
+                @inbounds H[1:j-1,j] .= zero(eltype(H))
+                lmul!(h, view(H, :, 1:j-1))
+                rmul!(U, h')
+            end
+            @inbounds for j = 1:keep
+                fact.αs[j] = H[j,j]
+                fact.βs[j] = H[j+1,j]
+            end
+            # Shrink GKL factorization
+            fact = shrink!(fact, keep)
+            numiter += 1
+        end
+    end
     if converged > howmany
         howmany = converged
     end

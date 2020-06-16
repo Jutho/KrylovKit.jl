@@ -22,7 +22,8 @@ end
             A = rand(T, (2*N,N))
             v = rand(T, (2*N,))
             n₁ = div(n, 2)
-            alg = GKL(orth = orth, krylovdim = n, maxiter = 10, tol = 10*n*eps(real(T)))
+            alg = GKL(orth = orth, krylovdim = n, maxiter = 10,
+                        tol = 10*n*eps(real(T)), eager = true)
             S, lvecs, rvecs, info = @inferred svdsolve(wrapop(A), wrapvec(v), n₁, :LR, alg)
 
             l = info.converged

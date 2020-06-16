@@ -81,14 +81,14 @@ end
             for t in (rand(real(T)), -rand(real(T)), im*randn(real(T)), randn(real(T))+im*randn(real(T)))
                 for p = 1:pmax
                     u = ntuple(i->rand(T, N), p+1)
-                    w1, info = @inferred expintegrator(wrapop(A), t, wrapvec.(u)...; maxiter = 100, krylovdim = n)
+                    w1, info = @inferred expintegrator(wrapop(A), t, wrapvec.(u)...; maxiter = 100, krylovdim = n, eager = true)
                     @assert info.converged > 0
                     w2 = exp(t*A)*u[1]
                     for j = 1:p
                         w2 .+= t^j*ϕ(t*A, u[j+1], j)
                     end
                     @test w2 ≈ unwrapvec(w1)
-                    w1, info = @inferred expintegrator(wrapop(A), t, wrapvec.(u)...; maxiter = 100, krylovdim = n, tol = 1e-3)
+                    w1, info = @inferred expintegrator(wrapop(A), t, wrapvec.(u)...; maxiter = 100, krylovdim = n, tol = 1e-3, eager = true)
                     @test norm(unwrapvec(w1) - w2) < 1e-2*abs(t)
                 end
             end
@@ -106,14 +106,14 @@ end
             for t in (rand(real(T)), -rand(real(T)), im*randn(real(T)), randn(real(T))+im*randn(real(T)))
                 for p = 1:pmax
                     u = ntuple(i->rand(T, N), p+1)
-                    w1, info = @inferred expintegrator(wrapop(A), t, wrapvec.(u)...; maxiter = 100, krylovdim = n)
+                    w1, info = @inferred expintegrator(wrapop(A), t, wrapvec.(u)...; maxiter = 100, krylovdim = n, eager = true)
                     @test info.converged > 0
                     w2 = exp(t*A)*u[1]
                     for j = 1:p
                         w2 .+= t^j*ϕ(t*A, u[j+1], j)
                     end
                     @test w2 ≈ unwrapvec(w1)
-                    w1, info = @inferred expintegrator(wrapop(A), t, wrapvec.(u)...; maxiter = 100, krylovdim = n, tol = 1e-3)
+                    w1, info = @inferred expintegrator(wrapop(A), t, wrapvec.(u)...; maxiter = 100, krylovdim = n, tol = 1e-3, eager = true)
                     @test norm(unwrapvec(w1) - w2) < 1e-2*abs(t)
                 end
             end
