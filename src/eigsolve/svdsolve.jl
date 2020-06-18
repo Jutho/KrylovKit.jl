@@ -150,13 +150,19 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
         β = normres(fact)
         K = length(fact)
 
-        if K == krylovdim || (alg.eager && K >= howmany)
+        if β < tol
+            if K < howmany
+                @warn "Invariant subspace of dimension $K (up to requested tolerance `tol = $tol`), which is smaller than the number of requested singular values (i.e. `howmany == $howmany`); setting `howmany = $K`."
+            end
+            howmany = K
+        end
+        if K == krylovdim || β <= tol || (alg.eager && K >= howmany)
             P = copyto!(view(PP, 1:K, 1:K), I)
             Q = copyto!(view(QQ, 1:K, 1:K), I)
             f = view(HH, K+1, 1:K)
             B = rayleighquotient(fact) # Bidiagional (lower)
 
-            if K <= krylovdim
+            if K < krylovdim
                 B = deepcopy(B)
             end
             P, S, Q = bidiagsvd!(B, P, Q)

@@ -154,7 +154,7 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
         K = length(fact)
         V = basis(fact)
 
-        if K == krylovdim
+        if K == krylovdim || β <= tol
             Δτ = min(Δτ, τ-τ₀)
 
             # Small matrix exponential and error estimation

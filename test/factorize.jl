@@ -8,7 +8,7 @@
             iter = LanczosIterator(wrapop(A), wrapvec(v), orth)
             fact = initialize(iter)
             while length(fact) < n
-                expand!(iter, fact)
+                expand!(iter, fact; verbosity = 1)
             end
 
             V = hcat(unwrapvec.(basis(fact))...)
@@ -16,6 +16,10 @@
             @test normres(fact) < 10*n*eps(real(T))
             @test V'*V ≈ I
             @test A*V ≈ V*H
+
+            @inferred initialize!(iter, deepcopy(fact); verbosity = 1, krylovdim = 2*n)
+            states = collect(Iterators.take(iter, n)) # collect tests size and eltype?
+            @test rayleighquotient(last(states)) ≈ H
         end
     end
 end
@@ -38,6 +42,10 @@ end
             @test normres(fact) < factor*n*eps(real(T))
             @test V'*V ≈ I
             @test A*V ≈ V*H
+
+            @inferred initialize!(iter, deepcopy(fact); verbosity = 1, krylovdim = 2*n)
+            states = collect(Iterators.take(iter, n)) # collect tests size and eltype?
+            @test rayleighquotient(last(states)) ≈ H
         end
     end
 end

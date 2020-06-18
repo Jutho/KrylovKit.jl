@@ -183,7 +183,13 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
         β = normres(fact)
         K = length(fact) # == 1
 
-        if K == krylovdim || (alg.eager && K >= howmany)
+        if β <= tol
+            if K < howmany
+                @warn "Invariant subspace of dimension $K (up to requested tolerance `tol = $tol`), which is smaller than the number of requested eigenvalues (i.e. `howmany == $howmany`); setting `howmany = $K`."
+            end
+            howmany = K
+        end
+        if K == krylovdim || β <= tol || (alg.eager && K >= howmany)
             H = view(HH, 1:K, 1:K)
             U = view(UU, 1:K, 1:K)
             f = view(HH, K+1, 1:K)

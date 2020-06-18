@@ -37,7 +37,13 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
         K = length(fact)
 
         # diagonalize Krylov factorization
-        if K == krylovdim || (alg.eager && K >= howmany)
+        if β <= tol
+            if K < howmany
+                @warn "Invariant subspace of dimension $K (up to requested tolerance `tol = $tol`), which is smaller than the number of requested eigenvalues (i.e. `howmany == $howmany`); setting `howmany = $K`."
+            end
+            howmany = K
+        end
+        if K == krylovdim || β <= tol || (alg.eager && K >= howmany)
             U = copyto!(view(UU, 1:K, 1:K), I)
             f = view(HH, K+1, 1:K)
             T = rayleighquotient(fact) # symtridiagonal
