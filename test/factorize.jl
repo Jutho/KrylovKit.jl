@@ -17,7 +17,7 @@
             @test V'*V ≈ I
             @test A*V ≈ V*H
 
-            @inferred initialize!(iter, deepcopy(fact); verbosity = 1, krylovdim = 2*n)
+            @inferred initialize!(iter, deepcopy(fact); verbosity = 1)
             states = collect(Iterators.take(iter, n)) # collect tests size and eltype?
             @test rayleighquotient(last(states)) ≈ H
         end
@@ -43,7 +43,7 @@ end
             @test V'*V ≈ I
             @test A*V ≈ V*H
 
-            @inferred initialize!(iter, deepcopy(fact); verbosity = 1, krylovdim = 2*n)
+            @inferred initialize!(iter, deepcopy(fact); verbosity = 1)
             states = collect(Iterators.take(iter, n)) # collect tests size and eltype?
             @test rayleighquotient(last(states)) ≈ H
         end

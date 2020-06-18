@@ -2,7 +2,7 @@
     @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
         @testset for orth in (cgs2, mgs2, cgsr, mgsr)
             A = rand(T, (n,n))
-            alg = GKL(orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)))
+            alg = GKL(orth = orth, krylovdim = 2*n, maxiter = 1, tol = 10*n*eps(real(T)))
             S, lvecs, rvecs, info = @inferred svdsolve(wrapop(A), wrapvec(A[:,1]), n, :LR, alg)
 
             @test S ≈ svdvals(A)

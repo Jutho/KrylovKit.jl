@@ -4,7 +4,7 @@
             A = rand(T,(n,n)) .- one(T)/2
             A = (A+A')/2
             v = rand(T,(n,))
-            alg = Lanczos(orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)))
+            alg = Lanczos(orth = orth, krylovdim = 2*n, maxiter = 1, tol = 10*n*eps(real(T)))
             n1 = div(n,2)
             D1, V1, info = eigsolve(wrapop(A), wrapvec(v), n1, :SR; orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)))
             @test KrylovKit.eigselector(A, eltype(v); orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T))) isa Lanczos
@@ -59,7 +59,7 @@ end
         @testset for orth in (cgs2, mgs2, cgsr, mgsr)
             A = rand(T,(n,n)) .- one(T)/2
             v = rand(T,(n,))
-            alg = Arnoldi(orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)))
+            alg = Arnoldi(orth = orth, krylovdim = 2*n, maxiter = 1, tol = 10*n*eps(real(T)))
             n1 = div(n,2)
             D1, V1, info1 = eigsolve(wrapop(A), wrapvec(v), n1, :SR; orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)))
             @test KrylovKit.eigselector(A, eltype(v); orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T))) isa Arnoldi
