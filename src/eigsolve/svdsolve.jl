@@ -131,30 +131,17 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
     QQ = fill(zero(eltype(fact)), krylovdim, krylovdim)
 
     # initialize storage
-    β = normres(fact)
-    K = length(fact)
-    P = copyto!(view(PP, 1:K, 1:K), I)
-    Q = copyto!(view(QQ, 1:K, 1:K), I)
-    f = view(HH, K+1, 1:K)
-    B = rayleighquotient(fact) # Bidiagional (lower)
-    S = B.dv
-    if β <= tol
-        converged = 1
-    else
-        converged = 0
-    end
-
-    while converged < howmany
-        fact = expand!(iter, fact; verbosity = alg.verbosity-2)
-        numops += 2
+    local P, Q, f, S
+    converged = 0
+    while true
         β = normres(fact)
         K = length(fact)
 
         if β < tol
             if K < howmany
                 @warn "Invariant subspace of dimension $K (up to requested tolerance `tol = $tol`), which is smaller than the number of requested singular values (i.e. `howmany == $howmany`); setting `howmany = $K`."
+                howmany = K
             end
-            howmany = K
         end
         if K == krylovdim || β <= tol || (alg.eager && K >= howmany)
             P = copyto!(view(PP, 1:K, 1:K), I)
@@ -195,7 +182,10 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
             end
         end
 
-        if K == krylovdim ## shrink and restart
+        if K < krylovdim # expand
+            fact = expand!(iter, fact; verbosity = alg.verbosity-2)
+            numops += 2
+        else ## shrink and restart
             if numiter == maxiter
                 break
             end

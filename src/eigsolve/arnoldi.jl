@@ -163,33 +163,20 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     UU = fill(zero(eltype(fact)), krylovdim, krylovdim)
 
     # initialize storage
-    β = normres(fact)
     K = length(fact) # == 1
-    H = view(HH, 1:K, 1:K)
-    U = view(UU, 1:K, 1:K)
-    f = view(HH, K+1, 1:K)
-    copyto!(U, I)
-    copyto!(H, rayleighquotient(fact))
-    T, U, values = H, U, [H[1,1]]
-    if β <= tol
-        converged = 1
-    else
-        converged = 0
-    end
-
-    while converged < howmany
-        fact = expand!(iter, fact; verbosity = alg.verbosity-2)
-        numops += 1
+    converged = 0
+    local T, U
+    while true
         β = normres(fact)
-        K = length(fact) # == 1
+        K = length(fact)
 
         if β <= tol
             if K < howmany
                 @warn "Invariant subspace of dimension $K (up to requested tolerance `tol = $tol`), which is smaller than the number of requested eigenvalues (i.e. `howmany == $howmany`); setting `howmany = $K`."
+                howmany = K
             end
-            howmany = K
         end
-        if K == krylovdim || β <= tol || (alg.eager && K >= howmany)
+        if K == krylovdim || β <= tol || (alg.eager && K >= howmany) # process
             H = view(HH, 1:K, 1:K)
             U = view(UU, 1:K, 1:K)
             f = view(HH, K+1, 1:K)
@@ -225,7 +212,10 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
             end
         end
 
-        if K == krylovdim ## shrink and restart
+        if K < krylovdim # expand
+            fact = expand!(iter, fact; verbosity = alg.verbosity-2)
+            numops += 1
+        else # shrink
             if numiter == maxiter
                 break
             end
@@ -254,11 +244,6 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
             # Update B by applying U
             B = basis(fact)
             basistransform!(B, view(U, :, 1:keep))
-            # for j = 1:m
-            #     h, ν = householder(U, j:m, j)
-            #     lmul!(h, view(U, :, j+1:krylovdim))
-            #     rmul!(B, h')
-            # end
             r = residual(fact)
             B[keep+1] = rmul!(r, 1/normres(fact))
 

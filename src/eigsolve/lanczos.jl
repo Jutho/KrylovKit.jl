@@ -18,21 +18,9 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
     HH = fill(zero(eltype(fact)), krylovdim+1, krylovdim)
     UU = fill(zero(eltype(fact)), krylovdim, krylovdim)
 
-    K = length(fact) # == 1
-    U = copyto!(view(UU, 1:K, 1:K), I)
-    T = rayleighquotient(fact)
-    D = T.dv
-    f = copyto!(view(HH, K+1, 1:K), β)
-    if β <= tol
-        converged = 1
-    else
-        converged = 0
-    end
-
-    while converged < howmany
-        # expand Krylov factorization
-        fact = expand!(iter, fact; verbosity = alg.verbosity-2)
-        numops += 1
+    converged = 0
+    local D, U, f
+    while true
         β = normres(fact)
         K = length(fact)
 
@@ -40,8 +28,8 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
         if β <= tol
             if K < howmany
                 @warn "Invariant subspace of dimension $K (up to requested tolerance `tol = $tol`), which is smaller than the number of requested eigenvalues (i.e. `howmany == $howmany`); setting `howmany = $K`."
+                howmany = K
             end
-            howmany = K
         end
         if K == krylovdim || β <= tol || (alg.eager && K >= howmany)
             U = copyto!(view(UU, 1:K, 1:K), I)
@@ -49,17 +37,23 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
             T = rayleighquotient(fact) # symtridiagonal
 
             # compute eigenvalues
-            if K < krylovdim
-                T = deepcopy(T)
-            end
-            D, U = tridiageigh!(T, U)
-            by, rev = eigsort(which)
-            p = sortperm(D, by = by, rev = rev)
-            D, U = permuteeig!(D, U, p)
-            mul!(f, view(U, K, :), β)
-            converged = 0
-            while converged < K && abs(f[converged+1]) <= tol
-                converged += 1
+            if K == 1
+                D = [T[1,1]]
+                f[1] = β
+                converged = Int(β <= tol)
+            else
+                if K < krylovdim
+                    T = deepcopy(T)
+                end
+                D, U = tridiageigh!(T, U)
+                by, rev = eigsort(which)
+                p = sortperm(D, by = by, rev = rev)
+                D, U = permuteeig!(D, U, p)
+                mul!(f, view(U, K, :), β)
+                converged = 0
+                while converged < K && abs(f[converged+1]) <= tol
+                    converged += 1
+                end
             end
 
             if converged >= howmany
@@ -77,7 +71,10 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
             end
         end
 
-        if K == krylovdim ## shrink and restart
+        if K < krylovdim# expand Krylov factorization
+            fact = expand!(iter, fact; verbosity = alg.verbosity-2)
+            numops += 1
+        else ## shrink and restart
             if numiter == maxiter
                 break
             end
@@ -107,11 +104,6 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
             # Update B by applying U using Householder reflections
             B = basis(fact)
             basistransform!(B, view(U, :, 1:keep))
-            # for j = 1:m
-            #     h, ν = householder(U, j:m, j)
-            #     lmul!(h, view(U, :, j+1:krylovdim))
-            #     rmul!(B, h')
-            # end
             r = residual(fact)
             B[keep+1] = rmul!(r, 1/β)
 

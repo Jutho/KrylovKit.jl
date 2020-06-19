@@ -149,12 +149,10 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
     maxiter = alg.maxiter
     numiter = 1
     while true
-        fact = expand!(iter, fact; verbosity = alg.verbosity-2)
-        numops += 1
         K = length(fact)
         V = basis(fact)
 
-        if K == krylovdim || normres(fact) <= η
+        if K == krylovdim
             Δτ = min(Δτ, τ-τ₀)
 
             # Small matrix exponential and error estimation
@@ -209,7 +207,7 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
                 msg *= ", total error = " * @sprintf("%.4e", totalerr)
                 @info msg
             end
-        elseif alg.eager
+        elseif normres(fact) <= ((τ-τ₀) * η) || alg.eager
             # Small matrix exponential and error estimation
             H = fill!(view(HH, 1:K+p+1, 1:K+p+1), zero(T))
             mul!(view(H, 1:K, 1:K), rayleighquotient(fact), sgn*(τ-τ₀))
@@ -241,7 +239,10 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
             end
             return w₀, ConvergenceInfo(1, zero(τ), totalerr, numiter, numops)
         end
-        if K == krylovdim
+        if K < krylovdim
+            fact = expand!(iter, fact; verbosity = alg.verbosity-2)
+            numops += 1
+        else
             if numiter == maxiter
                 if alg.verbosity > 0
                     @warn """expintegrate finished without convergence after $numiter iterations:
