@@ -90,7 +90,7 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number = 0, a₁::Number 
             end
         end
         if alg.verbosity > 1
-            msg = "GMRES linsolve in iter $numiter; finised at step $k: "
+            msg = "GMRES linsolve in iter $numiter; finished at step $k: "
             msg *= "normres = "
             msg *= @sprintf("%.12e", β)
             @info msg
