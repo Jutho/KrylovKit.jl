@@ -114,11 +114,12 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     if converged > howmany
         howmany = converged
     end
-    TT = view(T,1:howmany,1:howmany)
+    d = min(howmany, size(T, 2))
+    TT = view(T, 1:d, 1:d)
     values = schur2eigvals(TT)
 
     # Compute eigenvectors
-    V = view(U, :, 1:howmany)*schur2eigvecs(TT)
+    V = view(U, :, 1:d) * schur2eigvecs(TT)
     vectors = let B = basis(fact)
         [B*v for v in cols(V)]
     end
