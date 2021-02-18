@@ -67,7 +67,7 @@ julia> import Pkg; Pkg.add("KrylovKit.jl")
 
 ## Project Status
 
-The package is tested against Julia `0.7`, `1.0`, `1.1` and the nightly builds of the Julia `master` branch on Linux, macOS, and Windows, 32- and 64-bit architecture and with `1` and `4` threads.
+The package is tested against Julia `1.0`, the current stable and the nightly builds of the Julia `master` branch on Linux, macOS, and Windows, 32- and 64-bit architecture and with `1` and `4` threads.
 
 ## Questions and Contributions
 
