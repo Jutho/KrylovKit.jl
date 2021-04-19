@@ -33,7 +33,7 @@ The return value is always of the form `y, info = exponentiate(...)` with
     -   `info.numiter::Int`: number of times the Krylov subspace was restarted (see below)
 !!! warning "Check for convergence"
     By default (i.e. if `verbosity = 0`, see below), no warning is printed if the solution
-    was not found with the requested precion, so be sure to check `info.converged == 1`.
+    was not found with the requested precision, so be sure to check `info.converged == 1`.
 
 ### Keyword arguments:
 Keyword arguments and their default values are given by:
@@ -52,7 +52,7 @@ Keyword arguments and their default values are given by:
 *   `issymmetric`: if the linear map is symmetric, only meaningful if `T<:Real`
 *   `ishermitian`: if the linear map is hermitian
 The default value for the last two depends on the method. If an `AbstractMatrix` is used,
-`issymmetric` and `ishermitian` are checked for that matrix, ortherwise the default values
+`issymmetric` and `ishermitian` are checked for that matrix, otherwise the default values
 are `issymmetric = false` and `ishermitian = T <: Real && issymmetric`.
 
 ### Algorithm
@@ -64,7 +64,7 @@ function exponentiate end
 exponentiate(A, t::Number, v; kwargs...) = expintegrator(A, t, v; kwargs...)
 exponentiate(A, t::Number, v, alg::Union{Lanczos,Arnoldi}) = expintegrator(A, t, (v,), alg)
 
-# old implmentation: replaced with more general and accurate expintegrator
+# old implementation: replaced with more general and accurate expintegrator
 # function exponentiate(A, t::Number, v, alg::Lanczos)
 #     # process initial vector and determine result type
 #     β = norm(v)

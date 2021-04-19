@@ -82,7 +82,7 @@ Base.eltype(iter::ColumnIterator{A}) where {T,A<:DenseArray{T}} =
 #     return Q, R
 # end
 
-# Triangular division: for some reason this is faster than LAPACKs trsv
+# Triangular division: for some reason this is faster than LAPACK's trsv
 function ldiv!(A::UpperTriangular, y::AbstractVector, r::UnitRange{Int} = 1:length(y))
     R = A.data
     @inbounds for j in reverse(r)

@@ -7,7 +7,7 @@ representing an orthonormal basis for some subspace (typically a Krylov subspace
 [`Basis`](@ref)
 
 Orthonormality of the vectors contained in an instance `b` of `OrthonormalBasis`
-(i.e. `all(dot(b[i],b[j]) == I[i,j] for i=1:lenght(b), j=1:length(b))`) is not checked when elements are added; it is up to the algorithm that constructs `b` to
+(i.e. `all(dot(b[i],b[j]) == I[i,j] for i=1:length(b), j=1:length(b))`) is not checked when elements are added; it is up to the algorithm that constructs `b` to
 guarantee orthonormality.
 
 One can easily orthogonalize or orthonormalize a given vector `v` with respect to a `b::OrthonormalBasis`

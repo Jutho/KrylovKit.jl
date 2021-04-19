@@ -13,7 +13,7 @@ eigenvalue decomposition, and `eigsolve` should always be used.
 The linear map can be an `AbstractMatrix` (dense or sparse) or a general function or callable
 object, that acts on vector like objects similar to `x₀`, which is the starting guess from
 which a Krylov subspace will be built. `howmany` specifies how many Schur vectors should be
-converged before the algorithm terminates; `which` specifies which eigenvalues should be targetted.
+converged before the algorithm terminates; `which` specifies which eigenvalues should be targeted.
 Valid specifications of `which` are
 *   `LM`: eigenvalues of largest magnitude
 *   `LR`: eigenvalues with largest (most positive) real part
@@ -70,7 +70,7 @@ The return value is always of the form `T, vecs, vals, info = schursolve(...)` w
 
 ### Algorithm
 The actual algorithm is an implementation of the Krylov-Schur algorithm, where the
-[`Arnoldi`](@ref) algorithm is used to generate the Krylov subspace. During the algorith,
+[`Arnoldi`](@ref) algorithm is used to generate the Krylov subspace. During the algorithm,
 the Krylov subspace is dynamically grown and shrunk, i.e. the restarts are so-called thick
 restarts where a part of the current Krylov subspace is kept.
 """

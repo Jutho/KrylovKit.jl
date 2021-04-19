@@ -128,7 +128,7 @@ Lanczos(; krylovdim::Int = KrylovDefaults.krylovdim,
         tol = KrylovDefaults.tol, orth = KrylovDefaults.orth, verbosity = 0)
 
 Represents the Golub-Kahan-Lanczos bidiagonalization algorithm for sequentially building a
-Krylov-like factorization of a genereal matrix or linear operator with a bidiagonal reduced
+Krylov-like factorization of a general matrix or linear operator with a bidiagonal reduced
 matrix. Can be used in `svdsolve`. The corresponding algorithm builds a Krylov subspace of
 size at most `krylovdim`, which will be repeated at most `maxiter` times and will stop when
 the norm of the residual of the Arnoldi factorization is smaller than `tol`. The
@@ -223,7 +223,7 @@ abstract type LinearSolver <: KrylovAlgorithm end
 
 Construct an instance of the conjugate gradient algorithm with specified parameters, which
 can be passed to `linsolve` in order to iteratively solve a linear system with a positive
-definite (and thus symmetric or hermitian) coefficent matrix or operator. The `CG` method
+definite (and thus symmetric or hermitian) coefficient matrix or operator. The `CG` method
 will search for the optimal `x` in a Krylov subspace of maximal size `maxiter`, or stop when
 `norm(A*x - b) < tol`. Default verbosity level `verbosity` is zero, meaning that no output
 will be printed.
@@ -280,7 +280,7 @@ GMRES(; krylovdim::Integer = KrylovDefaults.krylovdim,
 
 Construct an instance of the conjugate gradient algorithm with specified parameters, which
 can be passed to `linsolve` in order to iteratively solve a linear system with a real
-symmetric or complex hermitian coefficent matrix or operator. The `MINRES` method will
+symmetric or complex hermitian coefficient matrix or operator. The `MINRES` method will
 search for the optimal `x` in a Krylov subspace of maximal size `maxiter`, or stop when
 `norm(A*x - b) < tol`. In building the Krylov subspace, `MINRES` will use the
 orthogonalizer `orth`. Default verbosity level `verbosity` is zero, meaning that no output

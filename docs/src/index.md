@@ -101,7 +101,7 @@ The following algorithms are currently implemented
     matrix `B` in the right hand side of the generalized eigenvalue problem ``A v = B v λ``.
     The Matlab implementation was described by Money and Ye and is known as `EIGIFP`; in
     particular it extends the Krylov subspace with a vector corresponding to the step
-    between the current and previous estimate, analoguous to the locally optimal
+    between the current and previous estimate, analogous to the locally optimal
     preconditioned conjugate gradient method (LOPCG). In particular, with Krylov dimension
     2, it becomes equivalent to the latter.
 *   `svdsolve`: finding largest singular values based on Golub-Kahan-Lanczos
@@ -123,7 +123,7 @@ Here follows a wish list / to-do list for the future. Any help is welcomed and a
 *   Least square problems
 *   Nonlinear eigenvalue problems
 *   Preconditioners
-*   Refined Ritz vectors, Harmonic ritz values and vectors
+*   Refined Ritz vectors, Harmonic Ritz values and vectors
 *   Reuse memory for storing vectors when restarting algorithms
 *   Block versions of the algorithms
 *   More relevant matrix functions

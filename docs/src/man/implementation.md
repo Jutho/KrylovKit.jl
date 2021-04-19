@@ -7,7 +7,7 @@ abstract type `Basis{T}`
 KrylovKit.Basis
 ```
 
-Many Krylov based algorithms use an orthogonal basis to parametrize the Krylov subspace. In
+Many Krylov based algorithms use an orthogonal basis to parameterize the Krylov subspace. In
 that case, the specific implementation `OrthonormalBasis{T}` can be used:
 ```@docs
 KrylovKit.OrthonormalBasis{T}
@@ -33,7 +33,7 @@ concrete implementations:
 ```@docs
 KrylovKit.KrylovFactorization
 ```
-A `KrylovFactorization` can be destructered into its defining components using iteration,
+A `KrylovFactorization` can be destructured into its defining components using iteration,
 but these can also be accessed using the following functions
 ```@docs
 basis

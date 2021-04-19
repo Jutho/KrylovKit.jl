@@ -62,7 +62,7 @@ Keyword arguments and their default values are given by:
 *   `issymmetric`: if the linear map is symmetric, only meaningful if `T<:Real`
 *   `ishermitian`: if the linear map is hermitian
 The default value for the last two depends on the method. If an `AbstractMatrix` is used,
-`issymmetric` and `ishermitian` are checked for that matrix, ortherwise the default values
+`issymmetric` and `ishermitian` are checked for that matrix, otherwise the default values
 are `issymmetric = false` and `ishermitian = T <: Real && issymmetric`.
 
 ### Algorithm
