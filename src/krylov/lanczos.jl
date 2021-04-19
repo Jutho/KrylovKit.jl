@@ -20,7 +20,7 @@ Base.eltype(::Type{<:LanczosFactorization{<:Any,S}}) where {S} = S
 
 basis(F::LanczosFactorization) = length(F.V) == F.k ? F.V :
     error("Not keeping vectors during Lanczos factorization")
-rayleighquotient(F::LanczosFactorization) = SymTridiagonal(F.αs, F.βs)
+rayleighquotient(F::LanczosFactorization) = SymTridiagonal(F.αs, F.βs[1:end-1])
 residual(F::LanczosFactorization) = F.r
 @inbounds normres(F::LanczosFactorization) = F.βs[F.k]
 rayleighextension(F::LanczosFactorization) = SimpleBasisVector(F.k, F.k)
