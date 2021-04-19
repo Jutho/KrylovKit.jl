@@ -60,7 +60,7 @@ see [`KrylovDefaults`](@ref) for details.
 
 The default value for the last three parameters depends on the method. If an
 `AbstractMatrix` is used, `issymmetric`, `ishermitian` and `isposdef` are checked for that
-matrix, ortherwise the default values are `issymmetric = false`, `ishermitian = T <: Real
+matrix, otherwise the default values are `issymmetric = false`, `ishermitian = T <: Real
 && issymmetric` and `isposdef = false`.
 
 ### Algorithms

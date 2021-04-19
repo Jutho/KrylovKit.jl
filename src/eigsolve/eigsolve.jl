@@ -20,7 +20,7 @@ regular vector and it is initialized to `rand(T,n)`, where the default value of 
 
 The next arguments are optional, but should typically be specified. `howmany` specifies how
 many eigenvalues should be computed; `which` specifies which eigenvalues should be
-targetted. Valid specifications of `which` are given by
+targeted. Valid specifications of `which` are given by
 *   `:LM`: eigenvalues of largest magnitude
 *   `:LR`: eigenvalues with largest (most positive) real part
 *   `:SR`: eigenvalues with smallest (most negative) real part
@@ -31,10 +31,10 @@ targetted. Valid specifications of `which` are given by
 !!! note "Note about selecting `which` eigenvalues"
     Krylov methods work well for extremal eigenvalues, i.e. eigenvalues on the periphery of
     the spectrum of the linear map. All of they valid `Symbol`s for `which` have this
-    property, but could also be specified usign `EigSorter`, e.g. `:LM` is equivalent to
+    property, but could also be specified using `EigSorter`, e.g. `:LM` is equivalent to
     `Eigsorter(abs; rev = true)`. Note that smallest magnitude sorting is obtained using
     e.g. `EigSorter(abs; rev = false)`, but since no (shift-and)-invert is used, this will
-    only be successfull if you somehow know that eigenvalues close to zero are also close
+    only be successful if you somehow know that eigenvalues close to zero are also close
     to the periphery of the spectrum.
 
 The argument `T` acts as a hint in which `Number` type the computation should be performed,
@@ -100,7 +100,7 @@ KrylovDefaults.krylovdim`, `maxiter = KrylovDefaults.maxiter`,
 `orth = KrylovDefaults.orth`; see [`KrylovDefaults`](@ref) for details.
 
 The default value for the last two parameters depends on the method. If an `AbstractMatrix`
-is used, `issymmetric` and `ishermitian` are checked for that matrix, ortherwise the default
+is used, `issymmetric` and `ishermitian` are checked for that matrix, otherwise the default
 values are `issymmetric = false` and `ishermitian = T <: Real && issymmetric`. When values
 for the keyword arguments are provided, no checks will be performed even in the matrix case.
 
@@ -131,7 +131,7 @@ function eigsolve end
     EigSorter(by; rev = false)
 
 A simple `struct` to be used in combination with [`eigsolve`](@ref) or [`schursolve`](@ref)
-to indicate which eigenvalues need to be targetted, namely those that appear first when
+to indicate which eigenvalues need to be targeted, namely those that appear first when
 sorted by `by` and possibly in reverse order if `rev == true`.
 """
 struct EigSorter{F}

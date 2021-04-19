@@ -7,7 +7,7 @@ can be accomplished with the `eigsolve` routine:
 eigsolve
 ```
 
-Which eigenvalues are targetted can be specified using one of the symbols `:LM`, `:LR`,
+Which eigenvalues are targeted can be specified using one of the symbols `:LM`, `:LR`,
 `:SR`, `:LI` and `:SI` for largest magnitude, largest and smallest real part, and largest
 and smallest imaginary part respectively. Alternatively, one can just specify a general
 sorting operation using `EigSorter`

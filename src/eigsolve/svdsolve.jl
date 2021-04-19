@@ -37,7 +37,7 @@ to be provided; it is chosen as `rand(T, size(A,1))`.
 
 The next arguments are optional, but should typically be specified. `howmany` specifies how
 many singular values and vectors should be computed; `which` specifies which singular
-values should be targetted. Valid specifications of `which` are
+values should be targeted. Valid specifications of `which` are
 *   `LR`: largest singular values
 *   `SR`: smallest singular values
 However, the largest singular values tend to converge more rapidly.

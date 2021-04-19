@@ -62,7 +62,7 @@ iteration of the algorithm. Finally, for `verbosity > 2`, information about the 
 
 The return value contains one or more entries that define the solution, and a final
 entry `info` of type `ConvergeInfo` that encodes information about the solution, i.e.
-wether it has converged, the residual(s) and the norm thereof, the number of operations
+whether it has converged, the residual(s) and the norm thereof, the number of operations
 used:
 ```@docs
 KrylovKit.ConvergenceInfo

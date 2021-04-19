@@ -23,7 +23,7 @@ to be provided, it is then chosen as `rand(T, size(A,1))` if `A` is an `Abstract
 similarly if only `B` is an `AbstractMatrix`). Here
 `T = promote_type(eltype(A), eltype(B))` if both `A` and `B` are instances of
 `AbstractMatrix`, or just the `eltype` of whichever is an `AbstractMatrix`. If both `A` and
-`B` are encoded more generally as a callable function or method, the bestapproach is to
+`B` are encoded more generally as a callable function or method, the best approach is to
 provide an explicit starting guess `x₀`. Note that `x₀` does not need to be of type
 `AbstractVector`, any type that behaves as a vector and supports the required methods (see
 KrylovKit docs) is accepted. If instead of `x₀` an integer `n` is specified, it is assumed
@@ -32,7 +32,7 @@ of `T` is `Float64`, unless specified differently.
 
 The next arguments are optional, but should typically be specified. `howmany` specifies how
 many eigenvalues should be computed; `which` specifies which eigenvalues should be
-targetted. Valid specifications of `which` are given by
+targeted. Valid specifications of `which` are given by
 *   `:LM`: eigenvalues of largest magnitude
 *   `:LR`: eigenvalues with largest (most positive) real part
 *   `:SR`: eigenvalues with smallest (most negative) real part
@@ -100,7 +100,7 @@ KrylovDefaults.orth`; see [`KrylovDefaults`](@ref) for details.
 
 The default value for the last three parameters depends on the method. If an
 `AbstractMatrix` is used, `issymmetric`, `ishermitian` and `isposdef` are checked for that
-matrix, ortherwise the default values are `issymmetric = false` and `ishermitian = T <:
+matrix, otherwise the default values are `issymmetric = false` and `ishermitian = T <:
 Real && issymmetric`. When values are provided, no checks will be performed even in the
 matrix case.
 

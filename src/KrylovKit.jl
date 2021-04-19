@@ -132,24 +132,24 @@ Shrink an existing Krylov factorization `fact` down to have length `k`. Does not
 function shrink! end
 
 """
-    expand!(iter::KrylovIteraotr, fact::KrylovFactorization)
+    expand!(iter::KrylovIterator, fact::KrylovFactorization)
 
 Expand the Krylov factorization `fact` by one using the linear map and parameters in `iter`.
 """
 function expand! end
 
 """
-    initialize!(iter::KrylovIteraotr, fact::KrylovFactorization)
+    initialize!(iter::KrylovIterator, fact::KrylovFactorization)
 
-Initialize a length 1 Kryov factorization corresponding to `iter` in the already existing
+Initialize a length 1 Krylov factorization corresponding to `iter` in the already existing
 factorization `fact`, thereby destroying all the information it currently holds.
 """
 function initialize! end
 
 """
-    initialize(iter::KrylovIteraotr)
+    initialize(iter::KrylovIterator)
 
-Initialize a length 1 Kryov factorization corresponding to `iter`.
+Initialize a length 1 Krylov factorization corresponding to `iter`.
 """
 function initialize end
 
@@ -165,7 +165,7 @@ Base.iterate(F::KrylovFactorization, ::Val{:done}) = nothing
 function checkposdef(z)
     r = checkhermitian(z)
     r > 0 ||
-        error("operator does not appear to be postive definite: diagonal element $z")
+        error("operator does not appear to be positive definite: diagonal element $z")
     return r
 end
 function checkhermitian(z, n = abs(z))

@@ -29,7 +29,7 @@ KrylovKit.BiCGStab
 GolubYe
 ```
 
-## Specific algorithms for sigular value problems
+## Specific algorithms for singular value problems
 ```@docs
 GKL
 ```
