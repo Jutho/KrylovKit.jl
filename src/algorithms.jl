@@ -297,23 +297,23 @@ especially if ``A`` is ill-conditioned.
 - `atol` = `btol` = `conlim` = zero, but the number of iterations
   may then be excessive.
 """
-struct LSMR{O<:Orthogonalizer} <: KrylovAlgorithm
+struct LSMR{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     orth::O
-    atol::Float64
-    btol::Float64
-    conlim::Float64
+    atol::S
+    btol::S
+    conlim::S
     maxiter::Int
     verbosity::Int
-    λ::Float64
+    λ::S
     krylovdim::Int
 end
 LSMR(; orth = KrylovDefaults.orth,
     atol = KrylovDefaults.tol,
     btol = KrylovDefaults.tol,
-    conlim = 1/KrylovDefaults.tol,
+    conlim = 1/min(atol,btol),
     maxiter = KrylovDefaults.maxiter,
     krylovdim = KrylovDefaults.krylovdim,
-    λ = 0.0,
+    λ = zero(atol),
     verbosity = 0) = LSMR(orth,atol,btol,conlim,maxiter,verbosity,λ,krylovdim)
 
 

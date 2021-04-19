@@ -1,12 +1,11 @@
-# reference implementation https://github.com/JuliaLinearAlgebra/IterativeSolvers.jl/blob/master/src/lsmr.jl 
-function linsolve(operator, b, x₀, alg::LSMR)
-    x = copy(x₀);
-
-    u₀ = b-svdfun(operator)(x₀,false);
-    β = norm(u₀);
+# reference implementation https://github.com/JuliaLinearAlgebra/IterativeSolvers.jl/blob/master/src/lsmr.jl
+linsolve(operator, b, alg::LSMR) = linsolve(operator,b,svdfun(operator)(x,true),alg);
+function linsolve(operator, b, x, alg::LSMR)
+    u = axpby!(1,b,-1,svdfun(operator)(x,false))
+    β = norm(u);
 
     # initialize GKL factorization
-    iter = GKLIterator(svdfun(operator), u₀, alg.orth)
+    iter = GKLIterator(svdfun(operator), u, alg.orth)
     fact = initialize(iter; verbosity = alg.verbosity-2)
     numops = 2
     sizehint!(fact, alg.krylovdim)
@@ -46,8 +45,8 @@ function linsolve(operator, b, x₀, alg::LSMR)
         normr = β
         normAr = α * β
 
-        hbar = zero(x);
-        h = copy(fact.V[end]);
+        hbar = zero(T)*x;
+        h = one(T)*fact.V[end];
 
         while length(fact) < alg.krylovdim
 
@@ -168,27 +167,28 @@ function linsolve(operator, b, x₀, alg::LSMR)
             if test1 <= rtol  istop = 1; break end
         end
 
+        u = axpby!(1,b,-1,svdfun(operator)(x,false))
+
         istop != 0 && break;
 
         #restart
-        u₀ = b-svdfun(operator)(x,false);
-        β = norm(u₀);
-        iter = GKLIterator(svdfun(operator), u₀, alg.orth);
+        β = norm(u);
+        iter = GKLIterator(svdfun(operator), u, alg.orth);
         fact = initialize!(iter,fact);
     end
 
     isconv = istop ∉ (0,3,6);
     if alg.verbosity > 0 && !isconv
         @warn """LSMR linsolve finished without converging after $(alg.maxiter) iterations:
-         *  norm of residual = $(norm(u₀))
+         *  norm of residual = $(norm(u))
          *  number of operations = $numops"""
      elseif alg.verbosity > 0
          if alg.verbosity > 0
              @info """LSMR linsolve converged due to istop $(istop):
-              *  norm of residual = $(norm(u₀))
+              *  norm of residual = $(norm(u))
               *  number of operations = $numops"""
          end
     end
-    return (x, ConvergenceInfo(Int(isconv), u₀, norm(u₀), alg.maxiter, numops))
+    return (x, ConvergenceInfo(Int(isconv), u, norm(u), alg.maxiter, numops))
 
 end
