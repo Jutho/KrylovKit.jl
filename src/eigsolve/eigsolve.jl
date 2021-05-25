@@ -169,14 +169,14 @@ function eigsolve(f, x₀, howmany::Int = 1, which::Selector = :LM; kwargs...)
 end
 
 function eigselector(f, T::Type; issymmetric::Bool = false,
-                                    ishermitian::Bool = T<:Real && issymmetric,
+                                    ishermitian::Bool = issymmetric && !(T<:Complex),
                                     krylovdim::Int = KrylovDefaults.krylovdim,
                                     maxiter::Int = KrylovDefaults.maxiter,
                                     tol::Real = KrylovDefaults.tol,
                                     orth::Orthogonalizer = KrylovDefaults.orth,
                                     eager::Bool = false,
                                     verbosity::Int = 0,)
-    if (T<:Real && issymmetric) || ishermitian
+    if (issymmetric && !(T<:Complex)) || ishermitian
         return Lanczos(krylovdim = krylovdim, maxiter = maxiter, tol = tol, orth = orth,
                         eager = eager, verbosity = verbosity)
     else
