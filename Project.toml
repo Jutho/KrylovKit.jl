@@ -1,7 +1,7 @@
 name = "KrylovKit"
 uuid = "0b1a1467-8014-51b9-945f-bf0ae24f4b77"
 authors = ["Jutho Haegeman"]
-version = "0.5.2"
+version = "0.5.3"
 
 [deps]
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"

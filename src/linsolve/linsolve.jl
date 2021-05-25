@@ -60,8 +60,8 @@ see [`KrylovDefaults`](@ref) for details.
 
 The default value for the last three parameters depends on the method. If an
 `AbstractMatrix` is used, `issymmetric`, `ishermitian` and `isposdef` are checked for that
-matrix, otherwise the default values are `issymmetric = false`, `ishermitian = T <: Real
-&& issymmetric` and `isposdef = false`.
+matrix, ortherwise the default values are `issymmetric = false`,
+`ishermitian = T <: Real && issymmetric` and `isposdef = false`.
 
 ### Algorithms
 The last method, without default values and keyword arguments, is the one that is finally
@@ -83,10 +83,10 @@ linsolve(f, b, a₀::Number = 0, a₁::Number = 1; kwargs...) =
             linsolve(f, b, (zero(a₀)*zero(a₁))*b, a₀, a₁; kwargs...)
 
 function linsolve(f, b, x₀, a₀::Number = 0, a₁::Number = 1; kwargs...)
-    Tx = promote_type(typeof(x₀), typeof(a₀), typeof(a₁))
+    Tx = promote_type(typeof(x₀))
     Tb = typeof(b)
     Tfx = Core.Compiler.return_type(apply, Tuple{typeof(f), Tx})
-    T = Core.Compiler.return_type(dot, Tuple{Tb, Tfx})
+    T = promote_type(Core.Compiler.return_type(dot, Tuple{Tb, Tfx}), typeof(a₀), typeof(a₁))
     alg = linselector(f, b, T; kwargs...)
     linsolve(f, b, x₀, alg, a₀, a₁)
 end
