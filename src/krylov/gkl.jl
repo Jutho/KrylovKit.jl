@@ -108,14 +108,15 @@ function initialize(iter::GKLIterator; verbosity::Int = 0)
 end
 function initialize!(iter::GKLIterator, state::GKLFactorization; verbosity::Int = 0)
     V = state.V
-    while length(U) > 1
-        pop!(U)
+    u = state.U[1];
+    while length(state.U) > 1
+        pop!(state.U)
     end
     V = empty!(state.V)
     αs = empty!(state.αs)
     βs = empty!(state.βs)
 
-    u = mul!(V[1], iter.u₀, 1/norm(iter.u₀))
+    u = mul!(u, iter.u₀, 1/norm(iter.u₀))
     v = iter.operator(u, true)
     α = norm(v)
     rmul!(v, 1/α)

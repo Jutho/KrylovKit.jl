@@ -73,3 +73,32 @@ end
         @test b ≈ (α₀*I+α₁*A)*unwrapvec(x) + unwrapvec(info.residual)
     end
 end
+
+@testset "full lsmr" begin
+    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
+        @testset for orth in (cgs2, mgs2, cgsr, mgsr)
+            A = rand(T, (n,n))
+            v = rand(T,n);
+            w = rand(T,n);
+            alg = LSMR(orth = orth, krylovdim = 2*n, maxiter = 1, atol = 10*n*eps(real(T)),btol = 10*n*eps(real(T)))
+            S, info = @inferred linsolve(wrapop(A), wrapvec(v),wrapvec(w), alg)
+            @test info.converged > 0
+            @test v≈A*unwrapvec(S)+unwrapvec(info.residual)
+        end
+    end
+end
+
+@testset "iterative lsmr" begin
+    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
+        @testset for orth in (cgs2, mgs2, cgsr, mgsr)
+            A = rand(T, (N,N))
+            v = rand(T,N);
+            w = rand(T,N);
+            alg = LSMR(orth = orth, krylovdim = N, maxiter = 50, atol = 10*N*eps(real(T)),btol = 10*N*eps(real(T)))
+            S, info = @inferred linsolve(wrapop(A), wrapvec(v),wrapvec(w), alg)
+            @test info.converged > 0
+
+            @test v≈A*unwrapvec(S)+unwrapvec(info.residual)
+        end
+    end
+end
