@@ -38,7 +38,7 @@ end
 
             V = hcat(unwrapvec.(basis(fact))...)
             H = rayleighquotient(fact)
-            factor = (orth == cgs || orth == mgs ? 100 : 10)
+            factor = (orth == cgs || orth == mgs ? 200 : 10)
             @test normres(fact) < factor*n*eps(real(T))
             @test V'*V ≈ I
             @test A*V ≈ V*H

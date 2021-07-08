@@ -14,7 +14,7 @@ const mgs2 = ModifiedGramSchmidt2()
 const cgsr = ClassicalGramSchmidtIR(η₀)
 const mgsr = ModifiedGramSchmidtIR(η₀)
 
-Random.seed!(1234567)
+Random.seed!(12345)
 
 include("linalg.jl")
 
