@@ -1,3 +1,16 @@
+function ≊(list1::AbstractVector, list2::AbstractVector)
+    length(list1) == length(list2) || return false
+    n = length(list1)
+    ind2 = collect(1:n)
+    p = sizehint!(Int[], n)
+    for i = 1:n
+        j = argmin(abs.(view(list2, ind2) .- list1[i]))
+        p = push!(p, ind2[j])
+        ind2 = deleteat!(ind2, j)
+    end
+    return list1 ≈ view(list2, p)
+end
+
 @testset "Lanczos - eigsolve full" begin
     @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
         @testset for orth in (cgs2, mgs2, cgsr, mgsr)
@@ -10,7 +23,7 @@
             @test KrylovKit.eigselector(A, eltype(v); orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T))) isa Lanczos
             n2 = n-n1
             D2, V2, info = @inferred eigsolve(wrapop(A), wrapvec(v), n2, :LR, alg)
-            @test vcat(D1[1:n1],reverse(D2[1:n2])) ≈ eigvals(A)
+            @test vcat(D1[1:n1],reverse(D2[1:n2])) ≊ eigvals(A)
 
             U1 = hcat(unwrapvec.(V1)...)
             U2 = hcat(unwrapvec.(V2)...)
@@ -81,7 +94,7 @@ end
                 D2, V2, info = eigsolve(wrapop(A), wrapvec(v), n2, :LI, alg)
                 D = sort(eigvals(A), by=imag)
 
-                @test vcat(D1[1:n1], reverse(D2[1:n2])) ≈ D
+                @test vcat(D1[1:n1], reverse(D2[1:n2])) ≊ D
 
                 U1 = hcat(unwrapvec.(V1)...)
                 U2 = hcat(unwrapvec.(V2)...)
@@ -107,11 +120,11 @@ end
             l1 = info1.converged
             l2 = info2.converged
             l3 = info3.converged
-            @test D1[1:l1] ≈ sort(D, alg=MergeSort, by=real)[1:l1]
-            @test D2[1:l2] ≈ sort(D, alg=MergeSort, by=real, rev=true)[1:l2]
-            # sorting by abs does not seem very reliable if two distinct eigenvalues are close in absolute value
-            @test sort(D3[1:l3], alg=MergeSort, by=real, rev=true) ≈
-                    sort(D, alg=MergeSort, by=real, rev=true)[1:l3]
+            @test D1[1:l1] ≊ sort(D, alg=MergeSort, by=real)[1:l1]
+            @test D2[1:l2] ≊ sort(D, alg=MergeSort, by=real, rev=true)[1:l2]
+            # sorting by abs does not seem very reliable if two distinct eigenvalues are close
+            # in absolute value, so we perform a second sort afterwards using the real part
+            @test D3[1:l3] ≊ sort(D, by = abs, rev=true)[1:l3]
 
             U1 = hcat(unwrapvec.(V1)...)
             U2 = hcat(unwrapvec.(V2)...)
@@ -187,8 +200,8 @@ end
 
             l1 = info1.converged
             l2 = info2.converged
-            @test D1[1:l1] ≈ eigvals(A, B)[1:l1]
-            @test D2[1:l2] ≈ eigvals(A, B)[N:-1:N-l2+1]
+            @test D1[1:l1] ≊ eigvals(A, B)[1:l1]
+            @test D2[1:l2] ≊ eigvals(A, B)[N:-1:N-l2+1]
 
             U1 = hcat(V1...)
             U2 = hcat(V2...)
