@@ -56,9 +56,9 @@ end
             l1 = info1.converged
             l2 = info2.converged
             l3 = info3.converged
-            @test D1[1:l1] ≈ sort(D, alg=MergeSort, by=real)[1:l1]
-            @test D2[1:l2] ≈ sort(D, alg=MergeSort, by=real, rev=true)[1:l2]
-            @test D3[1:l3] ≈ sort(D, alg=MergeSort, by=abs, rev=true)[1:l3]
+            @test D1[1:l1] ≊ sort(D, alg=MergeSort, by=real)[1:l1]
+            @test D2[1:l2] ≊ sort(D, alg=MergeSort, by=real, rev=true)[1:l2]
+            @test D3[1:l3] ≊ sort(D, alg=MergeSort, by=abs, rev=true)[1:l3]
 
             U1 = hcat(unwrapvec.(V1)...)
             U2 = hcat(unwrapvec.(V2)...)
@@ -81,8 +81,8 @@ end
 
                 l1 = info1.converged
                 l2 = info2.converged
-                @test D1[1:l1] ≈ sort(D, by=imag)[1:l1]
-                @test D2[1:l2] ≈ sort(D, by=imag, rev=true)[1:l2]
+                @test D1[1:l1] ≊ sort(D, by=imag)[1:l1]
+                @test D2[1:l2] ≊ sort(D, by=imag, rev=true)[1:l2]
 
                 U1 = hcat(unwrapvec.(V1)...)
                 U2 = hcat(unwrapvec.(V2)...)
