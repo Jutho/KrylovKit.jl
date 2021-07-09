@@ -109,7 +109,9 @@ end
             l3 = info3.converged
             @test D1[1:l1] ≈ sort(D, alg=MergeSort, by=real)[1:l1]
             @test D2[1:l2] ≈ sort(D, alg=MergeSort, by=real, rev=true)[1:l2]
-            @test D3[1:l3] ≈ sort(D, alg=MergeSort, by=abs, rev=true)[1:l3]
+            # sorting by abs does not seem very reliable if two distinct eigenvalues are close in absolute value
+            @test sort(D3[1:l3], alg=MergeSort, by=real, rev=true) ≈
+                    sort(D, alg=MergeSort, by=real, rev=true)[1:l3]
 
             U1 = hcat(unwrapvec.(V1)...)
             U2 = hcat(unwrapvec.(V2)...)
