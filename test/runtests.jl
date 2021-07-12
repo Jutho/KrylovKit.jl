@@ -14,7 +14,7 @@ const mgs2 = ModifiedGramSchmidt2()
 const cgsr = ClassicalGramSchmidtIR(η₀)
 const mgsr = ModifiedGramSchmidtIR(η₀)
 
-Random.seed!(1234567)
+Random.seed!(76543210)
 
 include("linalg.jl")
 
@@ -23,6 +23,8 @@ module PureVecs
     using LinearAlgebra
     using Random
     using KrylovKit
+
+    include("setcomparison.jl")
 
     const n = 10
     const N = 100
@@ -55,6 +57,8 @@ module MinimalVecs
     using LinearAlgebra
     using Random
     using KrylovKit
+
+    include("setcomparison.jl")
 
     const n = 10
     const N = 100

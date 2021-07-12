@@ -23,7 +23,7 @@ end
 @testset "CG large problem" begin
     @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
         A = rand(T,(N,N))
-        A = sqrt(A*A')/N
+        A = sqrt(sqrt(A*A'))/N
         b = rand(T,N)
         x, info = @inferred linsolve(wrapop(A), wrapvec(b);
                     isposdef = true, maxiter = 1, krylovdim = N, rtol = 10*N*eps(real(T)))
