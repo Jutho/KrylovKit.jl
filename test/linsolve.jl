@@ -40,10 +40,15 @@ end
 # Test GMRES complete
 @testset "GMRES full factorization" begin
     @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
-        A = rand(T,(n,n)).-one(T)/2
-        b = rand(T,n)
-        alg = GMRES(krylovdim = n, maxiter = 2, tol = 2*n*eps(real(T))*norm(b))
+        A = rand(T, (n,n)) .- one(T)/2
+        # A = rand(T,(n,n))/n  + 2*I
+        b = rand(T, n)
+        alg = GMRES(krylovdim = n, maxiter = 3, tol = 2*n*eps(real(T))*norm(b))
         x, info = @inferred linsolve(wrapop(A), wrapvec(b), wrapvec(zero(b)), alg)
+        if info.converged == 0
+            @show requested_tol = 2*n*eps(real(T))*norm(b)
+            @show info.normres
+        end
         @test info.converged > 0
         @test b ≈ A*unwrapvec(x)
 
