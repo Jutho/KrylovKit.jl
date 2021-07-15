@@ -29,7 +29,7 @@ export initialize, initialize!, expand!, shrink!
 export ClassicalGramSchmidt, ClassicalGramSchmidt2, ClassicalGramSchmidtIR
 export ModifiedGramSchmidt, ModifiedGramSchmidt2, ModifiedGramSchmidtIR
 export LanczosIterator, ArnoldiIterator, GKLIterator
-export CG, GMRES, Lanczos, Arnoldi, GKL, GolubYe
+export CG, GMRES, BiCGStab, Lanczos, Arnoldi, GKL, GolubYe
 export KrylovDefaults, ClosestTo, EigSorter
 export RecursiveVec, InnerProductVec
 
@@ -344,6 +344,7 @@ include("eigsolve/svdsolve.jl")
 include("linsolve/linsolve.jl")
 include("linsolve/cg.jl")
 include("linsolve/gmres.jl")
+include("linsolve/bicgstab.jl")
 
 # exponentiate
 include("matrixfun/exponentiate.jl")

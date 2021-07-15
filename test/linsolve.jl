@@ -77,3 +77,22 @@ end
         @test b ≈ (α₀*I+α₁*A)*unwrapvec(x) + unwrapvec(info.residual)
     end
 end
+
+# Test BICGStab
+@testset "BiCGStab" begin
+    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
+        A = rand(T,(N,N)).-one(T)/2
+        A = I-T(9/10)*A/maximum(abs, eigvals(A))
+        b = rand(T,N)
+        alg = BiCGStab(; maxiter=2N, tol=10N*eps(real(T))*norm(b))
+        x, info = @inferred linsolve(wrapop(A), wrapvec(b), wrapvec(zero(b)), alg)
+        @test b ≈ A*unwrapvec(x)
+
+        A = rand(T,(N,N)).-one(T)/2
+        α₀ = maximum(abs, eigvals(A))
+        α₁ = -rand(T)
+        α₁ *= T(9)/T(10)/abs(α₁)
+        x, info = @inferred linsolve(wrapop(A), wrapvec(b), wrapvec(zero(b)), alg, α₀, α₁)
+        @test b ≈ (α₀*I+α₁*A)*unwrapvec(x) # + unwrapvec(info.residual)
+    end
+end
