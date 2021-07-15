@@ -1,4 +1,4 @@
-name: CI
+name: CI (Single threaded)
 on:
   - push
   - pull_request
