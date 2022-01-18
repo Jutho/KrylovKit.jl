@@ -4,9 +4,9 @@ A Julia package collecting a number of Krylov-based algorithms for linear proble
 value and eigenvalue problems and the application of functions of linear maps or operators
 to vectors.
 
-| **Documentation**                                                               | **Build Status**                                                                                |
-|:-------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------:|
-| [![][docs-stable-img]][docs-stable-url] [![][docs-dev-img]][docs-dev-url] | [![CI][github-img]][github-url] [![][codecov-img]][codecov-url] |
+| **Documentation** | **Build Status** | **License** |
+|:-----------------:|:----------------:|:-----------:|
+| [![][docs-stable-img]][docs-stable-url] [![][docs-dev-img]][docs-dev-url] | [![][aqua-img]][aqua-url] [![CI][github-img]][github-url] [![][codecov-img]][codecov-url] | [![license][license-img]][license-url] |
 
 [docs-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
 [docs-dev-url]: https://jutho.github.io/KrylovKit.jl/latest
@@ -17,8 +17,14 @@ to vectors.
 [github-img]: https://github.com/Jutho/KrylovKit.jl/workflows/CI/badge.svg
 [github-url]: https://github.com/Jutho/KrylovKit.jl/actions?query=workflow%3ACI
 
+[aqua-img]: https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg
+[aqua-url]: https://github.com/JuliaTesting/Aqua.jl
+
 [codecov-img]: https://codecov.io/gh/Jutho/KrylovKit.jl/branch/master/graph/badge.svg
 [codecov-url]: https://codecov.io/gh/Jutho/KrylovKit.jl
+
+[license-img]: http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat
+[license-url]: LICENSE.md
 
 ## Release notes for the latest version
 
@@ -72,24 +78,5 @@ The package is tested against Julia `1.0`, the current stable and the nightly bu
 ## Questions and Contributions
 
 Contributions are very welcome, as are feature requests and suggestions. Please open an [issue][issues-url] if you encounter any problems.
-
-
-[docs-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
-[docs-dev-url]: https://Jutho.github.io/KrylovKit.jl/latest
-
-[docs-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
-[docs-stable-url]: https://Jutho.github.io/KrylovKit.jl/stable
-
-[travis-img]: https://travis-ci.org/Jutho/KrylovKit.jl.svg?branch=master
-[travis-url]: https://travis-ci.org/Jutho/KrylovKit.jl
-
-[appveyor-img]: https://ci.appveyor.com/api/projects/status/github/Jutho/KrylovKit.jl?svg=true&branch=master
-[appveyor-url]: https://ci.appveyor.com/project/Jutho/krylovkit-jl/branch/master
-
-[codecov-img]: https://codecov.io/gh/Jutho/KrylovKit.jl/branch/master/graph/badge.svg
-[codecov-url]: https://codecov.io/gh/Jutho/KrylovKit.jl
-
-[coveralls-img]: https://coveralls.io/repos/github/Jutho/KrylovKit.jl/badge.svg?branch=master
-[coveralls-url]: https://coveralls.io/github/Jutho/KrylovKit.jl
 
 [issues-url]: https://github.com/Jutho/KrylovKit.jl/issues

@@ -278,6 +278,12 @@ function orthogonalize!(v::T, b::OrthonormalBasis{T}, alg::Orthogonalizer) where
     orthogonalize!(v, b, c, alg)
 end
 
+function orthogonalize!(v::T, b::OrthonormalBasis{T}, alg::Orthogonalizer) where {T}
+    S = promote_type(eltype(v), eltype(T))
+    c = Vector{S}(undef, length(b))
+    orthogonalize!(v, b, c, alg)
+end
+
 function orthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::ClassicalGramSchmidt) where {T}
     x = project!(x, b, v)
     v = unproject!(v, b, x, -1, 1)
@@ -339,19 +345,22 @@ function orthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, alg::Mo
 end
 
 # Orthogonalization of a vector against a given normalized vector
-function orthogonalize!(v::T, q::T, alg::Union{ClassicalGramSchmidt,ModifiedGramSchmidt}) where {T}
+orthogonalize!(v::T, q::T, alg::Orthogonalizer) where {T} = _orthogonalize!(v, q, alg)
+# avoid method ambiguity on Julia 1.0 according to Aqua.jl
+
+function _orthogonalize!(v::T, q::T, alg::Union{ClassicalGramSchmidt,ModifiedGramSchmidt}) where {T}
     s = dot(q,v)
     v = axpy!(-s, q, v)
     return (v, s)
 end
-function orthogonalize!(v::T, q::T, alg::Union{ClassicalGramSchmidt2,ModifiedGramSchmidt2}) where {T}
+function _orthogonalize!(v::T, q::T, alg::Union{ClassicalGramSchmidt2,ModifiedGramSchmidt2}) where {T}
     s = dot(q,v)
     v = axpy!(-s, q, v)
     ds = dot(q,v)
     v = axpy!(-ds, q, v)
     return (v, s+ds)
 end
-function orthogonalize!(v::T, q::T, alg::Union{ClassicalGramSchmidtIR,ModifiedGramSchmidtIR}) where {T}
+function _orthogonalize!(v::T, q::T, alg::Union{ClassicalGramSchmidtIR,ModifiedGramSchmidtIR}) where {T}
     nold = norm(v)
     s = dot(q,v)
     v = axpy!(-s, q, v)

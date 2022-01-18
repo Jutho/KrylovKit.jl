@@ -2,6 +2,8 @@ using Test
 using LinearAlgebra
 using Random
 using KrylovKit
+using Aqua
+Aqua.test_all(KrylovKit)
 
 const n = 10
 const N = 100
