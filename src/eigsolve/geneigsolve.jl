@@ -139,8 +139,8 @@ geneigsolve(AB::Tuple{AbstractMatrix,Any}, howmany::Int = 1, which::Selector = :
             T = eltype(AB[1]); kwargs...) =
     geneigsolve(AB, rand(T, size(AB[1],1)), howmany, which; kwargs...)
 
-geneigsolve(f, n::Int, howmany::Int = 1, which::Selector = :LM, T = Float64; kwargs...) =
-    geneigsolve(f, rand(T, n), howmany, which; kwargs...)
+geneigsolve(f, n::Int, howmany::Int = 1, which::Selector = :LM, T::Type = Float64;
+    kwargs...) = geneigsolve(f, rand(T, n), howmany, which; kwargs...)
 
 function geneigsolve(f, x₀, howmany::Int = 1, which::Selector = :LM; kwargs...)
     Tx = typeof(x₀)

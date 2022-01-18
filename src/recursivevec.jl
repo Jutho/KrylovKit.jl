@@ -28,10 +28,10 @@ Base.last(v::RecursiveVec) = last(v.vecs)
 Base.:-(v::RecursiveVec) = RecursiveVec(map(-,v.vecs))
 Base.:+(v::RecursiveVec, w::RecursiveVec) = RecursiveVec(map(+,v.vecs, w.vecs))
 Base.:-(v::RecursiveVec, w::RecursiveVec) = RecursiveVec(map(-,v.vecs, w.vecs))
-Base.:*(v::RecursiveVec, a) = RecursiveVec(map(x->x*a, v.vecs))
-Base.:*(a, v::RecursiveVec) = RecursiveVec(map(x->a*x, v.vecs))
-Base.:/(v::RecursiveVec, a) = RecursiveVec(map(x->x/a, v.vecs))
-Base.:\(a, v::RecursiveVec) = RecursiveVec(map(x->a\x, v.vecs))
+Base.:*(v::RecursiveVec, a::Number) = RecursiveVec(map(x->x*a, v.vecs))
+Base.:*(a::Number, v::RecursiveVec) = RecursiveVec(map(x->a*x, v.vecs))
+Base.:/(v::RecursiveVec, a::Number) = RecursiveVec(map(x->x/a, v.vecs))
+Base.:\(a::Number, v::RecursiveVec) = RecursiveVec(map(x->a\x, v.vecs))
 
 function Base.similar(v::RecursiveVec)
     RecursiveVec(similar.(v.vecs))
@@ -45,7 +45,7 @@ function Base.copy!(w::RecursiveVec, v::RecursiveVec)
     return w
 end
 
-function LinearAlgebra.mul!(w::RecursiveVec, a, v::RecursiveVec)
+function LinearAlgebra.mul!(w::RecursiveVec, a::Number, v::RecursiveVec)
     @assert length(w.vecs) == length(v.vecs)
     @inbounds for i = 1:length(w.vecs)
         mul!(w.vecs[i], a, v.vecs[i])
@@ -53,7 +53,7 @@ function LinearAlgebra.mul!(w::RecursiveVec, a, v::RecursiveVec)
     return w
 end
 
-function LinearAlgebra.mul!(w::RecursiveVec, v::RecursiveVec, a)
+function LinearAlgebra.mul!(w::RecursiveVec, v::RecursiveVec, a::Number)
     @assert length(w.vecs) == length(v.vecs)
     @inbounds for i = 1:length(w.vecs)
         mul!(w.vecs[i], v.vecs[i], a)
@@ -61,21 +61,21 @@ function LinearAlgebra.mul!(w::RecursiveVec, v::RecursiveVec, a)
     return w
 end
 
-function LinearAlgebra.rmul!(v::RecursiveVec, a)
+function LinearAlgebra.rmul!(v::RecursiveVec, a::Number)
     for x in v.vecs
         rmul!(x, a)
     end
     return v
 end
 
-function LinearAlgebra.axpy!(a, v::RecursiveVec, w::RecursiveVec)
+function LinearAlgebra.axpy!(a::Number, v::RecursiveVec, w::RecursiveVec)
     @assert length(w.vecs) == length(v.vecs)
     @inbounds for i = 1:length(w.vecs)
         axpy!(a, v.vecs[i], w.vecs[i])
     end
     return w
 end
-function LinearAlgebra.axpby!(a, v::RecursiveVec, b, w::RecursiveVec)
+function LinearAlgebra.axpby!(a::Number, v::RecursiveVec, b, w::RecursiveVec)
     @assert length(w.vecs) == length(v.vecs)
     @inbounds for i = 1:length(w.vecs)
         axpby!(a, v.vecs[i], b, w.vecs[i])

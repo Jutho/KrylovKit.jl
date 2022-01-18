@@ -203,15 +203,9 @@ function eigselector(A::AbstractMatrix, T::Type;
 end
 
 checkwhich(::EigSorter) = true
-# checkwhich(::ClosestTo) = true
 checkwhich(s::Symbol) = s in (:LM, :LR, :SR, :LI, :SI)
 
 eigsort(s::EigSorter) = s.by, s.rev
-# function eigsort(which::ClosestTo)
-#     by = x->abs(x-which.λ)
-#     rev = false
-#     return by, rev
-# end
 function eigsort(which::Symbol)
     if which == :LM
         by = abs

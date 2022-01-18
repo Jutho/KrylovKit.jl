@@ -102,7 +102,7 @@ svdsolve(A::AbstractMatrix, howmany::Int = 1, which::Selector = :LR, T::Type = e
 svdsolve(f, n::Int, howmany::Int = 1, which::Selector = :LR, T::Type = Float64; kwargs...) =
     svdsolve(f, rand(T, n), howmany, which; kwargs...)
 
-function svdsolve(f, x₀, howmany::Int = 1, which::Symbol = :LR; kwargs...)
+function svdsolve(f, x₀, howmany::Int = 1, which::Selector = :LR; kwargs...)
     which == :LR || which == :SR ||
         error("invalid specification of which singular values to target: which = $which")
     alg = GKL(; kwargs...)

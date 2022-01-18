@@ -20,12 +20,16 @@ Valid specifications of `which` are
 *   `SR`: eigenvalues with smallest (most negative) real part
 *   `LI`: eigenvalues with largest (most positive) imaginary part, only if `T <: Complex`
 *   `SI`: eigenvalues with smallest (most negative) imaginary part, only if `T <: Complex`
-*   [`ClosestTo(λ)`](@ref): eigenvalues closest to some number `λ`
+*   [`EigSorter(f; rev = false)`](@ref): eigenvalues `λ` that appear first (or last if
+    `rev == true`) when sorted by `f(λ)`
 !!! note "Note about selecting `which` eigenvalues"
     Krylov methods work well for extremal eigenvalues, i.e. eigenvalues on the periphery of
-    the spectrum of the linear map. Even with `ClosestTo`, no shift and invert is performed.
-    This is useful if, e.g., you know the spectrum to be within the unit circle in the complex
-    plane, and want to target the eigenvalues closest to the value `λ = 1`.
+    the spectrum of the linear map. All of they valid `Symbol`s for `which` have this
+    property, but could also be specified using `EigSorter`, e.g. `:LM` is equivalent to
+    `Eigsorter(abs; rev = true)`. Note that smallest magnitude sorting is obtained using
+    e.g. `EigSorter(abs; rev = false)`, but since no (shift-and)-invert is used, this will
+    only be successful if you somehow know that eigenvalues close to zero are also close
+    to the periphery of the spectrum.
 
 The final argument `algorithm` can currently only be an instance of [`Arnoldi`](@ref), but
 should nevertheless be specified. Since `schursolve` is less commonly used as `eigsolve`, no

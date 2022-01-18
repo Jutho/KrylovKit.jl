@@ -1,8 +1,7 @@
 """
     linsolve(A::AbstractMatrix, b::AbstractVector, [a₀::Number = 0, a₁::Number = 1];
                 kwargs...)
-    linsolve(f, b, [a₀::Number = 0, a₁::Number = 1]; kwargs...)
-    linsolve(f, b, x₀, [a₀::Number = 0, a₁::Number = 1]; kwargs...)
+    linsolve(f, b, [x₀, a₀::Number = 0, a₁::Number = 1]; kwargs...)
     linsolve(f, b, x₀, algorithm, [a₀::Number = 0, a₁::Number = 1])
 
 Compute a solution `x` to the linear system `(a₀ + a₁ * A)*x = b` or `a₀ * x + a₁ * f(x) =
@@ -102,12 +101,9 @@ function linselector(f, b, T::Type; issymmetric::Bool = false,
                                     orth = KrylovDefaults.orth,
                                     verbosity::Int = 0)
     if (T<:Real && issymmetric) || ishermitian
-        if isposdef
-            return CG(maxiter = krylovdim*maxiter, tol = tol, verbosity = verbosity)
-        # else
-        # TODO
-        #     return MINRES(krylovdim*maxiter, tol=tol)
-        end
+        isposdef && return CG(maxiter = krylovdim*maxiter, tol = tol, verbosity = verbosity)
+        # TODO: implement MINRES for symmetric but not posdef; for now use GRMES
+        # return MINRES(krylovdim*maxiter, tol=tol)
         return GMRES(krylovdim = krylovdim, maxiter = maxiter, tol = tol, orth = orth,
                         verbosity = verbosity)
     else
@@ -127,12 +123,9 @@ function linselector(A::AbstractMatrix, b, T::Type;
                         orth = KrylovDefaults.orth,
                         verbosity::Int = 0)
     if (T<:Real && issymmetric) || ishermitian
-        if isposdef
-            return CG(maxiter = krylovdim*maxiter, tol = tol, verbosity = verbosity)
-        # else
-        # TODO
-        #     return MINRES(krylovdim*maxiter, tol=tol, verbosity = verbosity)
-        end
+        isposdef && return CG(maxiter = krylovdim*maxiter, tol = tol, verbosity = verbosity)
+        # TODO: implement MINRES for symmetric but not posdef; for now use GRMES
+        # return MINRES(krylovdim*maxiter, tol=tol, verbosity = verbosity)
         return GMRES(krylovdim = krylovdim, maxiter = maxiter, tol = tol, orth = orth,
                         verbosity = verbosity)
     else

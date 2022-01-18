@@ -30,7 +30,7 @@ export ClassicalGramSchmidt, ClassicalGramSchmidt2, ClassicalGramSchmidtIR
 export ModifiedGramSchmidt, ModifiedGramSchmidt2, ModifiedGramSchmidtIR
 export LanczosIterator, ArnoldiIterator, GKLIterator
 export CG, GMRES, BiCGStab, Lanczos, Arnoldi, GKL, GolubYe
-export KrylovDefaults, ClosestTo, EigSorter
+export KrylovDefaults, EigSorter
 export RecursiveVec, InnerProductVec
 
 include("algorithms.jl")
