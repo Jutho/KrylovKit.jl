@@ -324,12 +324,6 @@ function orthogonalize!(v::T, b::OrthonormalBasis{T}, alg::Orthogonalizer) where
     return orthogonalize!(v, b, c, alg)
 end
 
-function orthogonalize!(v::T, b::OrthonormalBasis{T}, alg::Orthogonalizer) where {T}
-    S = promote_type(eltype(v), eltype(T))
-    c = Vector{S}(undef, length(b))
-    return orthogonalize!(v, b, c, alg)
-end
-
 function orthogonalize!(
     v::T,
     b::OrthonormalBasis{T},
