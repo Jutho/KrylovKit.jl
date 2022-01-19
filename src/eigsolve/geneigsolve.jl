@@ -14,6 +14,7 @@ and an `AbstractMatrix`), or one could use a single function that takes a single
 eigenvalues, eigenvectors and a `ConvergenceInfo` structure.
 
 ### Arguments:
+
 The first argument is either a tuple of two linear maps, so a function or an
 `AbstractMatrix` for either of them, representing the action of `A` and `B`. Alternatively,
 a single function can be used that takes a single argument `x` and returns the equivalent of
@@ -33,14 +34,17 @@ of `T` is `Float64`, unless specified differently.
 The next arguments are optional, but should typically be specified. `howmany` specifies how
 many eigenvalues should be computed; `which` specifies which eigenvalues should be
 targeted. Valid specifications of `which` are given by
-*   `:LM`: eigenvalues of largest magnitude
-*   `:LR`: eigenvalues with largest (most positive) real part
-*   `:SR`: eigenvalues with smallest (most negative) real part
-*   `:LI`: eigenvalues with largest (most positive) imaginary part, only if `T <: Complex`
-*   `:SI`: eigenvalues with smallest (most negative) imaginary part, only if `T <: Complex`
-*   [`EigSorter(f; rev = false)`](@ref): eigenvalues `λ` that appear first (or last if
+
+  - `:LM`: eigenvalues of largest magnitude
+  - `:LR`: eigenvalues with largest (most positive) real part
+  - `:SR`: eigenvalues with smallest (most negative) real part
+  - `:LI`: eigenvalues with largest (most positive) imaginary part, only if `T <: Complex`
+  - `:SI`: eigenvalues with smallest (most negative) imaginary part, only if `T <: Complex`
+  - [`EigSorter(f; rev = false)`](@ref): eigenvalues `λ` that appear first (or last if
     `rev == true`) when sorted by `f(λ)`
+
 !!! note "Note about selecting `which` eigenvalues"
+    
     Krylov methods work well for extremal eigenvalues, i.e. eigenvalues on the periphery of
     the spectrum of the linear map. Even with `ClosestTo`, no shift and invert is performed.
     This is useful if, e.g., you know the spectrum to be within the unit circle in the
@@ -51,73 +55,79 @@ but is not restrictive. If the linear map automatically produces complex values,
 arithmetic will be used even though `T<:Real` was specified.
 
 ### Return values:
+
 The return value is always of the form `vals, vecs, info = geneigsolve(...)` with
-*   `vals`: a `Vector` containing the eigenvalues, of length at least `howmany`, but could
+
+  - `vals`: a `Vector` containing the eigenvalues, of length at least `howmany`, but could
     be longer if more eigenvalues were converged at the same cost.
-*   `vecs`: a `Vector` of corresponding eigenvectors, of the same length as `vals`.
+
+  - `vecs`: a `Vector` of corresponding eigenvectors, of the same length as `vals`.
     Note that eigenvectors are not returned as a matrix, as the linear map could act on any
     custom Julia type with vector like behavior, i.e. the elements of the list `vecs` are
     objects that are typically similar to the starting guess `x₀`, up to a possibly
     different `eltype`. When the linear map is a simple `AbstractMatrix`, `vecs` will be
     `Vector{Vector{<:Number}}`.
-*   `info`: an object of type [`ConvergenceInfo`], which has the following fields
-    -   `info.converged::Int`: indicates how many eigenvalues and eigenvectors were actually
+  - `info`: an object of type [`ConvergenceInfo`], which has the following fields
+    
+      + `info.converged::Int`: indicates how many eigenvalues and eigenvectors were actually
         converged to the specified tolerance `tol` (see below under keyword arguments)
-    -   `info.residual::Vector`: a list of the same length as `vals` containing the
+      + `info.residual::Vector`: a list of the same length as `vals` containing the
         residuals `info.residual[i] = f(vecs[i]) - vals[i] * vecs[i]`
-    -   `info.normres::Vector{<:Real}`: list of the same length as `vals` containing the
+      + `info.normres::Vector{<:Real}`: list of the same length as `vals` containing the
         norm of the residual `info.normres[i] = norm(info.residual[i])`
-    -   `info.numops::Int`: number of times the linear map was applied, i.e. number of times
+      + `info.numops::Int`: number of times the linear map was applied, i.e. number of times
         `f` was called, or a vector was multiplied with `A`
-    -   `info.numiter::Int`: number of times the Krylov subspace was restarted (see below)
+      + `info.numiter::Int`: number of times the Krylov subspace was restarted (see below)
+
 !!! warning "Check for convergence"
+    
     No warning is printed if not all requested eigenvalues were converged, so always check
     if `info.converged >= howmany`.
 
 ### Keyword arguments:
+
 Keyword arguments and their default values are given by:
-*   `verbosity::Int = 0`: verbosity level, i.e. 0 (no messages), 1 (single message
+
+  - `verbosity::Int = 0`: verbosity level, i.e. 0 (no messages), 1 (single message
     at the end), 2 (information after every iteration), 3 (information per Krylov step)
-*   `tol::Real`: the requested accuracy (corresponding to the 2-norm of the residual for
+  - `tol::Real`: the requested accuracy (corresponding to the 2-norm of the residual for
     Schur vectors, not the eigenvectors). If you work in e.g. single precision (`Float32`),
     you should definitely change the default value.
-*   `krylovdim::Integer`: the maximum dimension of the Krylov subspace that will be
+  - `krylovdim::Integer`: the maximum dimension of the Krylov subspace that will be
     constructed. Note that the dimension of the vector space is not known or checked, e.g.
     `x₀` should not necessarily support the `Base.length` function. If you know the actual
     problem dimension is smaller than the default value, it is useful to reduce the value
     of `krylovdim`, though in principle this should be detected.
-*   `maxiter::Integer`: the number of times the Krylov subspace can be rebuilt; see below
+  - `maxiter::Integer`: the number of times the Krylov subspace can be rebuilt; see below
     for further details on the algorithms.
-*   `orth::Orthogonalizer`: the orthogonalization method to be used, see
+  - `orth::Orthogonalizer`: the orthogonalization method to be used, see
     [`Orthogonalizer`](@ref)
-*   `issymmetric::Bool`: if both linear maps `A` and `B` are symmetric, only meaningful if
+  - `issymmetric::Bool`: if both linear maps `A` and `B` are symmetric, only meaningful if
     `T<:Real`
-*   `ishermitian::Bool`: if both linear maps `A` and `B` are hermitian
-*   `isposdef::Bool`: if the linear map `B` is positive definite
-The default values are given by `tol = KrylovDefaults.tol`, `krylovdim =
-KrylovDefaults.krylovdim`, `maxiter = KrylovDefaults.maxiter`, `orth =
-KrylovDefaults.orth`; see [`KrylovDefaults`](@ref) for details.
+  - `ishermitian::Bool`: if both linear maps `A` and `B` are hermitian
+  - `isposdef::Bool`: if the linear map `B` is positive definite
+    The default values are given by `tol = KrylovDefaults.tol`, `krylovdim = KrylovDefaults.krylovdim`, `maxiter = KrylovDefaults.maxiter`, `orth = KrylovDefaults.orth`; see [`KrylovDefaults`](@ref) for details.
 
 The default value for the last three parameters depends on the method. If an
 `AbstractMatrix` is used, `issymmetric`, `ishermitian` and `isposdef` are checked for that
-matrix, otherwise the default values are `issymmetric = false` and `ishermitian = T <:
-Real && issymmetric`. When values are provided, no checks will be performed even in the
+matrix, otherwise the default values are `issymmetric = false` and `ishermitian = T <: Real && issymmetric`. When values are provided, no checks will be performed even in the
 matrix case.
 
 ### Algorithm
+
 The last method, without default values and keyword arguments, is the one that is finally
 called, and can also be used directly. Here the algorithm is specified, though currently
 only [`GolubYe`](@ref) is available. The Golub-Ye algorithm is an algorithm for solving
 hermitian (symmetric) generalized eigenvalue problems `A x = λ B x` with positive definite
 `B`, without the need for inverting `B`. It builds a Krylov subspace of size `krylovdim`
-starting from an estimate `x` by acting with `(A - ρ(x) B)`, where `ρ(x) = dot(x, A*x)/
-dot(x, B*x)`, and employing the Lanczos algorithm. This process is repeated at most
+starting from an estimate `x` by acting with `(A - ρ(x) B)`, where `ρ(x) = dot(x, A*x)/ dot(x, B*x)`, and employing the Lanczos algorithm. This process is repeated at most
 `maxiter` times. In every iteration `k>1`, the subspace will also be expanded to size
 `krylovdim+1` by adding ``x_k - x_{k-1}``, which is known as the LOPCG correction and was
 suggested by Money and Ye. With `krylovdim = 2`, this algorithm becomes equivalent to
 `LOPCG`.
 
 !!! warning "Restriction to symmetric definite generalized eigenvalue problems"
+    
     While the only algorithm so far is restricted to symmetric/hermitian generalized
     eigenvalue problems with positive definite `B`, this is not reflected in the default
     values for the keyword arguments `issymmetric` or `ishermitian` and `isposdef`. Make

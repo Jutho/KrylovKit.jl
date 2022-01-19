@@ -2,22 +2,26 @@
 """
     OrthonormalBasis{T} <: Basis{T}
 
-A list of vector like objects of type `T` that are mutually orthogonal and normalized to one,
-representing an orthonormal basis for some subspace (typically a Krylov subspace). See also
-[`Basis`](@ref)
+A list of vector like objects of type `T` that are mutually orthogonal and normalized to
+one, representing an orthonormal basis for some subspace (typically a Krylov subspace). See
+also [`Basis`](@ref)
 
 Orthonormality of the vectors contained in an instance `b` of `OrthonormalBasis`
-(i.e. `all(dot(b[i],b[j]) == I[i,j] for i=1:length(b), j=1:length(b))`) is not checked when elements are added; it is up to the algorithm that constructs `b` to
-guarantee orthonormality.
+(i.e. `all(dot(b[i],b[j]) == I[i,j] for i=1:length(b), j=1:length(b))`) is not checked when
+elements are added; it is up to the algorithm that constructs `b` to guarantee
+orthonormality.
 
-One can easily orthogonalize or orthonormalize a given vector `v` with respect to a `b::OrthonormalBasis`
-using the functions [`w, = orthogonalize(v,b,...)`](@ref orthogonalize) or [`w, = orthonormalize(v,b,...)`](@ref orthonormalize).
-The resulting vector `w` of the latter can then be added to `b` using `push!(b, w)`. Note that
-in place versions [`orthogonalize!(v, b, ...)`](@ref orthogonalize) or [`orthonormalize!(v, b, ...)`](@ref orthonormalize)
-are also available.
+One can easily orthogonalize or orthonormalize a given vector `v` with respect to a
+`b::OrthonormalBasis` using the functions
+[`w, = orthogonalize(v,b,...)`](@ref orthogonalize) or
+[`w, = orthonormalize(v,b,...)`](@ref orthonormalize). The resulting vector `w` of the
+latter can then be added to `b` using `push!(b, w)`. Note that in place versions
+[`orthogonalize!(v, b, ...)`](@ref orthogonalize) or
+[`orthonormalize!(v, b, ...)`](@ref orthonormalize) are also available.
 
-Finally, a linear combination of the vectors in `b::OrthonormalBasis` can be obtained by multiplying
-`b` with a `Vector{<:Number}` using `*` or `mul!` (if the output vector is already allocated).
+Finally, a linear combination of the vectors in `b::OrthonormalBasis` can be obtained by
+multiplying `b` with a `Vector{<:Number}` using `*` or `mul!` (if the output vector is
+already allocated).
 """
 struct OrthonormalBasis{T} <: Basis{T}
     basis::Vector{T}
@@ -86,6 +90,7 @@ end
 For a given orthonormal basis `b`, reconstruct the vector-like object `y` that is defined by
 expansion coefficients with respect to the basis vectors in `b` in `x`; more specifically
 this computes
+
 ```
     y = β*y + α * sum(b[r[i]]*x[i] for i = 1:length(r))
 ```
@@ -171,9 +176,11 @@ end
     rank1update!(b::OrthonormalBasis, y, x::AbstractVector, α::Number = 1, β::Number = 1, r = Base.OneTo(length(b)))
 
 Perform a rank 1 update of a basis `b`, i.e. update the basis vectors as
+
 ```
     b[r[i]] = β*b[r[i]] + α * y * conj(x[i])
 ```
+
 It is the user's responsibility to make sure that the result is still an orthonormal basis.
 """
 @fastmath function rank1update!(
@@ -479,16 +486,18 @@ orthogonalization algorithm `algorithm`, and return the resulting vector `w` and
 coefficients `x` of `v` with the basis vectors in `b`.
 
 In case of `orthogonalize!`, the vector `v` is mutated in place. In both functions, storage
-for the overlap coefficients `x` can be provided as optional argument `x::AbstractVector` with
-`length(x) >= length(b)`.
+for the overlap coefficients `x` can be provided as optional argument `x::AbstractVector`
+with `length(x) >= length(b)`.
 
-One can also orthogonalize `v` against a given vector `q` (assumed to be normalized), in which
-case the orthogonal vector `w` and the inner product `s` between `v` and `q` are returned.
+One can also orthogonalize `v` against a given vector `q` (assumed to be normalized), in
+which case the orthogonal vector `w` and the inner product `s` between `v` and `q` are
+returned.
 
 Note that `w` is not normalized, see also [`orthonormalize`](@ref).
 
-For algorithms, see [`ClassicalGramSchmidt`](@ref), [`ModifiedGramSchmidt`](@ref), [`ClassicalGramSchmidt2`](@ref),
-[`ModifiedGramSchmidt2`](@ref), [`ClassicalGramSchmidtIR`](@ref) and [`ModifiedGramSchmidtIR`](@ref).
+For algorithms, see [`ClassicalGramSchmidt`](@ref), [`ModifiedGramSchmidt`](@ref),
+[`ClassicalGramSchmidt2`](@ref), [`ModifiedGramSchmidt2`](@ref),
+[`ClassicalGramSchmidtIR`](@ref) and [`ModifiedGramSchmidtIR`](@ref).
 """
 orthogonalize, orthogonalize!
 
@@ -510,21 +519,22 @@ end
     orthonormalize!(v, q, algorithm::Orthogonalizer]) -> w, β, s
 
 Orthonormalize vector `v` against all the vectors in the orthonormal basis `b` using the
-orthogonalization algorithm `algorithm`, and return the resulting vector `w` (of norm 1), its
-norm `β` after orthogonalizing and the overlap coefficients `x` of `v` with the basis vectors in
-`b`, such that `v = β * w + b * x`.
+orthogonalization algorithm `algorithm`, and return the resulting vector `w` (of norm 1),
+its norm `β` after orthogonalizing and the overlap coefficients `x` of `v` with the basis
+vectors in `b`, such that `v = β * w + b * x`.
 
 In case of `orthogonalize!`, the vector `v` is mutated in place. In both functions, storage
-for the overlap coefficients `x` can be provided as optional argument `x::AbstractVector` with
-`length(x) >= length(b)`.
+for the overlap coefficients `x` can be provided as optional argument `x::AbstractVector`
+with `length(x) >= length(b)`.
 
-One can also orthonormalize `v` against a given vector `q` (assumed to be normalized), in which
-case the orthonormal vector `w`, its norm `β` before normalizing and the inner product `s` between
-`v` and `q` are returned.
+One can also orthonormalize `v` against a given vector `q` (assumed to be normalized), in
+which case the orthonormal vector `w`, its norm `β` before normalizing and the inner product
+`s` between `v` and `q` are returned.
 
 See [`orthogonalize`](@ref) if `w` does not need to be normalized.
 
-For algorithms, see [`ClassicalGramSchmidt`](@ref), [`ModifiedGramSchmidt`](@ref), [`ClassicalGramSchmidt2`](@ref),
-[`ModifiedGramSchmidt2`](@ref), [`ClassicalGramSchmidtIR`](@ref) and [`ModifiedGramSchmidtIR`](@ref).
+For algorithms, see [`ClassicalGramSchmidt`](@ref), [`ModifiedGramSchmidt`](@ref),
+[`ClassicalGramSchmidt2`](@ref), [`ModifiedGramSchmidt2`](@ref),
+[`ClassicalGramSchmidtIR`](@ref) and [`ModifiedGramSchmidtIR`](@ref).
 """
 orthonormalize, orthonormalize!

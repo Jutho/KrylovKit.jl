@@ -288,6 +288,7 @@ orthogonalizer `orth`. Default verbosity level `verbosity` is zero, meaning that
 will be printed.
 
 !!! warning "Not implemented yet"
+    
 
 See also: [`linsolve`](@ref), [`CG`](@ref), [`GMRES`](@ref), [`BiCG`](@ref), [`BiCGStab`](@ref)
 """
@@ -308,10 +309,12 @@ MINRES(;
 Construct an instance of the Biconjugate gradient algorithm with specified parameters, which
 can be passed to `linsolve` in order to iteratively solve a linear system general linear
 map, of which the adjoint can also be applied. The `BiCG` method will search for the
-optimal `x` in a Krylov subspace of maximal size `maxiter`, or stop when `norm(A*x - b) <
-tol`. Default verbosity level `verbosity` is zero, meaning that no output will be printed.
+optimal `x` in a Krylov subspace of maximal size `maxiter`, or stop when
+`norm(A*x - b) < tol`. Default verbosity level `verbosity` is zero, meaning that no output
+will be printed.
 
 !!! warning "Not implemented yet"
+    
 
 See also: [`linsolve`](@ref), [`BiCGStab`](@ref), [`GMRES`](@ref), [`CG`](@ref),
 [`MINRES`](@ref)
@@ -337,6 +340,7 @@ size `maxiter`, or stop when `norm(A*x - b) < tol`. Default verbosity level `ver
 zero, meaning that no output will be printed.
 
 !!! warning "Not implemented yet"
+    
 
 See also: [`linsolve`](@ref), [`BiCG`](@ref), [`GMRES`](@ref), [`CG`](@ref),
 [`MINRES`](@ref)
@@ -367,14 +371,17 @@ struct JacobiDavidson <: EigenSolver end
     end
 
 A module listing the default values for the typical parameters in Krylov based algorithms:
-*   `orth`: the orthogonalization routine used to orthogonalize the Krylov basis in the
+
+  - `orth`: the orthogonalization routine used to orthogonalize the Krylov basis in the
     `Lanczos` or `Arnoldi` iteration
-*   `krylovdim`: the maximal dimension of the Krylov subspace that will be constructed
-*   `maxiter`: the maximal number of outer iterations, i.e. the maximum number of times the
+  - `krylovdim`: the maximal dimension of the Krylov subspace that will be constructed
+  - `maxiter`: the maximal number of outer iterations, i.e. the maximum number of times the
     Krylov subspace may be rebuilt
-*   `tol`: the tolerance to which the problem must be solved, based on a suitable error
+  - `tol`: the tolerance to which the problem must be solved, based on a suitable error
     measure, e.g. the norm of some residual.
+
 !!! warning
+    
     The default value of `tol` is a `Float64` value, if you solve problems in `Float32` or
     `ComplexF32` arithmetic, you should always specify a new `tol` as the default value
     will not be attainable.

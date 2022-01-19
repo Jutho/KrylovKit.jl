@@ -9,6 +9,7 @@ function `f`. Return singular values, left and right singular vectors and a
 `ConvergenceInfo` structure.
 
 ### Arguments:
+
 The linear map can be an `AbstractMatrix` (dense or sparse) or a general function or
 callable object. Since both the action of the linear map and its adjoint are required in
 order to compute singular values, `f` can either be a tuple of two callable objects (each
@@ -17,6 +18,7 @@ accepting a single argument), representing the linear map and its adjoint respec
 argument is a flag that indicates whether the adjoint or the normal action of the linear
 map needs to be computed. The latter form still combines well with the `do` block syntax of
 Julia, as in
+
 ```julia
 vals, lvecs, rvecs, info = svdsolve(x₀, y₀, howmany, which; kwargs...) do (x, flag)
     if flag
@@ -38,56 +40,66 @@ to be provided; it is chosen as `rand(T, size(A,1))`.
 The next arguments are optional, but should typically be specified. `howmany` specifies how
 many singular values and vectors should be computed; `which` specifies which singular
 values should be targeted. Valid specifications of `which` are
-*   `LR`: largest singular values
-*   `SR`: smallest singular values
-However, the largest singular values tend to converge more rapidly.
+
+  - `LR`: largest singular values
+  - `SR`: smallest singular values
+    However, the largest singular values tend to converge more rapidly.
 
 ### Return values:
+
 The return value is always of the form `vals, lvecs, rvecs, info = svdsolve(...)` with
-*   `vals`: a `Vector{<:Real}` containing the singular values, of length at least `howmany`,
+
+  - `vals`: a `Vector{<:Real}` containing the singular values, of length at least `howmany`,
     but could be longer if more singular values were converged at the same cost.
-*   `lvecs`: a `Vector` of corresponding left singular vectors, of the same length as
+
+  - `lvecs`: a `Vector` of corresponding left singular vectors, of the same length as
     `vals`.
-*   `rvecs`: a `Vector` of corresponding right singular vectors, of the same length as
+  - `rvecs`: a `Vector` of corresponding right singular vectors, of the same length as
     `vals`. Note that singular vectors are not returned as a matrix, as the linear map
     could act on any custom Julia type with vector like behavior, i.e. the elements of the
     lists `lvecs`(`rvecs`) are objects that are typically similar to the starting guess `y₀`
     (`x₀`), up to a possibly different `eltype`. When the linear map is a simple
     `AbstractMatrix`, `lvecs` and `rvecs` will be `Vector{Vector{<:Number}}`.
-*   `info`: an object of type [`ConvergenceInfo`], which has the following fields
-    -   `info.converged::Int`: indicates how many singular values and vectors were actually
+  - `info`: an object of type [`ConvergenceInfo`], which has the following fields
+    
+      + `info.converged::Int`: indicates how many singular values and vectors were actually
         converged to the specified tolerance `tol` (see below under keyword arguments)
-    -   `info.residual::Vector`: a list of the same length as `vals` containing the
+      + `info.residual::Vector`: a list of the same length as `vals` containing the
         residuals
         `info.residual[i] = A * rvecs[i] - vals[i] * lvecs[i]`.
-    -   `info.normres::Vector{<:Real}`: list of the same length as `vals` containing the
+      + `info.normres::Vector{<:Real}`: list of the same length as `vals` containing the
         norm of the residual `info.normres[i] = norm(info.residual[i])`
-    -   `info.numops::Int`: number of times the linear map was applied, i.e. number of times
+      + `info.numops::Int`: number of times the linear map was applied, i.e. number of times
         `f` was called, or a vector was multiplied with `A` or `A'`.
-    -   `info.numiter::Int`: number of times the Krylov subspace was restarted (see below)
+      + `info.numiter::Int`: number of times the Krylov subspace was restarted (see below)
+
 !!! warning "Check for convergence"
+    
     No warning is printed if not all requested eigenvalues were converged, so always check
     if `info.converged >= howmany`.
 
 ### Keyword arguments:
+
 Keyword arguments and their default values are given by:
-*   `verbosity::Int = 0`: verbosity level, i.e. 0 (no messages), 1 (single message
+
+  - `verbosity::Int = 0`: verbosity level, i.e. 0 (no messages), 1 (single message
     at the end), 2 (information after every iteration), 3 (information per Krylov step)
-*   `krylovdim`: the maximum dimension of the Krylov subspace that will be constructed.
+  - `krylovdim`: the maximum dimension of the Krylov subspace that will be constructed.
     Note that the dimension of the vector space is not known or checked, e.g. `x₀` should
     not necessarily support the `Base.length` function. If you know the actual problem
     dimension is smaller than the default value, it is useful to reduce the value of
     `krylovdim`, though in principle this should be detected.
-*   `tol`: the requested accuracy according to `normres` as defined above. If you work in
+  - `tol`: the requested accuracy according to `normres` as defined above. If you work in
     e.g. single precision (`Float32`), you should definitely change the default value.
-*   `maxiter`: the number of times the Krylov subspace can be rebuilt; see below for further
+  - `maxiter`: the number of times the Krylov subspace can be rebuilt; see below for further
     details on the algorithms.
-*   `orth`: the orthogonalization method to be used, see [`Orthogonalizer`](@ref)
-*   `eager::Bool = false`: if true, eagerly compute the SVD after every expansion of the
+  - `orth`: the orthogonalization method to be used, see [`Orthogonalizer`](@ref)
+  - `eager::Bool = false`: if true, eagerly compute the SVD after every expansion of the
     Krylov subspace to test for convergence, otherwise wait until the Krylov subspace has
     dimension `krylovdim`
 
 ### Algorithm
+
 The last method, without default values and keyword arguments, is the one that is finally
 called, and can also be used directly. Here the algorithm is specified, though currently
 only [`GKL`](@ref) is available. `GKL` refers to the the partial Golub-Kahan-Lanczos

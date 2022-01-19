@@ -9,12 +9,14 @@ KrylovKit accepts general functions or callable objects as linear maps, and gene
 objects with vector like behavior as vectors.
 
 The high level interface of KrylovKit is provided by the following functions:
-*   [`linsolve`](@ref): solve linear systems
-*   [`eigsolve`](@ref): find a few eigenvalues and corresponding eigenvectors
-*   [`geneigsolve`](@ref): find a few generalized eigenvalues and corresponding vectors
-*   [`svdsolve`](@ref): find a few singular values and corresponding left and right
+
+  - [`linsolve`](@ref): solve linear systems
+  - [`eigsolve`](@ref): find a few eigenvalues and corresponding eigenvectors
+  - [`geneigsolve`](@ref): find a few generalized eigenvalues and corresponding vectors
+  - [`svdsolve`](@ref): find a few singular values and corresponding left and right
     singular vectors
-*   [`exponentiate`](@ref): apply the exponential of a linear map to a vector
+  - [`exponentiate`](@ref): apply the exponential of a linear map to a vector
+  - [`expintegrator`](@ref): more general application of exponential integrator
 """
 module KrylovKit
 
@@ -45,7 +47,8 @@ Implementations of `Basis{T}` behave in many ways like `Vector{T}` and should ha
 `length`, can be indexed (`getindex` and `setindex!`), iterated over (`iterate`), and
 support resizing (`resize!`, `pop!`, `push!`, `empty!`, `sizehint!`).
 
-The type `T` denotes the type of the elements stored in an `Basis{T}` and can be any custom type that has vector like behavior (as defined in the docs of [`KrylovKit`](@ref)).
+The type `T` denotes the type of the elements stored in an `Basis{T}` and can be any custom
+type that has vector like behavior (as defined in the docs of [`KrylovKit`](@ref)).
 
 See [`OrthonormalBasis`](@ref).
 """
@@ -64,8 +67,8 @@ include("dense/reflector.jl")
     SimpleBasisVector(m, k)
 
 Construct a simple struct `SimpleBasisVector <: AbstractVector{Bool}` representing a
-coordinate basis vector of length `m` in the direction of `k`, i.e. for `e_k =
-SimpleBasisVector(m, k)` we have `length(e_k) = m` and `e_k[i] = (i == k)`.
+coordinate basis vector of length `m` in the direction of `k`, i.e. for
+`e_k = SimpleBasisVector(m, k)` we have `length(e_k) = m` and `e_k[i] = (i == k)`.
 """
 struct SimpleBasisVector <: AbstractVector{Bool}
     m::Int
@@ -186,15 +189,17 @@ include("krylov/gkl.jl")
     mutable struct ArnoldiFactorization{T,S<:Number}  <: KrylovFactorization{T,S}
 
 Structures to store a Krylov factorization of a linear map `A` of the form
+
 ```julia
-    A * V = V * B + r * b'.
+A * V = V * B + r * b'
 ```
-For a given Krylov factorization `fact` of length `k = length(fact)`, the basis `A is
+
+For a given Krylov factorization `fact` of length `k = length(fact)`, the basis `A` is
 obtained via [`basis(fact)`](@ref basis) and is an instance of some subtype of
 [`Basis{T}`](@ref Basis), with also `length(V) == k` and where `T` denotes the type of
 vector like objects used in the problem. The Rayleigh quotient `B` is obtained as
-[`rayleighquotient(fact)`](@ref) and `typeof(B)` is some subtype of `AbstractMatrix{S}`
-with `size(B) == (k,k)`, typically a structured matrix. The residual `r` is obtained as
+[`rayleighquotient(fact)`](@ref) and `typeof(B)` is some subtype of `AbstractMatrix{S}` with
+`size(B) == (k,k)`, typically a structured matrix. The residual `r` is obtained as
 [`residual(fact)`](@ref) and is of type `T`. One can also query [`normres(fact)`](@ref) to
 obtain `norm(r)`, the norm of the residual. The vector `b` has no dedicated name and often
 takes a default form (see below). It should be a subtype of `AbstractVector` of length `k`
@@ -209,7 +214,8 @@ general linear map and has `V::OrthonormalBasis{T}` and
 cases, `b` takes the default value ``e_k``, i.e. the unit vector of all zeros and a one in
 the last entry, which is represented using [`SimpleBasisVector`](@ref).
 
-A Krylov factorization `fact` can be destructured as `V, B, r, nr, b = fact` with `nr = norm(r)`.
+A Krylov factorization `fact` can be destructured as `V, B, r, nr, b = fact` with
+`nr = norm(r)`.
 
 `LanczosFactorization` and `ArnoldiFactorization` are mutable because they can
 [`expand!`](@ref) or [`shrink!`](@ref). See also [`KrylovIterator`](@ref) (and in
@@ -253,12 +259,14 @@ When iterating over an instance of `KrylovIterator`, the values being generated 
 of [`KrylovFactorization`](@ref), which can be immediately destructured into a
 [`basis`](@ref), [`rayleighquotient`](@ref), [`residual`](@ref), [`normres`](@ref) and
 [`rayleighextension`](@ref), for example as
+
 ```julia
-for (V,B,r,nr,b) in ArnoldiIterator(f, v₀)
+for (V, B, r, nr, b) in ArnoldiIterator(f, v₀)
     # do something
     nr < tol && break # a typical stopping criterion
 end
 ```
+
 Note, however, that if `keepvecs=false` in `LanczosIterator`, the basis `V` cannot be
 extracted. Since the iterators don't know the dimension of the underlying vector space of
 objects of type `T`, they keep expanding the Krylov subspace until `normres` falls below
@@ -271,15 +279,17 @@ mutated, a `deepcopy` is produced upon every next iteration step.
 
 Instead, you can also mutate the `KrylovFactorization` in place, using the following
 interface, e.g. for the same example above
+
 ```julia
 iterator = ArnoldiIterator(f, v₀)
 factorization = initialize(iterator)
 while normres(factorization) > tol
     expand!(iterator, factorization)
-    V,B,r,nr,b = factorization
+    V, B, r, nr, b = factorization
     # do something
 end
 ```
+
 Here, [`initialize(::KrylovIterator)`](@ref) produces the first Krylov factorization of
 length 1, and `expand!(::KrylovIterator, ::KrylovFactorization)`(@ref) expands the
 factorization in place. See also
@@ -301,21 +311,22 @@ KrylovIterator, LanczosIterator, ArnoldiIterator
     end
 
 Used to return information about the solution found by the iterative method.
-*   `converged`: the number of solutions that have converged according to an appropriate error
-    measure and requested tolerance for the problem. Its value can be zero or one for
+
+  - `converged`: the number of solutions that have converged according to an appropriate
+    error measure and requested tolerance for the problem. Its value can be zero or one for
     [`linsolve`](@ref) and [`exponentiate`](@ref), or any integer `>= 0` for
     [`eigsolve`](@ref), [`schursolve`](@ref) or [`svdsolve`]().
-*   `residual:` the (list of) residual(s) for the problem, or `nothing` for problems without
+  - `residual:` the (list of) residual(s) for the problem, or `nothing` for problems without
     the concept of a residual (i.e. `exponentiate`). This is a single vector (of the same
     type as the type of vectors used in the problem) for `linsolve`, or a `Vector` of such
     vectors for `eigsolve`, `schursolve` or `svdsolve`.
-*   `normres`: the norm of the residual(s) (in the previous field) or the value of any other
+  - `normres`: the norm of the residual(s) (in the previous field) or the value of any other
     error measure that is appropriate for the problem. This is a `Real` for `linsolve` and
     `exponentiate`, and a `Vector{<:Real}` for `eigsolve`, `schursolve` and `svdsolve`. The
     number of values in `normres` that are smaller than a predefined tolerance corresponds
     to the number `converged` of solutions that have converged.
-*   `numiter`: the number of iterations (sometimes called restarts) used by the algorithm.
-*   `numops`: the number of times the linear map or operator was applied
+  - `numiter`: the number of iterations (sometimes called restarts) used by the algorithm.
+  - `numops`: the number of times the linear map or operator was applied
 """
 struct ConvergenceInfo{S,T}
     converged::Int # how many vectors have converged, 0 or 1 for linear systems, exponentiate, any integer for eigenvalue problems
