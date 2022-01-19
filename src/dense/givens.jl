@@ -21,8 +21,8 @@ end
     q1, q2 = b[G.i1], b[G.i2]
     c = G.c
     s = G.s
-    @inbounds @simd for i = 1:length(q1)
-        q1[i], q2[i] = c*q1[i] - conj(s)*q2[i], s*q1[i] + c*q2[i]
+    @inbounds @simd for i in 1:length(q1)
+        q1[i], q2[i] = c * q1[i] - conj(s) * q2[i], s * q1[i] + c * q2[i]
     end
     return b
 end
@@ -36,7 +36,6 @@ function _rmul!(b::OrthonormalBasis, G::Givens)
 end
 
 # New types for discarding or for storing successive Givens transformations
-struct NoVecs
-end
+struct NoVecs end
 const novecs = NoVecs()
 rmulc!(::NoVecs, ::Any) = novecs

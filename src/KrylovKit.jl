@@ -155,21 +155,23 @@ function initialize end
 
 # iteration for destructuring into components
 Base.iterate(F::KrylovFactorization) = (basis(F), Val(:rayleighquotient))
-Base.iterate(F::KrylovFactorization, ::Val{:rayleighquotient}) = (rayleighquotient(F), Val(:residual))
+Base.iterate(F::KrylovFactorization, ::Val{:rayleighquotient}) =
+    (rayleighquotient(F), Val(:residual))
 Base.iterate(F::KrylovFactorization, ::Val{:residual}) = (residual(F), Val(:normres))
-Base.iterate(F::KrylovFactorization, ::Val{:normres}) = (normres(F), Val(:rayleighextension))
-Base.iterate(F::KrylovFactorization, ::Val{:rayleighextension}) = (rayleighextension(F), Val(:done))
+Base.iterate(F::KrylovFactorization, ::Val{:normres}) =
+    (normres(F), Val(:rayleighextension))
+Base.iterate(F::KrylovFactorization, ::Val{:rayleighextension}) =
+    (rayleighextension(F), Val(:done))
 Base.iterate(F::KrylovFactorization, ::Val{:done}) = nothing
 
 # some often used tools
 function checkposdef(z)
     r = checkhermitian(z)
-    r > 0 ||
-        error("operator does not appear to be positive definite: diagonal element $z")
+    r > 0 || error("operator does not appear to be positive definite: diagonal element $z")
     return r
 end
 function checkhermitian(z, n = abs(z))
-    imag(z) <= sqrt(max(eps(n),eps(one(n)))) ||
+    imag(z) <= sqrt(max(eps(n), eps(one(n)))) ||
         error("operator does not appear to be hermitian: diagonal element $z")
     return real(z)
 end
@@ -328,8 +330,15 @@ function Base.show(io::IO, info::ConvergenceInfo)
     info.converged == 0 && print(io, "no converged values ")
     info.converged == 1 && print(io, "one converged value ")
     info.converged > 1 && print(io, "$(info.converged) converged values ")
-    println(io, "after $(info.numiter) iterations and $(info.numops) applications of the linear map;")
-    println(io, "norms of residuals are given by $((info.normres...,)).")
+    println(
+        io,
+        "after ",
+        info.numiter,
+        " iterations and ",
+        info.numops,
+        " applications of the linear map;"
+    )
+    return println(io, "norms of residuals are given by $((info.normres...,)).")
 end
 
 # eigsolve en schursolve
@@ -350,7 +359,7 @@ include("linsolve/bicgstab.jl")
 include("matrixfun/exponentiate.jl")
 include("matrixfun/expintegrator.jl")
 
-apply(A::AbstractMatrix, x::AbstractVector) = A*x
+apply(A::AbstractMatrix, x::AbstractVector) = A * x
 apply(f, x) = f(x)
 
 apply!(y::AbstractVector, A::AbstractMatrix, x::AbstractVector) = mul!(y, A, x)

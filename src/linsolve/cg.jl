@@ -1,11 +1,11 @@
 function linsolve(operator, b, x₀, alg::CG, a₀::Real = 0, a₁::Real = 1)
     # Initial function operation and division defines number type
     y₀ = apply(operator, x₀)
-    T = typeof(dot(b, y₀)/norm(b)*one(a₀)*one(a₁))
+    T = typeof(dot(b, y₀) / norm(b) * one(a₀) * one(a₁))
     α₀ = convert(T, a₀)
     α₁ = convert(T, a₁)
     # Continue computing r = b - a₀ * x₀ - a₁ * operator(x₀)
-    r = one(T)*b # r = mul!(similar(b, T), b, 1)
+    r = one(T) * b # r = mul!(similar(b, T), b, 1)
     r = iszero(α₀) ? r : axpy!(-α₀, x₀, r)
     r = axpy!(-α₁, y₀, r)
     x = mul!(similar(r), x₀, 1)
@@ -28,13 +28,13 @@ function linsolve(operator, b, x₀, alg::CG, a₀::Real = 0, a₁::Real = 1)
     if α₀ != zero(α₀) || α₁ != one(α₁)
         axpby!(α₀, p, α₁, q)
     end
-    α = ρ / dot(p,q)
+    α = ρ / dot(p, q)
     axpy!(+α, p, x)
     axpy!(-α, q, r)
     normr = norm(r)
     ρold = ρ
     ρ = normr^2
-    β = ρ/ρold
+    β = ρ / ρold
     numops += 1
     numiter += 1
     if alg.verbosity > 1
@@ -53,7 +53,7 @@ function linsolve(operator, b, x₀, alg::CG, a₀::Real = 0, a₁::Real = 1)
         if α₀ != zero(α₀) || α₁ != one(α₁)
             axpby!(α₀, p, α₁, q)
         end
-        α = ρ / dot(p,q)
+        α = ρ / dot(p, q)
         axpy!(+α, p, x)
         axpy!(-α, q, r)
         normr = norm(r)
@@ -67,7 +67,7 @@ function linsolve(operator, b, x₀, alg::CG, a₀::Real = 0, a₁::Real = 1)
         else
             ρold = ρ
             ρ = normr^2
-            β = ρ/ρold
+            β = ρ / ρold
         end
         if normr < tol
             if alg.verbosity > 0

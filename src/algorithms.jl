@@ -3,7 +3,6 @@
 # the beginning of the corresponding algorithm, the actual tolerance will be
 # converted to the concrete numeric type appropriate for the problem at hand
 
-
 # Orthogonalization and orthonormalization
 """
     abstract type Orthogonalizer
@@ -25,8 +24,7 @@ abstract type Reorthogonalizer <: Orthogonalizer end
 Represents the classical Gram Schmidt algorithm for orthogonalizing different vectors,
 typically not an optimal choice.
 """
-struct ClassicalGramSchmidt <: Orthogonalizer
-end
+struct ClassicalGramSchmidt <: Orthogonalizer end
 
 """
     ModifiedGramSchmidt()
@@ -35,8 +33,7 @@ Represents the modified Gram Schmidt algorithm for orthogonalizing different vec
 typically a reasonable choice for linear systems but not for eigenvalue solvers with a
 large Krylov dimension.
 """
-struct ModifiedGramSchmidt <: Orthogonalizer
-end
+struct ModifiedGramSchmidt <: Orthogonalizer end
 
 # A single reorthogonalization always
 """
@@ -45,8 +42,7 @@ end
 Represents the classical Gram Schmidt algorithm with a second reorthogonalization step
 always taking place.
 """
-struct ClassicalGramSchmidt2 <: Reorthogonalizer
-end
+struct ClassicalGramSchmidt2 <: Reorthogonalizer end
 
 """
     ModifiedGramSchmidt2()
@@ -54,8 +50,7 @@ end
 Represents the modified Gram Schmidt algorithm with a second reorthogonalization step
 always taking place.
 """
-struct ModifiedGramSchmidt2 <: Reorthogonalizer
-end
+struct ModifiedGramSchmidt2 <: Reorthogonalizer end
 
 # Iterative reorthogonalization
 """
@@ -69,7 +64,7 @@ default value corresponds to the Daniel-Gragg-Kaufman-Stewart condition.
 struct ClassicalGramSchmidtIR{S<:Real} <: Reorthogonalizer
     η::S
 end
-ClassicalGramSchmidtIR() = ClassicalGramSchmidtIR(1/sqrt(2)) # Daniel-Gragg-Kaufman-Stewart
+ClassicalGramSchmidtIR() = ClassicalGramSchmidtIR(1 / sqrt(2)) # Daniel-Gragg-Kaufman-Stewart
 
 """
     ModifiedGramSchmidtIR(η::Real = 1/sqrt(2))
@@ -82,7 +77,7 @@ default value corresponds to the Daniel-Gragg-Kaufman-Stewart condition.
 struct ModifiedGramSchmidtIR{S<:Real} <: Reorthogonalizer
     η::S
 end
-ModifiedGramSchmidtIR() = ModifiedGramSchmidtIR(1/sqrt(2)) # Daniel-Gragg-Kaufman-Stewart
+ModifiedGramSchmidtIR() = ModifiedGramSchmidtIR(1 / sqrt(2)) # Daniel-Gragg-Kaufman-Stewart
 
 # Solving eigenvalue problems
 abstract type KrylovAlgorithm end
@@ -107,7 +102,7 @@ Use `Arnoldi` for non-symmetric or non-Hermitian linear operators.
 
 See also: `factorize`, `eigsolve`, `exponentiate`, `Arnoldi`, `Orthogonalizer`
 """
-struct Lanczos{O<:Orthogonalizer, S<:Real} <: KrylovAlgorithm
+struct Lanczos{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     orth::O
     krylovdim::Int
     maxiter::Int
@@ -115,13 +110,14 @@ struct Lanczos{O<:Orthogonalizer, S<:Real} <: KrylovAlgorithm
     eager::Bool
     verbosity::Int
 end
-Lanczos(; krylovdim::Int = KrylovDefaults.krylovdim,
-            maxiter::Int = KrylovDefaults.maxiter,
-            tol::Real = KrylovDefaults.tol,
-            orth::Orthogonalizer = KrylovDefaults.orth,
-            eager::Bool = false,
-            verbosity::Int = 0) =
-    Lanczos(orth, krylovdim, maxiter, tol, eager, verbosity)
+Lanczos(;
+    krylovdim::Int = KrylovDefaults.krylovdim,
+    maxiter::Int = KrylovDefaults.maxiter,
+    tol::Real = KrylovDefaults.tol,
+    orth::Orthogonalizer = KrylovDefaults.orth,
+    eager::Bool = false,
+    verbosity::Int = 0
+) = Lanczos(orth, krylovdim, maxiter, tol, eager, verbosity)
 
 """
     GKL(; krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter,
@@ -137,7 +133,7 @@ verbosity level `verbosity` is zero, meaning that no output will be printed.
 
 See also: `svdsolve`, `Orthogonalizer`
 """
-struct GKL{O<:Orthogonalizer, S<:Real} <: KrylovAlgorithm
+struct GKL{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     orth::O
     krylovdim::Int
     maxiter::Int
@@ -145,13 +141,14 @@ struct GKL{O<:Orthogonalizer, S<:Real} <: KrylovAlgorithm
     eager::Bool
     verbosity::Int
 end
-GKL(; krylovdim::Int = KrylovDefaults.krylovdim,
-        maxiter::Int = KrylovDefaults.maxiter,
-        tol::Real = KrylovDefaults.tol,
-        orth::Orthogonalizer = KrylovDefaults.orth,
-        eager::Bool = false,
-        verbosity::Int = 0) =
-    GKL(orth, krylovdim, maxiter, tol, eager, verbosity)
+GKL(;
+    krylovdim::Int = KrylovDefaults.krylovdim,
+    maxiter::Int = KrylovDefaults.maxiter,
+    tol::Real = KrylovDefaults.tol,
+    orth::Orthogonalizer = KrylovDefaults.orth,
+    eager::Bool = false,
+    verbosity::Int = 0
+) = GKL(orth, krylovdim, maxiter, tol, eager, verbosity)
 
 """
     Arnoldi(; krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter,
@@ -172,7 +169,7 @@ Use `Lanczos` for real symmetric or complex Hermitian linear operators.
 See also: [`eigsolve`](@ref), [`exponentiate`](@ref), [`Lanczos`](@ref),
 [`Orthogonalizer`](@ref)
 """
-struct Arnoldi{O<:Orthogonalizer, S<:Real} <: KrylovAlgorithm
+struct Arnoldi{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     orth::O
     krylovdim::Int
     maxiter::Int
@@ -180,13 +177,14 @@ struct Arnoldi{O<:Orthogonalizer, S<:Real} <: KrylovAlgorithm
     eager::Bool
     verbosity::Int
 end
-Arnoldi(; krylovdim::Int = KrylovDefaults.krylovdim,
-            maxiter::Int = KrylovDefaults.maxiter,
-            tol::Real = KrylovDefaults.tol,
-            orth::Orthogonalizer = KrylovDefaults.orth,
-            eager::Bool = false,
-            verbosity::Int = 0) =
-    Arnoldi(orth, krylovdim, maxiter, tol, eager, verbosity)
+Arnoldi(;
+    krylovdim::Int = KrylovDefaults.krylovdim,
+    maxiter::Int = KrylovDefaults.maxiter,
+    tol::Real = KrylovDefaults.tol,
+    orth::Orthogonalizer = KrylovDefaults.orth,
+    eager::Bool = false,
+    verbosity::Int = 0
+) = Arnoldi(orth, krylovdim, maxiter, tol, eager, verbosity)
 
 """
     GolubYe(; krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter,
@@ -201,19 +199,20 @@ subspace will also be expanded to size `krylovdim+1` by adding ``x_k - x_{k-1}``
 known as the LOPCG correction and was suggested by Money and Ye. With `krylovdim = 2`, this
 algorithm becomes equivalent to `LOPCG`.
 """
-struct GolubYe{O<:Orthogonalizer, S<:Real} <: KrylovAlgorithm
+struct GolubYe{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     orth::O
     krylovdim::Int
     maxiter::Int
     tol::S
     verbosity::Int
 end
-GolubYe(; krylovdim::Int = KrylovDefaults.krylovdim,
-            maxiter::Int = KrylovDefaults.maxiter,
-            tol::Real = KrylovDefaults.tol,
-            orth::Orthogonalizer = KrylovDefaults.orth,
-            verbosity::Int = 0) =
-    GolubYe(orth, krylovdim, maxiter, tol, verbosity)
+GolubYe(;
+    krylovdim::Int = KrylovDefaults.krylovdim,
+    maxiter::Int = KrylovDefaults.maxiter,
+    tol::Real = KrylovDefaults.tol,
+    orth::Orthogonalizer = KrylovDefaults.orth,
+    verbosity::Int = 0
+) = GolubYe(orth, krylovdim, maxiter, tol, verbosity)
 
 # Solving linear systems specifically
 abstract type LinearSolver <: KrylovAlgorithm end
@@ -236,10 +235,11 @@ struct CG{S<:Real} <: LinearSolver
     tol::S
     verbosity::Int
 end
-CG(; maxiter::Integer = KrylovDefaults.maxiter,
-        tol::Real = KrylovDefaults.tol,
-        verbosity::Int = 0) =
-    CG(maxiter, tol, verbosity)
+CG(;
+    maxiter::Integer = KrylovDefaults.maxiter,
+    tol::Real = KrylovDefaults.tol,
+    verbosity::Int = 0
+) = CG(maxiter, tol, verbosity)
 
 """
     GMRES(; krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter,
@@ -267,12 +267,13 @@ struct GMRES{O<:Orthogonalizer,S<:Real} <: LinearSolver
     tol::S
     verbosity::Int
 end
-GMRES(; krylovdim::Integer = KrylovDefaults.krylovdim,
-        maxiter::Integer = KrylovDefaults.maxiter,
-        tol::Real = KrylovDefaults.tol,
-        orth::Orthogonalizer = KrylovDefaults.orth,
-        verbosity::Int = 0) =
-    GMRES(orth, maxiter, krylovdim, tol, verbosity)
+GMRES(;
+    krylovdim::Integer = KrylovDefaults.krylovdim,
+    maxiter::Integer = KrylovDefaults.maxiter,
+    tol::Real = KrylovDefaults.tol,
+    orth::Orthogonalizer = KrylovDefaults.orth,
+    verbosity::Int = 0
+) = GMRES(orth, maxiter, krylovdim, tol, verbosity)
 
 # TODO
 """
@@ -295,10 +296,11 @@ struct MINRES{S<:Real} <: LinearSolver
     tol::S
     verbosity::Int
 end
-MINRES(; maxiter::Integer = KrylovDefaults.maxiter,
-            tol::Real = KrylovDefaults.tol,
-            verbosity::Int = 0) =
-    MINRES(maxiter, tol, verbosity)
+MINRES(;
+    maxiter::Integer = KrylovDefaults.maxiter,
+    tol::Real = KrylovDefaults.tol,
+    verbosity::Int = 0
+) = MINRES(maxiter, tol, verbosity)
 
 """
     BiCG(; maxiter = KrylovDefaults.maxiter, tol = KrylovDefaults.tol)
@@ -319,11 +321,11 @@ struct BiCG{S<:Real} <: LinearSolver
     tol::S
     verbosity::Int
 end
-BiCG(; maxiter::Integer = KrylovDefaults.maxiter,
-        tol::Real = KrylovDefaults.tol,
-        verbosity::Int = 0) =
-    BiCG(maxiter, tol, verbosity)
-
+BiCG(;
+    maxiter::Integer = KrylovDefaults.maxiter,
+    tol::Real = KrylovDefaults.tol,
+    verbosity::Int = 0
+) = BiCG(maxiter, tol, verbosity)
 
 """
     BiCGStab(; maxiter = KrylovDefaults.maxiter, tol = KrylovDefaults.tol)
@@ -344,17 +346,16 @@ struct BiCGStab{S<:Real} <: LinearSolver
     tol::S
     verbosity::Int
 end
-BiCGStab(; maxiter::Integer = KrylovDefaults.maxiter,
-            tol::Real = KrylovDefaults.tol,
-            verbosity::Int = 0) =
-    BiCGStab(maxiter, tol, verbosity)
-
+BiCGStab(;
+    maxiter::Integer = KrylovDefaults.maxiter,
+    tol::Real = KrylovDefaults.tol,
+    verbosity::Int = 0
+) = BiCGStab(maxiter, tol, verbosity)
 
 # Solving eigenvalue systems specifically
 abstract type EigenSolver <: KrylovAlgorithm end
 
-struct JacobiDavidson <: EigenSolver
-end
+struct JacobiDavidson <: EigenSolver end
 
 # Default values
 """
@@ -379,9 +380,9 @@ A module listing the default values for the typical parameters in Krylov based a
     will not be attainable.
 """
 module KrylovDefaults
-    using ..KrylovKit
-    const orth = KrylovKit.ModifiedGramSchmidt2() # conservative choice
-    const krylovdim = 30
-    const maxiter = 100
-    const tol = 1e-12
+using ..KrylovKit
+const orth = KrylovKit.ModifiedGramSchmidt2() # conservative choice
+const krylovdim = 30
+const maxiter = 100
+const tol = 1e-12
 end

@@ -10,7 +10,7 @@ end
 Base.length(F::ArnoldiFactorization) = F.k
 Base.sizehint!(F::ArnoldiFactorization, n) = begin
     sizehint!(F.V, n)
-    sizehint!(F.H, (n*n + 3*n) >> 1)
+    sizehint!(F.H, (n * n + 3 * n) >> 1)
     return F
 end
 Base.eltype(F::ArnoldiFactorization) = eltype(typeof(F))
@@ -29,8 +29,11 @@ struct ArnoldiIterator{F,T,O<:Orthogonalizer} <: KrylovIterator{F,T}
     orth::O
 end
 ArnoldiIterator(A, x₀) = ArnoldiIterator(A, x₀, KrylovDefaults.orth)
-ArnoldiIterator(A::AbstractMatrix, x₀::AbstractVector, orth::Orthogonalizer =
-                KrylovDefaults.orth) = ArnoldiIterator(x->A*x, x₀, orth)
+ArnoldiIterator(
+    A::AbstractMatrix,
+    x₀::AbstractVector,
+    orth::Orthogonalizer = KrylovDefaults.orth
+) = ArnoldiIterator(x -> A * x, x₀, orth)
 
 Base.IteratorSize(::Type{<:ArnoldiIterator}) = Base.SizeUnknown()
 Base.IteratorEltype(::Type{<:ArnoldiIterator}) = Base.EltypeUnknown()
@@ -55,14 +58,14 @@ function initialize(iter::ArnoldiIterator; verbosity::Int = 0)
     β₀ = norm(x₀)
     iszero(β₀) && throw(ArgumentError("initial vector should not have norm zero"))
     Ax₀ = iter.operator(x₀)
-    α = dot(x₀, Ax₀) / (β₀*β₀)
+    α = dot(x₀, Ax₀) / (β₀ * β₀)
     T = typeof(α)
     # this line determines the vector type that we will henceforth use
-    v = (one(T)/β₀)*x₀ # mul!(similar(x₀, T), x₀, 1/β₀)
+    v = (one(T) / β₀) * x₀ # mul!(similar(x₀, T), x₀, 1/β₀)
     if typeof(Ax₀) != typeof(v)
-        r = mul!(similar(v), Ax₀, 1/β₀)
+        r = mul!(similar(v), Ax₀, 1 / β₀)
     else
-        r = rmul!(Ax₀, 1/β₀)
+        r = rmul!(Ax₀, 1 / β₀)
     end
     βold = norm(r)
     r = axpy!(-α, v, r)
@@ -87,7 +90,7 @@ function initialize(iter::ArnoldiIterator; verbosity::Int = 0)
     if verbosity > 0
         @info "Arnoldi iteration step 1: normres = $β"
     end
-    state = ArnoldiFactorization(1, V, H, r)
+    return state = ArnoldiFactorization(1, V, H, r)
 end
 function initialize!(iter::ArnoldiIterator, state::ArnoldiFactorization; verbosity::Int = 0)
     x₀ = iter.x₀
@@ -97,7 +100,7 @@ function initialize!(iter::ArnoldiIterator, state::ArnoldiFactorization; verbosi
     end
     H = empty!(state.H)
 
-    v = mul!(V[1], x₀, 1/norm(x₀))
+    v = mul!(V[1], x₀, 1 / norm(x₀))
     w = iter.operator(v)
     r, α = orthogonalize!(w, v, iter.orth)
     β = norm(r)
@@ -116,9 +119,9 @@ function expand!(iter::ArnoldiIterator, state::ArnoldiFactorization; verbosity::
     H = state.H
     r = state.r
     β = normres(state)
-    push!(V, rmul!(r, 1/β))
+    push!(V, rmul!(r, 1 / β))
     m = length(H)
-    resize!(H, m+k+1)
+    resize!(H, m + k + 1)
     r, β = arnoldirecurrence!(iter.operator, V, view(H, (m+1):(m+k)), iter.orth)
     H[m+k+1] = β
     state.r = r
@@ -131,19 +134,23 @@ function shrink!(state::ArnoldiFactorization, k)
     length(state) <= k && return state
     V = state.V
     H = state.H
-    while length(V) > k+1
+    while length(V) > k + 1
         pop!(V)
     end
     r = pop!(V)
-    resize!(H, (k*k + 3*k) >> 1)
+    resize!(H, (k * k + 3 * k) >> 1)
     state.k = k
     state.r = rmul!(r, normres(state))
     return state
 end
 
 # Arnoldi recurrence: simply use provided orthonormalization routines
-function arnoldirecurrence!(operator, V::OrthonormalBasis, h::AbstractVector,
-                            orth::Orthogonalizer)
+function arnoldirecurrence!(
+    operator,
+    V::OrthonormalBasis,
+    h::AbstractVector,
+    orth::Orthogonalizer
+)
     w = operator(last(V))
     r, h = orthogonalize!(w, V, h, orth)
     return r, norm(r)

@@ -1,7 +1,8 @@
 function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
     krylovdim = alg.krylovdim
     maxiter = alg.maxiter
-    howmany > krylovdim && error("krylov dimension $(krylovdim) too small to compute $howmany eigenvalues")
+    howmany > krylovdim &&
+        error("krylov dimension $(krylovdim) too small to compute $howmany eigenvalues")
 
     ## FIRST ITERATION: setting up
 
@@ -15,7 +16,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
     tol::typeof(β) = alg.tol
 
     # allocate storage
-    HH = fill(zero(eltype(fact)), krylovdim+1, krylovdim)
+    HH = fill(zero(eltype(fact)), krylovdim + 1, krylovdim)
     UU = fill(zero(eltype(fact)), krylovdim, krylovdim)
 
     converged = 0
@@ -33,12 +34,12 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
         end
         if K == krylovdim || β <= tol || (alg.eager && K >= howmany)
             U = copyto!(view(UU, 1:K, 1:K), I)
-            f = view(HH, K+1, 1:K)
+            f = view(HH, K + 1, 1:K)
             T = rayleighquotient(fact) # symtridiagonal
 
             # compute eigenvalues
             if K == 1
-                D = [T[1,1]]
+                D = [T[1, 1]]
                 f[1] = β
                 converged = Int(β <= tol)
             else
@@ -62,7 +63,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
                 msg = "Lanczos eigsolve in iter $numiter, krylovdim = $K: "
                 msg *= "$converged values converged, normres = ("
                 msg *= @sprintf("%.2e", abs(f[1]))
-                for i = 2:howmany
+                for i in 2:howmany
                     msg *= ", "
                     msg *= @sprintf("%.2e", abs(f[i]))
                 end
@@ -72,7 +73,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
         end
 
         if K < krylovdim# expand Krylov factorization
-            fact = expand!(iter, fact; verbosity = alg.verbosity-2)
+            fact = expand!(iter, fact; verbosity = alg.verbosity - 2)
             numops += 1
         else ## shrink and restart
             if numiter == maxiter
@@ -80,32 +81,32 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
             end
 
             # Determine how many to keep
-            keep = div(3*krylovdim + 2*converged, 5) # strictly smaller than krylovdim since converged < howmany <= krylovdim, at least equal to converged
+            keep = div(3 * krylovdim + 2 * converged, 5) # strictly smaller than krylovdim since converged < howmany <= krylovdim, at least equal to converged
 
             # Restore Lanczos form in the first keep columns
             H = fill!(view(HH, 1:keep+1, 1:keep), zero(eltype(HH)))
-            @inbounds for j = 1:keep
-                H[j,j] = D[j]
-                H[keep+1,j] = f[j]
+            @inbounds for j in 1:keep
+                H[j, j] = D[j]
+                H[keep+1, j] = f[j]
             end
-            @inbounds for j = keep:-1:1
-                h, ν = householder(H, j+1, 1:j, j)
-                H[j+1,j] = ν
-                H[j+1,1:j-1] .= zero(eltype(H))
+            @inbounds for j in keep:-1:1
+                h, ν = householder(H, j + 1, 1:j, j)
+                H[j+1, j] = ν
+                H[j+1, 1:j-1] .= zero(eltype(H))
                 lmul!(h, H)
                 rmul!(view(H, 1:j, :), h')
                 rmul!(U, h')
             end
-            @inbounds for j = 1:keep
-                fact.αs[j] = H[j,j]
-                fact.βs[j] = H[j+1,j]
+            @inbounds for j in 1:keep
+                fact.αs[j] = H[j, j]
+                fact.βs[j] = H[j+1, j]
             end
 
             # Update B by applying U using Householder reflections
             B = basis(fact)
             basistransform!(B, view(U, :, 1:keep))
             r = residual(fact)
-            B[keep+1] = rmul!(r, 1/β)
+            B[keep+1] = rmul!(r, 1 / β)
 
             # Shrink Lanczos factorization
             fact = shrink!(fact, keep)
@@ -123,13 +124,13 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
 
     # Compute convergence information
     vectors = let B = basis(fact)
-        [B*v for v in cols(V)]
+        [B * v for v in cols(V)]
     end
     residuals = let r = residual(fact)
-        [last(v)*r for v in cols(V)]
+        [last(v) * r for v in cols(V)]
     end
     normresiduals = let f = f
-        map(i->abs(f[i]), 1:howmany)
+        map(i -> abs(f[i]), 1:howmany)
     end
 
     if alg.verbosity > 0
@@ -146,5 +147,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
         end
     end
 
-    return values, vectors, ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
+    return values,
+    vectors,
+    ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end

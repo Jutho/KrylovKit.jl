@@ -51,22 +51,29 @@ Base.resize!(b::OrthonormalBasis, k::Int) = (resize!(b.basis, k); return b)
 
 # Multiplication methods with OrthonormalBasis
 function Base.:*(b::OrthonormalBasis, x::AbstractVector)
-    y = zero(eltype(x))*first(b)
-    mul!(y, b, x)
+    y = zero(eltype(x)) * first(b)
+    return mul!(y, b, x)
 end
 LinearAlgebra.mul!(y, b::OrthonormalBasis, x::AbstractVector) = unproject!(y, b, x, 1, 0)
 
 const BLOCKSIZE = 4096
 
-function project!(y::AbstractVector, b::OrthonormalBasis, x, α::Number = true, β::Number = false, r = Base.OneTo(length(b)))
+function project!(
+    y::AbstractVector,
+    b::OrthonormalBasis,
+    x,
+    α::Number = true,
+    β::Number = false,
+    r = Base.OneTo(length(b))
+)
     # no specialized routine for IndexLinear x because reduction dimension is large dimension
     length(y) == length(r) || throw(DimensionMismatch())
-    Threads.@threads for j = 1:length(r)
+    Threads.@threads for j in 1:length(r)
         @inbounds begin
             if β == 0
                 y[j] = α * dot(b[r[j]], x)
             else
-                y[j] = β*y[j] + α * dot(b[r[j]], x)
+                y[j] = β * y[j] + α * dot(b[r[j]], x)
             end
         end
     end
@@ -83,7 +90,14 @@ this computes
     y = β*y + α * sum(b[r[i]]*x[i] for i = 1:length(r))
 ```
 """
-function unproject!(y, b::OrthonormalBasis, x::AbstractVector, α::Number = true, β::Number = false, r = Base.OneTo(length(b)))
+function unproject!(
+    y,
+    b::OrthonormalBasis,
+    x::AbstractVector,
+    α::Number = true,
+    β::Number = false,
+    r = Base.OneTo(length(b))
+)
     if y isa AbstractArray && IndexStyle(y) isa IndexLinear && Threads.nthreads() > 1
         return unproject_linear_multithreaded!(y, b, x, α, β, r)
     end
@@ -94,12 +108,19 @@ function unproject!(y, b::OrthonormalBasis, x::AbstractVector, α::Number = true
     elseif β != 1
         rmul!(y, β)
     end
-    @inbounds for (i, ri) = enumerate(r)
-        y = axpy!(α*x[i], b[ri], y)
+    @inbounds for (i, ri) in enumerate(r)
+        y = axpy!(α * x[i], b[ri], y)
     end
     return y
 end
-function unproject_linear_multithreaded!(y::AbstractArray, b::OrthonormalBasis{<:AbstractArray}, x::AbstractVector, α::Number = true, β::Number = false, r = Base.OneTo(length(b)))
+function unproject_linear_multithreaded!(
+    y::AbstractArray,
+    b::OrthonormalBasis{<:AbstractArray},
+    x::AbstractVector,
+    α::Number = true,
+    β::Number = false,
+    r = Base.OneTo(length(b))
+)
     # multi-threaded implementation, similar to BLAS level 2 matrix vector multiplication
     m = length(y)
     n = length(r)
@@ -111,13 +132,21 @@ function unproject_linear_multithreaded!(y::AbstractArray, b::OrthonormalBasis{<
         return β == 1 ? y : β == 0 ? fill!(y, 0) : rmul!(y, β)
     end
     let m = m, n = n, y = y, x = x, b = b, blocksize = prevpow(2, div(BLOCKSIZE, n))
-        Threads.@threads for I = 1:blocksize:m
-            unproject_linear_kernel!(y, b, x, I:min(I+blocksize-1, m), α, β, r)
+        Threads.@threads for I in 1:blocksize:m
+            unproject_linear_kernel!(y, b, x, I:min(I + blocksize - 1, m), α, β, r)
         end
     end
     return y
 end
-function unproject_linear_kernel!(y::AbstractArray, b::OrthonormalBasis{<:AbstractArray}, x::AbstractVector, I, α::Number, β::Number, r)
+function unproject_linear_kernel!(
+    y::AbstractArray,
+    b::OrthonormalBasis{<:AbstractArray},
+    x::AbstractVector,
+    I,
+    α::Number,
+    β::Number,
+    r
+)
     @inbounds begin
         if β == 0
             @simd for i in I
@@ -128,11 +157,11 @@ function unproject_linear_kernel!(y::AbstractArray, b::OrthonormalBasis{<:Abstra
                 y[i] *= β
             end
         end
-        for (j,rj) in enumerate(r)
-            xj = x[j]*α
+        for (j, rj) in enumerate(r)
+            xj = x[j] * α
             Vj = b[rj]
             @simd for i in I
-                y[i] += Vj[i]*xj
+                y[i] += Vj[i] * xj
             end
         end
     end
@@ -147,24 +176,38 @@ Perform a rank 1 update of a basis `b`, i.e. update the basis vectors as
 ```
 It is the user's responsibility to make sure that the result is still an orthonormal basis.
 """
-@fastmath function rank1update!(b::OrthonormalBasis, y, x::AbstractVector, α::Number = true, β::Number = true, r = Base.OneTo(length(b)))
+@fastmath function rank1update!(
+    b::OrthonormalBasis,
+    y,
+    x::AbstractVector,
+    α::Number = true,
+    β::Number = true,
+    r = Base.OneTo(length(b))
+)
     if y isa AbstractArray && IndexStyle(y) isa IndexLinear && Threads.nthreads() > 1
         return rank1update_linear_multithreaded!(b, y, x, α, β, r)
     end
     # general case: using only vector operations, i.e. axpy! (similar to BLAS level 1)
     length(x) == length(r) || throw(DimensionMismatch())
-    @inbounds for (i, ri) = enumerate(r)
+    @inbounds for (i, ri) in enumerate(r)
         if β == 1
-            b[ri] = axpy!(α*conj(x[i]), y, b[ri])
+            b[ri] = axpy!(α * conj(x[i]), y, b[ri])
         elseif β == 0
-            b[ri] = mul!(b[ri], α*x[i], y)
+            b[ri] = mul!(b[ri], α * x[i], y)
         else
-            b[ri] = axpby!(α*x[i], y, β, b[ri])
+            b[ri] = axpby!(α * x[i], y, β, b[ri])
         end
     end
     return b
 end
-@fastmath function rank1update_linear_multithreaded!(b::OrthonormalBasis{<:AbstractArray}, y::AbstractArray, x::AbstractVector, α::Number, β::Number, r)
+@fastmath function rank1update_linear_multithreaded!(
+    b::OrthonormalBasis{<:AbstractArray},
+    y::AbstractArray,
+    x::AbstractVector,
+    α::Number,
+    β::Number,
+    r
+)
     # multi-threaded implementation, similar to BLAS level 2 matrix vector multiplication
     m = length(y)
     n = length(r)
@@ -177,27 +220,27 @@ end
     end
     blocksize = prevpow(2, div(BLOCKSIZE, n))
     let m = m, n = n, y = y, x = x, b = b, blocksize = prevpow(2, div(BLOCKSIZE, n))
-        Threads.@threads for I = 1:blocksize:m
+        Threads.@threads for I in 1:blocksize:m
             @inbounds begin
-                for (j,rj) in enumerate(r)
-                    xj = α*conj(x[j])
+                for (j, rj) in enumerate(r)
+                    xj = α * conj(x[j])
                     Vj = b[rj]
                     if β == 0
-                        @simd for i = I:min(I+blocksize-1, m)
+                        @simd for i in I:min(I + blocksize - 1, m)
                             Vj[i] = zero(Vj[i])
                         end
                     elseif β != 1
-                        @simd for i = I:min(I+blocksize-1, m)
+                        @simd for i in I:min(I + blocksize - 1, m)
                             Vj[i] *= β
                         end
                     end
-                    if I + blocksize-1 <= m
-                        @simd for i = Base.OneTo(blocksize)
-                            Vj[I-1+i] += y[I-1+i]*xj
+                    if I + blocksize - 1 <= m
+                        @simd for i in Base.OneTo(blocksize)
+                            Vj[I-1+i] += y[I-1+i] * xj
                         end
                     else
-                        @simd for i = I:m
-                            Vj[i] += y[i]*xj
+                        @simd for i in I:m
+                            Vj[i] += y[i] * xj
                         end
                     end
                 end
@@ -208,48 +251,51 @@ end
 end
 
 function basistransform!(b::OrthonormalBasis{T}, U::AbstractMatrix) where {T} # U should be unitary or isometric
-    if T<:AbstractArray && IndexStyle(T) isa IndexLinear && Threads.nthreads() > 1
+    if T <: AbstractArray && IndexStyle(T) isa IndexLinear && Threads.nthreads() > 1
         return basistransform_linear_multithreaded!(b, U)
     end
     m, n = size(U)
     m == length(b) || throw(DimensionMismatch())
 
-    b2 = [similar(b[1]) for j = 1:n]
-    Threads.@threads for j = 1:n
-        mul!(b2[j], b[1], U[1,j])
-        for i = 2:m
-            axpy!(U[i,j], b[i], b2[j])
+    b2 = [similar(b[1]) for j in 1:n]
+    Threads.@threads for j in 1:n
+        mul!(b2[j], b[1], U[1, j])
+        for i in 2:m
+            axpy!(U[i, j], b[i], b2[j])
         end
     end
-    for j = 1:n
+    for j in 1:n
         b[j] = b2[j]
     end
     return b
 end
 
-function basistransform_linear_multithreaded!(b::OrthonormalBasis{<:AbstractArray}, U::AbstractMatrix) # U should be unitary or isometric
+function basistransform_linear_multithreaded!(
+    b::OrthonormalBasis{<:AbstractArray},
+    U::AbstractMatrix
+) # U should be unitary or isometric
     m, n = size(U)
     m == length(b) || throw(DimensionMismatch())
     K = length(b[1])
 
     blocksize = prevpow(2, div(BLOCKSIZE, m))
-    let b2 = [similar(b[1]) for j = 1:n], K = K, m = m, n = n
-        Threads.@threads for I = 1:blocksize:K
-            @inbounds for j = 1:n
+    let b2 = [similar(b[1]) for j in 1:n], K = K, m = m, n = n
+        Threads.@threads for I in 1:blocksize:K
+            @inbounds for j in 1:n
                 b2j = b2[j]
-                @simd for i = I:min(I+blocksize-1, K)
+                @simd for i in I:min(I + blocksize - 1, K)
                     b2j[i] = zero(b2j[i])
                 end
-                for k = 1:m
+                for k in 1:m
                     bk = b[k]
-                    Ukj = U[k,j]
-                    @simd for i = I:min(I+blocksize-1, K)
+                    Ukj = U[k, j]
+                    @simd for i in I:min(I + blocksize - 1, K)
                         b2j[i] += bk[i] * Ukj
                     end
                 end
             end
         end
-        for j = 1:n
+        for j in 1:n
             b[j] = b2[j]
         end
     end
@@ -275,70 +321,110 @@ orthogonalize(v, args...) = orthogonalize!(copy(v), args...)
 function orthogonalize!(v::T, b::OrthonormalBasis{T}, alg::Orthogonalizer) where {T}
     S = promote_type(eltype(v), eltype(T))
     c = Vector{S}(undef, length(b))
-    orthogonalize!(v, b, c, alg)
+    return orthogonalize!(v, b, c, alg)
 end
 
 function orthogonalize!(v::T, b::OrthonormalBasis{T}, alg::Orthogonalizer) where {T}
     S = promote_type(eltype(v), eltype(T))
     c = Vector{S}(undef, length(b))
-    orthogonalize!(v, b, c, alg)
+    return orthogonalize!(v, b, c, alg)
 end
 
-function orthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::ClassicalGramSchmidt) where {T}
+function orthogonalize!(
+    v::T,
+    b::OrthonormalBasis{T},
+    x::AbstractVector,
+    ::ClassicalGramSchmidt
+) where {T}
     x = project!(x, b, v)
     v = unproject!(v, b, x, -1, 1)
     return (v, x)
 end
-function reorthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::ClassicalGramSchmidt) where {T}
+function reorthogonalize!(
+    v::T,
+    b::OrthonormalBasis{T},
+    x::AbstractVector,
+    ::ClassicalGramSchmidt
+) where {T}
     s = similar(x) ## EXTRA ALLOCATION
     s = project!(s, b, v)
     v = unproject!(v, b, s, -1, 1)
     x .+= s
     return (v, x)
 end
-function orthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::ClassicalGramSchmidt2) where {T}
+function orthogonalize!(
+    v::T,
+    b::OrthonormalBasis{T},
+    x::AbstractVector,
+    ::ClassicalGramSchmidt2
+) where {T}
     (v, x) = orthogonalize!(v, b, x, ClassicalGramSchmidt())
     return reorthogonalize!(v, b, x, ClassicalGramSchmidt())
 end
-function orthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, alg::ClassicalGramSchmidtIR) where {T}
+function orthogonalize!(
+    v::T,
+    b::OrthonormalBasis{T},
+    x::AbstractVector,
+    alg::ClassicalGramSchmidtIR
+) where {T}
     nold = norm(v)
     orthogonalize!(v, b, x, ClassicalGramSchmidt())
     nnew = norm(v)
     while eps(one(nnew)) < nnew < alg.η * nold
         nold = nnew
-        (v,x) = reorthogonalize!(v, b, x, ClassicalGramSchmidt())
+        (v, x) = reorthogonalize!(v, b, x, ClassicalGramSchmidt())
         nnew = norm(v)
     end
     return (v, x)
 end
 
-function orthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::ModifiedGramSchmidt) where {T}
-    for (i, q) = enumerate(b)
+function orthogonalize!(
+    v::T,
+    b::OrthonormalBasis{T},
+    x::AbstractVector,
+    ::ModifiedGramSchmidt
+) where {T}
+    for (i, q) in enumerate(b)
         s = dot(q, v)
         v = axpy!(-s, q, v)
         x[i] = s
     end
     return (v, x)
 end
-function reorthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::ModifiedGramSchmidt) where {T}
-    for (i, q) = enumerate(b)
+function reorthogonalize!(
+    v::T,
+    b::OrthonormalBasis{T},
+    x::AbstractVector,
+    ::ModifiedGramSchmidt
+) where {T}
+    for (i, q) in enumerate(b)
         s = dot(q, v)
         v = axpy!(-s, q, v)
         x[i] += s
     end
     return (v, x)
 end
-function orthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::ModifiedGramSchmidt2) where {T}
+function orthogonalize!(
+    v::T,
+    b::OrthonormalBasis{T},
+    x::AbstractVector,
+    ::ModifiedGramSchmidt2
+) where {T}
     (v, x) = orthogonalize!(v, b, x, ModifiedGramSchmidt())
     return reorthogonalize!(v, b, x, ModifiedGramSchmidt())
 end
-function orthogonalize!(v::T, b::OrthonormalBasis{T}, x::AbstractVector, alg::ModifiedGramSchmidtIR) where {T}
+function orthogonalize!(
+    v::T,
+    b::OrthonormalBasis{T},
+    x::AbstractVector,
+    alg::ModifiedGramSchmidtIR
+) where {T}
     nold = norm(v)
-    (v,x) = orthogonalize!(v, b, x, ModifiedGramSchmidt())
+    (v, x) = orthogonalize!(v, b, x, ModifiedGramSchmidt())
     nnew = norm(v)
     while eps(one(nnew)) < nnew < alg.η * nold
         nold = nnew
-        (v,x) = reorthogonalize!(v, b, x, ModifiedGramSchmidt())
+        (v, x) = reorthogonalize!(v, b, x, ModifiedGramSchmidt())
         nnew = norm(v)
     end
     return (v, x)
@@ -348,26 +434,38 @@ end
 orthogonalize!(v::T, q::T, alg::Orthogonalizer) where {T} = _orthogonalize!(v, q, alg)
 # avoid method ambiguity on Julia 1.0 according to Aqua.jl
 
-function _orthogonalize!(v::T, q::T, alg::Union{ClassicalGramSchmidt,ModifiedGramSchmidt}) where {T}
-    s = dot(q,v)
+function _orthogonalize!(
+    v::T,
+    q::T,
+    alg::Union{ClassicalGramSchmidt,ModifiedGramSchmidt}
+) where {T}
+    s = dot(q, v)
     v = axpy!(-s, q, v)
     return (v, s)
 end
-function _orthogonalize!(v::T, q::T, alg::Union{ClassicalGramSchmidt2,ModifiedGramSchmidt2}) where {T}
-    s = dot(q,v)
+function _orthogonalize!(
+    v::T,
+    q::T,
+    alg::Union{ClassicalGramSchmidt2,ModifiedGramSchmidt2}
+) where {T}
+    s = dot(q, v)
     v = axpy!(-s, q, v)
-    ds = dot(q,v)
+    ds = dot(q, v)
     v = axpy!(-ds, q, v)
-    return (v, s+ds)
+    return (v, s + ds)
 end
-function _orthogonalize!(v::T, q::T, alg::Union{ClassicalGramSchmidtIR,ModifiedGramSchmidtIR}) where {T}
+function _orthogonalize!(
+    v::T,
+    q::T,
+    alg::Union{ClassicalGramSchmidtIR,ModifiedGramSchmidtIR}
+) where {T}
     nold = norm(v)
-    s = dot(q,v)
+    s = dot(q, v)
     v = axpy!(-s, q, v)
     nnew = norm(v)
     while eps(one(nnew)) < nnew < alg.η * nold
         nold = nnew
-        ds = dot(q,v)
+        ds = dot(q, v)
         v = axpy!(-ds, q, v)
         s += ds
         nnew = norm(v)

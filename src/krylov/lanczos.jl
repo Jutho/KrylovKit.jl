@@ -1,6 +1,6 @@
 # lanczos.jl
 
-mutable struct LanczosFactorization{T, S<:Real} <: KrylovFactorization{T,S}
+mutable struct LanczosFactorization{T,S<:Real} <: KrylovFactorization{T,S}
     k::Int # current Krylov dimension
     V::OrthonormalBasis{T} # basis of length k
     αs::Vector{S}
@@ -18,8 +18,8 @@ end
 Base.eltype(F::LanczosFactorization) = eltype(typeof(F))
 Base.eltype(::Type{<:LanczosFactorization{<:Any,S}}) where {S} = S
 
-basis(F::LanczosFactorization) = length(F.V) == F.k ? F.V :
-    error("Not keeping vectors during Lanczos factorization")
+basis(F::LanczosFactorization) =
+    length(F.V) == F.k ? F.V : error("Not keeping vectors during Lanczos factorization")
 rayleighquotient(F::LanczosFactorization) = SymTridiagonal(F.αs, F.βs)
 residual(F::LanczosFactorization) = F.r
 @inbounds normres(F::LanczosFactorization) = F.βs[F.k]
@@ -31,21 +31,30 @@ struct LanczosIterator{F,T,O<:Orthogonalizer} <: KrylovIterator{F,T}
     x₀::T
     orth::O
     keepvecs::Bool
-    function LanczosIterator{F,T,O}(operator::F, x₀::T, orth::O, keepvecs::Bool) where
-        {F,T,O<:Orthogonalizer}
-
+    function LanczosIterator{F,T,O}(
+        operator::F,
+        x₀::T,
+        orth::O,
+        keepvecs::Bool
+    ) where {F,T,O<:Orthogonalizer}
         if !keepvecs && isa(orth, Reorthogonalizer)
             error("Cannot use reorthogonalization without keeping all Krylov vectors")
         end
-        new{F,T,O}(operator, x₀, orth, keepvecs)
+        return new{F,T,O}(operator, x₀, orth, keepvecs)
     end
 end
-LanczosIterator(operator::F, x₀::T, orth::O = KrylovDefaults.orth,
-                keepvecs::Bool = true) where {F,T,O<:Orthogonalizer} =
-    LanczosIterator{F,T,O}(operator, x₀, orth, keepvecs)
-LanczosIterator(A::AbstractMatrix, x₀::AbstractVector, orth::O = KrylovDefaults.orth,
-                keepvecs::Bool = true) where {O<:Orthogonalizer} =
-    LanczosIterator(x->A*x, x₀, orth, keepvecs)
+LanczosIterator(
+    operator::F,
+    x₀::T,
+    orth::O = KrylovDefaults.orth,
+    keepvecs::Bool = true
+) where {F,T,O<:Orthogonalizer} = LanczosIterator{F,T,O}(operator, x₀, orth, keepvecs)
+LanczosIterator(
+    A::AbstractMatrix,
+    x₀::AbstractVector,
+    orth::O = KrylovDefaults.orth,
+    keepvecs::Bool = true
+) where {O<:Orthogonalizer} = LanczosIterator(x -> A * x, x₀, orth, keepvecs)
 
 Base.IteratorSize(::Type{<:LanczosIterator}) = Base.SizeUnknown()
 Base.IteratorEltype(::Type{<:LanczosIterator}) = Base.EltypeUnknown()
@@ -70,17 +79,17 @@ function initialize(iter::LanczosIterator; verbosity::Int = 0)
     β₀ = norm(x₀)
     iszero(β₀) && throw(ArgumentError("initial vector should not have norm zero"))
     Ax₀ = iter.operator(x₀)
-    α = dot(x₀, Ax₀) / (β₀*β₀)
+    α = dot(x₀, Ax₀) / (β₀ * β₀)
     n = abs(α)
-    imag(α) <= sqrt(max(eps(n),eps(one(n)))) ||
+    imag(α) <= sqrt(max(eps(n), eps(one(n)))) ||
         error("operator does not appear to be hermitian: $(imag(α)) vs $n")
     T = typeof(α)
     # this line determines the vector type that we will henceforth use
-    v = (one(T)/β₀)*x₀ # v = mul!(similar(x₀, T), x₀, 1/β₀)
+    v = (one(T) / β₀) * x₀ # v = mul!(similar(x₀, T), x₀, 1/β₀)
     if typeof(Ax₀) != typeof(v)
-        r = mul!(similar(v), Ax₀, 1/β₀)
+        r = mul!(similar(v), Ax₀, 1 / β₀)
     else
-        r = rmul!(Ax₀, 1/β₀)
+        r = rmul!(Ax₀, 1 / β₀)
     end
     βold = norm(r)
     r = axpy!(-α, v, r)
@@ -123,12 +132,12 @@ function initialize!(iter::LanczosIterator, state::LanczosFactorization; verbosi
     αs = empty!(state.αs)
     βs = empty!(state.βs)
 
-    v = mul!(V[1], x₀, 1/norm(x₀))
+    v = mul!(V[1], x₀, 1 / norm(x₀))
     w = iter.operator(v)
     r, α = orthogonalize!(w, v, iter.orth)
     β = norm(r)
-    n = hypot(α,β)
-    imag(α) <= sqrt(max(eps(n),eps(one(n)))) ||
+    n = hypot(α, β)
+    imag(α) <= sqrt(max(eps(n), eps(one(n)))) ||
         error("operator does not appear to be hermitian: $(imag(α)) vs $n")
 
     state.k = 1
@@ -144,10 +153,10 @@ function expand!(iter::LanczosIterator, state::LanczosFactorization; verbosity::
     βold = normres(state)
     V = state.V
     r = state.r
-    V = push!(V, rmul!(r, 1/βold))
+    V = push!(V, rmul!(r, 1 / βold))
     r, α, β = lanczosrecurrence(iter.operator, V, βold, iter.orth)
     n = hypot(α, β, βold)
-    imag(α) <= sqrt(max(eps(n),eps(one(n)))) ||
+    imag(α) <= sqrt(max(eps(n), eps(one(n)))) ||
         error("operator does not appear to be hermitian: $(imag(α)) vs $n")
 
     αs = push!(state.αs, real(α))
@@ -167,7 +176,7 @@ function shrink!(state::LanczosFactorization, k)
         error("we cannot shrink LanczosFactorization without keeping Lanczos vectors")
     length(state) <= k && return state
     V = state.V
-    while length(V) > k+1
+    while length(V) > k + 1
         pop!(V)
     end
     r = pop!(V)
@@ -192,7 +201,7 @@ end
 function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ModifiedGramSchmidt)
     v = V[end]
     w = apply(operator, v)
-    w = axpy!( -β, V[end-1], w)
+    w = axpy!(-β, V[end-1], w)
     α = dot(v, w)
     w = axpy!(-α, v, w)
     β = norm(w)
@@ -213,7 +222,7 @@ end
 function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ModifiedGramSchmidt2)
     v = V[end]
     w = operator(v)
-    w = axpy!( -β, V[end-1], w)
+    w = axpy!(-β, V[end-1], w)
     w, α = orthogonalize!(w, v, ModifiedGramSchmidt())
 
     s = α
@@ -233,7 +242,7 @@ function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ClassicalGra
 
     ab2 = abs2(α) + abs2(β)
     β = norm(w)
-    nold = sqrt(abs2(β)+ab2)
+    nold = sqrt(abs2(β) + ab2)
     while eps(one(β)) < β < orth.η * nold
         nold = β
         w, s = orthogonalize!(w, V, ClassicalGramSchmidt())
@@ -245,12 +254,12 @@ end
 function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ModifiedGramSchmidtIR)
     v = V[end]
     w = apply(operator, v)
-    w = axpy!( -β, V[end-1], w)
+    w = axpy!(-β, V[end-1], w)
 
     w, α = orthogonalize!(w, v, ModifiedGramSchmidt())
     ab2 = abs2(α) + abs2(β)
     β = norm(w)
-    nold = sqrt(abs2(β)+ab2)
+    nold = sqrt(abs2(β) + ab2)
     while eps(one(β)) < β < orth.η * nold
         nold = β
         s = zero(α)

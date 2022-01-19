@@ -1,11 +1,11 @@
 function linsolve(operator, b, x₀, alg::GMRES, a₀::Number = 0, a₁::Number = 1)
     # Initial function operation and division defines number type
     y₀ = apply(operator, x₀)
-    T = typeof(dot(b, y₀)/norm(b)*one(a₀)*one(a₁))
+    T = typeof(dot(b, y₀) / norm(b) * one(a₀) * one(a₁))
     α₀ = convert(T, a₀)::T
     α₁ = convert(T, a₁)::T
     # Continue computing r = b - a₀ * x₀ - a₁ * operator(x₀)
-    r = one(T)*b # mul!(similar(b, T), b, 1)
+    r = one(T) * b # mul!(similar(b, T), b, 1)
     r = iszero(α₀) ? r : axpy!(-α₀, x₀, r)
     r = axpy!(-α₁, y₀, r)
     x = mul!(similar(r), x₀, 1)
@@ -28,9 +28,9 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number = 0, a₁::Number 
     end
 
     # Initialize data structures
-    y = Vector{T}(undef, krylovdim+1)
+    y = Vector{T}(undef, krylovdim + 1)
     gs = Vector{Givens{T}}(undef, krylovdim)
-    R = fill(zero(T), (krylovdim,krylovdim))
+    R = fill(zero(T), (krylovdim, krylovdim))
     numiter = 0
     numops = 1 # operator has been applied once to determine T
 
@@ -43,8 +43,8 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number = 0, a₁::Number 
         y[1] = β
         k = 1
         H = rayleighquotient(fact)
-        R[1,1] = α₀ + α₁ * H[1,1]
-        gs[1], R[1,1] = givens(R[1,1], α₁*normres(fact), 1, 2)
+        R[1, 1] = α₀ + α₁ * H[1, 1]
+        gs[1], R[1, 1] = givens(R[1, 1], α₁ * normres(fact), 1, 2)
         y[2] = zero(T)
         lmul!(gs[1], y)
         β = convert(S, abs(y[2]))
@@ -63,18 +63,18 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number = 0, a₁::Number 
 
             # copy Arnoldi Hessenberg matrix into R
             @inbounds begin
-                for i=1:k-1
-                    R[i,k] = α₁ * H[i,k]
+                for i in 1:k-1
+                    R[i, k] = α₁ * H[i, k]
                 end
-                R[k,k] = α₀ + α₁ * H[k,k]
+                R[k, k] = α₀ + α₁ * H[k, k]
             end
 
             # Apply Givens rotations
             Rk = view(R, :, k)
-            @inbounds for i=1:k-1
+            @inbounds for i in 1:k-1
                 lmul!(gs[i], Rk)
             end
-            gs[k], R[k,k] = givens(R[k,k], α₁*normres(fact), k, k+1)
+            gs[k], R[k, k] = givens(R[k, k], α₁ * normres(fact), k, k + 1)
 
             # Apply Givens rotations to right hand side
             y[k+1] = zero(T)
@@ -102,15 +102,15 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number = 0, a₁::Number 
 
         # Update x
         V = basis(fact)
-        @inbounds for i = 1:k
+        @inbounds for i in 1:k
             x = axpy!(y[i], V[i], x)
         end
 
         if β > tol
             # Recompute residual without reevaluating operator
             w = residual(fact)
-            push!(V, rmul!(w, 1/normres(fact)))
-            for i = 1:k
+            push!(V, rmul!(w, 1 / normres(fact)))
+            for i in 1:k
                 rmul!(V, gs[i]')
             end
             r = mul!(r, V[k+1], y[k+1])

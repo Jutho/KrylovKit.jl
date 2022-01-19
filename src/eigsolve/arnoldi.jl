@@ -80,21 +80,21 @@ restarts where a part of the current Krylov subspace is kept.
 """
 function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     T, U, fact, converged, numiter, numops = _schursolve(A, x₀, howmany, which, alg)
-    if eltype(T) <: Real && howmany < length(fact) && T[howmany+1,howmany] != 0
+    if eltype(T) <: Real && howmany < length(fact) && T[howmany+1, howmany] != 0
         howmany += 1
     end
     if converged > howmany
         howmany = converged
     end
-    TT = view(T,1:howmany,1:howmany)
+    TT = view(T, 1:howmany, 1:howmany)
     values = schur2eigvals(TT)
     vectors = let B = basis(fact)
-        [B*u for u in cols(U, 1:howmany)]
+        [B * u for u in cols(U, 1:howmany)]
     end
     residuals = let r = residual(fact)
-        [last(u)*r for u in cols(U, 1:howmany)]
+        [last(u) * r for u in cols(U, 1:howmany)]
     end
-    normresiduals = [normres(fact)*abs(last(u)) for u in cols(U, 1:howmany)]
+    normresiduals = [normres(fact) * abs(last(u)) for u in cols(U, 1:howmany)]
 
     if alg.verbosity > 0
         if converged < howmany
@@ -107,12 +107,15 @@ function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
              *  norm of residuals = $((normresiduals...,))"""
         end
     end
-    return TT, vectors, values, ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
+    return TT,
+    vectors,
+    values,
+    ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end
 
 function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     T, U, fact, converged, numiter, numops = _schursolve(A, x₀, howmany, which, alg)
-    if eltype(T) <: Real && howmany < length(fact) && T[howmany+1,howmany] != 0
+    if eltype(T) <: Real && howmany < length(fact) && T[howmany+1, howmany] != 0
         howmany += 1
     end
     if converged > howmany
@@ -125,12 +128,12 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     # Compute eigenvectors
     V = view(U, :, 1:d) * schur2eigvecs(TT)
     vectors = let B = basis(fact)
-        [B*v for v in cols(V)]
+        [B * v for v in cols(V)]
     end
     residuals = let r = residual(fact)
-        [last(v)*r for v in cols(V)]
+        [last(v) * r for v in cols(V)]
     end
-    normresiduals = [normres(fact)*abs(last(v)) for v in cols(V)]
+    normresiduals = [normres(fact) * abs(last(v)) for v in cols(V)]
 
     if alg.verbosity > 0
         if converged < howmany
@@ -145,13 +148,16 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
              *  number of operations = $numops"""
         end
     end
-    return values, vectors, ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
+    return values,
+    vectors,
+    ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end
 
 function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     krylovdim = alg.krylovdim
     maxiter = alg.maxiter
-    howmany > krylovdim && error("krylov dimension $(krylovdim) too small to compute $howmany eigenvalues")
+    howmany > krylovdim &&
+        error("krylov dimension $(krylovdim) too small to compute $howmany eigenvalues")
 
     ## FIRST ITERATION: setting up
     numiter = 1
@@ -164,7 +170,7 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     tol::eltype(β) = alg.tol
 
     # allocate storage
-    HH = fill(zero(eltype(fact)), krylovdim+1, krylovdim)
+    HH = fill(zero(eltype(fact)), krylovdim + 1, krylovdim)
     UU = fill(zero(eltype(fact)), krylovdim, krylovdim)
 
     # initialize storage
@@ -184,7 +190,7 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
         if K == krylovdim || β <= tol || (alg.eager && K >= howmany) # process
             H = view(HH, 1:K, 1:K)
             U = view(UU, 1:K, 1:K)
-            f = view(HH, K+1, 1:K)
+            f = view(HH, K + 1, 1:K)
             copyto!(U, I)
             copyto!(H, rayleighquotient(fact))
 
@@ -198,7 +204,9 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
             while converged < length(fact) && abs(f[converged+1]) <= tol
                 converged += 1
             end
-            if eltype(T) <: Real && 0< converged < length(fact) && T[converged+1,converged] != 0
+            if eltype(T) <: Real &&
+               0 < converged < length(fact) &&
+               T[converged+1, converged] != 0
                 converged -= 1
             end
 
@@ -208,7 +216,7 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
                 msg = "Arnoldi schursolve in iter $numiter, krylovdim = $K: "
                 msg *= "$converged values converged, normres = ("
                 msg *= @sprintf("%.2e", abs(f[1]))
-                for i = 2:howmany
+                for i in 2:howmany
                     msg *= ", "
                     msg *= @sprintf("%.2e", abs(f[i]))
                 end
@@ -218,7 +226,7 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
         end
 
         if K < krylovdim # expand
-            fact = expand!(iter, fact; verbosity = alg.verbosity-2)
+            fact = expand!(iter, fact; verbosity = alg.verbosity - 2)
             numops += 1
         else # shrink
             if numiter == maxiter
@@ -226,22 +234,24 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
             end
 
             # Determine how many to keep
-            keep = div(3*krylovdim + 2*converged, 5) # strictly smaller than krylovdim since converged < howmany <= krylovdim, at least equal to converged
-            if eltype(H) <: Real && H[keep+1,keep] != 0 # we are in the middle of a 2x2 block
+            keep = div(3 * krylovdim + 2 * converged, 5) # strictly smaller than krylovdim since converged < howmany <= krylovdim, at least equal to converged
+            if eltype(H) <: Real && H[keep+1, keep] != 0 # we are in the middle of a 2x2 block
                 keep += 1 # conservative choice
-                keep >= krylovdim && error("krylov dimension $(krylovdim) too small to compute $howmany eigenvalues")
+                keep >= krylovdim && error(
+                    "krylov dimension $(krylovdim) too small to compute $howmany eigenvalues"
+                )
             end
 
             # Restore Arnoldi form in the first keep columns
-            @inbounds for j = 1:keep
-                H[keep+1,j] = f[j]
+            @inbounds for j in 1:keep
+                H[keep+1, j] = f[j]
             end
-            @inbounds for j = keep:-1:1
-                h, ν = householder(H, j+1, 1:j, j)
-                H[j+1,j] = ν
-                H[j+1,1:j-1] .= 0
+            @inbounds for j in keep:-1:1
+                h, ν = householder(H, j + 1, 1:j, j)
+                H[j+1, j] = ν
+                H[j+1, 1:j-1] .= 0
                 lmul!(h, H)
-                rmul!(view(H, 1:j,:), h')
+                rmul!(view(H, 1:j, :), h')
                 rmul!(U, h')
             end
             copyto!(rayleighquotient(fact), H) # copy back into fact
@@ -250,7 +260,7 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
             B = basis(fact)
             basistransform!(B, view(U, :, 1:keep))
             r = residual(fact)
-            B[keep+1] = rmul!(r, 1/normres(fact))
+            B[keep+1] = rmul!(r, 1 / normres(fact))
 
             # Shrink Arnoldi factorization
             fact = shrink!(fact, keep)
