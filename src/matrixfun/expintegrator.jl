@@ -7,7 +7,7 @@ Compute ``y = ϕ₀(t*A)*u₀ + t*ϕ₁(t*A)*u₁ + t^2*ϕ₂(t*A)*u₂ + …``,
 linear map, i.e. a `AbstractMatrix` or just a general function or callable object and `u₀`,
 `u₁` are of any Julia type with vector like behavior. Here, ``ϕ₀(z) = exp(z)`` and
 ``ϕⱼ₊₁ = (ϕⱼ(z) - 1/j!)/z``. In particular, ``y = x(t)`` represents the solution of the ODE
-``x' = A*x + ∑ⱼ t^j/j! uⱼ₊₁`` with ``x(0) = u₀``.
+``ẋ(t) = A*x(t) + ∑ⱼ t^j/j! uⱼ₊₁`` with ``x(0) = u₀``.
 
 !!! note
 

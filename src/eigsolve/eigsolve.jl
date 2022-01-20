@@ -105,7 +105,9 @@ Keyword arguments and their default values are given by:
   - `ishermitian::Bool`: if the linear map is hermitian
   - `eager::Bool = false`: if true, eagerly compute the eigenvalue or Schur decomposition
     after every expansion of the Krylov subspace to test for convergence, otherwise wait
-    until the Krylov subspace has dimension `krylovdim`
+    until the Krylov subspace has dimension `krylovdim`. This can result in a faster return,
+    for example if the initial guess is very good, but also has some overhead, as many more
+    dense Schur factorizations need to be computed.
 
 The default values are given by `tol = KrylovDefaults.tol`,
 `krylovdim = KrylovDefaults.krylovdim`, `maxiter = KrylovDefaults.maxiter`,

@@ -1,3 +1,12 @@
+"""
+    struct PackedHessenberg{T,V<:AbstractVector{T}} <: AbstractMatrix{T}
+        data::V
+        n::Int
+    end
+
+A custom struct to store a Hessenberg matrix in a packed format (without zeros). Hereto, the
+non-zero entries are stored sequentially in vector `data` of length `n(n+1)/2`.
+"""
 struct PackedHessenberg{T,V<:AbstractVector{T}} <: AbstractMatrix{T}
     data::V
     n::Int

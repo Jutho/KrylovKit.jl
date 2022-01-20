@@ -279,16 +279,15 @@ GMRES(;
 """
     MINRES(; maxiter = KrylovDefaults.maxiter, tol = KrylovDefaults.tol)
 
-Construct an instance of the conjugate gradient algorithm with specified parameters, which
-can be passed to `linsolve` in order to iteratively solve a linear system with a real
-symmetric or complex hermitian coefficient matrix or operator. The `MINRES` method will
-search for the optimal `x` in a Krylov subspace of maximal size `maxiter`, or stop when
-`norm(A*x - b) < tol`. In building the Krylov subspace, `MINRES` will use the
-orthogonalizer `orth`. Default verbosity level `verbosity` is zero, meaning that no output
-will be printed.
+    !!! warning "Not implemented yet"
 
-!!! warning "Not implemented yet"
-
+    Construct an instance of the conjugate gradient algorithm with specified parameters,
+    which can be passed to `linsolve` in order to iteratively solve a linear system with a
+    real symmetric or complex hermitian coefficient matrix or operator. The `MINRES` method
+    will search for the optimal `x` in a Krylov subspace of maximal size `maxiter`, or stop
+    when `norm(A*x - b) < tol`. In building the Krylov subspace, `MINRES` will use the
+    orthogonalizer `orth`. Default verbosity level `verbosity` is zero, meaning that no
+    output will be printed.
 
 See also: [`linsolve`](@ref), [`CG`](@ref), [`GMRES`](@ref), [`BiCG`](@ref),
 [`BiCGStab`](@ref)
@@ -307,15 +306,14 @@ MINRES(;
 """
     BiCG(; maxiter = KrylovDefaults.maxiter, tol = KrylovDefaults.tol)
 
-Construct an instance of the Biconjugate gradient algorithm with specified parameters, which
-can be passed to `linsolve` in order to iteratively solve a linear system general linear
-map, of which the adjoint can also be applied. The `BiCG` method will search for the
-optimal `x` in a Krylov subspace of maximal size `maxiter`, or stop when
-`norm(A*x - b) < tol`. Default verbosity level `verbosity` is zero, meaning that no output
-will be printed.
+    !!! warning "Not implemented yet"
 
-!!! warning "Not implemented yet"
-
+    Construct an instance of the Biconjugate gradient algorithm with specified parameters,
+    which can be passed to `linsolve` in order to iteratively solve a linear system general
+    linear map, of which the adjoint can also be applied. The `BiCG` method will search for
+    the optimal `x` in a Krylov subspace of maximal size `maxiter`, or stop when `norm(A*x -
+    b) < tol`. Default verbosity level `verbosity` is zero, meaning that no output will be
+    printed.
 
 See also: [`linsolve`](@ref), [`GMRES`](@ref), [`CG`](@ref), [`BiCGStab`](@ref),
 [`MINRES`](@ref)
@@ -334,14 +332,13 @@ BiCG(;
 """
     BiCGStab(; maxiter = KrylovDefaults.maxiter, tol = KrylovDefaults.tol)
 
-Construct an instance of the Biconjugate gradient algorithm with specified parameters, which
-can be passed to `linsolve` in order to iteratively solve a linear system general linear
-map. The `BiCGStab` method will search for the optimal `x` in a Krylov subspace of maximal
-size `maxiter`, or stop when `norm(A*x - b) < tol`. Default verbosity level `verbosity` is
-zero, meaning that no output will be printed.
+    !!! warning "Not implemented yet"
 
-!!! warning "Not implemented yet"
-
+    Construct an instance of the Biconjugate gradient algorithm with specified parameters,
+    which can be passed to `linsolve` in order to iteratively solve a linear system general
+    linear map. The `BiCGStab` method will search for the optimal `x` in a Krylov subspace
+    of maximal size `maxiter`, or stop when `norm(A*x - b) < tol`. Default verbosity level
+    `verbosity` is zero, meaning that no output will be printed.
 
 See also: [`linsolve`](@ref), [`GMRES`](@ref), [`CG`](@ref), [`BiCG`](@ref),
 [`MINRES`](@ref)

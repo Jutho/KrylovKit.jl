@@ -1,5 +1,34 @@
 # gkl.jl
+"""
+    mutable struct GKLFactorization{T,S<:Real}
 
+Structure to store a Golub-Kahan-Lanczos (GKL) bidiagonal factorization of a linear map `A`
+of the form
+
+```julia
+A * V = U * B + r * b'
+A' * U = V * B'
+```
+
+For a given GKL factorization `fact` of length `k = length(fact)`, the two bases `U` and `V`
+are obtained via [`basis(fact, :U)`](@ref basis) and `basis(fact, :V)`. Here, `U` and `V`
+are instances of [`OrthonormalBasis{T}`](@ref Basis), with also
+`length(U) == length(V) == k` and where `T` denotes the type of vector like objects used in
+the problem. The Rayleigh quotient `B` is obtained as [`rayleighquotient(fact)`](@ref) and
+is of type `Bidiagonal{S<:Number}` with `size(B) == (k,k)`. The residual `r` is
+obtained as [`residual(fact)`](@ref) and is of type `T`. One can also query
+[`normres(fact)`](@ref) to obtain `norm(r)`, the norm of the residual. The vector `b` has no
+dedicated name but can be obtained via [`rayleighextension(fact)`](@ref). It takes the
+default value ``e_k``, i.e. the unit vector of all zeros and a one in the last entry, which
+is represented using [`SimpleBasisVector`](@ref).
+
+A GKL factorization `fact` can be destructured as `U, V, B, r, nr, b = fact` with
+`nr = norm(r)`.
+
+`GKLFactorization` is mutable because it can [`expand!`](@ref) or [`shrink!`](@ref).
+See also [`GKLIterator`](@ref) for an iterator that constructs a progressively expanding
+GKL factorizations of a given linear map and a starting vector `u₀`.
+"""
 mutable struct GKLFactorization{T,S<:Real}
     k::Int # current Krylov dimension
     U::OrthonormalBasis{T} # basis of length k
@@ -20,6 +49,26 @@ end
 Base.eltype(F::GKLFactorization) = eltype(typeof(F))
 Base.eltype(::Type{<:GKLFactorization{<:Any,S}}) where {S} = S
 
+# iteration for destructuring into components
+Base.iterate(F::GKLFactorization) = (basis(F, :U), Val(:V))
+Base.iterate(F::GKLFactorization, ::Val{:V}) = (basis(F, :V), Val(:rayleighquotient))
+Base.iterate(F::GKLFactorization, ::Val{:rayleighquotient}) =
+    (rayleighquotient(F), Val(:residual))
+Base.iterate(F::GKLFactorization, ::Val{:residual}) = (residual(F), Val(:normres))
+Base.iterate(F::GKLFactorization, ::Val{:normres}) =
+    (normres(F), Val(:rayleighextension))
+Base.iterate(F::GKLFactorization, ::Val{:rayleighextension}) =
+    (rayleighextension(F), Val(:done))
+Base.iterate(F::GKLFactorization, ::Val{:done}) = nothing
+
+"""
+        basis(fact::GKLFactorization, which::Symbol)
+
+Return the list of basis vectors of a [`GKLFactorization`](@ref), where `which` should take
+the value `:U` or `:V` and indicates which set of basis vectors (in the domain or in the
+codomain of the corresponding linear map) should be returned. The return type is an
+`OrthonormalBasis{T}`, where `T` represents the type of the vectors used by the problem.
+"""
 function basis(F::GKLFactorization, which::Symbol)
     length(F.U) == F.k || error("Not keeping vectors during GKL bidiagonalization")
     which == :U || which == :V || error("invalid flag for specifying basis")
@@ -32,7 +81,61 @@ residual(F::GKLFactorization) = F.r
 rayleighextension(F::GKLFactorization) = SimpleBasisVector(F.k, F.k)
 
 # GKL iteration for constructing the orthonormal basis of a Krylov subspace.
-struct GKLIterator{F,T,O<:Orthogonalizer} <: KrylovIterator{F,T}
+"""
+    struct GKLIterator{F,T,O<:Orthogonalizer}
+    GKLIterator(f, u₀, [orth::Orthogonalizer = KrylovDefaults.orth, keepvecs::Bool = true])
+
+Iterator that takes a general linear map `f::F` and an initial vector `u₀::T` and generates
+an expanding `GKLFactorization` thereof. In particular, `GKLIterator` implements the
+[Golub-Kahan-Lanczos bidiagonalization procedure](http://www.netlib.org/utk/people/JackDongarra/etemplates/node198.html).
+Note, however, that this implementation starts from a vector `u₀` in the codomain of the
+linear map `f`, which will end up (after normalisation) as the first column of `U`.
+
+The optional argument `orth` specifies which [`Orthogonalizer`](@ref) to be used. The
+default value in [`KrylovDefaults`](@ref) is to use [`ModifiedGramSchmidtIR`](@ref), which
+possibly uses reorthogonalization steps.
+
+When iterating over an instance of `GKLIterator`, the values being generated are
+instances `fact` of [`GKLFactorization`](@ref), which can be immediately destructured into a
+[`basis(fact, :U)`](@ref), [`basis(fact, :V)`](@ref), [`rayleighquotient`](@ref),
+[`residual`](@ref), [`normres`](@ref) and [`rayleighextension`](@ref), for example as
+
+```julia
+for (U, V, B, r, nr, b) in GKLIterator(f, u₀)
+    # do something
+    nr < tol && break # a typical stopping criterion
+end
+```
+
+Since the iterator does not know the dimension of the underlying vector space of
+objects of type `T`, it keeps expanding the Krylov subspace until the residual norm `nr`
+falls below machine precision `eps(typeof(nr))`.
+
+The internal state of `GKLIterator` is the same as the return value, i.e. the corresponding
+`GKLFactorization`. However, as Julia's Base iteration interface (using `Base.iterate`)
+requires that the state is not mutated, a `deepcopy` is produced upon every next iteration
+step.
+
+Instead, you can also mutate the `GKLFactorization` in place, using the following
+interface, e.g. for the same example above
+
+```julia
+iterator = GKLIterator(f, u₀)
+factorization = initialize(iterator)
+while normres(factorization) > tol
+    expand!(iterator, factorization)
+    U, V, B, r, nr, b = factorization
+    # do something
+end
+```
+
+Here, [`initialize(::GKLIterator)`](@ref) produces the first GKL factorization of length 1,
+and `expand!(::GKLIterator, ::GKLFactorization)`(@ref) expands the factorization in place.
+See also [`initialize!(::GKLIterator, ::GKLFactorization)`](@ref) to initialize in an
+already existing factorization (most information will be discarded) and
+[`shrink!(::GKLIterator, k)`](@ref) to shrink an existing factorization down to length `k`.
+"""
+struct GKLIterator{F,T,O<:Orthogonalizer}
     operator::F
     u₀::T
     orth::O

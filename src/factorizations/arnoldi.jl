@@ -1,5 +1,34 @@
 # arnoldi.jl
+"""
+    mutable struct ArnoldiFactorization{T,S} <: KrylovFactorization{T,S}
 
+Structure to store an Arnoldi factorization of a linear map `A` of the form
+
+```julia
+A * V = V * B + r * b'
+```
+
+For a given Arnoldi factorization `fact` of length `k = length(fact)`, the basis `V` is
+obtained via [`basis(fact)`](@ref basis) and is an instance of [`OrthonormalBasis{T}`](@ref
+Basis), with also `length(V) == k` and where `T` denotes the type of vector like objects
+used in the problem. The Rayleigh quotient `B` is obtained as
+[`rayleighquotient(fact)`](@ref) and is of type [`B::PackedHessenberg{S<:Number}`](@ref
+PackedHessenberg) with `size(B) == (k,k)`. The residual `r` is obtained as
+[`residual(fact)`](@ref) and is of type `T`. One can also query [`normres(fact)`](@ref) to
+obtain `norm(r)`, the norm of the residual. The vector `b` has no dedicated name but can be
+obtained via [`rayleighextension(fact)`](@ref). It takes the default value ``e_k``, i.e. the
+unit vector of all zeros and a one in the last entry, which is represented using
+[`SimpleBasisVector`](@ref).
+
+An Arnoldi factorization `fact` can be destructured as `V, B, r, nr, b = fact` with
+`nr = norm(r)`.
+
+`ArnoldiFactorization` is mutable because it can [`expand!`](@ref) or [`shrink!`](@ref).
+See also [`ArnoldiIterator`](@ref) for an iterator that constructs a progressively expanding
+Arnoldi factorizations of a given linear map and a starting vector. See
+[`LanczosFactorization`](@ref) and [`LanczosIterator`](@ref) for a Krylov factorization that
+is optimized for real symmetric or complex hermitian linear maps.
+"""
 mutable struct ArnoldiFactorization{T,S} <: KrylovFactorization{T,S}
     k::Int # current Krylov dimension
     V::OrthonormalBasis{T} # basis of length k
@@ -23,6 +52,60 @@ residual(F::ArnoldiFactorization) = F.r
 rayleighextension(F::ArnoldiFactorization) = SimpleBasisVector(F.k, F.k)
 
 # Arnoldi iteration for constructing the orthonormal basis of a Krylov subspace.
+"""
+    struct ArnoldiIterator{F,T,O<:Orthogonalizer} <: KrylovIterator{F,T}
+    ArnoldiIterator(f, v₀, [orth::Orthogonalizer = KrylovDefaults.orth])
+
+Iterator that takes a general linear map `f::F` and an initial vector `v₀::T` and generates
+an expanding `ArnoldiFactorization` thereof. In particular, `ArnoldiIterator` iterates over
+progressively expanding Arnoldi factorizations using the
+[Arnoldi iteration](https://en.wikipedia.org/wiki/Arnoldi_iteration).
+
+The optional argument `orth` specifies which [`Orthogonalizer`](@ref) to be used. The
+default value in [`KrylovDefaults`](@ref) is to use [`ModifiedGramSchmidtIR`](@ref), which
+possibly uses reorthogonalization steps.
+
+When iterating over an instance of `ArnoldiIterator`, the values being generated are
+instances of [`ArnoldiFactorization`](@ref), which can be immediately destructured into a
+[`basis`](@ref), [`rayleighquotient`](@ref), [`residual`](@ref), [`normres`](@ref) and
+[`rayleighextension`](@ref), for example as
+
+```julia
+for (V, B, r, nr, b) in ArnoldiIterator(f, v₀)
+    # do something
+    nr < tol && break # a typical stopping criterion
+end
+```
+
+Since the iterator does not know the dimension of the underlying vector space of
+objects of type `T`, it keeps expanding the Krylov subspace until the residual norm `nr`
+falls below machine precision `eps(typeof(nr))`.
+
+The internal state of `ArnoldiIterator` is the same as the return value, i.e. the
+corresponding `ArnoldiFactorization`. However, as Julia's Base iteration interface (using
+`Base.iterate`) requires that the state is not mutated, a `deepcopy` is produced upon every
+next iteration step.
+
+Instead, you can also mutate the `ArnoldiFactorization` in place, using the following
+interface, e.g. for the same example above
+
+```julia
+iterator = ArnoldiIterator(f, v₀)
+factorization = initialize(iterator)
+while normres(factorization) > tol
+    expand!(iterator, factorization)
+    V, B, r, nr, b = factorization
+    # do something
+end
+```
+
+Here, [`initialize(::KrylovIterator)`](@ref) produces the first Krylov factorization of
+length 1, and `expand!(::KrylovIterator, ::KrylovFactorization)`(@ref) expands the
+factorization in place. See also [`initialize!(::KrylovIterator,
+::KrylovFactorization)`](@ref) to initialize in an already existing factorization (most
+information will be discarded) and [`shrink!(::KrylovFactorization, k)`](@ref) to shrink an
+existing factorization down to length `k`.
+"""
 struct ArnoldiIterator{F,T,O<:Orthogonalizer} <: KrylovIterator{F,T}
     operator::F
     x₀::T

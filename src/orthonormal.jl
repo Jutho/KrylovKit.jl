@@ -62,6 +62,19 @@ LinearAlgebra.mul!(y, b::OrthonormalBasis, x::AbstractVector) = unproject!(y, b,
 
 const BLOCKSIZE = 4096
 
+"""
+    project!(y::AbstractVector, b::OrthonormalBasis, x,
+        [α::Number = 1, β::Number = 0, r = Base.OneTo(length(b))])
+
+For a given orthonormal basis `b`, compute the expansion coefficients `y` resulting from
+projecting the vector `x` onto the subspace spanned by `b`; more specifically this computes
+
+```
+    y[j] = β*y[j] + α * dot(b[r[j]], x)
+```
+
+for all ``j ∈ r``.
+"""
 function project!(
     y::AbstractVector,
     b::OrthonormalBasis,
@@ -85,7 +98,8 @@ function project!(
 end
 
 """
-    unproject!(y, b::OrthonormalBasis, x::AbstractVector, α::Number = 1, β::Number = 0, r = Base.OneTo(length(b)))
+    unproject!(y, b::OrthonormalBasis, x::AbstractVector,
+        [α::Number = 1, β::Number = 0, r = Base.OneTo(length(b))])
 
 For a given orthonormal basis `b`, reconstruct the vector-like object `y` that is defined by
 expansion coefficients with respect to the basis vectors in `b` in `x`; more specifically
@@ -173,7 +187,8 @@ function unproject_linear_kernel!(
 end
 
 """
-    rank1update!(b::OrthonormalBasis, y, x::AbstractVector, α::Number = 1, β::Number = 1, r = Base.OneTo(length(b)))
+    rank1update!(b::OrthonormalBasis, y, x::AbstractVector,
+        [α::Number = 1, β::Number = 1, r = Base.OneTo(length(b))])
 
 Perform a rank 1 update of a basis `b`, i.e. update the basis vectors as
 
@@ -475,15 +490,15 @@ function _orthogonalize!(
 end
 
 """
-    orthogonalize(v, b::OrthonormalBasis, [x::AbstractVector,] algorithm::Orthogonalizer]) -> w, x
-    orthogonalize!(v, b::OrthonormalBasis, [x::AbstractVector,] algorithm::Orthogonalizer]) -> w, x
+    orthogonalize(v, b::OrthonormalBasis, [x::AbstractVector,] alg::Orthogonalizer]) -> w, x
+    orthogonalize!(v, b::OrthonormalBasis, [x::AbstractVector,] alg::Orthogonalizer]) -> w, x
 
     orthogonalize(v, q, algorithm::Orthogonalizer]) -> w, s
     orthogonalize!(v, q, algorithm::Orthogonalizer]) -> w, s
 
 Orthogonalize vector `v` against all the vectors in the orthonormal basis `b` using the
-orthogonalization algorithm `algorithm`, and return the resulting vector `w` and the overlap
-coefficients `x` of `v` with the basis vectors in `b`.
+orthogonalization algorithm `alg` of type [`Orthogonalizer`](@ref), and return the resulting
+vector `w` and the overlap coefficients `x` of `v` with the basis vectors in `b`.
 
 In case of `orthogonalize!`, the vector `v` is mutated in place. In both functions, storage
 for the overlap coefficients `x` can be provided as optional argument `x::AbstractVector`
@@ -495,7 +510,8 @@ returned.
 
 Note that `w` is not normalized, see also [`orthonormalize`](@ref).
 
-For algorithms, see [`ClassicalGramSchmidt`](@ref), [`ModifiedGramSchmidt`](@ref),
+For more information on possible orthogonalization algorithms, see [`Orthogonalizer`](@ref)
+and its concrete subtypes [`ClassicalGramSchmidt`](@ref), [`ModifiedGramSchmidt`](@ref),
 [`ClassicalGramSchmidt2`](@ref), [`ModifiedGramSchmidt2`](@ref),
 [`ClassicalGramSchmidtIR`](@ref) and [`ModifiedGramSchmidtIR`](@ref).
 """
@@ -512,16 +528,16 @@ function orthonormalize!(v, args...)
 end
 
 """
-    orthonormalize(v, b::OrthonormalBasis, [x::AbstractVector,] algorithm::Orthogonalizer]) -> w, β, x
-    orthonormalize!(v, b::OrthonormalBasis, [x::AbstractVector,] algorithm::Orthogonalizer]) -> w, β, x
+    orthonormalize(v, b::OrthonormalBasis, [x::AbstractVector,] alg::Orthogonalizer]) -> w, β, x
+    orthonormalize!(v, b::OrthonormalBasis, [x::AbstractVector,] alg::Orthogonalizer]) -> w, β, x
 
     orthonormalize(v, q, algorithm::Orthogonalizer]) -> w, β, s
     orthonormalize!(v, q, algorithm::Orthogonalizer]) -> w, β, s
 
 Orthonormalize vector `v` against all the vectors in the orthonormal basis `b` using the
-orthogonalization algorithm `algorithm`, and return the resulting vector `w` (of norm 1),
-its norm `β` after orthogonalizing and the overlap coefficients `x` of `v` with the basis
-vectors in `b`, such that `v = β * w + b * x`.
+orthogonalization algorithm `alg` of type [`Orthogonalizer`](@ref), and return the resulting
+vector `w` (of norm 1), its norm `β` after orthogonalizing and the overlap coefficients `x`
+of `v` with the basis vectors in `b`, such that `v = β * w + b * x`.
 
 In case of `orthogonalize!`, the vector `v` is mutated in place. In both functions, storage
 for the overlap coefficients `x` can be provided as optional argument `x::AbstractVector`
@@ -533,7 +549,8 @@ which case the orthonormal vector `w`, its norm `β` before normalizing and the 
 
 See [`orthogonalize`](@ref) if `w` does not need to be normalized.
 
-For algorithms, see [`ClassicalGramSchmidt`](@ref), [`ModifiedGramSchmidt`](@ref),
+For more information on possible orthogonalization algorithms, see [`Orthogonalizer`](@ref)
+and its concrete subtypes [`ClassicalGramSchmidt`](@ref), [`ModifiedGramSchmidt`](@ref),
 [`ClassicalGramSchmidt2`](@ref), [`ModifiedGramSchmidt2`](@ref),
 [`ClassicalGramSchmidtIR`](@ref) and [`ModifiedGramSchmidtIR`](@ref).
 """
