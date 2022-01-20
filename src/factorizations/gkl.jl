@@ -229,7 +229,7 @@ function initialize!(iter::GKLIterator, state::GKLFactorization; verbosity::Int 
     αs = empty!(state.αs)
     βs = empty!(state.βs)
 
-    u = mul!(V[1], iter.u₀, 1 / norm(iter.u₀))
+    u = mul!(U[1], iter.u₀, 1 / norm(iter.u₀))
     v = iter.operator(u, true)
     α = norm(v)
     rmul!(v, 1 / α)

@@ -29,9 +29,16 @@ whereas the inverse calculation is obtained as
 KrylovKit.unproject!
 ```
 
-Finally, an orthonormal basis can be transformed using a rank-1 update using
+An orthonormal basis can be transformed using a rank-1 update using
 ```@docs
 KrylovKit.rank1update!
+```
+
+Note that this changes the subspace. A mere rotation of the basis, which does not change
+the subspace spanned by it, can be computed using
+
+```@docs
+KrylovKit.basistransform!
 ```
 
 ## Dense linear algebra

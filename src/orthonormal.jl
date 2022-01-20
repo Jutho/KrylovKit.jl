@@ -272,6 +272,20 @@ end
     return b
 end
 
+"""
+    basistransform!(b::OrthonormalBasis, U::AbstractMatrix)
+
+Transform the orthonormal basis `b` by the matrix `U`. For `b` an orthonormal basis,
+the matrix `U` should be real orthogonal or complex unitary; it is up to the user to ensure
+this condition is satisfied. The new basis vectors are given by
+
+```
+    b[j] ← b[i] * U[i,j]
+```
+
+and are stored in `b`, so the old basis vectors are thrown away. Note that, by definition,
+the subspace spanned by these basis vectors is exactly the same.
+"""
 function basistransform!(b::OrthonormalBasis{T}, U::AbstractMatrix) where {T} # U should be unitary or isometric
     if T <: AbstractArray && IndexStyle(T) isa IndexLinear && Threads.nthreads() > 1
         return basistransform_linear_multithreaded!(b, U)
