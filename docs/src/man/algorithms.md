@@ -2,6 +2,7 @@
 
 ## Orthogonalization algorithms
 ```@docs
+KrylovKit.Orthogonalizer
 ClassicalGramSchmidt
 ModifiedGramSchmidt
 ClassicalGramSchmidt2

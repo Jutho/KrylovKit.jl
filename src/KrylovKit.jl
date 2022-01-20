@@ -16,7 +16,8 @@ The high level interface of KrylovKit is provided by the following functions:
   - [`svdsolve`](@ref): find a few singular values and corresponding left and right
     singular vectors
   - [`exponentiate`](@ref): apply the exponential of a linear map to a vector
-  - [`expintegrator`](@ref): more general application of exponential integrator
+  - [`expintegrator`](@ref): exponential integrator for a linear non-homogeneous ODE,
+    computes a linear combination of the `ϕⱼ` functions which generalize `ϕ₀(z) = exp(z)`.
 """
 module KrylovKit
 
@@ -314,12 +315,12 @@ Used to return information about the solution found by the iterative method.
 
   - `converged`: the number of solutions that have converged according to an appropriate
     error measure and requested tolerance for the problem. Its value can be zero or one for
-    [`linsolve`](@ref) and [`exponentiate`](@ref), or any integer `>= 0` for
-    [`eigsolve`](@ref), [`schursolve`](@ref) or [`svdsolve`]().
+    [`linsolve`](@ref), [`exponentiate`](@ref) and  [`expintegrator`](@ref), or any integer
+    `>= 0` for [`eigsolve`](@ref), [`schursolve`](@ref) or [`svdsolve`](@ref).
   - `residual:` the (list of) residual(s) for the problem, or `nothing` for problems without
-    the concept of a residual (i.e. `exponentiate`). This is a single vector (of the same
-    type as the type of vectors used in the problem) for `linsolve`, or a `Vector` of such
-    vectors for `eigsolve`, `schursolve` or `svdsolve`.
+    the concept of a residual (i.e. `exponentiate`, `expintegrator`). This is a single
+    vector (of the same type as the type of vectors used in the problem) for `linsolve`, or
+    a `Vector` of such vectors for `eigsolve`, `schursolve` or `svdsolve`.
   - `normres`: the norm of the residual(s) (in the previous field) or the value of any other
     error measure that is appropriate for the problem. This is a `Real` for `linsolve` and
     `exponentiate`, and a `Vector{<:Real}` for `eigsolve`, `schursolve` and `svdsolve`. The

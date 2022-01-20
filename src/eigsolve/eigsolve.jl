@@ -1,7 +1,8 @@
 """
-    eigsolve(A::AbstractMatrix, [howmany = 1, which = :LM, T = eltype(A)]; kwargs...)
+    eigsolve(A::AbstractMatrix, [x₀, howmany = 1, which = :LM, T = eltype(A)]; kwargs...)
     eigsolve(f, n::Int, [howmany = 1, which = :LM, T = Float64]; kwargs...)
     eigsolve(f, x₀, [howmany = 1, which = :LM]; kwargs...)
+    # expert version:
     eigsolve(f, x₀, howmany, which, algorithm)
 
 Compute at least `howmany` eigenvalues from the linear map encoded in the matrix `A` or by
@@ -13,11 +14,11 @@ The linear map can be an `AbstractMatrix` (dense or sparse) or a general functio
 callable object. If an `AbstractMatrix` is used, a starting vector `x₀` does not need to be
 provided, it is then chosen as `rand(T, size(A,1))`. If the linear map is encoded more
 generally as a a callable function or method, the best approach is to provide an explicit
-starting guess `x₀`. Note that `x₀` does not need to be of type `AbstractVector`, any type
-that behaves as a vector and supports the required methods (see KrylovKit docs) is
-accepted. If instead of `x₀` an integer `n` is specified, it is assumed that `x₀` is a
-regular vector and it is initialized to `rand(T,n)`, where the default value of `T` is
-`Float64`, unless specified differently.
+starting guess `x₀`. Note that `x₀` does not need to be of type `AbstractVector`; any type
+that behaves as a vector and supports the required methods (see KrylovKit docs) is accepted.
+If instead of `x₀` an integer `n` is specified, it is assumed that `x₀` is a regular vector
+and it is initialized to `rand(T,n)`, where the default value of `T` is `Float64`, unless
+specified differently.
 
 The next arguments are optional, but should typically be specified. `howmany` specifies how
 many eigenvalues should be computed; `which` specifies which eigenvalues should be
@@ -32,7 +33,7 @@ targeted. Valid specifications of `which` are given by
     `rev == true`) when sorted by `f(λ)`
 
 !!! note "Note about selecting `which` eigenvalues"
-    
+
     Krylov methods work well for extremal eigenvalues, i.e. eigenvalues on the periphery of
     the spectrum of the linear map. All of they valid `Symbol`s for `which` have this
     property, but could also be specified using `EigSorter`, e.g. `:LM` is equivalent to
@@ -57,7 +58,6 @@ The return value is always of the form `vals, vecs, info = eigsolve(...)` with
   - `vals`: a `Vector` containing the eigenvalues, of length at least `howmany`, but could
     be longer if more eigenvalues were converged at the same cost. Eigenvalues will be real
     if [`Lanczos`](@ref) was used and complex if [`Arnoldi`](@ref) was used (see below).
-
   - `vecs`: a `Vector` of corresponding eigenvectors, of the same length as `vals`. Note
     that eigenvectors are not returned as a matrix, as the linear map could act on any
     custom Julia type with vector like behavior, i.e. the elements of the list `vecs` are
@@ -67,7 +67,7 @@ The return value is always of the form `vals, vecs, info = eigsolve(...)` with
     number format. When the linear map is a simple `AbstractMatrix`, `vecs` will be
     `Vector{Vector{<:Number}}`.
   - `info`: an object of type [`ConvergenceInfo`], which has the following fields
-    
+
       + `info.converged::Int`: indicates how many eigenvalues and eigenvectors were actually
         converged to the specified tolerance `tol` (see below under keyword arguments)
       + `info.residual::Vector`: a list of the same length as `vals` containing the
@@ -79,7 +79,7 @@ The return value is always of the form `vals, vecs, info = eigsolve(...)` with
       + `info.numiter::Int`: number of times the Krylov subspace was restarted (see below)
 
 !!! warning "Check for convergence"
-    
+
     No warning is printed if not all requested eigenvalues were converged, so always check
     if `info.converged >= howmany`.
 
@@ -107,7 +107,8 @@ Keyword arguments and their default values are given by:
     after every expansion of the Krylov subspace to test for convergence, otherwise wait
     until the Krylov subspace has dimension `krylovdim`
 
-The default values are given by `tol = KrylovDefaults.tol`, `krylovdim = KrylovDefaults.krylovdim`, `maxiter = KrylovDefaults.maxiter`,
+The default values are given by `tol = KrylovDefaults.tol`,
+`krylovdim = KrylovDefaults.krylovdim`, `maxiter = KrylovDefaults.maxiter`,
 `orth = KrylovDefaults.orth`; see [`KrylovDefaults`](@ref) for details.
 
 The default value for the last two parameters depends on the method. If an `AbstractMatrix`
@@ -117,21 +118,21 @@ for the keyword arguments are provided, no checks will be performed even in the 
 
 ### Algorithm
 
-The last method, without default values and keyword arguments, is the one that is finally
-called, and can also be used directly. Here, one specifies the algorithm explicitly as
-either [`Lanczos`](@ref), for real symmetric or complex hermitian problems, or
-[`Arnoldi`](@ref), for general problems.
-Note that these names refer to the process for building the Krylov subspace, but the actual
-algorithm is an implementation of the Krylov-Schur algorithm, which can dynamically shrink
-and grow the Krylov subspace, i.e. the restarts are so-called thick restarts where a part
-of the current Krylov subspace is kept.
+The final (expert) method, without default values and keyword arguments, is the one that is
+finally called, and can also be used directly. Here, one specifies the algorithm explicitly
+as either [`Lanczos`](@ref), for real symmetric or complex hermitian problems, or
+[`Arnoldi`](@ref), for general problems. Note that these names refer to the process for
+building the Krylov subspace, but the actual algorithm is an implementation of the
+Krylov-Schur algorithm, which can dynamically shrink and grow the Krylov subspace, i.e. the
+restarts are so-called thick restarts where a part of the current Krylov subspace is kept.
 
 !!! note "Note about convergence"
-    
+
     In case of a general problem, where the `Arnoldi` method is used, convergence of an
-    eigenvalue is not based on the norm of the residual `norm(f(vecs[i]) - vals[i]*vecs[i])` for the eigenvector but rather on the norm of the residual for the
-    corresponding Schur vectors.
-    
+    eigenvalue is not based on the norm of the residual `norm(f(vecs[i]) - vals[i]*vecs[i])`
+    for the eigenvector but rather on the norm of the residual for the corresponding Schur
+    vectors.
+
     See also [`schursolve`](@ref) if you want to use the partial Schur decomposition
     directly, or if you are not interested in computing the eigenvectors, and want to work
     in real arithmetic all the way true (if the linear map and starting guess are real).

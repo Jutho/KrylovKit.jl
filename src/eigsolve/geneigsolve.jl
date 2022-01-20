@@ -3,6 +3,7 @@
                                     T = promote_type(eltype(A), eltype(B))]; kwargs...)
     geneigsolve(f, n::Int, [howmany = 1, which = :LM, T = Float64]; kwargs...)
     geneigsolve(f, x₀, [howmany = 1, which = :LM]; kwargs...)
+    # expert version:
     geneigsolve(f, x₀, howmany, which, algorithm)
 
 Compute at least `howmany` generalized eigenvalues ``λ`` and generalized eigenvectors ``x``
@@ -44,7 +45,7 @@ targeted. Valid specifications of `which` are given by
     `rev == true`) when sorted by `f(λ)`
 
 !!! note "Note about selecting `which` eigenvalues"
-    
+
     Krylov methods work well for extremal eigenvalues, i.e. eigenvalues on the periphery of
     the spectrum of the linear map. Even with `ClosestTo`, no shift and invert is performed.
     This is useful if, e.g., you know the spectrum to be within the unit circle in the
@@ -68,7 +69,7 @@ The return value is always of the form `vals, vecs, info = geneigsolve(...)` wit
     different `eltype`. When the linear map is a simple `AbstractMatrix`, `vecs` will be
     `Vector{Vector{<:Number}}`.
   - `info`: an object of type [`ConvergenceInfo`], which has the following fields
-    
+
       + `info.converged::Int`: indicates how many eigenvalues and eigenvectors were actually
         converged to the specified tolerance `tol` (see below under keyword arguments)
       + `info.residual::Vector`: a list of the same length as `vals` containing the
@@ -80,7 +81,7 @@ The return value is always of the form `vals, vecs, info = geneigsolve(...)` wit
       + `info.numiter::Int`: number of times the Krylov subspace was restarted (see below)
 
 !!! warning "Check for convergence"
-    
+
     No warning is printed if not all requested eigenvalues were converged, so always check
     if `info.converged >= howmany`.
 
@@ -127,7 +128,7 @@ suggested by Money and Ye. With `krylovdim = 2`, this algorithm becomes equivale
 `LOPCG`.
 
 !!! warning "Restriction to symmetric definite generalized eigenvalue problems"
-    
+
     While the only algorithm so far is restricted to symmetric/hermitian generalized
     eigenvalue problems with positive definite `B`, this is not reflected in the default
     values for the keyword arguments `issymmetric` or `ishermitian` and `isposdef`. Make

@@ -118,7 +118,7 @@ function initialize(iter::GKLIterator; verbosity::Int = 0)
     return GKLFactorization(1, U, V, αs, βs, r)
 end
 function initialize!(iter::GKLIterator, state::GKLFactorization; verbosity::Int = 0)
-    V = state.V
+    U = state.U
     while length(U) > 1
         pop!(U)
     end

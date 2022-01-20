@@ -131,7 +131,7 @@ the norm of the residual of the Arnoldi factorization is smaller than `tol`. The
 orthogonalizer `orth` will be used to orthogonalize the different Krylov vectors. Default
 verbosity level `verbosity` is zero, meaning that no output will be printed.
 
-See also: `svdsolve`, `Orthogonalizer`
+See also: [`svdsolve`](@ref), [`Orthogonalizer`](@ref)
 """
 struct GKL{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     orth::O
@@ -288,9 +288,10 @@ orthogonalizer `orth`. Default verbosity level `verbosity` is zero, meaning that
 will be printed.
 
 !!! warning "Not implemented yet"
-    
 
-See also: [`linsolve`](@ref), [`CG`](@ref), [`GMRES`](@ref), [`BiCG`](@ref), [`BiCGStab`](@ref)
+
+See also: [`linsolve`](@ref), [`CG`](@ref), [`GMRES`](@ref), [`BiCG`](@ref),
+[`BiCGStab`](@ref)
 """
 struct MINRES{S<:Real} <: LinearSolver
     maxiter::Int
@@ -314,9 +315,9 @@ optimal `x` in a Krylov subspace of maximal size `maxiter`, or stop when
 will be printed.
 
 !!! warning "Not implemented yet"
-    
 
-See also: [`linsolve`](@ref), [`BiCGStab`](@ref), [`GMRES`](@ref), [`CG`](@ref),
+
+See also: [`linsolve`](@ref), [`GMRES`](@ref), [`CG`](@ref), [`BiCGStab`](@ref),
 [`MINRES`](@ref)
 """
 struct BiCG{S<:Real} <: LinearSolver
@@ -340,9 +341,9 @@ size `maxiter`, or stop when `norm(A*x - b) < tol`. Default verbosity level `ver
 zero, meaning that no output will be printed.
 
 !!! warning "Not implemented yet"
-    
 
-See also: [`linsolve`](@ref), [`BiCG`](@ref), [`GMRES`](@ref), [`CG`](@ref),
+
+See also: [`linsolve`](@ref), [`GMRES`](@ref), [`CG`](@ref), [`BiCG`](@ref),
 [`MINRES`](@ref)
 """
 struct BiCGStab{S<:Real} <: LinearSolver
@@ -372,16 +373,16 @@ struct JacobiDavidson <: EigenSolver end
 
 A module listing the default values for the typical parameters in Krylov based algorithms:
 
-  - `orth`: the orthogonalization routine used to orthogonalize the Krylov basis in the
-    `Lanczos` or `Arnoldi` iteration
-  - `krylovdim`: the maximal dimension of the Krylov subspace that will be constructed
-  - `maxiter`: the maximal number of outer iterations, i.e. the maximum number of times the
-    Krylov subspace may be rebuilt
-  - `tol`: the tolerance to which the problem must be solved, based on a suitable error
-    measure, e.g. the norm of some residual.
+  - `orth = ModifiedGramSchmidtIR()`: the orthogonalization routine used to orthogonalize
+    the Krylov basis in the `Lanczos` or `Arnoldi` iteration
+  - `krylovdim = 30`: the maximal dimension of the Krylov subspace that will be constructed
+  - `maxiter = 100`: the maximal number of outer iterations, i.e. the maximum number of
+    times the Krylov subspace may be rebuilt
+  - `tol = 1e-12`: the tolerance to which the problem must be solved, based on a suitable
+    error measure, e.g. the norm of some residual.
 
 !!! warning
-    
+
     The default value of `tol` is a `Float64` value, if you solve problems in `Float32` or
     `ComplexF32` arithmetic, you should always specify a new `tol` as the default value
     will not be attainable.

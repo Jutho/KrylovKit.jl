@@ -1,21 +1,22 @@
 """
-    schursolve(A, x₀, howmany, which, algorithm)
+    # expert version:
+    schursolve(f, x₀, howmany, which, algorithm)
 
 Compute a partial Schur decomposition containing `howmany` eigenvalues from the linear map
 encoded in the matrix or function `A`. Return the reduced Schur matrix, the basis of Schur
 vectors, the extracted eigenvalues and a `ConvergenceInfo` structure.
 
-See also [`eigsolve`](@eigsolve) to obtain the eigenvectors instead. For real symmetric or
+See also [`eigsolve`](@ref) to obtain the eigenvectors instead. For real symmetric or
 complex hermitian problems, the (partial) Schur decomposition is identical to the (partial)
 eigenvalue decomposition, and `eigsolve` should always be used.
 
 ### Arguments:
 
-The linear map can be an `AbstractMatrix` (dense or sparse) or a general function or callable
-object, that acts on vector like objects similar to `x₀`, which is the starting guess from
-which a Krylov subspace will be built. `howmany` specifies how many Schur vectors should be
-converged before the algorithm terminates; `which` specifies which eigenvalues should be targeted.
-Valid specifications of `which` are
+The linear map can be an `AbstractMatrix` (dense or sparse) or a general function or
+callable object, that acts on vector like objects similar to `x₀`, which is the starting
+guess from which a Krylov subspace will be built. `howmany` specifies how many Schur vectors
+should be converged before the algorithm terminates; `which` specifies which eigenvalues
+should be targeted. Valid specifications of `which` are
 
   - `LM`: eigenvalues of largest magnitude
   - `LR`: eigenvalues with largest (most positive) real part
@@ -26,7 +27,7 @@ Valid specifications of `which` are
     `rev == true`) when sorted by `f(λ)`
 
 !!! note "Note about selecting `which` eigenvalues"
-    
+
     Krylov methods work well for extremal eigenvalues, i.e. eigenvalues on the periphery of
     the spectrum of the linear map. All of they valid `Symbol`s for `which` have this
     property, but could also be specified using `EigSorter`, e.g. `:LM` is equivalent to
@@ -47,7 +48,6 @@ The return value is always of the form `T, vecs, vals, info = schursolve(...)` w
     elements are given by `T[i,j] = dot(vecs[i], f(vecs[j]))`. It is of Schur form, i.e.
     upper triangular in case of complex arithmetic, and block upper triangular (with at most
     2x2 blocks) in case of real arithmetic.
-
   - `vecs`: a `Vector` of corresponding Schur vectors, of the same length as `vals`. Note
     that Schur vectors are not returned as a matrix, as the linear map could act on any
     custom  Julia type with vector like behavior, i.e. the elements of the list `vecs` are
@@ -60,17 +60,17 @@ The return value is always of the form `T, vecs, vals, info = schursolve(...)` w
     arithmetic, or extracted from the diagonal blocks in case of real arithmetic. Note that
     `vals` will always be complex, independent of the underlying arithmetic.
   - `info`: an object of type [`ConvergenceInfo`], which has the following fields
-    
+
       + `info.converged::Int`: indicates how many eigenvalues and Schur vectors were
         actually converged to the specified tolerance (see below under keyword arguments)
-    
+
       + `info.residuals::Vector`: a list of the same length as `vals` containing the actual
         residuals
-        
+
         ```julia
         info.residuals[i] = f(vecs[i]) - sum(vecs[j] * T[j, i] for j in 1:i+1)
         ```
-        
+
         where `T[i+1,i]` is definitely zero in case of complex arithmetic and possibly zero
         in case of real arithmetic
       + `info.normres::Vector{<:Real}`: list of the same length as `vals` containing the
@@ -81,7 +81,7 @@ The return value is always of the form `T, vecs, vals, info = schursolve(...)` w
       + `info.numiter::Int`: number of times the Krylov subspace was restarted (see below)
 
 !!! warning "Check for convergence"
-    
+
     No warning is printed if not all requested eigenvalues were converged, so always check
     if `info.converged >= howmany`.
 

@@ -1,7 +1,8 @@
 """
-    svdsolve(A::AbstractMatrix, [howmany = 1, which = :LR, T = eltype(A)]; kwargs...)
+    svdsolve(A::AbstractMatrix, [x₀, howmany = 1, which = :LR, T = eltype(A)]; kwargs...)
     svdsolve(f, m::Int, [howmany = 1, which = :LR, T = Float64]; kwargs...)
     svdsolve(f, x₀, [howmany = 1, which = :LM]; kwargs...)
+    # expert version:
     svdsolve(f, x₀, howmany, which, algorithm)
 
 Compute `howmany` singular values from the linear map encoded in the matrix `A` or by the
@@ -51,7 +52,6 @@ The return value is always of the form `vals, lvecs, rvecs, info = svdsolve(...)
 
   - `vals`: a `Vector{<:Real}` containing the singular values, of length at least `howmany`,
     but could be longer if more singular values were converged at the same cost.
-
   - `lvecs`: a `Vector` of corresponding left singular vectors, of the same length as
     `vals`.
   - `rvecs`: a `Vector` of corresponding right singular vectors, of the same length as
@@ -61,7 +61,7 @@ The return value is always of the form `vals, lvecs, rvecs, info = svdsolve(...)
     (`x₀`), up to a possibly different `eltype`. When the linear map is a simple
     `AbstractMatrix`, `lvecs` and `rvecs` will be `Vector{Vector{<:Number}}`.
   - `info`: an object of type [`ConvergenceInfo`], which has the following fields
-    
+
       + `info.converged::Int`: indicates how many singular values and vectors were actually
         converged to the specified tolerance `tol` (see below under keyword arguments)
       + `info.residual::Vector`: a list of the same length as `vals` containing the
@@ -74,9 +74,9 @@ The return value is always of the form `vals, lvecs, rvecs, info = svdsolve(...)
       + `info.numiter::Int`: number of times the Krylov subspace was restarted (see below)
 
 !!! warning "Check for convergence"
-    
-    No warning is printed if not all requested eigenvalues were converged, so always check
-    if `info.converged >= howmany`.
+
+    No warning is printed if not all requested singular values were converged, so always
+    check if `info.converged >= howmany`.
 
 ### Keyword arguments:
 

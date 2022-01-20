@@ -32,7 +32,7 @@ KrylovKit
 ## Common interface
 
 The for high-level function [`linsolve`](@ref), [`eigsolve`](@ref), [`geneigsolve`](@ref),
-[`svdsolve`](@ref) and [`exponentiate`](@ref) follow a common interface
+[`svdsolve`](@ref), [`exponentiate`](@ref) and [`expintegrator`](@ref) follow a common interface
 ```julia
 results..., info = problemsolver(A, args...; kwargs...)
 ```
@@ -71,7 +71,14 @@ KrylovKit.ConvergenceInfo
 There is also an expert interface where the user specifies the algorithm that should be used
 explicitly, i.e.
 ```julia
-results..., info = problemsolver(A, args..., algorithm(;kwargs...))
+results..., info = problemsolver(A, args..., algorithm(; kwargs...))
 ```
 Most `algorithm` constructions take the same keyword arguments (`tol`, `krylovdim`,
 `maxiter` and `verbosity`) discussed above.
+
+As mentioned before, there are two auxiliary structs that can be used to define new vectors,
+namely
+```@docs
+RecursiveVec
+InnerProductVec
+```

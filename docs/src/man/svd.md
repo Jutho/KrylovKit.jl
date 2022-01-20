@@ -1,6 +1,6 @@
 # Singular value problems
-Computing a few singular values and corresponding left and right singular vectors is done
-using the function `svdsolve`:
+It is possible to iteratively compute a few singular values and corresponding left and
+right singular vectors using the function `svdsolve`:
 
 ```@docs
 svdsolve

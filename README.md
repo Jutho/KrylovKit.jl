@@ -51,8 +51,8 @@ The high level interface of KrylovKit is provided by the following functions:
 *   `geneigsolve`: find a few generalized eigenvalues and corresponding vectors
 *   `svdsolve`: find a few singular values and corresponding left and right singular vectors
 *   `exponentiate`: apply the exponential of a linear map to a vector
-*   `expintegrator`: exponential integrator for a linear non-homogeneous ODE, computes a
-    linear combination of the so-called `ϕⱼ` functions which generalize `ϕ₀(z) = exp(z)`.
+*   `expintegrator`: [exponential integrator](https://en.wikipedia.org/wiki/Exponential_integrator)
+    for a linear non-homogeneous ODE, computes a linear combination of the `ϕⱼ` functions which generalize `ϕ₀(z) = exp(z)`.
 
 ## Installation
 `KrylovKit.jl` can be installed with the Julia package manager.

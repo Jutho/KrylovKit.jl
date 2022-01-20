@@ -20,12 +20,12 @@ values for reasons of type stability. However, if the linear map and initial gue
 real, most of the computation is actually performed using real arithmetic, as in fact the
 first step is to compute an approximate partial Schur factorization. If one is not
 interested in the eigenvectors, one can also just compute this partial Schur factorization
-using `schursolve`.
+using `schursolve`, for which only an 'expert' method call is available
 ```@docs
 schursolve
 ```
 Note that, for symmetric or hermitian linear maps, the eigenvalue and Schur factorization
-are equivalent, and one can only use `eigsolve`.
+are equivalent, and one should only use `eigsolve`. There is no `schursolve` using the `Lanczos` algorithm.
 
 Another example of a possible use case of `schursolve` is if the linear map is known to have
 a unique eigenvalue of, e.g. largest magnitude. Then, if the linear map is real valued, that

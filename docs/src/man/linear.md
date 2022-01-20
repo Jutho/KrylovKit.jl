@@ -7,5 +7,3 @@ side `b`. They can be solved using the function `linsolve`:
 ```@docs
 linsolve
 ```
-
-Currently supported algorithms are [`CG`](@ref) and [`GMRES`](@ref).

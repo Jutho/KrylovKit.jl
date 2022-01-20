@@ -1,3 +1,19 @@
+"""
+    v = RecursiveVec(vecs)
+
+Create a new vector `v` from an existing (homogeneous or heterogeneous) list of vectors
+`vecs` with one or more elements, represented as a `Tuple` or `AbstractVector`. The elements
+of `vecs` can be any type of vectors that are supported by KrylovKit. For a heterogeneous
+list, it is best to use a tuple for reasons of type stability, while for a homogeneous list,
+either a `Tuple` or a `Vector` can be used. From a mathematical perspectve, `v` represents
+the direct sum of the vectors in `vecs`. Scalar multiplication and addition of vectors `v`
+acts simultaneously on all elements of `v.vecs`. The inner product corresponds to the sum
+of the inner products of the individual vectors in the list `v.vecs`.
+
+The vector `v` also adheres to the iteration syntax, but where it will just produce the
+individual vectors in `v.vecs`. Hence, `length(v) = length(v.vecs)`. It can also be indexed,
+so that `v[i] = v.vecs[i]`, which can be useful in writing a linear map that acts on `v`.
+"""
 struct RecursiveVec{T<:Union{Tuple,AbstractVector}}
     vecs::T
 end
