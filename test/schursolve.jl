@@ -5,7 +5,7 @@
             v = rand(T, (n,))
             alg = Arnoldi(orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)))
             n1 = div(n,2)
-            T1, V1, D1, info1 = @inferred schursolve(wrapop(A), wrapvec(v), n1, :SR, alg)
+            T1, V1, D1, info1 = @constinferred schursolve(wrapop(A), wrapvec(v), n1, :SR, alg)
             n2 = n-n1
             T2, V2, D2, info2 = schursolve(wrapop(A), wrapvec(v), n2, :LR, alg)
             D = sort(sort(eigvals(A), by=imag, rev=true), alg=MergeSort, by=real)
@@ -48,7 +48,7 @@ end
             A = rand(T,(N,N)) .- one(T)/2
             v = rand(T,(N,))
             alg = Arnoldi(orth = orth, krylovdim = 3*n, maxiter = 10, tol = 10*n*eps(real(T)))
-            T1, V1, D1, info1 = @inferred schursolve(wrapop(A), wrapvec(v), n, :SR, alg)
+            T1, V1, D1, info1 = @constinferred schursolve(wrapop(A), wrapvec(v), n, :SR, alg)
             T2, V2, D2, info2 = schursolve(wrapop(A), wrapvec(v), n, :LR, alg)
             T3, V3, D3, info3 = schursolve(wrapop(A), wrapvec(v), n, :LM, alg)
             D = sort(eigvals(A), by=imag, rev=true)

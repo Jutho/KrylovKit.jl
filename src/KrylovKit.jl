@@ -76,6 +76,7 @@ struct SimpleBasisVector <: AbstractVector{Bool}
     k::Int
 end
 Base.axes(e::SimpleBasisVector) = (Base.OneTo(e.m),)
+Base.size(e::SimpleBasisVector) = (e.m,)
 @inline function Base.getindex(e::SimpleBasisVector, i)
     @boundscheck Base.checkbounds(e, i)
     return e.k == i

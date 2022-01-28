@@ -9,7 +9,7 @@
             D1, V1, info = eigsolve(wrapop(A), wrapvec(v), n1, :SR; orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)))
             @test KrylovKit.eigselector(A, eltype(v); orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T))) isa Lanczos
             n2 = n-n1
-            D2, V2, info = @inferred eigsolve(wrapop(A), wrapvec(v), n2, :LR, alg)
+            D2, V2, info = @constinferred eigsolve(wrapop(A), wrapvec(v), n2, :LR, alg)
             @test vcat(D1[1:n1],reverse(D2[1:n2])) ≊ eigvals(A)
 
             U1 = hcat(unwrapvec.(V1)...)
@@ -32,7 +32,7 @@ end
             alg = Lanczos(orth = orth, krylovdim = n, maxiter = 18,
                             tol = 10*n*eps(real(T)), eager = true)
             n1 = div(n,2)
-            D1, V1, info1 = @inferred eigsolve(wrapop(A), wrapvec(v), n1, :SR, alg)
+            D1, V1, info1 = @constinferred eigsolve(wrapop(A), wrapvec(v), n1, :SR, alg)
             n2 = n-n1
             D2, V2, info2 = eigsolve(wrapop(A), wrapvec(v), n2, :LR, alg)
 
@@ -64,7 +64,7 @@ end
             D1, V1, info1 = eigsolve(wrapop(A), wrapvec(v), n1, :SR; orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)))
             @test KrylovKit.eigselector(A, eltype(v); orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T))) isa Arnoldi
             n2 = n-n1
-            D2, V2, info2 = @inferred eigsolve(wrapop(A), wrapvec(v), n2, :LR, alg)
+            D2, V2, info2 = @constinferred eigsolve(wrapop(A), wrapvec(v), n2, :LR, alg)
             D = sort(sort(eigvals(A), by=imag, rev=true), alg=MergeSort, by=real)
             D2′ = sort(sort(D2, by=imag, rev=true), alg=MergeSort, by=real)
             @test vcat(D1[1:n1],D2′[end-n2+1:end]) ≈ D
@@ -99,7 +99,7 @@ end
             v = rand(T,(N,))
             alg = Arnoldi(orth = orth, krylovdim = 3*n, maxiter = 10,
                             tol = 10*n*eps(real(T)), eager = true)
-            D1, V1, info1 = @inferred eigsolve(wrapop(A), wrapvec(v), n, :SR, alg)
+            D1, V1, info1 = @constinferred eigsolve(wrapop(A), wrapvec(v), n, :SR, alg)
             D2, V2, info2 = eigsolve(wrapop(A), wrapvec(v), n, :LR, alg)
             D3, V3, info3 = eigsolve(wrapop(A), wrapvec(v), n, :LM, alg)
             D = sort(eigvals(A), by=imag, rev=true)

@@ -12,7 +12,7 @@
             D1, V1, info = geneigsolve((wrapop(A), wrapop(B)), wrapvec(v), n1, :SR; orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)), ishermitian = true, isposdef = true)
             @test KrylovKit.geneigselector((A, B), eltype(v); orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)), ishermitian = true, isposdef = true) isa GolubYe
             n2 = n-n1
-            D2, V2, info = @inferred geneigsolve((wrapop(A), wrapop(B)), wrapvec(v), n2, :LR, alg)
+            D2, V2, info = @constinferred geneigsolve((wrapop(A), wrapop(B)), wrapvec(v), n2, :LR, alg)
             @test vcat(D1[1:n1],reverse(D2[1:n2])) ≈ eigvals(A, B)
 
             U1 = hcat(unwrapvec.(V1)...)
@@ -36,7 +36,7 @@ end
             v = rand(T,(N,))
             alg = GolubYe(orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)))
             n1 = div(n,2)
-            D1, V1, info1 = @inferred geneigsolve((wrapop(A), wrapop(B)), wrapvec(v), n1, :SR, alg)
+            D1, V1, info1 = @constinferred geneigsolve((wrapop(A), wrapop(B)), wrapvec(v), n1, :SR, alg)
             n2 = n-n1
             D2, V2, info2 = geneigsolve((wrapop(A), wrapop(B)), wrapvec(v), n2, :LR, alg)
 
