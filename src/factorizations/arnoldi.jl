@@ -61,6 +61,9 @@ an expanding `ArnoldiFactorization` thereof. In particular, `ArnoldiIterator` it
 progressively expanding Arnoldi factorizations using the
 [Arnoldi iteration](https://en.wikipedia.org/wiki/Arnoldi_iteration).
 
+The argument `f` can be a matrix, or a function accepting a single argument `v`, so that
+`f(v)` implements the action of the linear map on the vector `v`.
+
 The optional argument `orth` specifies which [`Orthogonalizer`](@ref) to be used. The
 default value in [`KrylovDefaults`](@ref) is to use [`ModifiedGramSchmidtIR`](@ref), which
 possibly uses reorthogonalization steps.
@@ -112,11 +115,6 @@ struct ArnoldiIterator{F,T,O<:Orthogonalizer} <: KrylovIterator{F,T}
     orth::O
 end
 ArnoldiIterator(A, x₀) = ArnoldiIterator(A, x₀, KrylovDefaults.orth)
-ArnoldiIterator(
-    A::AbstractMatrix,
-    x₀::AbstractVector,
-    orth::Orthogonalizer = KrylovDefaults.orth
-) = ArnoldiIterator(x -> A * x, x₀, orth)
 
 Base.IteratorSize(::Type{<:ArnoldiIterator}) = Base.SizeUnknown()
 Base.IteratorEltype(::Type{<:ArnoldiIterator}) = Base.EltypeUnknown()
@@ -140,7 +138,7 @@ function initialize(iter::ArnoldiIterator; verbosity::Int = 0)
     x₀ = iter.x₀
     β₀ = norm(x₀)
     iszero(β₀) && throw(ArgumentError("initial vector should not have norm zero"))
-    Ax₀ = iter.operator(x₀)
+    Ax₀ = apply(iter.operator, x₀)
     α = dot(x₀, Ax₀) / (β₀ * β₀)
     T = typeof(α)
     # this line determines the vector type that we will henceforth use
@@ -184,7 +182,7 @@ function initialize!(iter::ArnoldiIterator, state::ArnoldiFactorization; verbosi
     H = empty!(state.H)
 
     v = mul!(V[1], x₀, 1 / norm(x₀))
-    w = iter.operator(v)
+    w = apply(iter.operator, v)
     r, α = orthogonalize!(w, v, iter.orth)
     β = norm(r)
     state.k = 1
@@ -234,7 +232,7 @@ function arnoldirecurrence!(
     h::AbstractVector,
     orth::Orthogonalizer
 )
-    w = operator(last(V))
+    w = apply(operator, last(V))
     r, h = orthogonalize!(w, V, h, orth)
     return r, norm(r)
 end

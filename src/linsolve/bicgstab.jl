@@ -43,17 +43,17 @@ function linsolve(operator, b, x₀, alg::BiCGStab, a₀::Number = 0, a₁::Numb
 
     ## BiCG part of the algorithm.
     p = mul!(similar(r), r, 1)
-    v = do_apply!(operator, α₀, α₁, p)
+    v = apply(operator, p, α₀, α₁)
     numops += 1
 
     σ = dot(r_shadow, v)
     α = ρ / σ
 
     s = mul!(similar(r), r, 1)
-    axpy!(-α, v, s)  # half step residual
+    s = axpy!(-α, v, s) # half step residual
 
     xhalf = mul!(similar(x), x, 1)
-    axpy!(+α, p, xhalf) # half step iteration
+    xhalf = axpy!(+α, p, xhalf) # half step iteration
 
     normr = norm(s)
 
@@ -61,7 +61,7 @@ function linsolve(operator, b, x₀, alg::BiCGStab, a₀::Number = 0, a₁::Numb
     if normr < tol
         # Replace approximate residual with the actual residual.
         s = mul!(similar(b), b, 1)
-        axpy!(-1, do_apply!(operator, α₀, α₁, xhalf), s)
+        s = axpy!(-1, apply(operator, xhalf, α₀, α₁), s)
         numops += 1
 
         normr_act = norm(s)
@@ -76,23 +76,23 @@ function linsolve(operator, b, x₀, alg::BiCGStab, a₀::Number = 0, a₁::Numb
     end
 
     ## GMRES part of the algorithm.
-    t = do_apply!(operator, α₀, α₁, s)
+    t = apply(operator, s, α₀, α₁)
     numops += 1
 
     ω = dot(t, s) / dot(t, t)
 
-    mul!(x, xhalf, 1)
-    axpy!(+ω, s, x)    # full step iteration
+    x = mul!(x, xhalf, 1)
+    x = axpy!(+ω, s, x) # full step iteration
 
-    mul!(r, s, 1)
-    axpy!(-ω, t, r)      # full step residual
+    r = mul!(r, s, 1)
+    r = axpy!(-ω, t, r) # full step residual
 
     # Check for early return at full step.
     normr = norm(r)
     if normr < tol
         # Replace approximate residual with the actual residual.
-        mul!(r, b, 1)
-        axpy!(-1, do_apply!(operator, α₀, α₁, x), r)
+        r = mul!(r, b, 1)
+        r = axpy!(-1, apply(operator, x, α₀, α₁), r)
         numops += 1
 
         normr_act = norm(r)
@@ -119,20 +119,20 @@ function linsolve(operator, b, x₀, alg::BiCGStab, a₀::Number = 0, a₁::Numb
         ρ = dot(r_shadow, r)
         β = (ρ / ρold) * (α / ω)
 
-        axpy!(-ω, v, p)
-        axpby!(1, r, β, p)
+        p = axpy!(-ω, v, p)
+        p = axpby!(1, r, β, p)
 
-        v = do_apply!(operator, α₀, α₁, p)
+        v = apply(operator, p, α₀, α₁)
         numops += 1
 
         σ = dot(r_shadow, v)
         α = ρ / σ
 
         s = mul!(s, r, 1)
-        s = axpy!(-α, v, s)     # half step residual
+        s = axpy!(-α, v, s) # half step residual
 
         xhalf = mul!(xhalf, x, 1)
-        xhalf = axpy!(+α, p, xhalf)     # half step iteration
+        xhalf = axpy!(+α, p, xhalf) # half step iteration
 
         normr = norm(s)
 
@@ -151,7 +151,7 @@ function linsolve(operator, b, x₀, alg::BiCGStab, a₀::Number = 0, a₁::Numb
             axpy!(-α₁, apply(operator, xhalf), s)
             numops += 1 =#
             s = mul!(similar(b), b, 1)
-            axpy!(-1, do_apply!(operator, α₀, α₁, xhalf), s)
+            s = axpy!(-1, apply(operator, xhalf, α₀, α₁), s)
             numops += 1
 
             normr_act = norm(s)
@@ -166,23 +166,23 @@ function linsolve(operator, b, x₀, alg::BiCGStab, a₀::Number = 0, a₁::Numb
         end
 
         ## GMRES part of the algorithm.
-        t = do_apply!(operator, α₀, α₁, s)
+        t = apply(operator, s, α₀, α₁)
         numops += 1
 
         ω = dot(t, s) / dot(t, t)
 
-        mul!(x, xhalf, 1)
-        axpy!(+ω, s, x)    # full step iteration
+        x = mul!(x, xhalf, 1)
+        x = axpy!(+ω, s, x) # full step iteration
 
-        mul!(r, s, 1)
-        axpy!(-ω, t, r)    # full step residual
+        r = mul!(r, s, 1)
+        r = axpy!(-ω, t, r) # full step residual
 
         # Check for return at full step.
         normr = norm(r)
         if normr < tol
             # Replace approximate residual with the actual residual.
-            mul!(r, b, 1)
-            axpy!(-1, do_apply!(operator, α₀, α₁, x), r)
+            r = mul!(r, b, 1)
+            r = axpy!(-1, apply(operator, x, α₀, α₁), r)
             numops += 1
 
             normr_act = norm(r)
@@ -203,13 +203,4 @@ function linsolve(operator, b, x₀, alg::BiCGStab, a₀::Number = 0, a₁::Numb
         *   number of operations = $numops"""
     end
     return (x, ConvergenceInfo(0, r, normr, numiter, numops))
-end
-
-function do_apply!(operator, α₀, α₁, x)
-    y = apply(operator, x)
-    if α₀ != zero(α₀) || α₁ != one(α₁)
-        axpby!(α₀, x, α₁, y)
-    end
-
-    return y
 end

@@ -59,14 +59,17 @@ rayleighextension(F::LanczosFactorization) = SimpleBasisVector(F.k, F.k)
     struct LanczosIterator{F,T,O<:Orthogonalizer} <: KrylovIterator{F,T}
     LanczosIterator(f, v₀, [orth::Orthogonalizer = KrylovDefaults.orth, keepvecs::Bool = true])
 
-Iterator that takes a linear map `f::F` (supposed to be real symmetric or complex
-hermitian) and an initial vector `v₀::T` and generates an expanding `LanczosFactorization`
-thereof. In particular, `LanczosIterator`
-uses the [Lanczos iteration](https://en.wikipedia.org/wiki/Lanczos_algorithm) scheme to
-build a successively expanding Lanczos factorization. While `f` cannot be tested to be
-symmetric or hermitian directly when the linear map is encoded as a general callable object
-or function, it is tested whether the imaginary part of `dot(v, f(v))` is sufficiently
-small to be neglected.
+Iterator that takes a linear map `f::F` (supposed to be real symmetric or complex hermitian)
+and an initial vector `v₀::T` and generates an expanding `LanczosFactorization` thereof. In
+particular, `LanczosIterator` uses the
+[Lanczos iteration](https://en.wikipedia.org/wiki/Lanczos_algorithm) scheme to build a
+successively expanding Lanczos factorization. While `f` cannot be tested to be symmetric or
+hermitian directly when the linear map is encoded as a general callable object or function,
+it is tested whether the imaginary part of `dot(v, f(v))` is sufficiently small to be
+neglected.
+
+The argument `f` can be a matrix, or a function accepting a single argument `v`, so that
+`f(v)` implements the action of the linear map on the vector `v`.
 
 The optional argument `orth` specifies which [`Orthogonalizer`](@ref) to be used. The
 default value in [`KrylovDefaults`](@ref) is to use [`ModifiedGramSchmidtIR`](@ref), which
@@ -143,12 +146,6 @@ LanczosIterator(
     orth::O = KrylovDefaults.orth,
     keepvecs::Bool = true
 ) where {F,T,O<:Orthogonalizer} = LanczosIterator{F,T,O}(operator, x₀, orth, keepvecs)
-LanczosIterator(
-    A::AbstractMatrix,
-    x₀::AbstractVector,
-    orth::O = KrylovDefaults.orth,
-    keepvecs::Bool = true
-) where {O<:Orthogonalizer} = LanczosIterator(x -> A * x, x₀, orth, keepvecs)
 
 Base.IteratorSize(::Type{<:LanczosIterator}) = Base.SizeUnknown()
 Base.IteratorEltype(::Type{<:LanczosIterator}) = Base.EltypeUnknown()
@@ -172,7 +169,7 @@ function initialize(iter::LanczosIterator; verbosity::Int = 0)
     x₀ = iter.x₀
     β₀ = norm(x₀)
     iszero(β₀) && throw(ArgumentError("initial vector should not have norm zero"))
-    Ax₀ = iter.operator(x₀)
+    Ax₀ = apply(iter.operator, x₀)
     α = dot(x₀, Ax₀) / (β₀ * β₀)
     n = abs(α)
     imag(α) <= sqrt(max(eps(n), eps(one(n)))) ||
@@ -227,7 +224,7 @@ function initialize!(iter::LanczosIterator, state::LanczosFactorization; verbosi
     βs = empty!(state.βs)
 
     v = mul!(V[1], x₀, 1 / norm(x₀))
-    w = iter.operator(v)
+    w = apply(iter.operator, v)
     r, α = orthogonalize!(w, v, iter.orth)
     β = norm(r)
     n = hypot(α, β)
@@ -303,7 +300,7 @@ function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ModifiedGram
 end
 function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ClassicalGramSchmidt2)
     v = V[end]
-    w = operator(v)
+    w = apply(operator, v)
     α = dot(v, w)
     w = axpy!(-β, V[end-1], w)
     w = axpy!(-α, v, w)
@@ -315,7 +312,7 @@ function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ClassicalGra
 end
 function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ModifiedGramSchmidt2)
     v = V[end]
-    w = operator(v)
+    w = apply(operator, v)
     w = axpy!(-β, V[end-1], w)
     w, α = orthogonalize!(w, v, ModifiedGramSchmidt())
 

@@ -1,41 +1,12 @@
 # gkl.jl
-"""
-    mutable struct GKLFactorization{TU,TV,S<:Real}
 
-Structure to store a Golub-Kahan-Lanczos (GKL) bidiagonal factorization of a linear map `A`
-of the form
-
-```julia
-A * V = U * B + r * b'
-A' * U = V * B'
-```
-
-For a given GKL factorization `fact` of length `k = length(fact)`, the two bases `U` and `V`
-are obtained via [`basis(fact, :U)`](@ref basis) and `basis(fact, :V)`. Here, `U` and `V`
-are instances of [`OrthonormalBasis{T}`](@ref Basis), with also
-`length(U) == length(V) == k` and where `T` denotes the type of vector like objects used in
-the problem. The Rayleigh quotient `B` is obtained as [`rayleighquotient(fact)`](@ref) and
-is of type `Bidiagonal{S<:Number}` with `size(B) == (k,k)`. The residual `r` is
-obtained as [`residual(fact)`](@ref) and is of type `T`. One can also query
-[`normres(fact)`](@ref) to obtain `norm(r)`, the norm of the residual. The vector `b` has no
-dedicated name but can be obtained via [`rayleighextension(fact)`](@ref). It takes the
-default value ``e_k``, i.e. the unit vector of all zeros and a one in the last entry, which
-is represented using [`SimpleBasisVector`](@ref).
-
-A GKL factorization `fact` can be destructured as `U, V, B, r, nr, b = fact` with
-`nr = norm(r)`.
-
-`GKLFactorization` is mutable because it can [`expand!`](@ref) or [`shrink!`](@ref).
-See also [`GKLIterator`](@ref) for an iterator that constructs a progressively expanding
-GKL factorizations of a given linear map and a starting vector `u₀`.
-"""
-mutable struct GKLFactorization{TU,TV,S<:Real}
+mutable struct GKLFactorization{T,S<:Real}
     k::Int # current Krylov dimension
-    U::OrthonormalBasis{TU} # basis of length k
-    V::OrthonormalBasis{TV} # basis of length k
+    U::OrthonormalBasis{T} # basis of length k
+    V::OrthonormalBasis{T} # basis of length k
     αs::Vector{S}
     βs::Vector{S}
-    r::TU
+    r::T
 end
 
 Base.length(F::GKLFactorization) = F.k
@@ -47,19 +18,7 @@ Base.sizehint!(F::GKLFactorization, n) = begin
     return F
 end
 Base.eltype(F::GKLFactorization) = eltype(typeof(F))
-Base.eltype(::Type{<:GKLFactorization{<:Any,<:Any,S}}) where {S} = S
-
-# iteration for destructuring into components
-Base.iterate(F::GKLFactorization) = (basis(F, :U), Val(:V))
-Base.iterate(F::GKLFactorization, ::Val{:V}) = (basis(F, :V), Val(:rayleighquotient))
-Base.iterate(F::GKLFactorization, ::Val{:rayleighquotient}) =
-    (rayleighquotient(F), Val(:residual))
-Base.iterate(F::GKLFactorization, ::Val{:residual}) = (residual(F), Val(:normres))
-Base.iterate(F::GKLFactorization, ::Val{:normres}) =
-    (normres(F), Val(:rayleighextension))
-Base.iterate(F::GKLFactorization, ::Val{:rayleighextension}) =
-    (rayleighextension(F), Val(:done))
-Base.iterate(F::GKLFactorization, ::Val{:done}) = nothing
+Base.eltype(::Type{<:GKLFactorization{<:Any,S}}) where {S} = S
 
 """
         basis(fact::GKLFactorization, which::Symbol)
@@ -81,90 +40,36 @@ residual(F::GKLFactorization) = F.r
 rayleighextension(F::GKLFactorization) = SimpleBasisVector(F.k, F.k)
 
 # GKL iteration for constructing the orthonormal basis of a Krylov subspace.
-"""
-    struct GKLIterator{F,TU,O<:Orthogonalizer}
-    GKLIterator(f, u₀, [orth::Orthogonalizer = KrylovDefaults.orth, keepvecs::Bool = true])
-
-Iterator that takes a general linear map `f::F` and an initial vector `u₀::TU` and generates
-an expanding `GKLFactorization` thereof. In particular, `GKLIterator` implements the
-[Golub-Kahan-Lanczos bidiagonalization procedure](http://www.netlib.org/utk/people/JackDongarra/etemplates/node198.html).
-Note, however, that this implementation starts from a vector `u₀` in the codomain of the
-linear map `f`, which will end up (after normalisation) as the first column of `U`.
-
-The argument `f` can be a matrix, a tuple of two functions where the first represents the
-normal action and the second the adjoint action, or a function accepting two arguments,
-where the first argument is the vector to which the linear map needs to be applied, and the
-second argument is either `Val(false)` for the normal action and `Val(true)` for the adjoint
-action. Note that the flag is thus a `Val` type to allow for type stability in cases where
-the vectors in the domain and the codomain of the linear map have a different type.
-
-The optional argument `orth` specifies which [`Orthogonalizer`](@ref) to be used. The
-default value in [`KrylovDefaults`](@ref) is to use [`ModifiedGramSchmidtIR`](@ref), which
-possibly uses reorthogonalization steps.
-
-When iterating over an instance of `GKLIterator`, the values being generated are
-instances `fact` of [`GKLFactorization`](@ref), which can be immediately destructured into a
-[`basis(fact, :U)`](@ref), [`basis(fact, :V)`](@ref), [`rayleighquotient`](@ref),
-[`residual`](@ref), [`normres`](@ref) and [`rayleighextension`](@ref), for example as
-
-```julia
-for (U, V, B, r, nr, b) in GKLIterator(f, u₀)
-    # do something
-    nr < tol && break # a typical stopping criterion
-end
-```
-
-Since the iterator does not know the dimension of the underlying vector space of
-objects of type `T`, it keeps expanding the Krylov subspace until the residual norm `nr`
-falls below machine precision `eps(typeof(nr))`.
-
-The internal state of `GKLIterator` is the same as the return value, i.e. the corresponding
-`GKLFactorization`. However, as Julia's Base iteration interface (using `Base.iterate`)
-requires that the state is not mutated, a `deepcopy` is produced upon every next iteration
-step.
-
-Instead, you can also mutate the `GKLFactorization` in place, using the following
-interface, e.g. for the same example above
-
-```julia
-iterator = GKLIterator(f, u₀)
-factorization = initialize(iterator)
-while normres(factorization) > tol
-    expand!(iterator, factorization)
-    U, V, B, r, nr, b = factorization
-    # do something
-end
-```
-
-Here, [`initialize(::GKLIterator)`](@ref) produces the first GKL factorization of length 1,
-and `expand!(::GKLIterator, ::GKLFactorization)`(@ref) expands the factorization in place.
-See also [`initialize!(::GKLIterator, ::GKLFactorization)`](@ref) to initialize in an
-already existing factorization (most information will be discarded) and
-[`shrink!(::GKLIterator, k)`](@ref) to shrink an existing factorization down to length `k`.
-"""
-struct GKLIterator{F,TU,O<:Orthogonalizer}
+struct GKLIterator{F,T,O<:Orthogonalizer} <: KrylovIterator{F,T}
     operator::F
-    u₀::TU
+    u₀::T
     orth::O
     keepvecs::Bool
-    function GKLIterator{F,TU,O}(
+    function GKLIterator{F,T,O}(
         operator::F,
-        u₀::TU,
+        u₀::T,
         orth::O,
         keepvecs::Bool
-    ) where {F,TU,O<:Orthogonalizer}
+    ) where {F,T,O<:Orthogonalizer}
         if !keepvecs && isa(orth, Reorthogonalizer)
             error("Cannot use reorthogonalization without keeping all Krylov vectors")
         end
-        return new{F,TU,O}(operator, u₀, orth, keepvecs)
+        return new{F,T,O}(operator, u₀, orth, keepvecs)
     end
 end
 GKLIterator(
     operator::F,
-    u₀::TU,
+    u₀::T,
     orth::O = KrylovDefaults.orth,
     keepvecs::Bool = true
-) where {F,TU,O<:Orthogonalizer} = GKLIterator{F,TU,O}(operator, u₀, orth, keepvecs)
+) where {F,T,O<:Orthogonalizer} = GKLIterator{F,T,O}(operator, u₀, orth, keepvecs)
+GKLIterator(
+    A::AbstractMatrix,
+    u₀::AbstractVector,
+    orth::O = KrylovDefaults.orth,
+    keepvecs::Bool = true
+) where {O<:Orthogonalizer} =
+    GKLIterator((x, flag) -> flag ? A' * x : A * x, u₀, orth, keepvecs)
 
 Base.IteratorSize(::Type{<:GKLIterator}) = Base.SizeUnknown()
 Base.IteratorEltype(::Type{<:GKLIterator}) = Base.EltypeUnknown()
@@ -188,15 +93,19 @@ function initialize(iter::GKLIterator; verbosity::Int = 0)
     u₀ = iter.u₀
     β₀ = norm(u₀)
     iszero(β₀) && throw(ArgumentError("initial vector should not have norm zero"))
-    v₀ = apply_adjoint(iter.operator, u₀)
+    v₀ = iter.operator(u₀, true) # apply adjoint operator, might change eltype
     α = norm(v₀) / β₀
-    Av₀ = apply_normal(iter.operator, v₀) # apply operator
+    Av₀ = iter.operator(v₀, false) # apply operator
     α² = dot(u₀, Av₀) / β₀^2
     α² ≈ α * α || throw(ArgumentError("operator and its adjoint are not compatible"))
     T = typeof(α²)
-    # these lines determines the type that we will henceforth use
-    u = (one(T) / β₀) * u₀
-    v = (one(T) / (α * β₀)) * v₀
+    # this line determines the type that we will henceforth use
+    u = (one(T) / β₀) * u₀ # u = mul!(similar(u₀, T), u₀, 1/β₀)
+    if typeof(v₀) == typeof(u)
+        v = rmul!(v₀, 1 / (α * β₀))
+    else
+        v = mul!(similar(u), v₀, 1 / (α * β₀))
+    end
     if typeof(Av₀) == typeof(u)
         r = rmul!(Av₀, 1 / (α * β₀))
     else
@@ -225,11 +134,11 @@ function initialize!(iter::GKLIterator, state::GKLFactorization; verbosity::Int 
     αs = empty!(state.αs)
     βs = empty!(state.βs)
 
-    u = mul!(U[1], iter.u₀, 1 / norm(iter.u₀))
-    v = apply_adjoint(iter.operator, u)
+    u = mul!(V[1], iter.u₀, 1 / norm(iter.u₀))
+    v = iter.operator(u, true)
     α = norm(v)
     rmul!(v, 1 / α)
-    r = apply_normal(iter.operator, v)
+    r = iter.operator(v, false) # apply operator
     r = axpy!(-α, u, r)
     β = norm(r)
 
@@ -294,12 +203,12 @@ function gklrecurrence(
     orth::Union{ClassicalGramSchmidt,ModifiedGramSchmidt}
 )
     u = U[end]
-    v = apply_adjoint(operator, u)
+    v = operator(u, true)
     v = axpy!(-β, V[end], v)
     α = norm(v)
     rmul!(v, inv(α))
 
-    r = apply_normal(operator, v)
+    r = operator(v, false)
     r = axpy!(-α, u, r)
     β = norm(r)
     return v, r, α, β
@@ -312,13 +221,13 @@ function gklrecurrence(
     orth::ClassicalGramSchmidt2
 )
     u = U[end]
-    v = apply_adjoint(operator, u)
+    v = operator(u, true)
     v = axpy!(-β, V[end], v) # not necessary if we definitely reorthogonalize next step and previous step
     # v, = orthogonalize!(v, V, ClassicalGramSchmidt())
     α = norm(v)
     rmul!(v, inv(α))
 
-    r = apply_normal(operator, v)
+    r = operator(v, false)
     r = axpy!(-α, u, r)
     r, = orthogonalize!(r, U, ClassicalGramSchmidt())
     β = norm(r)
@@ -332,7 +241,7 @@ function gklrecurrence(
     orth::ModifiedGramSchmidt2
 )
     u = U[end]
-    v = apply_adjoint(operator, u)
+    v = operator(u, true)
     v = axpy!(-β, V[end], v)
     # for q in V # not necessary if we definitely reorthogonalize next step and previous step
     #     v, = orthogonalize!(v, q, ModifiedGramSchmidt())
@@ -340,7 +249,7 @@ function gklrecurrence(
     α = norm(v)
     rmul!(v, inv(α))
 
-    r = apply_normal(operator, v)
+    r = operator(v, false)
     r = axpy!(-α, u, r)
     for q in U
         r, = orthogonalize!(r, q, ModifiedGramSchmidt())
@@ -356,7 +265,7 @@ function gklrecurrence(
     orth::ClassicalGramSchmidtIR
 )
     u = U[end]
-    v = apply_adjoint(operator, u)
+    v = operator(u, true)
     v = axpy!(-β, V[end], v)
     α = norm(v)
     nold = sqrt(abs2(α) + abs2(β))
@@ -367,7 +276,7 @@ function gklrecurrence(
     end
     rmul!(v, inv(α))
 
-    r = apply_normal(operator, v)
+    r = operator(v, false)
     r = axpy!(-α, u, r)
     β = norm(r)
     nold = sqrt(abs2(α) + abs2(β))
@@ -387,7 +296,7 @@ function gklrecurrence(
     orth::ModifiedGramSchmidtIR
 )
     u = U[end]
-    v = apply_adjoint(operator, u)
+    v = operator(u, true)
     v = axpy!(-β, V[end], v)
     α = norm(v)
     nold = sqrt(abs2(α) + abs2(β))
@@ -400,7 +309,7 @@ function gklrecurrence(
     end
     rmul!(v, inv(α))
 
-    r = apply_normal(operator, v)
+    r = operator(v, false)
     r = axpy!(-α, u, r)
     β = norm(r)
     nold = sqrt(abs2(α) + abs2(β))

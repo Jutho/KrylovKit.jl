@@ -178,7 +178,7 @@ geneigsolve(
 
 function geneigsolve(f, x₀, howmany::Int = 1, which::Selector = :LM; kwargs...)
     Tx = typeof(x₀)
-    Tfx = Core.Compiler.return_type(geneigfun(f), Tuple{Tx}) # should be a tuple type
+    Tfx = Core.Compiler.return_type(genapply, Tuple{typeof(f), Tx}) # should be a tuple type
     Tfx1 = Base.tuple_type_head(Tfx)
     Tfx2 = Base.tuple_type_head(Base.tuple_type_tail(Tfx))
     T1 = Core.Compiler.return_type(dot, Tuple{Tx,Tfx1})

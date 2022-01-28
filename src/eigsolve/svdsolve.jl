@@ -16,13 +16,13 @@ callable object. Since both the action of the linear map and its adjoint are req
 order to compute singular values, `f` can either be a tuple of two callable objects (each
 accepting a single argument), representing the linear map and its adjoint respectively, or,
 `f` can be a single callable object that accepts two input arguments, where the second
-argument is a flag that indicates whether the adjoint or the normal action of the linear
-map needs to be computed. The latter form still combines well with the `do` block syntax of
-Julia, as in
+argument is a flag of type `Val{true}` or `Val{false}` that indicates whether the adjoint or
+the normal action of the linear map needs to be computed. The latter form still combines
+well with the `do` block syntax of Julia, as in
 
 ```julia
-vals, lvecs, rvecs, info = svdsolve(x₀, y₀, howmany, which; kwargs...) do (x, flag)
-    if flag
+vals, lvecs, rvecs, info = svdsolve(x₀, y₀, howmany, which; kwargs...) do x, flag
+    if flag === Val(true)
         # y = compute action of adjoint map on x
     else
         # y = compute action of linear map on x
@@ -136,7 +136,7 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
     ## FIRST ITERATION: setting up
     numiter = 1
     # initialize GKL factorization
-    iter = GKLIterator(svdfun(A), x₀, alg.orth)
+    iter = GKLIterator(A, x₀, alg.orth)
     fact = initialize(iter; verbosity = alg.verbosity - 2)
     numops = 2
     sizehint!(fact, krylovdim)
@@ -301,7 +301,3 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
     rightvectors,
     ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end
-
-svdfun(A::AbstractMatrix) = (x, flag) -> flag ? A' * x : A * x
-svdfun((f, fadjoint)::Tuple{Any,Any}) = (x, flag) -> flag ? fadjoint(x) : f(x)
-svdfun(f) = f

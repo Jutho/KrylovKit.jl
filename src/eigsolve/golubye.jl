@@ -6,7 +6,7 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
 
     ## FIRST ITERATION: setting up
     numiter = 1
-    ax₀, bx₀ = apply(geneigfun(f), x₀)
+    ax₀, bx₀ = genapply(f, x₀)
     numops = 1
     β₀ = norm(x₀)
     iszero(β₀) && throw(ArgumentError("initial vector should not have norm zero"))
@@ -68,7 +68,7 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
 
     z = view(Z, :, p[1])
     x = mul!(similar(xold), V, z)
-    ax, bx = apply(geneigfun(f), x)
+    ax, bx = genapply(f, x)
     numops += 1
     ρ = checkhermitian(dot(x, ax)) / checkposdef(dot(x, bx))
     r = axpy!(-ρ, bx, ax)
@@ -88,7 +88,7 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
 
         z = view(Z, :, p[converged+1])
         x = mul!(similar(xold), V, z)
-        ax, bx = apply(geneigfun(f), x)
+        ax, bx = genapply(f, x)
         numops += 1
         ρ = checkhermitian(dot(x, ax)) / checkposdef(dot(x, bx))
         r = axpy!(-ρ, bx, ax)
@@ -150,7 +150,7 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
 
         # add xold
         v, = orthonormalize!(xold, V, alg.orth)
-        av, bv = apply(geneigfun(f), v)
+        av, bv = genapply(f, v)
         numops += 1
         av = axpy!(-ρ, bv, av)
         for i in 1:m
@@ -165,7 +165,7 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
         # add converged vectors
         @inbounds for i in 1:converged
             v, = orthonormalize(vectors[i], V, alg.orth)
-            av, bv = apply(geneigfun(f), v)
+            av, bv = genapply(f, v)
             numops += 1
             av = axpy!(-ρ, bv, av)
             for i in 1:m
@@ -197,7 +197,7 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
         while true
             z = view(Z, :, p[converged+1])
             x = mul!(similar(xold), V, z)
-            ax, bx = apply(geneigfun(f), x)
+            ax, bx = genapply(f, x)
             numops += 1
             ρ = checkhermitian(dot(x, ax)) / checkposdef(dot(x, bx))
             r = axpy!(-ρ, bx, ax)
@@ -235,7 +235,7 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
     for k in converged+1:howmany
         z = view(Z, :, p[k])
         x = mul!(similar(xold), V, z)
-        ax, bx = apply(geneigfun(f), x)
+        ax, bx = genapply(f, x)
         numops += 1
         ρ = checkhermitian(dot(x, ax)) / checkposdef(dot(x, bx))
         r = axpy!(-ρ, bx, ax)
@@ -268,7 +268,7 @@ end
 
 function golubyerecurrence(f, ρ, V::OrthonormalBasis, β, orth::ClassicalGramSchmidt)
     v = V[end]
-    av, bv = apply(geneigfun(f), v)
+    av, bv = genapply(f, v)
     w = axpy!(-ρ, bv, av)
     α = dot(v, w)
 
@@ -279,7 +279,7 @@ function golubyerecurrence(f, ρ, V::OrthonormalBasis, β, orth::ClassicalGramSc
 end
 function golubyerecurrence(f, ρ, V::OrthonormalBasis, β, orth::ModifiedGramSchmidt)
     v = V[end]
-    av, bv = apply(geneigfun(f), v)
+    av, bv = genapply(f, v)
     w = axpy!(-ρ, bv, av)
     w = axpy!(-β, V[end-1], w)
 
@@ -289,7 +289,7 @@ function golubyerecurrence(f, ρ, V::OrthonormalBasis, β, orth::ModifiedGramSch
 end
 function golubyerecurrence(f, ρ, V::OrthonormalBasis, β, orth::ClassicalGramSchmidt2)
     v = V[end]
-    av, bv = apply(geneigfun(f), v)
+    av, bv = genapply(f, v)
     w = axpy!(-ρ, bv, av)
     α = dot(v, w)
     w = axpy!(-β, V[end-1], w)
@@ -302,7 +302,7 @@ function golubyerecurrence(f, ρ, V::OrthonormalBasis, β, orth::ClassicalGramSc
 end
 function golubyerecurrence(f, ρ, V::OrthonormalBasis, β, orth::ModifiedGramSchmidt2)
     v = V[end]
-    av, bv = apply(geneigfun(f), v)
+    av, bv = genapply(f, v)
     w = axpy!(-ρ, bv, av)
     w = axpy!(-β, V[end-1], w)
     w, α = orthogonalize!(w, v, ModifiedGramSchmidt())
@@ -317,7 +317,7 @@ function golubyerecurrence(f, ρ, V::OrthonormalBasis, β, orth::ModifiedGramSch
 end
 function golubyerecurrence(f, ρ, V::OrthonormalBasis, β, orth::ClassicalGramSchmidtIR)
     v = V[end]
-    av, bv = apply(geneigfun(f), v)
+    av, bv = genapply(f, v)
     w = axpy!(-ρ, bv, av)
     α = dot(v, w)
     w = axpy!(-β, V[end-1], w)
@@ -336,7 +336,7 @@ function golubyerecurrence(f, ρ, V::OrthonormalBasis, β, orth::ClassicalGramSc
 end
 function golubyerecurrence(f, ρ, V::OrthonormalBasis, β, orth::ModifiedGramSchmidtIR)
     v = V[end]
-    av, bv = apply(geneigfun(f), v)
+    av, bv = genapply(f, v)
     w = axpy!(-ρ, bv, av)
     w = axpy!(-β, V[end-1], w)
 
@@ -366,6 +366,3 @@ function buildHB!(HB, V, BV)
         end
     end
 end
-
-geneigfun((A, B)::Tuple{Any,Any}) = x -> (apply(A, x), apply(B, x))
-geneigfun(f) = f

@@ -24,13 +24,10 @@ function linsolve(operator, b, x₀, alg::CG, a₀::Real = 0, a₁::Real = 1)
     # First iteration
     ρ = normr^2
     p = mul!(similar(r), r, 1)
-    q = apply(operator, p)
-    if α₀ != zero(α₀) || α₁ != one(α₁)
-        axpby!(α₀, p, α₁, q)
-    end
+    q = apply(operator, p, α₀, α₁)
     α = ρ / dot(p, q)
-    axpy!(+α, p, x)
-    axpy!(-α, q, r)
+    x = axpy!(+α, p, x)
+    r = axpy!(-α, q, r)
     normr = norm(r)
     ρold = ρ
     ρ = normr^2
@@ -49,18 +46,14 @@ function linsolve(operator, b, x₀, alg::CG, a₀::Real = 0, a₁::Real = 1)
 
     while numiter < maxiter
         axpby!(1, r, β, p)
-        q = apply(operator, p)
-        if α₀ != zero(α₀) || α₁ != one(α₁)
-            axpby!(α₀, p, α₁, q)
-        end
+        q = apply(operator, p, α₀, α₁)
         α = ρ / dot(p, q)
-        axpy!(+α, p, x)
-        axpy!(-α, q, r)
+        x = axpy!(+α, p, x)
+        r = axpy!(-α, q, r)
         normr = norm(r)
         if normr < tol # recompute to account for buildup of floating point errors
-            r = mul!(similar(r), b, 1)
-            r = iszero(α₀) ? r : axpy!(-α₀, x, r)
-            r = axpy!(-α₁, apply(operator, x), r)
+            r = mul!(r, b, 1)
+            r = axpy!(-1, apply(operator, x, α₀,α₁), r)
             normr = norm(r)
             ρ = normr^2
             β = zero(β) # restart CG

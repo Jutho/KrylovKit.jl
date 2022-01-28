@@ -117,9 +117,8 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number = 0, a₁::Number 
         else
             # Recompute residual and its norm explicitly, to ensure that no
             # numerical errors have accumulated
-            r = mul!(r, b, 1)                   # r = b
-            r = iszero(α₀) ? r : axpy!(-α₀, x, r)     #      - α₀ * x
-            r = axpy!(-α₁, apply(operator, x), r)  #      - α₁ * operator(x)
+            r = mul!(r, b, 1)
+            r = axpy!(-1, apply(operator, x, α₀, α₁), r)
             numops += 1
             β = norm(r)
             if β < tol
