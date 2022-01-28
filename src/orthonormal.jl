@@ -352,7 +352,7 @@ end
 # end
 
 # Orthogonalization of a vector against a given OrthonormalBasis
-orthogonalize(v, args...) = orthogonalize!(copy(v), args...)
+orthogonalize(v, args...) = orthogonalize!(true*v, args...)
 
 function orthogonalize!(v::T, b::OrthonormalBasis{T}, alg::Orthogonalizer) where {T}
     S = promote_type(eltype(v), eltype(T))
@@ -532,7 +532,7 @@ and its concrete subtypes [`ClassicalGramSchmidt`](@ref), [`ModifiedGramSchmidt`
 orthogonalize, orthogonalize!
 
 # Orthonormalization: orthogonalization and normalization
-orthonormalize(v, args...) = orthonormalize!(copy(v), args...)
+orthonormalize(v, args...) = orthonormalize!(true*v, args...)
 
 function orthonormalize!(v, args...)
     out = orthogonalize!(v, args...) # out[1] === v

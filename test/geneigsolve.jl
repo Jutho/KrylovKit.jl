@@ -27,14 +27,15 @@
 end
 
 @testset "GolubYe - geneigsolve iteratively" begin
-    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
-        @testset for orth in (cgs, mgs, cgs2, mgs2, cgsr, mgsr)
+    @testset for T in (Float64, ComplexF64)
+        @testset for orth in (cgs2, mgs2, cgsr, mgsr)
             A = rand(T,(N,N)) .- one(T)/2
             A = (A+A')/2
             B = rand(T,(N,N)) .- one(T)/2
             B = sqrt(B*B')
+            @show cond(B)
             v = rand(T,(N,))
-            alg = GolubYe(orth = orth, krylovdim = n, maxiter = 10, tol = 10*n*eps(real(T)))
+            alg = GolubYe(orth = orth, krylovdim = 3*n, maxiter = 100, tol = 10*cond(B)*n*eps(real(T)))
             D1, V1, info1 = @constinferred geneigsolve((wrapop(A), wrapop(B)), wrapvec(v), n, :SR, alg)
             D2, V2, info2 = geneigsolve((wrapop(A), wrapop(B)), wrapvec(v), n, :LR, alg)
 
