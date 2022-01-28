@@ -5,9 +5,11 @@
             A = rand(T, (n,n))
             v = A*rand(T, (n,)) # ensure v is in column space of A
             iter = GKLIterator(wrapop(A), wrapvec2(v), orth)
-            fact = initialize(iter)
+            verbosity = 1
+            fact = @constinferred initialize(iter; verbosity = verbosity)
             while length(fact) < n
-                expand!(iter, fact)
+                @constinferred expand!(iter, fact; verbosity = verbosity)
+                verbosity = 0
             end
 
             U = hcat(unwrapvec2.(basis(fact, :U))...)
@@ -18,6 +20,10 @@
             @test V'*V ≈ I
             @test A*V ≈ U*B
             @test A'*U ≈ V*B'
+
+            @constinferred initialize!(iter, deepcopy(fact); verbosity = 1)
+            states = collect(Iterators.take(iter, n)) # collect tests size and eltype?
+            @test rayleighquotient(last(states)) ≈ B
         end
     end
 end
@@ -39,12 +45,10 @@ end
             while normres(fact) > eps(float(real(T))) && length(fact) < krylovdim
                 @constinferred expand!(iter, fact)
 
-                U = hcat(unwrapvec2.(basis(fact, :U))...)
-                V = hcat(unwrapvec.(basis(fact, :V))...)
-                B = rayleighquotient(fact)
-                r = unwrapvec2(residual(fact))
-                β = normres(fact)
-                e = rayleighextension(fact)
+                Ũ, Ṽ, B, r̃, β, e = fact
+                U = hcat(unwrapvec2.(Ũ)...)
+                V = hcat(unwrapvec.(Ṽ)...)
+                r = unwrapvec2(r̃)
                 @test U'*U ≈ I
                 @test V'*V ≈ I
                 @test norm(r) ≈ β

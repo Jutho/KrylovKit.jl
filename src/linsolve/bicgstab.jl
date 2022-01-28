@@ -146,10 +146,6 @@ function linsolve(operator, b, x₀, alg::BiCGStab, a₀::Number = 0, a₁::Numb
         # Check for return at half step.
         if normr < tol
             # Compute non-approximate residual.
-            #= s = mul!(similar(b), b, 1)
-            s = iszero(α₀) ? s : axpy!(-α₀, xhalf, s)
-            axpy!(-α₁, apply(operator, xhalf), s)
-            numops += 1 =#
             s = mul!(similar(b), b, 1)
             s = axpy!(-1, apply(operator, xhalf, α₀, α₁), s)
             numops += 1

@@ -4,9 +4,9 @@
             A = rand(T,(n,n)) .- one(T)/2
             A = (A+A')/2
             v = rand(T,(n,))
-            alg = Lanczos(orth = orth, krylovdim = 2*n, maxiter = 1, tol = 10*n*eps(real(T)))
+            alg = Lanczos(orth = orth, krylovdim = 2*n, maxiter = 1, tol = 10*n*eps(real(T)), verbosity = 1)
             n1 = div(n,2)
-            D1, V1, info = eigsolve(wrapop(A), wrapvec(v), n1, :SR; orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)))
+            D1, V1, info = eigsolve(wrapop(A), wrapvec(v), n1, :SR; orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)), verbosity = 2)
             @test KrylovKit.eigselector(A, eltype(v); orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T))) isa Lanczos
             n2 = n-n1
             D2, V2, info = @constinferred eigsolve(wrapop(A), wrapvec(v), n2, :LR, alg)
@@ -19,6 +19,8 @@
 
             @test A*U1 ≈ U1*Diagonal(D1)
             @test A*U2 ≈ U2*Diagonal(D2)
+
+            _ = eigsolve(wrapop(A), wrapvec(v), n+1, :LM; orth = orth, krylovdim = 2n, maxiter = 1, tol = 10*n*eps(real(T)), verbosity = 0)
         end
     end
 end
@@ -29,15 +31,15 @@ end
             A = rand(T,(N,N)) .- one(T)/2
             A = (A+A')/2
             v = rand(T,(N,))
-            alg = Lanczos(orth = orth, krylovdim = n, maxiter = 18,
+            alg = Lanczos(orth = orth, krylovdim = 2*n, maxiter = 10,
                             tol = 10*n*eps(real(T)), eager = true)
-            n1 = div(n,2)
-            D1, V1, info1 = @constinferred eigsolve(wrapop(A), wrapvec(v), n1, :SR, alg)
-            n2 = n-n1
-            D2, V2, info2 = eigsolve(wrapop(A), wrapvec(v), n2, :LR, alg)
+            D1, V1, info1 = @constinferred eigsolve(wrapop(A), wrapvec(v), n, :SR, alg)
+            D2, V2, info2 = eigsolve(wrapop(A), wrapvec(v), n, :LR, alg)
 
             l1 = info1.converged
             l2 = info2.converged
+            @test l1 > 0
+            @test l2 > 0
             @test D1[1:l1] ≈ eigvals(A)[1:l1]
             @test D2[1:l2] ≈ eigvals(A)[N:-1:N-l2+1]
 
@@ -59,9 +61,9 @@ end
         @testset for orth in (cgs2, mgs2, cgsr, mgsr)
             A = rand(T,(n,n)) .- one(T)/2
             v = rand(T,(n,))
-            alg = Arnoldi(orth = orth, krylovdim = 2*n, maxiter = 1, tol = 10*n*eps(real(T)))
+            alg = Arnoldi(orth = orth, krylovdim = 2*n, maxiter = 1, tol = 10*n*eps(real(T)), verbosity = 1)
             n1 = div(n,2)
-            D1, V1, info1 = eigsolve(wrapop(A), wrapvec(v), n1, :SR; orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)))
+            D1, V1, info1 = eigsolve(wrapop(A), wrapvec(v), n1, :SR; orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)), verbosity = 2)
             @test KrylovKit.eigselector(A, eltype(v); orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T))) isa Arnoldi
             n2 = n-n1
             D2, V2, info2 = @constinferred eigsolve(wrapop(A), wrapvec(v), n2, :LR, alg)
@@ -88,6 +90,8 @@ end
                 @test A*U1 ≈ U1*Diagonal(D1)
                 @test A*U2 ≈ U2*Diagonal(D2)
             end
+
+            _ = eigsolve(wrapop(A), wrapvec(v), n+1, :LM; orth = orth, krylovdim = 2n, maxiter = 1, tol = 10*n*eps(real(T)), verbosity = 0)
         end
     end
 end
@@ -97,7 +101,7 @@ end
         @testset for orth in (cgs2, mgs2, cgsr, mgsr)
             A = rand(T,(N,N)) .- one(T)/2
             v = rand(T,(N,))
-            alg = Arnoldi(orth = orth, krylovdim = 3*n, maxiter = 10,
+            alg = Arnoldi(orth = orth, krylovdim = 3*n, maxiter = 20,
                             tol = 10*n*eps(real(T)), eager = true)
             D1, V1, info1 = @constinferred eigsolve(wrapop(A), wrapvec(v), n, :SR, alg)
             D2, V2, info2 = eigsolve(wrapop(A), wrapvec(v), n, :LR, alg)
@@ -107,6 +111,9 @@ end
             l1 = info1.converged
             l2 = info2.converged
             l3 = info3.converged
+            @test l1 > 0
+            @test l2 > 0
+            @test l3 > 0
             @test D1[1:l1] ≊ sort(D, alg=MergeSort, by=real)[1:l1]
             @test D2[1:l2] ≊ sort(D, alg=MergeSort, by=real, rev=true)[1:l2]
             # sorting by abs does not seem very reliable if two distinct eigenvalues are close
@@ -130,6 +137,8 @@ end
 
                 l1 = info1.converged
                 l2 = info2.converged
+                @test l1 > 0
+                @test l2 > 0
                 @test D1[1:l1] ≈ sort(D, by=imag)[1:l1]
                 @test D2[1:l2] ≈ sort(D, by=imag, rev=true)[1:l2]
 

@@ -7,9 +7,9 @@
             B = rand(T,(n,n)) .- one(T)/2
             B = sqrt(B*B')
             v = rand(T,(n,))
-            alg = GolubYe(orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)))
+            alg = GolubYe(orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)), verbosity = 1)
             n1 = div(n,2)
-            D1, V1, info = geneigsolve((wrapop(A), wrapop(B)), wrapvec(v), n1, :SR; orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)), ishermitian = true, isposdef = true)
+            D1, V1, info = @constinferred geneigsolve((wrapop(A), wrapop(B)), wrapvec(v), n1, :SR; orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)), ishermitian = true, isposdef = true, verbosity = 2)
             @test KrylovKit.geneigselector((A, B), eltype(v); orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)), ishermitian = true, isposdef = true) isa GolubYe
             n2 = n-n1
             D2, V2, info = @constinferred geneigsolve((wrapop(A), wrapop(B)), wrapvec(v), n2, :LR, alg)
@@ -28,20 +28,20 @@ end
 
 @testset "GolubYe - geneigsolve iteratively" begin
     @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
-        @testset for orth in (cgs2, mgs2, cgsr, mgsr)
+        @testset for orth in (cgs, mgs, cgs2, mgs2, cgsr, mgsr)
             A = rand(T,(N,N)) .- one(T)/2
             A = (A+A')/2
             B = rand(T,(N,N)) .- one(T)/2
             B = sqrt(B*B')
             v = rand(T,(N,))
-            alg = GolubYe(orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)))
-            n1 = div(n,2)
-            D1, V1, info1 = @constinferred geneigsolve((wrapop(A), wrapop(B)), wrapvec(v), n1, :SR, alg)
-            n2 = n-n1
-            D2, V2, info2 = geneigsolve((wrapop(A), wrapop(B)), wrapvec(v), n2, :LR, alg)
+            alg = GolubYe(orth = orth, krylovdim = n, maxiter = 10, tol = 10*n*eps(real(T)))
+            D1, V1, info1 = @constinferred geneigsolve((wrapop(A), wrapop(B)), wrapvec(v), n, :SR, alg)
+            D2, V2, info2 = geneigsolve((wrapop(A), wrapop(B)), wrapvec(v), n, :LR, alg)
 
             l1 = info1.converged
             l2 = info2.converged
+            @test l1 > 0
+            @test l2 > 0
             @test D1[1:l1] ≊ eigvals(A, B)[1:l1]
             @test D2[1:l2] ≊ eigvals(A, B)[N:-1:N-l2+1]
 

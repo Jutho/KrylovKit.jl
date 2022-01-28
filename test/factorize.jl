@@ -6,9 +6,11 @@
             v = rand(T,(n,))
             A = (A+A')
             iter = LanczosIterator(wrapop(A), wrapvec(v), orth)
-            fact = initialize(iter)
+            verbosity = 1
+            fact = @constinferred initialize(iter; verbosity = verbosity)
             while length(fact) < n
-                expand!(iter, fact; verbosity = 1)
+                @constinferred expand!(iter, fact; verbosity = verbosity)
+                verbosity = 0
             end
 
             V = hcat(unwrapvec.(basis(fact))...)
@@ -31,9 +33,11 @@ end
             A = rand(T,(n,n))
             v = rand(T,(n,))
             iter = ArnoldiIterator(wrapop(A), wrapvec(v), orth)
-            fact = initialize(iter)
+            verbosity = 1
+            fact = @constinferred initialize(iter; verbosity = verbosity)
             while length(fact) < n
-                expand!(iter, fact)
+                @constinferred expand!(iter, fact; verbosity = verbosity)
+                verbosity = 0
             end
 
             V = hcat(unwrapvec.(basis(fact))...)
@@ -68,11 +72,9 @@ end
             while normres(fact) > eps(float(real(T))) && length(fact) < krylovdim
                 @constinferred expand!(iter, fact)
 
-                V = hcat(unwrapvec.(basis(fact))...)
-                H = rayleighquotient(fact)
-                r = unwrapvec(residual(fact))
-                β = normres(fact)
-                e = rayleighextension(fact)
+                Ṽ, H, r̃, β, e = fact
+                V = hcat(unwrapvec.(Ṽ)...)
+                r = unwrapvec(r̃)
                 @test V'*V ≈ I
                 @test norm(r) ≈ β
                 @test A*V ≈ V*H + r*e'
@@ -108,11 +110,9 @@ end
             while normres(fact) > eps(float(real(T))) && length(fact) < krylovdim
                 @constinferred expand!(iter, fact)
 
-                V = hcat(unwrapvec.(basis(fact))...)
-                H = rayleighquotient(fact)
-                r = unwrapvec(residual(fact))
-                β = normres(fact)
-                e = rayleighextension(fact)
+                Ṽ, H, r̃, β, e = fact
+                V = hcat(unwrapvec.(Ṽ)...)
+                r = unwrapvec(r̃)
                 @test V'*V ≈ I
                 @test norm(r) ≈ β
                 @test A*V ≈ V*H + r*e'
