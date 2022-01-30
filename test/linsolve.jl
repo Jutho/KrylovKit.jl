@@ -4,8 +4,10 @@
         A = rand(T,(n,n))
         A = sqrt(A*A')
         b = rand(T,n)
-        alg = CG(maxiter = 2n, tol = 10n*eps(real(T))*norm(b)) # because of loss of orthogonality, we choose maxiter = 2n
-        x, info = @constinferred linsolve(wrapop(A), wrapvec(b), wrapvec(zero(b)), alg)
+        alg = CG(maxiter = 2n, tol = 10*n*eps(real(T))*norm(b), verbosity = 2) # because of loss of orthogonality, we choose maxiter = 2n
+        x, info = @constinferred linsolve(wrapop(A), wrapvec(b);
+            ishermitian = true, isposdef = true, maxiter = 2n, krylovdim = 1, rtol = 10*n*eps(real(T))*norm(b),
+            verbosity = 1)
         @test b ≈ A*unwrapvec(x)
         @test info.converged > 0
 
@@ -42,12 +44,8 @@ end
     @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
         A = rand(T, (n,n)) .- one(T)/2
         b = rand(T, n)
-        alg = GMRES(krylovdim = n, maxiter = 2, tol = 20n*eps(real(T))*norm(b))
-        x, info = @constinferred linsolve(wrapop(A), wrapvec(b), wrapvec(zero(b)), alg)
-        if info.converged == 0
-            @show requested_tol = 2*n*eps(real(T))*norm(b)
-            @show info.normres
-        end
+        alg = GMRES(krylovdim = n, maxiter = 2, tol = 20n*eps(real(T))*norm(b), verbosity = 2)
+        x, info = @constinferred linsolve(wrapop(A), wrapvec(b); krylovdim = n, maxiter = 2, tol = 20*n*eps(real(T))*norm(b), verbosity = 1)
         @test info.converged > 0
         @test b ≈ A*unwrapvec(x)
 
@@ -63,13 +61,13 @@ end
 # Test GMRES with restart
 @testset "GMRES with restarts" begin
     @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
-        A = rand(T,(N,N)).-one(T)/2
+        A = rand(T,(N,N)) .- one(T)/2
         A = I-T(9/10)*A/maximum(abs, eigvals(A))
         b = rand(T,N)
         x, info = @constinferred linsolve(wrapop(A), wrapvec(b); krylovdim = 3*n, maxiter = 50, rtol = 10*N*eps(real(T)))
         @test b ≈ A*unwrapvec(x) + unwrapvec(info.residual)
 
-        A = rand(T,(N,N)).-one(T)/2
+        A = rand(T,(N,N)) .- one(T)/2
         α₀ = maximum(abs, eigvals(A))
         α₁ = -rand(T)
         α₁ *= T(9)/T(10)/abs(α₁)
@@ -81,17 +79,18 @@ end
 # Test BICGStab
 @testset "BiCGStab" begin
     @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
-        A = rand(T,(N,N)).-one(T)/2
+        A = rand(T,(N,N)) .- one(T)/2
         A = I-T(9/10)*A/maximum(abs, eigvals(A))
         b = rand(T,N)
-        alg = BiCGStab(; maxiter=2N, tol=10N*eps(real(T))*norm(b))
+        alg = BiCGStab(; maxiter=2N, tol=10N*eps(real(T))*norm(b), verbosity = 1)
         x, info = @constinferred linsolve(wrapop(A), wrapvec(b), wrapvec(zero(b)), alg)
         @test b ≈ A*unwrapvec(x)
 
-        A = rand(T,(N,N)).-one(T)/2
+        A = rand(T,(N,N)) .- one(T)/2
         α₀ = maximum(abs, eigvals(A))
         α₁ = -rand(T)
         α₁ *= T(9)/T(10)/abs(α₁)
+        alg = BiCGStab(; maxiter=2N, tol=10N*eps(real(T))*norm(b), verbosity = 2)
         x, info = @constinferred linsolve(wrapop(A), wrapvec(b), wrapvec(zero(b)), alg, α₀, α₁)
         @test b ≈ (α₀*I+α₁*A)*unwrapvec(x) # + unwrapvec(info.residual)
     end

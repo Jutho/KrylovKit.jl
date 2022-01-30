@@ -33,7 +33,6 @@ end
             A = (A+A')/2
             B = rand(T,(N,N)) .- one(T)/2
             B = sqrt(B*B')
-            @show cond(B)
             v = rand(T,(N,))
             alg = GolubYe(orth = orth, krylovdim = 3*n, maxiter = 100, tol = 10*cond(B)*n*eps(real(T)))
             D1, V1, info1 = @constinferred geneigsolve((wrapop(A), wrapop(B)), wrapvec(v), n, :SR, alg)
