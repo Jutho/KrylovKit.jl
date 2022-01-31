@@ -1,24 +1,5 @@
-using Test
-using LinearAlgebra
 using Random
-using KrylovKit
-using Aqua
-Aqua.test_all(KrylovKit)
-
-const n = 10
-const N = 100
-
-const η₀   = 0.75 # seems to be necessary to get sufficient convergence for GKL iteration with Float32 precision
-const cgs = ClassicalGramSchmidt()
-const mgs = ModifiedGramSchmidt()
-const cgs2 = ClassicalGramSchmidt2()
-const mgs2 = ModifiedGramSchmidt2()
-const cgsr = ClassicalGramSchmidtIR(η₀)
-const mgsr = ModifiedGramSchmidtIR(η₀)
-
 Random.seed!(76543210)
-
-include("linalg.jl")
 
 module PureVecs
     using Test, TestExtras
@@ -142,4 +123,32 @@ module MixedSVD
     println("Mixed vector type for GKL/SVD: tests finisthed in $t seconds")
 end
 
-include("recursivevec.jl")
+module ExtrasTest
+    using Test, TestExtras
+    using LinearAlgebra
+    using Random
+    using KrylovKit
+
+    precision(T::Type{<:Number}) = eps(real(T))^(2/3)
+    include("setcomparison.jl")
+
+    const n = 10
+    const N = 100
+
+    const η₀   = 0.75 # seems to be necessary to get sufficient convergence for GKL iteration with Float32 precision
+    const cgs = ClassicalGramSchmidt()
+    const mgs = ModifiedGramSchmidt()
+    const cgs2 = ClassicalGramSchmidt2()
+    const mgs2 = ModifiedGramSchmidt2()
+    const cgsr = ClassicalGramSchmidtIR(η₀)
+    const mgsr = ModifiedGramSchmidtIR(η₀)
+
+    include("linalg.jl")
+    include("recursivevec.jl")
+end
+
+module AquaTests
+    using KrylovKit
+    using Aqua
+    Aqua.test_all(KrylovKit)
+end
