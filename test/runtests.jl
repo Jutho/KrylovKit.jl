@@ -18,7 +18,7 @@ const mgsr = ModifiedGramSchmidtIR(η₀)
 
 Random.seed!(76543210)
 
-# include("linalg.jl")
+include("linalg.jl")
 
 module PureVecs
     using Test, TestExtras
@@ -26,6 +26,7 @@ module PureVecs
     using Random
     using KrylovKit
 
+    precision(T::Type{<:Number}) = eps(real(T))^(2/3)
     include("setcomparison.jl")
 
     const n = 10
@@ -46,14 +47,14 @@ module PureVecs
     wrapop(A::AbstractMatrix) = A
 
     t = time()
-    # include("factorize.jl")
-    # include("gklfactorize.jl")
+    include("factorize.jl")
+    include("gklfactorize.jl")
     include("linsolve.jl")
-    # include("eigsolve.jl")
-    # include("geneigsolve.jl")
-    # include("schursolve.jl")
-    # include("svdsolve.jl")
-    # include("expintegrator.jl")
+    include("eigsolve.jl")
+    include("geneigsolve.jl")
+    include("schursolve.jl")
+    include("svdsolve.jl")
+    include("expintegrator.jl")
     t = time() - t
     println("Julia Vector type: tests finisthed in $t seconds")
 end
@@ -64,6 +65,7 @@ module MinimalVecs
     using Random
     using KrylovKit
 
+    precision(T::Type{<:Number}) = eps(real(T))^(2/3)
     include("setcomparison.jl")
 
     const n = 10
@@ -110,6 +112,7 @@ module MixedSVD
     using Random
     using KrylovKit
 
+    precision(T::Type{<:Number}) = eps(real(T))^(2/3)
     include("setcomparison.jl")
 
     const n = 10

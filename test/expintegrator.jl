@@ -18,13 +18,14 @@ end
             A = (A+A')/2
             V = one(A)
             W = zero(A)
-            alg = Lanczos(orth = orth, krylovdim = n, maxiter = 2, tol = 10*n*eps(real(T)))
+            alg = Lanczos(orth = orth, krylovdim = n, maxiter = 2, tol = precision(T), verbosity = 2)
             for k = 1:n
                 W[:,k] =  unwrapvec(first(@constinferred exponentiate(wrapop(A), 1, wrapvec(view(V,:,k)), alg)))
             end
             @test W ≈ exp(A)
 
             pmax = 5
+            alg = Lanczos(orth = orth, krylovdim = n, maxiter = 2, tol = precision(T), verbosity = 1)
             for t in (rand(real(T)), -rand(real(T)), im*randn(real(T)), randn(real(T))+im*randn(real(T)))
                 for p = 1:pmax
                     u = ntuple(i->rand(T, n), p+1)
@@ -47,13 +48,14 @@ end
             A = rand(T,(n,n)) .- one(T)/2
             V = one(A)
             W = zero(A)
-            alg = Arnoldi(orth = orth, krylovdim = n, maxiter = 2, tol = 10*n*eps(real(T)))
+            alg = Arnoldi(orth = orth, krylovdim = n, maxiter = 2, tol = precision(T), verbosity = 2)
             for k = 1:n
                 W[:,k] =  unwrapvec(first(@constinferred exponentiate(wrapop(A), 1, wrapvec(view(V,:,k)), alg)))
             end
             @test W ≈ exp(A)
 
             pmax = 5
+            alg = Arnoldi(orth = orth, krylovdim = n, maxiter = 2, tol = precision(T), verbosity = 1)
             for t in (rand(real(T)), -rand(real(T)), im*randn(real(T)), randn(real(T))+im*randn(real(T)))
                 for p = 1:pmax
                     u = ntuple(i->rand(T, n), p+1)

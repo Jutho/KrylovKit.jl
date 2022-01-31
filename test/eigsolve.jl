@@ -4,10 +4,10 @@
             A = rand(T,(n,n)) .- one(T)/2
             A = (A+A')/2
             v = rand(T,(n,))
-            alg = Lanczos(orth = orth, krylovdim = 2*n, maxiter = 1, tol = 10*n*eps(real(T)), verbosity = 1)
+            alg = Lanczos(orth = orth, krylovdim = 2*n, maxiter = 1, tol = precision(T), verbosity = 1)
             n1 = div(n,2)
-            D1, V1, info = eigsolve(wrapop(A), wrapvec(v), n1, :SR; orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)), verbosity = 2)
-            @test KrylovKit.eigselector(A, eltype(v); orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T))) isa Lanczos
+            D1, V1, info = eigsolve(wrapop(A), wrapvec(v), n1, :SR; orth = orth, krylovdim = n, maxiter = 1, tol = precision(T), verbosity = 2)
+            @test KrylovKit.eigselector(A, eltype(v); orth = orth, krylovdim = n, maxiter = 1, tol = precision(T)) isa Lanczos
             n2 = n-n1
             D2, V2, info = @constinferred eigsolve(wrapop(A), wrapvec(v), n2, :LR, alg)
             @test vcat(D1[1:n1],reverse(D2[1:n2])) ≊ eigvals(A)
@@ -20,7 +20,7 @@
             @test A*U1 ≈ U1*Diagonal(D1)
             @test A*U2 ≈ U2*Diagonal(D2)
 
-            _ = eigsolve(wrapop(A), wrapvec(v), n+1, :LM; orth = orth, krylovdim = 2n, maxiter = 1, tol = 10*n*eps(real(T)), verbosity = 0)
+            _ = eigsolve(wrapop(A), wrapvec(v), n+1, :LM; orth = orth, krylovdim = 2n, maxiter = 1, tol = precision(T), verbosity = 0)
         end
     end
 end
@@ -32,7 +32,7 @@ end
             A = (A+A')/2
             v = rand(T,(N,))
             alg = Lanczos(orth = orth, krylovdim = 2*n, maxiter = 10,
-                            tol = 10*n*eps(real(T)), eager = true)
+                            tol = precision(T), eager = true)
             D1, V1, info1 = @constinferred eigsolve(wrapop(A), wrapvec(v), n, :SR, alg)
             D2, V2, info2 = eigsolve(wrapop(A), wrapvec(v), n, :LR, alg)
 
@@ -61,10 +61,10 @@ end
         @testset for orth in (cgs2, mgs2, cgsr, mgsr)
             A = rand(T,(n,n)) .- one(T)/2
             v = rand(T,(n,))
-            alg = Arnoldi(orth = orth, krylovdim = 2*n, maxiter = 1, tol = 10*n*eps(real(T)), verbosity = 1)
+            alg = Arnoldi(orth = orth, krylovdim = 2*n, maxiter = 1, tol = precision(T), verbosity = 1)
             n1 = div(n,2)
-            D1, V1, info1 = eigsolve(wrapop(A), wrapvec(v), n1, :SR; orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T)), verbosity = 2)
-            @test KrylovKit.eigselector(A, eltype(v); orth = orth, krylovdim = n, maxiter = 1, tol = 10*n*eps(real(T))) isa Arnoldi
+            D1, V1, info1 = eigsolve(wrapop(A), wrapvec(v), n1, :SR; orth = orth, krylovdim = n, maxiter = 1, tol = precision(T), verbosity = 2)
+            @test KrylovKit.eigselector(A, eltype(v); orth = orth, krylovdim = n, maxiter = 1, tol = precision(T)) isa Arnoldi
             n2 = n-n1
             D2, V2, info2 = @constinferred eigsolve(wrapop(A), wrapvec(v), n2, :LR, alg)
             D = sort(sort(eigvals(A), by=imag, rev=true), alg=MergeSort, by=real)
@@ -91,7 +91,7 @@ end
                 @test A*U2 ≈ U2*Diagonal(D2)
             end
 
-            _ = eigsolve(wrapop(A), wrapvec(v), n+1, :LM; orth = orth, krylovdim = 2n, maxiter = 1, tol = 10*n*eps(real(T)), verbosity = 0)
+            _ = eigsolve(wrapop(A), wrapvec(v), n+1, :LM; orth = orth, krylovdim = 2n, maxiter = 1, tol = precision(T), verbosity = 0)
         end
     end
 end
@@ -102,7 +102,7 @@ end
             A = rand(T,(N,N)) .- one(T)/2
             v = rand(T,(N,))
             alg = Arnoldi(orth = orth, krylovdim = 3*n, maxiter = 20,
-                            tol = 10*n*eps(real(T)), eager = true)
+                            tol = precision(T), eager = true)
             D1, V1, info1 = @constinferred eigsolve(wrapop(A), wrapvec(v), n, :SR, alg)
             D2, V2, info2 = eigsolve(wrapop(A), wrapvec(v), n, :LR, alg)
             D3, V3, info3 = eigsolve(wrapop(A), wrapvec(v), n, :LM, alg)
