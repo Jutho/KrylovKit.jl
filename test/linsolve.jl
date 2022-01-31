@@ -84,7 +84,8 @@ end
 # Test BICGStab
 @testset "BiCGStab" begin
     @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
-        A = rand(T,(n,n))
+        A = rand(T,(n,n)) .- one(T)/2
+        A = I-T(9/10)*A/maximum(abs, eigvals(A))
         b = rand(T,n)
         alg = BiCGStab(; maxiter=4n, tol = precision(T)*norm(b), verbosity = 2)
         x, info = @constinferred linsolve(wrapop(A), wrapvec(b), wrapvec(zero(b)), alg)
