@@ -147,7 +147,9 @@ module ExtrasTest
     include("recursivevec.jl")
 end
 
-include("ad.jl")
+if VERSION >= v"1.6"
+    include("ad.jl")
+end
 
 module AquaTests
     using KrylovKit
