@@ -149,13 +149,14 @@ end
 
 if VERSION >= v"1.6"
     include("ad.jl")
+end
 
-    # ChainRulesCore leads to more ambiguities on julia < v1.6
-    module AquaTests
-        using KrylovKit
-        using Aqua
-        Aqua.test_all(KrylovKit; ambiguities = false)
-        # treat ambiguities special because of ambiguities between ChainRulesCore and Base
+module AquaTests
+    using KrylovKit
+    using Aqua
+    Aqua.test_all(KrylovKit; ambiguities = false)
+    # treat ambiguities special because of ambiguities between ChainRulesCore and Base
+    if VERSION >= v"1.6" # ChainRulesCore leads to more ambiguities on julia < v1.6
         Aqua.test_ambiguities([KrylovKit,Base,Core]; exclude=[Base.:(==)])
     end
 end
