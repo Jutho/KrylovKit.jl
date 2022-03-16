@@ -26,7 +26,7 @@ The return value is always of the form `y, info = exponentiate(...)` with
   - `y`: the result of the computation, i.e. `y = exp(t*A)*x`
 
   - `info`: an object of type [`ConvergenceInfo`], which has the following fields
-    
+
       + `info.converged::Int`: 0 or 1 if the solution `y` was approximated up to the
         requested tolerance `tol`.
       + `info.residual::Nothing`: value `nothing`, there is no concept of a residual in
@@ -38,7 +38,7 @@ The return value is always of the form `y, info = exponentiate(...)` with
       + `info.numiter::Int`: number of times the Krylov subspace was restarted (see below)
 
 !!! warning "Check for convergence"
-    
+
     By default (i.e. if `verbosity = 0`, see below), no warning is printed if the solution
     was not found with the requested precision, so be sure to check `info.converged == 1`.
 
@@ -63,6 +63,11 @@ Keyword arguments and their default values are given by:
     The default value for the last two depends on the method. If an `AbstractMatrix` is
     used, `issymmetric` and `ishermitian` are checked for that matrix, otherwise the default
     values are `issymmetric = false` and `ishermitian = T <: Real && issymmetric`.
+  - `eager::Bool = false`: if true, eagerly try to compute the result after every expansion
+    of the Krylov subspace to test for convergence, otherwise wait until the Krylov subspace
+    as dimension `krylovdim`. This can result in a faster return, for example if the total
+    time for the evolution is quite small, but also has some overhead, as more computations
+    are performed after every expansion step.
 
 ### Algorithm
 
