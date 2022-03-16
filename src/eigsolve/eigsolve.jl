@@ -42,6 +42,17 @@ targeted. Valid specifications of `which` are given by
     only be successful if you somehow know that eigenvalues close to zero are also close
     to the periphery of the spectrum.
 
+!!! warning "Degenerate eigenvalues"
+
+    From a theoretical point of view, Krylov methods can at most find a single eigenvector
+    associated with a targetted eigenvalue, even if the latter is degenerate. In the case of
+    a degenerate eigenvalue, the specific eigenvector that is returned is determined by the
+    starting vector `x₀`. For large problems, this turns out to be less of an issue in
+    practice, as often a second linearly independent eigenvector is generated out of the
+    numerical noise resulting from the orthogonalisation steps in the Lanczos or Arnoldi
+    iteration. Nonetheless, it is important to take this into account and to try not to
+    depend on this potentially fragile behaviour, especially for smaller problems.
+
 The argument `T` acts as a hint in which `Number` type the computation should be performed,
 but is not restrictive. If the linear map automatically produces complex values, complex
 arithmetic will be used even though `T<:Real` was specified. However, if the linear map and
