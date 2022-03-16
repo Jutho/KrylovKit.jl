@@ -85,12 +85,26 @@ function project!(
 )
     # no specialized routine for IndexLinear x because reduction dimension is large dimension
     length(y) == length(r) || throw(DimensionMismatch())
-    Threads.@threads for j in 1:length(r)
-        @inbounds begin
-            if β == 0
-                y[j] = α * dot(b[r[j]], x)
-            else
-                y[j] = β * y[j] + α * dot(b[r[j]], x)
+    if get_num_threads() > 1
+        @sync for J in splitrange(1:length(r), get_num_threads())
+            Threads.@spawn for j in $J
+                @inbounds begin
+                    if β == 0
+                        y[j] = α * dot(b[r[j]], x)
+                    else
+                        y[j] = β * y[j] + α * dot(b[r[j]], x)
+                    end
+                end
+            end
+        end
+    else
+        for j in 1:length(r)
+            @inbounds begin
+                if β == 0
+                    y[j] = α * dot(b[r[j]], x)
+                else
+                    y[j] = β * y[j] + α * dot(b[r[j]], x)
+                end
             end
         end
     end
@@ -117,7 +131,7 @@ function unproject!(
     β::Number = false,
     r = Base.OneTo(length(b))
 )
-    if y isa AbstractArray && IndexStyle(y) isa IndexLinear && Threads.nthreads() > 1
+    if y isa AbstractArray && IndexStyle(y) isa IndexLinear && get_num_threads() > 1
         return unproject_linear_multithreaded!(y, b, x, α, β, r)
     end
     # general case: using only vector operations, i.e. axpy! (similar to BLAS level 1)
@@ -151,8 +165,10 @@ function unproject_linear_multithreaded!(
         return β == 1 ? y : β == 0 ? fill!(y, 0) : rmul!(y, β)
     end
     let m = m, n = n, y = y, x = x, b = b, blocksize = prevpow(2, div(BLOCKSIZE, n))
-        Threads.@threads for I in 1:blocksize:m
-            unproject_linear_kernel!(y, b, x, I:min(I + blocksize - 1, m), α, β, r)
+        @sync for II in splitrange(1:blocksize:m, get_num_threads())
+            Threads.@spawn for I in $II
+                unproject_linear_kernel!(y, b, x, I:min(I + blocksize - 1, m), α, β, r)
+            end
         end
     end
     return y
@@ -240,29 +256,30 @@ end
     if n == 0
         return b
     end
-    blocksize = prevpow(2, div(BLOCKSIZE, n))
     let m = m, n = n, y = y, x = x, b = b, blocksize = prevpow(2, div(BLOCKSIZE, n))
-        Threads.@threads for I in 1:blocksize:m
-            @inbounds begin
-                for (j, rj) in enumerate(r)
-                    xj = α * conj(x[j])
-                    Vj = b[rj]
-                    if β == 0
-                        @simd for i in I:min(I + blocksize - 1, m)
-                            Vj[i] = zero(Vj[i])
+        @sync for II in splitrange(1:blocksize:m, get_num_threads())
+            Threads.@spawn for I in $II
+                @inbounds begin
+                    for (j, rj) in enumerate(r)
+                        xj = α * conj(x[j])
+                        Vj = b[rj]
+                        if β == 0
+                            @simd for i in I:min(I + blocksize - 1, m)
+                                Vj[i] = zero(Vj[i])
+                            end
+                        elseif β != 1
+                            @simd for i in I:min(I + blocksize - 1, m)
+                                Vj[i] *= β
+                            end
                         end
-                    elseif β != 1
-                        @simd for i in I:min(I + blocksize - 1, m)
-                            Vj[i] *= β
-                        end
-                    end
-                    if I + blocksize - 1 <= m
-                        @simd for i in Base.OneTo(blocksize)
-                            Vj[I-1+i] += y[I-1+i] * xj
-                        end
-                    else
-                        @simd for i in I:m
-                            Vj[i] += y[i] * xj
+                        if I + blocksize - 1 <= m
+                            @simd for i in Base.OneTo(blocksize)
+                                Vj[I-1+i] += y[I-1+i] * xj
+                            end
+                        else
+                            @simd for i in I:m
+                                Vj[i] += y[i] * xj
+                            end
                         end
                     end
                 end
@@ -287,21 +304,33 @@ and are stored in `b`, so the old basis vectors are thrown away. Note that, by d
 the subspace spanned by these basis vectors is exactly the same.
 """
 function basistransform!(b::OrthonormalBasis{T}, U::AbstractMatrix) where {T} # U should be unitary or isometric
-    if T <: AbstractArray && IndexStyle(T) isa IndexLinear && Threads.nthreads() > 1
+    if T <: AbstractArray && IndexStyle(T) isa IndexLinear && get_num_threads() > 1
         return basistransform_linear_multithreaded!(b, U)
     end
     m, n = size(U)
     m == length(b) || throw(DimensionMismatch())
 
-    b2 = [similar(b[1]) for j in 1:n]
-    Threads.@threads for j in 1:n
-        mul!(b2[j], b[1], U[1, j])
-        for i in 2:m
-            axpy!(U[i, j], b[i], b2[j])
+    let b2 = [similar(b[1]) for j in 1:n]
+        if get_num_threads() > 1
+            @sync for J in splitrange(1:n, get_num_threads())
+                Threads.@spawn for j in $J
+                    mul!(b2[j], b[1], U[1, j])
+                    for i in 2:m
+                        axpy!(U[i, j], b[i], b2[j])
+                    end
+                end
+            end
+        else
+            for j in 1:n
+                mul!(b2[j], b[1], U[1, j])
+                for i in 2:m
+                    axpy!(U[i, j], b[i], b2[j])
+                end
+            end
         end
-    end
-    for j in 1:n
-        b[j] = b2[j]
+        for j in 1:n
+            b[j] = b2[j]
+        end
     end
     return b
 end
@@ -316,17 +345,19 @@ function basistransform_linear_multithreaded!(
 
     blocksize = prevpow(2, div(BLOCKSIZE, m))
     let b2 = [similar(b[1]) for j in 1:n], K = K, m = m, n = n
-        Threads.@threads for I in 1:blocksize:K
-            @inbounds for j in 1:n
-                b2j = b2[j]
-                @simd for i in I:min(I + blocksize - 1, K)
-                    b2j[i] = zero(b2j[i])
-                end
-                for k in 1:m
-                    bk = b[k]
-                    Ukj = U[k, j]
+        @sync for II in splitrange(1:blocksize:K, get_num_threads())
+            Threads.@spawn for I in $II
+                @inbounds for j in 1:n
+                    b2j = b2[j]
                     @simd for i in I:min(I + blocksize - 1, K)
-                        b2j[i] += bk[i] * Ukj
+                        b2j[i] = zero(b2j[i])
+                    end
+                    for k in 1:m
+                        bk = b[k]
+                        Ukj = U[k, j]
+                        @simd for i in I:min(I + blocksize - 1, K)
+                            b2j[i] += bk[i] * Ukj
+                        end
                     end
                 end
             end

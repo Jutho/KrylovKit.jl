@@ -37,6 +37,66 @@ export CG, GMRES, BiCGStab, Lanczos, Arnoldi, GKL, GolubYe
 export KrylovDefaults, EigSorter
 export RecursiveVec, InnerProductVec
 
+# Multithreading
+const _NTHREADS = Ref(1)
+get_num_threads() = _NTHREADS[]
+
+function set_num_threads(n::Int)
+    N = Base.Threads.nthreads()
+    if n > N
+        n = N
+        _set_num_threads_warn(n)
+    end
+    _NTHREADS[] = n
+end
+@noinline function _set_num_threads_warn(n)
+    @warn "Maximal number of threads limited by number of Julia threads,
+            setting number of threads equal to Threads.nthreads() = $n"
+end
+
+enable_threads() = set_num_threads(Base.Threads.nthreads())
+disable_threads() = set_num_threads(1)
+
+function __init__()
+    set_num_threads(Base.Threads.nthreads())
+end
+
+struct SplitRange
+    start::Int
+    step::Int
+    stop::Int
+    innerlength::Int
+    outerlength1::Int
+    outerlength::Int
+end
+function splitrange(r::OrdinalRange, n::Integer)
+    start = first(r)
+    stp = step(r)
+    stop = last(r)
+    l = length(r)
+    innerlength = div(l, n)
+    outerlength1 = l - n * innerlength
+    outerlength = n
+    return SplitRange(start, stp, stop, innerlength, outerlength1, outerlength)
+end
+function Base.iterate(r::SplitRange, i = 1)
+    step = r.step
+    if i <= r.outerlength1
+        offset = (i-1)*(r.innerlength+1)*step
+        start = r.start + offset
+        stop = start + step*r.innerlength
+    elseif i <= r.outerlength
+        offset = (r.outerlength1 + (i-1)*r.innerlength)*step
+        start = r.start + offset
+        stop = start + step*(r.innerlength-1)
+    else
+        return nothing
+    end
+    return StepRange(start, step, stop), i+1
+end
+Base.length(r::SplitRange) = r.outerlength
+
+# Algorithm types
 include("algorithms.jl")
 
 # Structures to store a list of basis vectors
