@@ -32,8 +32,8 @@ module PureVecs
     include("gklfactorize.jl")
     include("linsolve.jl")
     include("eigsolve.jl")
-    include("geneigsolve.jl")
     include("schursolve.jl")
+    include("geneigsolve.jl")
     include("svdsolve.jl")
     include("expintegrator.jl")
     t = time() - t
@@ -79,8 +79,8 @@ module MinimalVecs
     include("gklfactorize.jl")
     include("linsolve.jl")
     include("eigsolve.jl")
-    include("geneigsolve.jl")
     include("schursolve.jl")
+    include("geneigsolve.jl")
     include("svdsolve.jl")
     include("expintegrator.jl")
     t = time() - t
