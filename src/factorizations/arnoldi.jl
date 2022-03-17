@@ -142,7 +142,7 @@ function initialize(iter::ArnoldiIterator; verbosity::Int = 0)
     α = dot(x₀, Ax₀) / (β₀ * β₀)
     T = typeof(α)
     # this line determines the vector type that we will henceforth use
-    v = (one(T) / β₀) * x₀ # mul!(similar(x₀, T), x₀, 1/β₀)
+    v = mul!(zero(T)*Ax₀, x₀, 1 / β₀) # (one(T) / β₀) * x₀ # mul!(similar(x₀, T), x₀, 1/β₀)
     if typeof(Ax₀) != typeof(v)
         r = mul!(similar(v), Ax₀, 1 / β₀)
     else
