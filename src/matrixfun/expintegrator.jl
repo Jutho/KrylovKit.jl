@@ -78,11 +78,11 @@ Keyword arguments and their default values are given by:
     The default value for the last two depends on the method. If an `AbstractMatrix` is
     used, `issymmetric` and `ishermitian` are checked for that matrix, otherwise the default
     values are `issymmetric = false` and `ishermitian = T <: Real && issymmetric`.
-  - `eager::Bool = false`: if true, eagerly compute the eigenvalue or Schur decomposition
-    after every expansion of the Krylov subspace to test for convergence, otherwise wait
-    until the Krylov subspace has dimension `krylovdim`. This can result in a faster return,
-    for example if the initial guess is very good, but also has some overhead, as many more
-    dense Schur factorizations need to be computed.
+  - `eager::Bool = false`: if true, eagerly try to compute the result after every expansion
+    of the Krylov subspace to test for convergence, otherwise wait until the Krylov subspace
+    as dimension `krylovdim`. This can result in a faster return, for example if the total
+    time for the evolution is quite small, but also has some overhead, as more computations
+    are performed after every expansion step.
 
 ### Algorithm
 
