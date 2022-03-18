@@ -136,7 +136,7 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
     # initial vectors
     w = Vector{typeof(w₀)}(undef, p + 1)
     w[1] = w₀
-    w[2] = one(T) * Au₀
+    w[2] = one(T) * Au₀ # reuse the result of apply computed earlier
     for j in 1:p
         if j > 1
           w[j+1] = apply(A, w[j])
