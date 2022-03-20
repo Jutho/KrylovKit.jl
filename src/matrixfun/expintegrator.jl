@@ -136,9 +136,13 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
     # initial vectors
     w = Vector{typeof(w₀)}(undef, p + 1)
     w[1] = w₀
+    # reuse the result of apply computed earlier:
+    w[2] = mul!(similar(w₀), Au₀, one(T))
     for j in 1:p
-        w[j+1] = apply(A, w[j])
-        numops += 1
+        if j > 1
+          w[j+1] = apply(A, w[j])
+          numops += 1
+        end
         lfac = 1
         for l in 0:p-j
             w[j+1] = axpy!((sgn * τ₀)^l / lfac, u[j+l+1], w[j+1])
