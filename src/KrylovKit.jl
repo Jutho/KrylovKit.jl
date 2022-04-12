@@ -23,7 +23,6 @@ module KrylovKit
 
 using LinearAlgebra
 using Printf
-using ChainRulesCore
 const IndexRange = AbstractRange{Int}
 
 export linsolve, eigsolve, geneigsolve, svdsolve, schursolve, exponentiate, expintegrator
@@ -233,9 +232,6 @@ include("linsolve/bicgstab.jl")
 # exponentiate
 include("matrixfun/exponentiate.jl")
 include("matrixfun/expintegrator.jl")
-
-# rules for automatic differentation
-include("adrules/linsolve.jl")
 
 # custom vector types
 include("recursivevec.jl")
