@@ -299,6 +299,7 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
                 end
                 fact = initialize!(iter, fact; verbosity = alg.verbosity - 2)
                 numops += 1
+                numiter += 1
             end
         end
     end
