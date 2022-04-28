@@ -126,8 +126,10 @@ function ChainRulesCore.rrule(
     λₗs, ls, infoₗ = eigsolve(A', x₀, howmany, which, alg)
     infoₗ.converged < howmany && @warn "Left eigenvectors not converged."
     λₗs = λₗs[1:howmany]
-    ls = ls[1:howmany]
-    all(conj.(λₗs) .≈ λᵣs) || @warn "Left and right eigenvalues disagree."
+    by, rev = eigsort(which)
+    p = sortperm(conj.(λₗs) .+ alg.tol * 1.0im, by=by, rev=rev)
+    all(conj.(λₗs[p]) .≈ λᵣs) || @warn "Left and right eigenvalues disagree."
+    ls = ls[p]
 
     project_A = ProjectTo(A)
 
@@ -196,8 +198,10 @@ function ChainRulesCore.rrule(
     λₗs, ls, infoₗ = eigsolve(fᴴ, x₀, howmany, which, alg)
     infoₗ.converged < howmany && @warn "Left eigenvectors not converged."
     λₗs = λₗs[1:howmany]
-    ls = ls[1:howmany]
-    all(conj.(λₗs) .≈ λᵣs) || @warn "Left and right eigenvalues disagree."
+    by, rev = eigsort(which)
+    p = sortperm(conj.(λₗs) .+ alg.tol * 1.0im, by=by, rev=rev)
+    all(conj.(λₗs[p]) .≈ λᵣs) || @warn "Left and right eigenvalues disagree."
+    ls = ls[p]
 
     f_pullbacks = map(x -> rrule_via_ad(config, f, x)[2], rs)
 

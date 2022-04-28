@@ -162,6 +162,7 @@ end
 @testset "Arnoldi - eigsolve AD full" begin
     @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
         A = rand(T, (n, n)) .- one(T) / 2
+        # A = [-1 -4; 1 -1]
         v = rand(T, (n,))
 
         alg = Arnoldi(; krylovdim=2 * n, maxiter=1, tol=precision(T))
@@ -169,12 +170,12 @@ end
 
         function f(A)
             vals, vecs, _ = eigsolve(A, v, n, which, alg)
-
             vecs_phased = map(vecs) do vec
                 return vec ./ exp(angle(vec[1])im)
             end
             D = vcat(vals...)
             U = hcat(vecs_phased...)
+            @show D, U
             return D, U
         end
 
@@ -183,6 +184,7 @@ end
             vecs_phased = map(1:size(vecs, 2)) do i
                 return vecs[:, i] ./ exp(angle(vecs[1, i])im)
             end
+            @show vals, vecs_phased
             return vals, hcat(vecs_phased...)
         end
 
@@ -205,7 +207,7 @@ end
             @test y2[i] ≈ y3[i]
         end
 
-        for i in 1:3
+        for i in 1:1
             Δvals = rand(T, (n,))
             Δvecs = rand(T, (n, n))
             @test first(back1((Δvals, Δvecs))) ≈ first(back2((Δvals, Δvecs)))
