@@ -103,115 +103,117 @@ using Random, Test
 using ChainRulesCore, ChainRulesTestUtils, Zygote
 
 precision(T::Type{<:Number}) = eps(real(T))^(2 / 3)
-n = 2
+@testset "eigsolve AD" begin
+    @testset for n in (2, 10, 20)
 
-@testset "Lanczos - eigsolve AD full" begin
-    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
-        A = rand(T, (n, n)) .- one(T) / 2
-        A = Hermitian((A + A') / 2)
-        v = rand(T, (n,))
-        alg = Lanczos(; krylovdim=2 * n, maxiter=1, tol=precision(T))
-        which = :LM
-        function f(A)
-            vals, vecs, info = eigsolve(A, v, n, which, alg)
+        @testset "Lanczos - full" begin
+            @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
+                A = rand(T, (n, n)) .- one(T) / 2
+                A = Hermitian((A + A') / 2)
+                v = rand(T, (n,))
+                alg = Lanczos(; krylovdim=2 * n, maxiter=1, tol=precision(T))
+                which = :LM
+                function f(A)
+                    vals, vecs, info = eigsolve(A, v, n, which, alg)
 
-            vecs_phased = map(vecs) do vec
-                return vec ./ exp(angle(vec[1])im)
+                    vecs_phased = map(vecs) do vec
+                        return vec ./ exp(angle(vec[1])im)
+                    end
+                    D = vcat(vals...)
+                    U = hcat(vecs_phased...)
+                    return D, U
+                end
+
+                function g(A)
+                    vals, vecs = eigen(A; sortby=x -> -abs(x))
+                    vecs_phased = map(1:size(vecs, 2)) do i
+                        return vecs[:, i] ./ exp(angle(vecs[1, i])im)
+                    end
+                    return vals, hcat(vecs_phased...)
+                end
+
+                function h(A)
+                    vals, vecs = eigsolve(v, n, which, alg) do x
+                        return A * x
+                    end
+                    vecs_phased = map(vecs) do vec
+                        return vec ./ exp(angle(vec[1])im)
+                    end
+                    return vcat(vals...), hcat(vecs_phased...)
+                end
+
+                y1, back1 = pullback(f, A)
+                y2, back2 = pullback(g, A)
+                y3, back3 = pullback(h, A)
+
+                for i in 1:2
+                    @test y1[i] ≈ y2[i]
+                    @test y2[i] ≈ y3[i]
+                end
+
+                for i in 1:3
+                    Δvals = rand(T, (n,))
+                    Δvecs = rand(T, (n, n))
+                    @test first(back1((Δvals, Δvecs))) ≈ first(back2((Δvals, Δvecs)))
+                    @test first(back2((Δvals, Δvecs))) ≈ first(back3((Δvals, Δvecs)))
+                end
             end
-            D = vcat(vals...)
-            U = hcat(vecs_phased...)
-            return D, U
         end
 
-        function g(A)
-            vals, vecs = eigen(A; sortby=x -> -abs(x))
-            vecs_phased = map(1:size(vecs, 2)) do i
-                return vecs[:, i] ./ exp(angle(vecs[1, i])im)
+        @testset "Arnoldi - full" begin
+            @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
+                A = rand(T, (n, n)) .- one(T) / 2
+                v = rand(T, (n,))
+
+                alg = Arnoldi(; krylovdim=2 * n, maxiter=1, tol=precision(T))
+                which = :LM
+
+                function f(A)
+                    vals, vecs, _ = eigsolve(A, v, n, which, alg)
+                    vecs_phased = map(vecs) do vec
+                        return vec ./ exp(angle(vec[1])im)
+                    end
+                    D = vcat(vals...)
+                    U = hcat(vecs_phased...)
+                    @show D, U
+                    return D, U
+                end
+
+                function g(A)
+                    vals, vecs = eigen(A; sortby=x -> -abs(x))
+                    vecs_phased = map(1:size(vecs, 2)) do i
+                        return vecs[:, i] ./ exp(angle(vecs[1, i])im)
+                    end
+                    @show vals, vecs_phased
+                    return vals, hcat(vecs_phased...)
+                end
+
+                function h(A)
+                    vals, vecs, _ = eigsolve(v, n, which, alg) do x
+                        return A * x
+                    end
+                    vecs_phased = map(vecs) do vec
+                        return vec ./ exp(angle(vec[1])im)
+                    end
+                    return vcat(vals...), hcat(vecs_phased...)
+                end
+
+                y1, back1 = pullback(f, A)
+                y2, back2 = pullback(g, A)
+                y3, back3 = pullback(h, A)
+
+                for i in 1:2
+                    @test y1[i] ≈ y2[i]
+                    @test y2[i] ≈ y3[i]
+                end
+
+                for i in 1:1
+                    Δvals = rand(T, (n,))
+                    Δvecs = rand(T, (n, n))
+                    @test first(back1((Δvals, Δvecs))) ≈ first(back2((Δvals, Δvecs)))
+                    @test first(back2((Δvals, Δvecs))) ≈ first(back3((Δvals, Δvecs)))
+                end
             end
-            return vals, hcat(vecs_phased...)
-        end
-
-        function h(A)
-            vals, vecs = eigsolve(v, n, which, alg) do x
-                return A * x
-            end
-            vecs_phased = map(vecs) do vec
-                return vec ./ exp(angle(vec[1])im)
-            end
-            return vcat(vals...), hcat(vecs_phased...)
-        end
-
-        y1, back1 = pullback(f, A)
-        y2, back2 = pullback(g, A)
-        y3, back3 = pullback(h, A)
-
-        for i in 1:2
-            @test y1[i] ≈ y2[i]
-            @test y2[i] ≈ y3[i]
-        end
-
-        for i in 1:3
-            Δvals = rand(T, (n,))
-            Δvecs = rand(T, (n, n))
-            @test first(back1((Δvals, Δvecs))) ≈ first(back2((Δvals, Δvecs)))
-            @test first(back2((Δvals, Δvecs))) ≈ first(back3((Δvals, Δvecs)))
-        end
-    end
-end
-
-@testset "Arnoldi - eigsolve AD full" begin
-    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
-        A = rand(T, (n, n)) .- one(T) / 2
-        # A = [-1 -4; 1 -1]
-        v = rand(T, (n,))
-
-        alg = Arnoldi(; krylovdim=2 * n, maxiter=1, tol=precision(T))
-        which = :LM
-
-        function f(A)
-            vals, vecs, _ = eigsolve(A, v, n, which, alg)
-            vecs_phased = map(vecs) do vec
-                return vec ./ exp(angle(vec[1])im)
-            end
-            D = vcat(vals...)
-            U = hcat(vecs_phased...)
-            @show D, U
-            return D, U
-        end
-
-        function g(A)
-            vals, vecs = eigen(A; sortby=x -> -abs(x))
-            vecs_phased = map(1:size(vecs, 2)) do i
-                return vecs[:, i] ./ exp(angle(vecs[1, i])im)
-            end
-            @show vals, vecs_phased
-            return vals, hcat(vecs_phased...)
-        end
-
-        function h(A)
-            vals, vecs, _ = eigsolve(v, n, which, alg) do x
-                return A * x
-            end
-            vecs_phased = map(vecs) do vec
-                return vec ./ exp(angle(vec[1])im)
-            end
-            return vcat(vals...), hcat(vecs_phased...)
-        end
-
-        y1, back1 = pullback(f, A)
-        y2, back2 = pullback(g, A)
-        y3, back3 = pullback(h, A)
-
-        for i in 1:2
-            @test y1[i] ≈ y2[i]
-            @test y2[i] ≈ y3[i]
-        end
-
-        for i in 1:1
-            Δvals = rand(T, (n,))
-            Δvecs = rand(T, (n, n))
-            @test first(back1((Δvals, Δvecs))) ≈ first(back2((Δvals, Δvecs)))
-            @test first(back2((Δvals, Δvecs))) ≈ first(back3((Δvals, Δvecs)))
         end
     end
 end
