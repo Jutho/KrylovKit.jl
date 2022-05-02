@@ -13,7 +13,7 @@ the function `f`. Return eigenvalues, eigenvectors and a `ConvergenceInfo` struc
 The linear map can be an `AbstractMatrix` (dense or sparse) or a general function or
 callable object. If an `AbstractMatrix` is used, a starting vector `x₀` does not need to be
 provided, it is then chosen as `rand(T, size(A,1))`. If the linear map is encoded more
-generally as a a callable function or method, the best approach is to provide an explicit
+generally as a callable function or method, the best approach is to provide an explicit
 starting guess `x₀`. Note that `x₀` does not need to be of type `AbstractVector`; any type
 that behaves as a vector and supports the required methods (see KrylovKit docs) is accepted.
 If instead of `x₀` an integer `n` is specified, it is assumed that `x₀` is a regular vector
@@ -177,6 +177,7 @@ eigsolve(
 
 eigsolve(f, n::Int, howmany::Int = 1, which::Selector = :LM, T::Type = Float64; kwargs...) =
     eigsolve(f, rand(T, n), howmany, which; kwargs...)
+
 function eigsolve(f, x₀, howmany::Int = 1, which::Selector = :LM; kwargs...)
     Tx = typeof(x₀)
     Tfx = Core.Compiler.return_type(apply, Tuple{typeof(f),Tx})
@@ -191,11 +192,11 @@ function eigsolve(f, x₀, howmany::Int = 1, which::Selector = :LM; kwargs...)
         end
     elseif T <: Real
         if which == :LI ||
-           which == :SI ||
-           (which isa EigSorter && which.by(+im) != which.by(-im))
+            which == :SI ||
+            (which isa EigSorter && which.by(+im) != which.by(-im))
             error(
                 "Eigenvalue selector which = $which invalid because it does not treat
-          `λ` and `conj(λ)` equally: work in complex arithmetic by providing a complex starting vector `x₀`"
+            `λ` and `conj(λ)` equally: work in complex arithmetic by providing a complex starting vector `x₀`"
             )
         end
     end
@@ -215,7 +216,7 @@ function eigselector(
     verbosity::Int = 0
 )
     if (issymmetric && !(T <: Complex)) || ishermitian
-        return Lanczos(
+        return Lanczos(;
             krylovdim = krylovdim,
             maxiter = maxiter,
             tol = tol,
@@ -224,7 +225,7 @@ function eigselector(
             verbosity = verbosity
         )
     else
-        return Arnoldi(
+        return Arnoldi(;
             krylovdim = krylovdim,
             maxiter = maxiter,
             tol = tol,
@@ -247,7 +248,7 @@ function eigselector(
     verbosity::Int = 0
 )
     if (T <: Real && issymmetric) || ishermitian
-        return Lanczos(
+        return Lanczos(;
             krylovdim = krylovdim,
             maxiter = maxiter,
             tol = tol,
@@ -256,7 +257,7 @@ function eigselector(
             verbosity = verbosity
         )
     else
-        return Arnoldi(
+        return Arnoldi(;
             krylovdim = krylovdim,
             maxiter = maxiter,
             tol = tol,
