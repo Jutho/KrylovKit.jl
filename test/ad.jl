@@ -175,7 +175,7 @@ precision(T::Type{<:Number}) = eps(real(T))^(2 / 3)
                     end
                     D = vcat(vals...)
                     U = hcat(vecs_phased...)
-                    @show D, U
+                    D, U
                     return D, U
                 end
 
@@ -184,7 +184,7 @@ precision(T::Type{<:Number}) = eps(real(T))^(2 / 3)
                     vecs_phased = map(1:size(vecs, 2)) do i
                         return vecs[:, i] ./ exp(angle(vecs[1, i])im)
                     end
-                    @show vals, vecs_phased
+                    vals, vecs_phased
                     return vals, hcat(vecs_phased...)
                 end
 

@@ -1,5 +1,52 @@
 function ChainRulesCore.rrule(
     ::typeof(eigsolve),
+    A::StridedMatrix{T},
+    x₀,
+    howmany,
+    which,
+    alg::Lanczos
+) where {T<:Union{Real,Complex}}
+    vals, vecs, info = eigsolve(A, x₀, howmany, which, alg)
+
+    # manually truncate "howmany" values
+    vals = vals[1:howmany]
+    vecs = vecs[1:howmany]
+
+    function eigsolve_pullback(ΔX)
+        Δvals, Δvecs, _ = ΔX
+        ∂self = NoTangent()
+        ∂x₀ = ZeroTangent()
+        ∂alg = NoTangent()
+        ∂which = NoTangent()
+        ∂howmany = NoTangent()
+        ∂A = mapreduce(+, vals, vecs, Δvals, Δvecs) do λ, v, Δλ, Δv
+            if isa(Δv, typeof(ZeroTangent()))
+                ξ = Δv
+            else
+                alg_reverse = GMRES(;
+                    tol=alg.tol,
+                    krylovdim=alg.krylovdim,
+                    maxiter=alg.maxiter,
+                    orth=alg.orth
+                )
+                b = Δv - dot(v, Δv) * v
+                ξ, info_reverse = linsolve(A, b, zero(λ) * b, alg_reverse, -λ)
+                info_reverse.converged == 0 && @warn "Cotangent problem did not converge."
+                ξ -= dot(v, ξ) * v
+            end
+            return InplaceableThunk(
+                Ā -> mul!(Ā, v, Δλ * v' - ξ', true, true),
+                @thunk(v * (Δλ * v' - ξ')),
+            )
+        end
+        ∂A = T <: Real ? real(∂A) : ∂A
+        return ∂self, ∂A, ∂x₀, ∂howmany, ∂which, ∂alg
+    end
+    return (vals, vecs, info), eigsolve_pullback
+end
+
+function ChainRulesCore.rrule(
+    ::typeof(eigsolve),
     A::AbstractMatrix,
     x₀,
     howmany,
@@ -36,15 +83,9 @@ function ChainRulesCore.rrule(
                 info_reverse.converged == 0 && @warn "Cotangent problem did not converge."
                 ξ -= dot(v, ξ) * v
             end
-            if A isa StridedMatrix
-                return InplaceableThunk(
-                    Ā -> mul!(Ā, v, Δλ * v' - ξ', true, true),
-                    @thunk(v * (Δλ * v' - ξ')),
-                )
-            else
-                return @thunk(project_A(v * (Δλ * v' - ξ')))
-            end
+            @thunk(project_A(v * (Δλ * v' - ξ')))
         end
+        ∂A = eltype(A) <: Real ? real(∂A) : ∂A
         return ∂self, ∂A, ∂x₀, ∂howmany, ∂which, ∂alg
     end
     return (vals, vecs, info), eigsolve_pullback
@@ -112,6 +153,57 @@ end
 
 function ChainRulesCore.rrule(
     ::typeof(eigsolve),
+    A::StridedMatrix{T},
+    x₀,
+    howmany,
+    which,
+    alg::Arnoldi
+) where {T<:Union{Real, Complex}} 
+    λᵣs, rs, infoᵣ = eigsolve(A, x₀, howmany, which, alg)
+    λᵣs = λᵣs[1:howmany]
+    rs = rs[1:howmany]
+
+    # compute left eigenvectors
+    λₗs, ls, infoₗ = eigsolve(A', x₀, howmany, which, alg)
+    infoₗ.converged < howmany && @warn "Left eigenvectors not converged."
+    λₗs = λₗs[1:howmany]
+    by, rev = eigsort(which)
+    p = sortperm(conj.(λₗs) .+ alg.tol * 1.0im, by=by, rev=rev)
+    all(conj.(λₗs[p]) .≈ λᵣs) || @warn "Left and right eigenvalues disagree."
+    ls = ls[p]
+
+    function eigsolve_pullback(ΔX)
+        Δλs, Δrs, _ = ΔX
+        ∂self = NoTangent()
+        ∂x₀ = ZeroTangent()
+        ∂alg = NoTangent()
+        ∂which = NoTangent()
+        ∂howmany = NoTangent()
+        ∂A = mapreduce(+, λᵣs, rs, ls, Δλs, Δrs) do λ, r, l, Δλ, Δr
+            ϕ = dot(l, r)
+            Δr -= dot(r, Δr) * r
+            if isa(Δr, typeof(ZeroTangent()))
+                ξ = Δr
+            else
+                alg_reverse = GMRES(; tol=alg.tol, krylovdim=alg.krylovdim, maxiter=alg.maxiter, orth=alg.orth)
+                b = Δr - dot(r, Δr) / conj(ϕ) * l
+                ξ, info_reverse = linsolve(A', b, zero(λ) * b, alg_reverse, -conj(λ))
+                info_reverse.converged == 0 && @warn "Cotangent problem did not converge."
+                ξ -= dot(r, ξ) / conj(ϕ) * l
+            end
+            return InplaceableThunk(
+                Ā -> mul!(Ā, Δλ / conj(ϕ) * l - ξ, r', true, true),
+                @thunk((Δλ / conj(ϕ) * l - ξ) * r'),
+            )
+        end
+        ∂A = T <: Real ? real(∂A) : ∂A
+        return ∂self, ∂A, ∂x₀, ∂howmany, ∂which, ∂alg
+    end
+    return (λᵣs, rs, infoᵣ), eigsolve_pullback
+end
+
+function ChainRulesCore.rrule(
+    ::typeof(eigsolve),
     A::AbstractMatrix,
     x₀,
     howmany,
@@ -152,14 +244,7 @@ function ChainRulesCore.rrule(
                 info_reverse.converged == 0 && @warn "Cotangent problem did not converge."
                 ξ -= dot(r, ξ) / conj(ϕ) * l
             end
-            if A isa StridedMatrix
-                return InplaceableThunk(
-                    Ā -> mul!(Ā, Δλ / conj(ϕ) * l - ξ, r', true, true),
-                    @thunk((Δλ / conj(ϕ) * l - ξ) * r'),
-                )
-            else
-                return project_A((Δλ / conj(ϕ) * l - ξ) * r')
-            end
+            return project_A((Δλ / conj(ϕ) * l - ξ) * r')
         end
         return ∂self, ∂A, ∂x₀, ∂howmany, ∂which, ∂alg
     end
