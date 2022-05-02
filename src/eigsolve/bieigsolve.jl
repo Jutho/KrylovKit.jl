@@ -1,28 +1,49 @@
 """
-    eigsolve(A::AbstractMatrix, [x₀, howmany = 1, which = :LM, T = eltype(A)]; kwargs...)
-    eigsolve(f, n::Int, [howmany = 1, which = :LM, T = Float64]; kwargs...)
-    eigsolve(f, x₀, [howmany = 1, which = :LM]; kwargs...)
+    bieigsolve(A::AbstractMatrix, [x₀, y₀ = x₀, T = eltype(A)]; 
+        howmany = 1, which = :LM, kwargs...)
+    bieigsolve(f, n::Int, [T = Float64]; howmany = 1, which = :LM, kwargs...)
+    bieigsolve(f, x₀, [y₀]; howmany = 1, which = :LM, kwargs...)
     # expert version:
-    eigsolve(f, x₀, howmany, which, algorithm)
+    bieigsolve(f, x₀, y₀, algorithm; howmany = 1, which = :LM)
 
-Compute at least `howmany` eigenvalues from the linear map encoded in the matrix `A` or by
-the function `f`. Return eigenvalues, eigenvectors and a `ConvergenceInfo` structure.
+Compute at least `howmany` eigenvalues for the linear map encoded in the matrix `A` or by
+the function `f`. Return eigenvalues, left and right eigenvectors and a `ConvergenceInfo`
+structure.
 
 ### Arguments:
 
 The linear map can be an `AbstractMatrix` (dense or sparse) or a general function or
-callable object. If an `AbstractMatrix` is used, a starting vector `x₀` does not need to be
-provided, it is then chosen as `rand(T, size(A,1))`. If the linear map is encoded more
-generally as a callable function or method, the best approach is to provide an explicit
-starting guess `x₀`. Note that `x₀` does not need to be of type `AbstractVector`; any type
-that behaves as a vector and supports the required methods (see KrylovKit docs) is accepted.
-If instead of `x₀` an integer `n` is specified, it is assumed that `x₀` is a regular vector
-and it is initialized to `rand(T,n)`, where the default value of `T` is `Float64`, unless
-specified differently.
+callable object. Since both the action of the linear map and its adjoint are required in
+order to compute left and right eigenvectors, `f` can either be a tuple of two callable
+objects (each accepting a single argument), representing the linear map and its adjoint
+respectively, or, `f` can be a single callable object that accepts two input arguments,
+where the second argument is a flag of type `Val{true}` or `Val{fals}` that indicates
+whether the adjoint or the normal action of the linear map needs to be computed. The latter
+form still combines well with the `do` block syntax of Julia, as in
 
-The next arguments are optional, but should typically be specified. `howmany` specifies how
-many eigenvalues should be computed; `which` specifies which eigenvalues should be
-targeted. Valid specifications of `which` are given by
+```julia
+vals, lvecs, rvecs, info = bieigsolve(x₀, howmany, which; kwargs...) do x, flag
+    if flag === Val(true)
+        # y = compute action of adjoint map on x
+    else
+        # y = compute action of linear map on x
+    end
+    return y
+end
+```
+
+If an `AbstractMatrix` is used, a left (right) starting vector `x₀` (`y₀`) does not need to
+be provided, it is then chosen as `rand(T, size(A, 1))` (`rand(T, size(A, 2))`). If the
+linear map is encoded more generally as a callable function or method, the best approach is
+to provide an explicit starting guess for `x₀` and `y₀`. Note that these do not need to be
+of type `AbstractVector`; any type that behaves as a vector and supports the required
+methods (see KrylovKit docs) is accepted. If instead an integer `n` is specified, it is
+assumed that `x₀` and `y₀` are regular vectors and they are initialized to `rand(T, n)`,
+where the default value of `T` is `Float64`, unless specified differently.
+
+There are two optional keyword arguments that should typically be specified. `howmany`
+specifies how many eigenvalues should be computed; `which` specifies which eigenvalues
+should be targeted. Valid specifications of `which` are given by
 
   - `:LM`: eigenvalues of largest magnitude
   - `:LR`: eigenvalues with largest (most positive) real part
@@ -64,29 +85,29 @@ to `by(λ) != by(conj(λ))`.
 
 ### Return values:
 
-The return value is always of the form `vals, vecs, info = eigsolve(...)` with
+The return value is always of the form `vals, lvecs, rvecs, info = eigsolve(...)` with
 
   - `vals`: a `Vector` containing the eigenvalues, of length at least `howmany`, but could
     be longer if more eigenvalues were converged at the same cost. Eigenvalues will be real
     if [`Lanczos`](@ref) was used and complex if [`Arnoldi`](@ref) was used (see below).
-  - `vecs`: a `Vector` of corresponding eigenvectors, of the same length as `vals`. Note
-    that eigenvectors are not returned as a matrix, as the linear map could act on any
-    custom Julia type with vector like behavior, i.e. the elements of the list `vecs` are
-    objects that are typically similar to the starting guess `x₀`, up to a possibly
-    different `eltype`. In particular for a general matrix (i.e. with `Arnoldi`) the
-    eigenvectors are generally complex and are therefore always returned in a complex
-    number format. When the linear map is a simple `AbstractMatrix`, `vecs` will be
-    `Vector{Vector{<:Number}}`.
+  - `lvecs` and `rvecs`: two `Vector`s of corresponding left and right eigenvectors, of the
+    same length as `vals`. Note that eigenvectors are not returned as a matrix, as the
+    linear map could act on any custom Julia type with vector like behavior, i.e. the
+    elements of the list `lvecs` and `rvecs` are objects that are typically similar to the
+    starting guesses `x₀` and `y₀`, up to a possibly different `eltype`. In particular for
+    a general matrix (i.e. with `Arnoldi`) the eigenvectors are generally complex and are
+    therefore always returned in a complex number format. When the linear map is a simple
+    `AbstractMatrix`, `lvecs` and `rvecs` will be `Vector{Vector{<:Number}}`s.
   - `info`: an object of type [`ConvergenceInfo`], which has the following fields
 
       + `info.converged::Int`: indicates how many eigenvalues and eigenvectors were actually
         converged to the specified tolerance `tol` (see below under keyword arguments)
-      + `info.residual::Vector`: a list of the same length as `vals` containing the
-        residuals `info.residual[i] = f(vecs[i]) - vals[i] * vecs[i]`
-      + `info.normres::Vector{<:Real}`: list of the same length as `vals` containing the
+      + `info.residual::Vector`: a list of twice the length of `vals` containing the
+        residuals `info.residual[i] = fᴴ(vecs[i]) - conj(vals[i]) * vecs[i]` when `i <= length(vals)` and `info.residual[i] = f(vecs[i]) - vals[i] * vecs[i]` when `i > length(vals)`.
+      + `info.normres::Vector{<:Real}`: list of twice the length of `vals` containing the
         norm of the residual `info.normres[i] = norm(info.residual[i])`
       + `info.numops::Int`: number of times the linear map was applied, i.e. number of times
-        `f` was called, or a vector was multiplied with `A`
+        `f` was called, or a vector was multiplied with `A` or `A'`.
       + `info.numiter::Int`: number of times the Krylov subspace was restarted (see below)
 
 !!! warning "Check for convergence"
@@ -139,6 +160,10 @@ building the Krylov subspace, but the actual algorithm is an implementation of t
 Krylov-Schur algorithm, which can dynamically shrink and grow the Krylov subspace, i.e. the
 restarts are so-called thick restarts where a part of the current Krylov subspace is kept.
 
+When the algorithm is specified as [`Lanczos`](@ref), only right eigenvectors will be
+computed, while the left eigenvectors will be a direct copy. For [`Arnoldi`](@ref), the
+eigenvectors are computed separately.
+
 !!! note "Note about convergence"
 
     In case of a general problem, where the `Arnoldi` method is used, convergence of an
@@ -150,35 +175,15 @@ restarts are so-called thick restarts where a part of the current Krylov subspac
     directly, or if you are not interested in computing the eigenvectors, and want to work
     in real arithmetic all the way true (if the linear map and starting guess are real).
 """
-function eigsolve end
+function bieigsolve end
 
-"""
-    EigSorter(by; rev = false)
+bieigsolve(A::AbstractMatrix, T::Type = eltype(A); kwargs...) = 
+    bieigsolve(A, rand(T, size(A, 1)), rand(T, size(A, 1)); kwargs...)
 
-A simple `struct` to be used in combination with [`eigsolve`](@ref) or [`schursolve`](@ref)
-to indicate which eigenvalues need to be targeted, namely those that appear first when
-sorted by `by` and possibly in reverse order if `rev == true`.
-"""
-struct EigSorter{F}
-    by::F
-    rev::Bool
-end
-EigSorter(f::F; rev = false) where {F} = EigSorter{F}(f, rev)
+bieigsolve(f, n::Int, T::Type = Float64; kwargs...) = 
+    bieigsolve(f, rand(T, n), rand(T, n); kwargs...)
 
-const Selector = Union{Symbol,EigSorter}
-
-eigsolve(
-    A::AbstractMatrix,
-    howmany::Int = 1,
-    which::Selector = :LM,
-    T::Type = eltype(A);
-    kwargs...
-) = eigsolve(A, rand(T, size(A, 1)), howmany, which; kwargs...)
-
-eigsolve(f, n::Int, howmany::Int = 1, which::Selector = :LM, T::Type = Float64; kwargs...) =
-    eigsolve(f, rand(T, n), howmany, which; kwargs...)
-
-function eigsolve(f, x₀, howmany::Int = 1, which::Selector = :LM; kwargs...)
+function bieigsolve(f, x₀, y₀ = x₀; howmany::Int = 1, which::Selector = :LM, kwargs...)
     Tx = typeof(x₀)
     Tfx = Core.Compiler.return_type(apply, Tuple{typeof(f),Tx})
     T = Core.Compiler.return_type(dot, Tuple{Tx,Tfx})
@@ -196,112 +201,9 @@ function eigsolve(f, x₀, howmany::Int = 1, which::Selector = :LM; kwargs...)
             (which isa EigSorter && which.by(+im) != which.by(-im))
             error(
                 "Eigenvalue selector which = $which invalid because it does not treat
-            `λ` and `conj(λ)` equally: work in complex arithmetic by providing a complex starting vector `x₀`"
+          `λ` and `conj(λ)` equally: work in complex arithmetic by providing a complex starting vector `x₀`"
             )
         end
     end
-    return eigsolve(f, x₀, howmany, which, alg)
+    return bieigsolve(f, x₀, y₀, alg; which = which, howmany = howmany)
 end
-
-function eigselector(
-    f,
-    T::Type;
-    issymmetric::Bool = false,
-    ishermitian::Bool = issymmetric && !(T <: Complex),
-    krylovdim::Int = KrylovDefaults.krylovdim,
-    maxiter::Int = KrylovDefaults.maxiter,
-    tol::Real = KrylovDefaults.tol,
-    orth::Orthogonalizer = KrylovDefaults.orth,
-    eager::Bool = false,
-    verbosity::Int = 0
-)
-    if (issymmetric && !(T <: Complex)) || ishermitian
-        return Lanczos(;
-            krylovdim = krylovdim,
-            maxiter = maxiter,
-            tol = tol,
-            orth = orth,
-            eager = eager,
-            verbosity = verbosity
-        )
-    else
-        return Arnoldi(;
-            krylovdim = krylovdim,
-            maxiter = maxiter,
-            tol = tol,
-            orth = orth,
-            eager = eager,
-            verbosity = verbosity
-        )
-    end
-end
-function eigselector(
-    A::AbstractMatrix,
-    T::Type;
-    issymmetric::Bool = T <: Real && LinearAlgebra.issymmetric(A),
-    ishermitian::Bool = issymmetric || LinearAlgebra.ishermitian(A),
-    krylovdim::Int = KrylovDefaults.krylovdim,
-    maxiter::Int = KrylovDefaults.maxiter,
-    tol::Real = KrylovDefaults.tol,
-    orth::Orthogonalizer = KrylovDefaults.orth,
-    eager::Bool = false,
-    verbosity::Int = 0
-)
-    if (T <: Real && issymmetric) || ishermitian
-        return Lanczos(;
-            krylovdim = krylovdim,
-            maxiter = maxiter,
-            tol = tol,
-            orth = orth,
-            eager = eager,
-            verbosity = verbosity
-        )
-    else
-        return Arnoldi(;
-            krylovdim = krylovdim,
-            maxiter = maxiter,
-            tol = tol,
-            orth = orth,
-            eager = eager,
-            verbosity = verbosity
-        )
-    end
-end
-
-checkwhich(::EigSorter) = true
-checkwhich(s::Symbol) = s in (:LM, :LR, :SR, :LI, :SI)
-
-eigsort(s::EigSorter) = s.by, s.rev
-function eigsort(which::Symbol)
-    if which == :LM
-        by = abs
-        rev = true
-    elseif which == :LR
-        by = real
-        rev = true
-    elseif which == :SR
-        by = real
-        rev = false
-    elseif which == :LI
-        by = imag
-        rev = true
-    elseif which == :SI
-        by = imag
-        rev = false
-    else
-        error("invalid specification of which eigenvalues to target: which = $which")
-    end
-    return by, rev
-end
-
-function conjwhich(which::Symbol)
-    if which == :LI
-        return :SI
-    elseif which == :SI
-        return :LI
-    else
-        return which
-    end
-end
-
-conjwhich(s::EigSorter) = EigSorter(conj(s.by), s.rev)

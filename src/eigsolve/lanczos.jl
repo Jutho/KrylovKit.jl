@@ -151,3 +151,16 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
     vectors,
     ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end
+
+function bieigsolve(f, _, y₀, alg::Lanczos; which::Selector = :LM, howmany::Int = 1)
+    vals, rvecs, rinfo = eigsolve(f, y₀, howmany, which, alg)
+    return vals,
+    deepcopy(rvecs), rvecs,
+    ConvergenceInfo(
+        rinfo.converged,
+        vcat(rinfo.residual, rinfo.residual),
+        vcat(rinfo.normres, rinfo.normres),
+        rinfo.numiter,
+        rinfo.numops
+    )
+end
