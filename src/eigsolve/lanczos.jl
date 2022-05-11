@@ -152,7 +152,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
     ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end
 
-function bieigsolve(f, _, y₀, alg::Lanczos; which::Selector = :LM, howmany::Int = 1)
+function bieigsolve(f, x₀, y₀, alg::Lanczos; which::Selector = :LM, howmany::Int = 1)
     vals, rvecs, rinfo = eigsolve(f, y₀, howmany, which, alg)
     return vals,
     deepcopy(rvecs), rvecs,
