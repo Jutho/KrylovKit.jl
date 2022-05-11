@@ -7,7 +7,7 @@ function ChainRulesCore.rrule(
     a₀,
     a₁
 )
-    (x, info) = KrylovKit.linsolve(A, b, x₀, algorithm, a₀, a₁)
+    (x, info) = linsolve(A, b, x₀, algorithm, a₀, a₁)
     project_A = ProjectTo(A)
 
     function linsolve_pullback(X̄)
@@ -15,7 +15,7 @@ function ChainRulesCore.rrule(
         ∂self = NoTangent()
         ∂x₀ = ZeroTangent()
         ∂algorithm = NoTangent()
-        ∂b, reverse_info = KrylovKit.linsolve(
+        ∂b, reverse_info = linsolve(
             A', x̄, (zero(a₀) * zero(a₁)) * x̄, algorithm, conj(a₀), conj(a₁)
         )
         if info.converged > 0 && reverse_info.converged == 0
@@ -63,7 +63,7 @@ function ChainRulesCore.rrule(
     a₀,
     a₁
 )
-    x, info = KrylovKit.linsolve(f, b, x₀, algorithm, a₀, a₁)
+    x, info = linsolve(f, b, x₀, algorithm, a₀, a₁)
 
     # f defines a linear map => pullback defines action of the adjoint
     (y, f_pullback) = rrule_via_ad(config, f, x)
@@ -75,7 +75,7 @@ function ChainRulesCore.rrule(
         ∂self = NoTangent()
         ∂x₀ = ZeroTangent()
         ∂algorithm = NoTangent()
-        (∂b, reverse_info) = KrylovKit.linsolve(
+        (∂b, reverse_info) = linsolve(
             fᴴ, x̄, (zero(a₀) * zero(a₁)) * x̄, algorithm, conj(a₀), conj(a₁)
         )
         if reverse_info.converged == 0
@@ -99,7 +99,7 @@ end
 function ChainRulesCore.frule((_, ΔA, Δb, Δx₀, _, Δa₀, Δa₁)::Tuple, ::typeof(linsolve),
     A::AbstractMatrix, b::AbstractVector, x₀, algorithm, a₀, a₁)
 
-    (x, info) = KrylovKit.linsolve(A, b, x₀, algorithm, a₀, a₁)
+    (x, info) = linsolve(A, b, x₀, algorithm, a₀, a₁)
 
     if Δb isa ChainRulesCore.AbstractZero
         rhs = zero(b)
@@ -112,7 +112,7 @@ function ChainRulesCore.frule((_, ΔA, Δb, Δx₀, _, Δa₀, Δa₁)::Tuple, :
     if !iszero(ΔA)
         rhs = mul!(rhs, ΔA, x, -a₁, true)
     end
-    (Δx, forward_info) = KrylovKit.linsolve(A, rhs, zero(rhs), algorithm, a₀, a₁)
+    (Δx, forward_info) = linsolve(A, rhs, zero(rhs), algorithm, a₀, a₁)
     if info.converged > 0 && forward_info.converged == 0
         @warn "The tangent linear problem did not converge, whereas the primal linear problem did."
     end
@@ -128,7 +128,7 @@ function ChainRulesCore.frule(config::RuleConfig{>:HasForwardsMode}, (_, Δf, Δ
     ::typeof(linsolve),
     f, b, x₀, algorithm, a₀, a₁)
 
-    (x, info) = KrylovKit.linsolve(f, b, x₀, algorithm, a₀, a₁)
+    (x, info) = linsolve(f, b, x₀, algorithm, a₀, a₁)
 
     if Δb isa AbstractZero
         rhs = false * b
@@ -141,7 +141,7 @@ function ChainRulesCore.frule(config::RuleConfig{>:HasForwardsMode}, (_, Δf, Δ
     if !(Δf isa AbstractZero)
         rhs = axpy!(-a₁, frule_via_ad(config, (Δf, ZeroTangent()), f, x), rhs)
     end
-    (Δx, forward_info) = KrylovKit.linsolve(f, rhs, false*rhs, algorithm, a₀, a₁)
+    (Δx, forward_info) = linsolve(f, rhs, false*rhs, algorithm, a₀, a₁)
     if info.converged > 0 && forward_info.converged == 0
         @warn "The tangent linear problem did not converge, whereas the primal linear problem did."
     end

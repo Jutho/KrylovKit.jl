@@ -1,6 +1,5 @@
 """
-    linsolve(A::AbstractMatrix, b::AbstractVector, [x₀, a₀::Number = 0, a₁::Number = 1];
-                kwargs...)
+    linsolve(A::AbstractMatrix, b::AbstractVector, [x₀, a₀::Number = 0, a₁::Number = 1]; kwargs...)
     linsolve(f, b, [x₀, a₀::Number = 0, a₁::Number = 1]; kwargs...)
     # expert version:
     linsolve(f, b, x₀, algorithm, [a₀::Number = 0, a₁::Number = 1])
