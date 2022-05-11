@@ -304,4 +304,4 @@ function conjwhich(which::Symbol)
     end
 end
 
-conjwhich(s::EigSorter) = EigSorter(conj(s.by), s.rev)
+conjwhich(s::EigSorter) = EigSorter(x -> s.by(conj(x)), s.rev)
