@@ -81,13 +81,13 @@ function ChainRulesCore.rrule(
         if reverse_info.converged == 0
             @warn "Linear problem for reverse rule did not converge." reverse_info
         end
-        ∂f = @thunk(f_pullback(-conj(a₁)*∂b)[1])
+        ∂f = @thunk(f_pullback(-conj(a₁) * ∂b)[1])
         ∂a₀ = @thunk(-dot(x, ∂b))
         # ∂a₁ = @thunk(-dot(f(x), ∂b))
         if a₀ == zero(a₀) && a₁ == one(a₁)
             ∂a₁ = @thunk(-dot(b, ∂b))
         else
-            ∂a₁ = @thunk(-dot((b - a₀ * x)/a₁, ∂b))
+            ∂a₁ = @thunk(-dot((b - a₀ * x) / a₁, ∂b))
         end
         return ∂self, ∂f, ∂b, ∂x₀, ∂algorithm, ∂a₀, ∂a₁
     end
