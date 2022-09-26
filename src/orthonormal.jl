@@ -131,9 +131,9 @@ function unproject!(
     β::Number = false,
     r = Base.OneTo(length(b))
 )
-    if y isa AbstractArray && IndexStyle(y) isa IndexLinear && get_num_threads() > 1
-        return unproject_linear_multithreaded!(y, b, x, α, β, r)
-    end
+    # if y isa AbstractArray && IndexStyle(y) isa IndexLinear && get_num_threads() > 1
+    #     return unproject_linear_multithreaded!(y, b, x, α, β, r)
+    # end
     # general case: using only vector operations, i.e. axpy! (similar to BLAS level 1)
     length(x) == length(r) || throw(DimensionMismatch())
     if β == 0
