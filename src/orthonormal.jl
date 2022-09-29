@@ -304,9 +304,9 @@ and are stored in `b`, so the old basis vectors are thrown away. Note that, by d
 the subspace spanned by these basis vectors is exactly the same.
 """
 function basistransform!(b::OrthonormalBasis{T}, U::AbstractMatrix) where {T} # U should be unitary or isometric
-    if T <: AbstractArray && IndexStyle(T) isa IndexLinear && get_num_threads() > 1
-        return basistransform_linear_multithreaded!(b, U)
-    end
+    # if T <: AbstractArray && IndexStyle(T) isa IndexLinear && get_num_threads() > 1
+    #     return basistransform_linear_multithreaded!(b, U)
+    # end
     m, n = size(U)
     m == length(b) || throw(DimensionMismatch())
 
