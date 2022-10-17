@@ -24,6 +24,7 @@ module KrylovKit
 using LinearAlgebra
 using Printf
 using ChainRulesCore
+using GPUArraysCore
 const IndexRange = AbstractRange{Int}
 
 export linsolve, eigsolve, geneigsolve, svdsolve, schursolve, exponentiate, expintegrator
