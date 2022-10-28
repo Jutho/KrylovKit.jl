@@ -11,6 +11,7 @@ Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
 [compat]
 ChainRulesCore = "1.12"
+GPUArraysCore = "0.1"
 julia = "1"
 
 [extras]
