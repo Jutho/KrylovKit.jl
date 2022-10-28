@@ -1,16 +1,18 @@
 name = "KrylovKit"
 uuid = "0b1a1467-8014-51b9-945f-bf0ae24f4b77"
 authors = ["Jutho Haegeman"]
-version = "0.5.4"
+version = "0.6"
 
 [deps]
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+GPUArraysCore = "46192b85-c4d5-4398-a991-12ede77f4527"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
 [compat]
 ChainRulesCore = "1.12"
-julia = "1"
+GPUArraysCore = "0.1"
+julia = "1.6"
 
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
