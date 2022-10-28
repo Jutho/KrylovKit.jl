@@ -131,7 +131,7 @@ function unproject!(
     β::Number = false,
     r = Base.OneTo(length(b))
 )
-    if y isa AbstractArray && IndexStyle(y) isa IndexLinear && get_num_threads() > 1
+    if y isa AbstractArray && !(y isa AbstractGPUArray) && IndexStyle(y) isa IndexLinear && get_num_threads() > 1
         return unproject_linear_multithreaded!(y, b, x, α, β, r)
     end
     # general case: using only vector operations, i.e. axpy! (similar to BLAS level 1)
@@ -222,7 +222,7 @@ It is the user's responsibility to make sure that the result is still an orthono
     β::Number = true,
     r = Base.OneTo(length(b))
 )
-    if y isa AbstractArray && IndexStyle(y) isa IndexLinear && Threads.nthreads() > 1
+    if y isa AbstractArray && !(y isa AbstractGPUArray) && IndexStyle(y) isa IndexLinear && Threads.nthreads() > 1
         return rank1update_linear_multithreaded!(b, y, x, α, β, r)
     end
     # general case: using only vector operations, i.e. axpy! (similar to BLAS level 1)
@@ -304,7 +304,7 @@ and are stored in `b`, so the old basis vectors are thrown away. Note that, by d
 the subspace spanned by these basis vectors is exactly the same.
 """
 function basistransform!(b::OrthonormalBasis{T}, U::AbstractMatrix) where {T} # U should be unitary or isometric
-    if T <: AbstractArray && IndexStyle(T) isa IndexLinear && get_num_threads() > 1
+    if T <: AbstractArray && !(T <: AbstractGPUArray) && IndexStyle(T) isa IndexLinear && get_num_threads() > 1
         return basistransform_linear_multithreaded!(b, U)
     end
     m, n = size(U)
