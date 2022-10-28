@@ -1,7 +1,7 @@
 name = "KrylovKit"
 uuid = "0b1a1467-8014-51b9-945f-bf0ae24f4b77"
 authors = ["Jutho Haegeman"]
-version = "0.5.4"
+version = "0.6"
 
 [deps]
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
@@ -12,7 +12,7 @@ Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 [compat]
 ChainRulesCore = "1.12"
 GPUArraysCore = "0.1"
-julia = "1"
+julia = "1.6"
 
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
