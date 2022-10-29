@@ -28,18 +28,12 @@ to vectors.
 
 ## Release notes for the latest version
 
-### v0.5
-This version introduces (minimal) breaking changes, if you use KrylovKit.jl with custom
-vector types: KrylovKit.jl no longer depends on `eltype(::YourCustomVector)` and
-`similar(::YourCustumVector, ::Type{<:Number})`. Instead, KrylovKit.jl does now rely on
-`Base.:*(::Number, ::YourCustomVector)` to be defined as a means of creating new vectors,
-possibly with a different scalar type, so as to be able to represent this computation. Note
-that `Base.similar(::YourCustomVector)` (without the second argument) should still be
-defined to create uninitialized vectors of the same type as the one of the argument.
-
-The motivation for this is that using `eltype(::YourCustomVector)` to represent its scalar
-type, was often not the compatible with the requirements for `Base.eltype` if your type also
-supports iteration or indexing.
+### v0.6
+This version requires at least Julia 1.6 because of new dependencies, namely on
+[GPUArraysCore.jl](https://github.com/JuliaGPU/GPUArrays.jl) to fix the GPU support, and on
+[ChainRulesCore.jl](https://github.com/JuliaDiff/ChainRulesCore.jl) to have AD support. In
+particular, this version comes with (experimental) AD support for `linsolve`. Future
+versions will extend this to `eigsolve` and potentially more.
 
 ## Overview
 KrylovKit.jl accepts general functions or callable objects as linear maps, and general Julia
