@@ -283,3 +283,34 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     end
     return T, U, fact, converged, numiter, numops
 end
+
+function bieigsolve(f, x₀, y₀, alg::Arnoldi; which::Selector = :LM, howmany::Int = 1)
+    lvals, lvecs, linfo = eigsolve(x₀, howmany, conjwhich(which), alg) do x
+        return apply_adjoint(f, x)
+    end
+    rvals, rvecs, rinfo = eigsolve(y₀, howmany, which, alg) do x
+        return apply_normal(f, x)
+    end
+
+    # fix length difference, should not cut degenerate values
+    len = min(length(lvals), length(rvals))
+    lvals = lvals[1:len]
+    lvecs = lvecs[1:len]
+    rvals = rvals[1:len]
+    rvecs = rvecs[1:len]
+
+    p = map(lvals) do lval
+        return argmin(abs.(rvals .- conj(lval)))
+    end
+    p = sortperm(p) # keeps all elements when there are degenerate eigenvalues
+
+    return rvals,
+    lvecs[p], rvecs,
+    ConvergenceInfo(
+        min(rinfo.converged, linfo.converged),
+        vcat(linfo.residual, rinfo.residual),
+        vcat(linfo.normres, rinfo.normres),
+        linfo.numiter + rinfo.numiter,
+        linfo.numops + rinfo.numops
+    )
+end

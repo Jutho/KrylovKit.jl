@@ -237,6 +237,7 @@ include("matrixfun/expintegrator.jl")
 
 # rules for automatic differentation
 include("adrules/linsolve.jl")
+include("adrules/eigsolve.jl")
 
 # custom vector types
 include("recursivevec.jl")
