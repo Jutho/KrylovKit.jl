@@ -142,28 +142,28 @@ function initialize(iter::ArnoldiIterator; verbosity::Int=0)
     α = inner(x₀, Ax₀) / (β₀ * β₀)
     T = typeof(α)
     # this line determines the vector type that we will henceforth use
-    v = add(zerovector(Ax₀, T), x₀, 1 / β₀)
+    v = add!(zerovector(Ax₀, T), x₀, 1 / β₀)
     # v = mul!(zero(T)*Ax₀, x₀, 1 / β₀) # (one(T) / β₀) * x₀ # mul!(similar(x₀, T), x₀, 1/β₀)
     if typeof(Ax₀) != typeof(v)
-        r = add(zerovector(v), Ax₀, 1 / β₀)
+        r = add!(zerovector(v), Ax₀, 1 / β₀)
     else
         r = scale(Ax₀, 1 / β₀)
     end
     βold = norm(r)
-    r = add(r, v, -α)
+    r = add!(r, v, -α)
     β = norm(r)
     # possibly reorthogonalize
     if iter.orth isa Union{ClassicalGramSchmidt2,ModifiedGramSchmidt2}
         dα = inner(v, r)
         α += dα
-        r = add(r, v, -dα)
+        r = add!(r, v, -dα)
         β = norm(r)
     elseif iter.orth isa Union{ClassicalGramSchmidtIR,ModifiedGramSchmidtIR}
         while eps(one(β)) < β < iter.orth.η * βold
             βold = β
             dα = inner(v, r)
             α += dα
-            r = add(r, v, -dα)
+            r = add!(r, v, -dα)
             β = norm(r)
         end
     end

@@ -200,7 +200,7 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
             ax, bx = genapply(f, x)
             numops += 1
             ρ = checkhermitian(inner(x, ax)) / checkposdef(inner(x, bx))
-            r = add(ax, bx, -ρ)
+            r = add!(ax, bx, -ρ)
             normr = norm(r)
 
             if normr > tol || converged >= howmany
