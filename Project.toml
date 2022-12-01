@@ -13,6 +13,7 @@ VectorInterface = "409d34a3-91d5-4945-b6ec-7529ddf182d8"
 [compat]
 ChainRulesCore = "1.12"
 GPUArraysCore = "0.1"
+VectorInterface = "0.2"
 julia = "1.6"
 
 [extras]
