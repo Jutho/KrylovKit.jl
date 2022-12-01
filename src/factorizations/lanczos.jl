@@ -285,7 +285,7 @@ function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ClassicalGra
     v = V[end]
     w = apply(operator, v)
     α = inner(v, w)
-    w = add!(w, V[end-1], -β)
+    w = add!(w, V[end - 1], -β)
     w = add!(w, v, -α)
     β = norm(w)
     return w, α, β

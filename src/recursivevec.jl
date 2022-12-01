@@ -83,14 +83,13 @@ function VectorInterface.scale!(w::RecursiveVec, v::RecursiveVec, a::Number)
     return w
 end
 
-function VectorInterface.scale!(v::RecursiveVec, a::Number)
-    for x in v.vecs
-        scale!(x, a)
-    end
-    return v
+function VectorInterface.scale!!(x::RecursiveVec{<:Tuple}, a::Number)
+    return RecursiveVec(ntuple(i -> scale!!(x[i], a), length(x)))
 end
 
-VectorInterface.scale!!(x::RecursiveVec, a::Number) = RecursiveVec(scale!!.(x.vecs, a))
+function VectorInterface.scale!!(x::RecursiveVec{<:AbstractVector}, a::Number)
+    return RecursiveVec(scale!!.(x.vecs, a))
+end
 
 function VectorInterface.add(w::RecursiveVec{T}, v::RecursiveVec{T}, a::ONumber=_one,
                              b::ONumber=_one) where {T<:Tuple}

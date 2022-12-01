@@ -307,7 +307,7 @@ function basistransform!(b::OrthonormalBasis{T}, U::AbstractMatrix) where {T} # 
                 Threads.@spawn for j in $J
                     scale!(b2[j], b[1], U[1, j])
                     for i in 2:m
-                        add!(b2[j], b[i], U[i,j])
+                        add!(b2[j], b[i], U[i, j])
                     end
                 end
             end

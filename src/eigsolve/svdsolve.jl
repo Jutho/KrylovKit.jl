@@ -109,17 +109,19 @@ to the Krylov-Schur factorization for eigenvalues.
 """
 function svdsolve end
 
-svdsolve(
-    A::AbstractMatrix,
-    howmany::Int = 1,
-    which::Selector = :LR,
-    T::Type = eltype(A);
-    kwargs...
-) = svdsolve(A, rand(T, size(A, 1)), howmany, which; kwargs...)
-svdsolve(f, n::Int, howmany::Int = 1, which::Selector = :LR, T::Type = Float64; kwargs...) =
-    svdsolve(f, rand(T, n), howmany, which; kwargs...)
+function svdsolve(A::AbstractMatrix,
+                  howmany::Int=1,
+                  which::Selector=:LR,
+                  T::Type=eltype(A);
+                  kwargs...)
+    return svdsolve(A, rand(T, size(A, 1)), howmany, which; kwargs...)
+end
+function svdsolve(f, n::Int, howmany::Int=1, which::Selector=:LR, T::Type=Float64;
+                  kwargs...)
+    return svdsolve(f, rand(T, n), howmany, which; kwargs...)
+end
 
-function svdsolve(f, x₀, howmany::Int = 1, which::Selector = :LR; kwargs...)
+function svdsolve(f, x₀, howmany::Int=1, which::Selector=:LR; kwargs...)
     which == :LR ||
         which == :SR ||
         error("invalid specification of which singular values to target: which = $which")
@@ -137,7 +139,7 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
     numiter = 1
     # initialize GKL factorization
     iter = GKLIterator(A, x₀, alg.orth)
-    fact = initialize(iter; verbosity = alg.verbosity - 2)
+    fact = initialize(iter; verbosity=alg.verbosity - 2)
     numops = 2
     sizehint!(fact, krylovdim)
     β = normres(fact)
@@ -176,14 +178,13 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
                 reverserows!(S)
                 reverserows!(Q)
             elseif which != :LR
-                error(
-                    "invalid specification of which singular values to target: which = $which"
-                )
+                error("invalid specification of which singular values to target: " *
+                      "which = $which")
             end
             mul!(f, view(Q', K, :), β)
 
             converged = 0
-            while converged < K && abs(f[converged+1]) < tol
+            while converged < K && abs(f[converged + 1]) < tol
                 converged += 1
             end
 
@@ -203,7 +204,7 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
         end
 
         if K < krylovdim # expand
-            fact = expand!(iter, fact; verbosity = alg.verbosity - 2)
+            fact = expand!(iter, fact; verbosity=alg.verbosity - 2)
             numops += 2
         else ## shrink and restart
             if numiter == maxiter
@@ -231,29 +232,29 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
 
             # Shrink GKL factorization (no longer strictly GKL)
             r = residual(fact)
-            U[keep+1] = scale!(r, 1 / normres(fact))
-            H = fill!(view(HH, 1:keep+1, 1:keep), zero(eltype(HH)))
+            U[keep + 1] = scale!(r, 1 / normres(fact))
+            H = fill!(view(HH, 1:(keep + 1), 1:keep), zero(eltype(HH)))
             @inbounds for j in 1:keep
                 H[j, j] = S[j]
-                H[keep+1, j] = f[j]
+                H[keep + 1, j] = f[j]
             end
 
             # Restore bidiagonal form in the first keep columns
             @inbounds for j in keep:-1:1
                 h, ν = householder(H, j + 1, 1:j, j)
-                H[j+1, j] = ν
-                H[j+1, 1:j-1] .= zero(eltype(H))
+                H[j + 1, j] = ν
+                H[j + 1, 1:(j - 1)] .= zero(eltype(H))
                 rmul!(view(H, 1:j, :), h')
                 rmul!(V, h')
                 h, ν = householder(H, 1:j, j, j)
                 H[j, j] = ν
-                @inbounds H[1:j-1, j] .= zero(eltype(H))
-                lmul!(h, view(H, :, 1:j-1))
+                @inbounds H[1:(j - 1), j] .= zero(eltype(H))
+                lmul!(h, view(H, :, 1:(j - 1)))
                 rmul!(U, h')
             end
             @inbounds for j in 1:keep
                 fact.αs[j] = H[j, j]
-                fact.βs[j] = H[j+1, j]
+                fact.βs[j] = H[j + 1, j]
             end
             # Shrink GKL factorization
             fact = shrink!(fact, keep)
@@ -297,7 +298,7 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
     end
 
     return values,
-    leftvectors,
-    rightvectors,
-    ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
+           leftvectors,
+           rightvectors,
+           ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end

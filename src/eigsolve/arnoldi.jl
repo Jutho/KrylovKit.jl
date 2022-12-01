@@ -94,7 +94,7 @@ restarts where a part of the current Krylov subspace is kept.
 """
 function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     T, U, fact, converged, numiter, numops = _schursolve(A, x₀, howmany, which, alg)
-    if eltype(T) <: Real && howmany < length(fact) && T[howmany+1, howmany] != 0
+    if eltype(T) <: Real && howmany < length(fact) && T[howmany + 1, howmany] != 0
         howmany += 1
     end
     if converged > howmany
@@ -122,14 +122,14 @@ function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
         end
     end
     return TT,
-    vectors,
-    values,
-    ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
+           vectors,
+           values,
+           ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end
 
 function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     T, U, fact, converged, numiter, numops = _schursolve(A, x₀, howmany, which, alg)
-    if eltype(T) <: Real && howmany < length(fact) && T[howmany+1, howmany] != 0
+    if eltype(T) <: Real && howmany < length(fact) && T[howmany + 1, howmany] != 0
         howmany += 1
     end
     if converged > howmany
@@ -163,8 +163,8 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
         end
     end
     return values,
-    vectors,
-    ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
+           vectors,
+           ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end
 
 function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
@@ -177,7 +177,7 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     numiter = 1
     # initialize arnoldi factorization
     iter = ArnoldiIterator(A, x₀, alg.orth)
-    fact = initialize(iter; verbosity = alg.verbosity - 2)
+    fact = initialize(iter; verbosity=alg.verbosity - 2)
     numops = 1
     sizehint!(fact, krylovdim)
     β = normres(fact)
@@ -211,16 +211,16 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
             # compute dense schur factorization
             T, U, values = hschur!(H, U)
             by, rev = eigsort(which)
-            p = sortperm(values, by = by, rev = rev)
+            p = sortperm(values; by=by, rev=rev)
             T, U = permuteschur!(T, U, p)
             f = mul!(f, view(U, K, :), β)
             converged = 0
-            while converged < length(fact) && abs(f[converged+1]) <= tol
+            while converged < length(fact) && abs(f[converged + 1]) <= tol
                 converged += 1
             end
             if eltype(T) <: Real &&
                0 < converged < length(fact) &&
-               T[converged+1, converged] != 0
+               T[converged + 1, converged] != 0
                 converged -= 1
             end
 
@@ -240,7 +240,7 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
         end
 
         if K < krylovdim # expand
-            fact = expand!(iter, fact; verbosity = alg.verbosity - 2)
+            fact = expand!(iter, fact; verbosity=alg.verbosity - 2)
             numops += 1
         else # shrink
             if numiter == maxiter
@@ -249,21 +249,20 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
 
             # Determine how many to keep
             keep = div(3 * krylovdim + 2 * converged, 5) # strictly smaller than krylovdim since converged < howmany <= krylovdim, at least equal to converged
-            if eltype(H) <: Real && H[keep+1, keep] != 0 # we are in the middle of a 2x2 block
+            if eltype(H) <: Real && H[keep + 1, keep] != 0 # we are in the middle of a 2x2 block
                 keep += 1 # conservative choice
-                keep >= krylovdim && error(
-                    "krylov dimension $(krylovdim) too small to compute $howmany eigenvalues"
-                )
+                keep >= krylovdim &&
+                    error("krylov dimension $(krylovdim) too small to compute $howmany eigenvalues")
             end
 
             # Restore Arnoldi form in the first keep columns
             @inbounds for j in 1:keep
-                H[keep+1, j] = f[j]
+                H[keep + 1, j] = f[j]
             end
             @inbounds for j in keep:-1:1
                 h, ν = householder(H, j + 1, 1:j, j)
-                H[j+1, j] = ν
-                H[j+1, 1:j-1] .= 0
+                H[j + 1, j] = ν
+                H[j + 1, 1:(j - 1)] .= 0
                 lmul!(h, H)
                 rmul!(view(H, 1:j, :), h')
                 rmul!(U, h')
@@ -274,7 +273,7 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
             B = basis(fact)
             basistransform!(B, view(U, :, 1:keep))
             r = residual(fact)
-            B[keep+1] = scale!(r, 1 / normres(fact))
+            B[keep + 1] = scale!(r, 1 / normres(fact))
 
             # Shrink Arnoldi factorization
             fact = shrink!(fact, keep)

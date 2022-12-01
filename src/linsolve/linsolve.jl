@@ -86,92 +86,84 @@ used by the `CG` algorithm.
 """
 function linsolve end
 
-linsolve(A::AbstractMatrix, b::AbstractVector, a₀::Number = 0, a₁::Number = 1; kwargs...) =
-    linsolve(A, b, (zero(a₀) * zero(a₁)) * b, a₀, a₁; kwargs...)
+function linsolve(A::AbstractMatrix, b::AbstractVector, a₀::Number=0, a₁::Number=1;
+                  kwargs...)
+    return linsolve(A, b, (zero(a₀) * zero(a₁)) * b, a₀, a₁; kwargs...)
+end
 
-linsolve(f, b, a₀::Number = 0, a₁::Number = 1; kwargs...) =
-    linsolve(f, b, scale(b, zero(a₀) * zero(a₁)), a₀, a₁; kwargs...)
+function linsolve(f, b, a₀::Number=0, a₁::Number=1; kwargs...)
+    return linsolve(f, b, scale(b, zero(a₀) * zero(a₁)), a₀, a₁; kwargs...)
+end
 
-function linsolve(f, b, x₀, a₀::Number = 0, a₁::Number = 1; kwargs...)
+function linsolve(f, b, x₀, a₀::Number=0, a₁::Number=1; kwargs...)
     Tx = promote_type(typeof(x₀))
     Tb = typeof(b)
     Tfx = Core.Compiler.return_type(apply, Tuple{typeof(f),Tx})
-    T = promote_type(Core.Compiler.return_type(inner, Tuple{Tb,Tfx}), typeof(a₀), typeof(a₁))
+    T = promote_type(Core.Compiler.return_type(inner, Tuple{Tb,Tfx}), typeof(a₀),
+                     typeof(a₁))
     alg = linselector(f, b, T; kwargs...)
     return linsolve(f, b, x₀, alg, a₀, a₁)
 end
 
-function linselector(
-    f,
-    b,
-    T::Type;
-    issymmetric::Bool = false,
-    ishermitian::Bool = T <: Real && issymmetric,
-    isposdef::Bool = false,
-    krylovdim::Int = KrylovDefaults.krylovdim,
-    maxiter::Int = KrylovDefaults.maxiter,
-    rtol::Real = KrylovDefaults.tol,
-    atol::Real = KrylovDefaults.tol,
-    tol::Real = max(atol, rtol * norm(b)),
-    orth = KrylovDefaults.orth,
-    verbosity::Int = 0
-)
+function linselector(f,
+                     b,
+                     T::Type;
+                     issymmetric::Bool=false,
+                     ishermitian::Bool=T <: Real && issymmetric,
+                     isposdef::Bool=false,
+                     krylovdim::Int=KrylovDefaults.krylovdim,
+                     maxiter::Int=KrylovDefaults.maxiter,
+                     rtol::Real=KrylovDefaults.tol,
+                     atol::Real=KrylovDefaults.tol,
+                     tol::Real=max(atol, rtol * norm(b)),
+                     orth=KrylovDefaults.orth,
+                     verbosity::Int=0)
     if (T <: Real && issymmetric) || ishermitian
         isposdef &&
-            return CG(maxiter = krylovdim * maxiter, tol = tol, verbosity = verbosity)
+            return CG(; maxiter=krylovdim * maxiter, tol=tol, verbosity=verbosity)
         # TODO: implement MINRES for symmetric but not posdef; for now use GRMES
         # return MINRES(krylovdim*maxiter, tol=tol)
-        return GMRES(
-            krylovdim = krylovdim,
-            maxiter = maxiter,
-            tol = tol,
-            orth = orth,
-            verbosity = verbosity
-        )
+        return GMRES(; krylovdim=krylovdim,
+                     maxiter=maxiter,
+                     tol=tol,
+                     orth=orth,
+                     verbosity=verbosity)
     else
-        return GMRES(
-            krylovdim = krylovdim,
-            maxiter = maxiter,
-            tol = tol,
-            orth = orth,
-            verbosity = verbosity
-        )
+        return GMRES(; krylovdim=krylovdim,
+                     maxiter=maxiter,
+                     tol=tol,
+                     orth=orth,
+                     verbosity=verbosity)
     end
 end
-function linselector(
-    A::AbstractMatrix,
-    b,
-    T::Type;
-    issymmetric::Bool = T <: Real && LinearAlgebra.issymmetric(A),
-    ishermitian::Bool = issymmetric || LinearAlgebra.ishermitian(A),
-    isposdef::Bool = ishermitian ? LinearAlgebra.isposdef(A) : false,
-    krylovdim::Int = KrylovDefaults.krylovdim,
-    maxiter::Int = KrylovDefaults.maxiter,
-    rtol::Real = KrylovDefaults.tol,
-    atol::Real = KrylovDefaults.tol,
-    tol::Real = max(atol, rtol * norm(b)),
-    orth = KrylovDefaults.orth,
-    verbosity::Int = 0
-)
+function linselector(A::AbstractMatrix,
+                     b,
+                     T::Type;
+                     issymmetric::Bool=T <: Real && LinearAlgebra.issymmetric(A),
+                     ishermitian::Bool=issymmetric || LinearAlgebra.ishermitian(A),
+                     isposdef::Bool=ishermitian ? LinearAlgebra.isposdef(A) : false,
+                     krylovdim::Int=KrylovDefaults.krylovdim,
+                     maxiter::Int=KrylovDefaults.maxiter,
+                     rtol::Real=KrylovDefaults.tol,
+                     atol::Real=KrylovDefaults.tol,
+                     tol::Real=max(atol, rtol * norm(b)),
+                     orth=KrylovDefaults.orth,
+                     verbosity::Int=0)
     if (T <: Real && issymmetric) || ishermitian
         isposdef &&
-            return CG(maxiter = krylovdim * maxiter, tol = tol, verbosity = verbosity)
+            return CG(; maxiter=krylovdim * maxiter, tol=tol, verbosity=verbosity)
         # TODO: implement MINRES for symmetric but not posdef; for now use GRMES
         # return MINRES(krylovdim*maxiter, tol=tol, verbosity = verbosity)
-        return GMRES(
-            krylovdim = krylovdim,
-            maxiter = maxiter,
-            tol = tol,
-            orth = orth,
-            verbosity = verbosity
-        )
+        return GMRES(; krylovdim=krylovdim,
+                     maxiter=maxiter,
+                     tol=tol,
+                     orth=orth,
+                     verbosity=verbosity)
     else
-        return GMRES(
-            krylovdim = krylovdim,
-            maxiter = maxiter,
-            tol = tol,
-            orth = orth,
-            verbosity = verbosity
-        )
+        return GMRES(; krylovdim=krylovdim,
+                     maxiter=maxiter,
+                     tol=tol,
+                     orth=orth,
+                     verbosity=verbosity)
     end
 end

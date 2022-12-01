@@ -1,4 +1,4 @@
-function linsolve(operator, b, x₀, alg::BiCGStab, a₀::Number = 0, a₁::Number = 1)
+function linsolve(operator, b, x₀, alg::BiCGStab, a₀::Number=0, a₁::Number=1)
     # Initial function operation and division defines number type
     y₀ = apply(operator, x₀)
     T = typeof(inner(b, y₀) / norm(b) * one(a₀) * one(a₁))
@@ -118,7 +118,7 @@ function linsolve(operator, b, x₀, alg::BiCGStab, a₀::Number = 0, a₁::Numb
         ρold = ρ
         ρ = inner(r_shadow, r)
         β = (ρ / ρold) * (α / ω)
-        
+
         p = add!(p, v, -ω)
         p = add!(p, r, 1, β)
 
