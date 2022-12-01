@@ -80,7 +80,7 @@ However, KrylovKit.jl distinguishes itself from the previous packages in the fol
 
 The following algorithms are currently implemented
 *   `linsolve`: [`CG`](@ref), [`GMRES`](@ref), [`BiCGStab`](@ref)
-*   `eigsolve`: a Krylov-Schur algorithm (i.e. with thick restarts) for extremal eigenvalues
+*   `eigsolve`: a Krylov-Schur algorithm (i.e. with tick restarts) for extremal eigenvalues
     of normal (i.e. not generalized) eigenvalue problems, corresponding to
     [`Lanczos`](@ref) for real symmetric or complex hermitian linear maps, and to
     [`Arnoldi`](@ref) for general linear maps.
