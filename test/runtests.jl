@@ -37,7 +37,7 @@ module PureVecs
     include("svdsolve.jl")
     include("expintegrator.jl")
     t = time() - t
-    println("Julia Vector type: tests finisthed in $t seconds")
+    println("Julia Vector type: tests finished in $t seconds")
 end
 
 module MinimalVecs
@@ -84,7 +84,7 @@ module MinimalVecs
     include("svdsolve.jl")
     include("expintegrator.jl")
     t = time() - t
-    println("Minimal vector type: tests finisthed in $t seconds")
+    println("Minimal vector type: tests finished in $t seconds")
 end
 
 module MixedSVD
@@ -120,7 +120,7 @@ module MixedSVD
     include("gklfactorize.jl")
     include("svdsolve.jl")
     t = time() - t
-    println("Mixed vector type for GKL/SVD: tests finisthed in $t seconds")
+    println("Mixed vector type for GKL/SVD: tests finished in $t seconds")
 end
 
 module ExtrasTest
