@@ -10,15 +10,15 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
     numops = 1
     β₀ = norm(x₀)
     iszero(β₀) && throw(ArgumentError("initial vector should not have norm zero"))
-    xax = dot(x₀, ax₀) / β₀^2
-    xbx = dot(x₀, bx₀) / β₀^2
+    xax = inner(x₀, ax₀) / β₀^2
+    xbx = inner(x₀, bx₀) / β₀^2
     T = promote_type(typeof(xax), typeof(xbx))
     invβ₀ = one(T) / β₀
-    v = invβ₀ * x₀ # v = mul!(similar(x₀, T), x₀, invβ₀)
-    av = mul!(similar(v), ax₀, invβ₀)
-    bv = mul!(similar(v), bx₀, invβ₀)
+    v = scale(x₀, invβ₀) # v = mul!(similar(x₀, T), x₀, invβ₀)
+    av = scale!(zerovector(v), ax₀, invβ₀)
+    bv = scale!(zerovector(v), bx₀, invβ₀)
     ρ = checkhermitian(xax) / checkposdef(xbx)
-    r = axpy!(-ρ, bv, av)
+    r = add!(av, bv, -ρ)
     tol::typeof(ρ) = alg.tol
 
     # allocate storage
@@ -37,7 +37,7 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
     HHA[m, m] = real(α)
 
     while m < krylovdim
-        v = rmul!(r, 1 / β)
+        v = scale!(r, 1 / β)
         push!(V, r)
         HHA[m+1, m] = β
         HHA[m, m+1] = β
@@ -67,11 +67,11 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
     xold = V[1]
 
     z = view(Z, :, p[1])
-    x = mul!(similar(xold), V, z)
+    x = mul!(zerovector(xold), V, z)
     ax, bx = genapply(f, x)
     numops += 1
-    ρ = checkhermitian(dot(x, ax)) / checkposdef(dot(x, bx))
-    r = axpy!(-ρ, bx, ax)
+    ρ = checkhermitian(inner(x, ax)) / checkposdef(inner(x, bx))
+    r = add!(ax, bx, -ρ)
     normr = norm(r)
 
     converged = 0
@@ -87,11 +87,11 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
         converged += 1
 
         z = view(Z, :, p[converged+1])
-        x = mul!(similar(xold), V, z)
+        x = mul!(zerovector(xold), V, z)
         ax, bx = genapply(f, x)
         numops += 1
-        ρ = checkhermitian(dot(x, ax)) / checkposdef(dot(x, bx))
-        r = axpy!(-ρ, bx, ax)
+        ρ = checkhermitian(inner(x, ax)) / checkposdef(inner(x, bx))
+        r = add!(ax, bx, -ρ)
         normr = norm(r)
     end
 
@@ -119,9 +119,9 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
 
         # Start Lanczos iteration with A - ρ ⋅ B
         invβ = 1 / norm(x)
-        v = rmul!(x, invβ)
-        bv = rmul!(bx, invβ)
-        r = rmul!(r, invβ)
+        v = scale!(x, invβ)
+        bv = scale!(bx, invβ)
+        r = scale!(r, invβ)
         r, α = orthogonalize!(r, v, alg.orth) # α should be zero, otherwise ρ was miscalculated
         β = norm(r)
         m = 1
@@ -130,7 +130,7 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
         push!(BV, bv)
 
         while m < krylovdim - converged
-            v = rmul!(r, 1 / β)
+            v = scale!(r, 1 / β)
             push!(V, r)
             HHA[m+1, m] = β
             HHA[m, m+1] = β
@@ -152,13 +152,13 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
         v, = orthonormalize!(xold, V, alg.orth)
         av, bv = genapply(f, v)
         numops += 1
-        av = axpy!(-ρ, bv, av)
+        av = add!(av, bv, -ρ)
         for i in 1:m
-            HHA[i, m+1] = dot(V[i], av)
+            HHA[i, m+1] = inner(V[i], av)
             HHA[m+1, i] = conj(HHA[i, m+1])
         end
         m += 1
-        HHA[m, m] = checkhermitian(dot(v, av))
+        HHA[m, m] = checkhermitian(inner(v, av))
         push!(V, v)
         push!(BV, bv)
 
@@ -167,13 +167,13 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
             v, = orthonormalize(vectors[i], V, alg.orth)
             av, bv = genapply(f, v)
             numops += 1
-            av = axpy!(-ρ, bv, av)
+            av = add!(av, bv, -ρ)
             for i in 1:m
-                HHA[i, m+1] = dot(V[i], av)
+                HHA[i, m+1] = inner(V[i], av)
                 HHA[m+1, i] = conj(HHA[i, m+1])
             end
             m += 1
-            HHA[m, m] = checkhermitian(dot(v, av))
+            HHA[m, m] = checkhermitian(inner(v, av))
             push!(V, v)
             push!(BV, bv)
         end
@@ -196,11 +196,11 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
         resize!(normresiduals, 0)
         while true
             z = view(Z, :, p[converged+1])
-            x = mul!(similar(xold), V, z)
+            x = mul!(zerovector(xold), V, z)
             ax, bx = genapply(f, x)
             numops += 1
-            ρ = checkhermitian(dot(x, ax)) / checkposdef(dot(x, bx))
-            r = axpy!(-ρ, bx, ax)
+            ρ = checkhermitian(inner(x, ax)) / checkposdef(inner(x, bx))
+            r = add(ax, bx, -ρ)
             normr = norm(r)
 
             if normr > tol || converged >= howmany
@@ -234,11 +234,11 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
     end
     for k in converged+1:howmany
         z = view(Z, :, p[k])
-        x = mul!(similar(xold), V, z)
+        x = mul!(zerovector(xold), V, z)
         ax, bx = genapply(f, x)
         numops += 1
-        ρ = checkhermitian(dot(x, ax)) / checkposdef(dot(x, bx))
-        r = axpy!(-ρ, bx, ax)
+        ρ = checkhermitian(inner(x, ax)) / checkposdef(inner(x, bx))
+        r = add!(ax, bx, -ρ)
         normr = norm(r)
 
         push!(values, ρ)
@@ -269,19 +269,19 @@ end
 function golubyerecurrence(f, ρ, V::OrthonormalBasis, β, orth::ClassicalGramSchmidt)
     v = V[end]
     av, bv = genapply(f, v)
-    w = axpy!(-ρ, bv, av)
-    α = dot(v, w)
+    w = add!(av, bv, -ρ)
+    α = inner(v, w)
 
-    w = axpy!(-β, V[end-1], w)
-    w = axpy!(-α, v, w)
+    w = add!(w, V[end-1], -β)
+    w = add!(w, v, -α)
     β = norm(w)
     return w, α, β, bv
 end
 function golubyerecurrence(f, ρ, V::OrthonormalBasis, β, orth::ModifiedGramSchmidt)
     v = V[end]
     av, bv = genapply(f, v)
-    w = axpy!(-ρ, bv, av)
-    w = axpy!(-β, V[end-1], w)
+    w = add!(av, bv, -ρ)
+    w = add!(w, V[end-1], -β)
 
     w, α = orthogonalize!(w, v, orth)
     β = norm(w)
@@ -290,10 +290,10 @@ end
 function golubyerecurrence(f, ρ, V::OrthonormalBasis, β, orth::ClassicalGramSchmidt2)
     v = V[end]
     av, bv = genapply(f, v)
-    w = axpy!(-ρ, bv, av)
-    α = dot(v, w)
-    w = axpy!(-β, V[end-1], w)
-    w = axpy!(-α, v, w)
+    w = add!(av, bv, -ρ)
+    α = inner(v, w)
+    w = add!(w, V[end-1], -β)
+    w = add!(w, v, -α)
 
     w, s = orthogonalize!(w, V, ClassicalGramSchmidt())
     α += s[end]
@@ -303,8 +303,8 @@ end
 function golubyerecurrence(f, ρ, V::OrthonormalBasis, β, orth::ModifiedGramSchmidt2)
     v = V[end]
     av, bv = genapply(f, v)
-    w = axpy!(-ρ, bv, av)
-    w = axpy!(-β, V[end-1], w)
+    w = add!(av, bv, -ρ)
+    w = add!(w, V[end-1], -β)
     w, α = orthogonalize!(w, v, ModifiedGramSchmidt())
 
     s = α
@@ -318,10 +318,10 @@ end
 function golubyerecurrence(f, ρ, V::OrthonormalBasis, β, orth::ClassicalGramSchmidtIR)
     v = V[end]
     av, bv = genapply(f, v)
-    w = axpy!(-ρ, bv, av)
-    α = dot(v, w)
-    w = axpy!(-β, V[end-1], w)
-    w = axpy!(-α, v, w)
+    w = add!(av, bv, -ρ)
+    α = inner(v, w)
+    w = add!(w, V[end-1], -β)
+    w = add!(w, v, -α)
 
     ab2 = abs2(α) + abs2(β)
     β = norm(w)
@@ -337,8 +337,8 @@ end
 function golubyerecurrence(f, ρ, V::OrthonormalBasis, β, orth::ModifiedGramSchmidtIR)
     v = V[end]
     av, bv = genapply(f, v)
-    w = axpy!(-ρ, bv, av)
-    w = axpy!(-β, V[end-1], w)
+    w = add!(av, bv, -ρ)
+    w = add!(w, V[end-1], -β)
 
     w, α = orthogonalize!(w, v, ModifiedGramSchmidt())
     ab2 = abs2(α) + abs2(β)
@@ -359,9 +359,9 @@ end
 function buildHB!(HB, V, BV)
     m = length(V)
     @inbounds for j in 1:m
-        HB[j, j] = checkposdef(dot(V[j], BV[j]))
+        HB[j, j] = checkposdef(inner(V[j], BV[j]))
         for i in j+1:m
-            HB[i, j] = dot(V[i], BV[j])
+            HB[i, j] = inner(V[i], BV[j])
             HB[j, i] = conj(HB[i, j])
         end
     end

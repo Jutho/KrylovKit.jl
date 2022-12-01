@@ -530,12 +530,12 @@ and its concrete subtypes [`ClassicalGramSchmidt`](@ref), [`ModifiedGramSchmidt`
 orthogonalize, orthogonalize!
 
 # Orthonormalization: orthogonalization and normalization
-orthonormalize(v, args...) = orthonormalize!(true * v, args...)
+orthonormalize(v, args...) = orthonormalize!(scale(v, true), args...)
 
 function orthonormalize!(v, args...)
     out = orthogonalize!(v, args...) # out[1] === v
     β = norm(v)
-    v = rmul!(v, inv(β))
+    v = scale!(v, inv(β))
     return tuple(v, β, Base.tail(out)...)
 end
 
