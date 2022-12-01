@@ -170,39 +170,41 @@ function initialize(iter::LanczosIterator; verbosity::Int = 0)
     β₀ = norm(x₀)
     iszero(β₀) && throw(ArgumentError("initial vector should not have norm zero"))
     Ax₀ = apply(iter.operator, x₀)
-    α = dot(x₀, Ax₀) / (β₀ * β₀)
+    α = inner(x₀, Ax₀) / (β₀ * β₀)
     n = abs(α)
     imag(α) <= sqrt(max(eps(n), eps(one(n)))) ||
         error("operator does not appear to be hermitian: $(imag(α)) vs $n")
     T = typeof(α)
     # this line determines the vector type that we will henceforth use
-    v = mul!(zero(T)*Ax₀, x₀, 1 / β₀) # (one(T) / β₀) * x₀ # mul!(similar(x₀, T), x₀, 1/β₀)
+    v = add(zerovector(Ax₀, T), x₀, 1 / β₀)
+    # v = mul!(zero(T)*Ax₀, x₀, 1 / β₀) # (one(T) / β₀) * x₀ # mul!(similar(x₀, T), x₀, 1/β₀)
     if typeof(Ax₀) != typeof(v)
-        r = mul!(similar(v), Ax₀, 1 / β₀)
+        r = add(zerovector(v), Ax₀, 1 / β₀)
+        # r = mul!(similar(v), Ax₀, 1 / β₀)
     else
-        r = rmul!(Ax₀, 1 / β₀)
+        r = scale(Ax₀, 1 / β₀)
     end
     βold = norm(r)
-    r = axpy!(-α, v, r)
+    r = add(r, v, -α)
     β = norm(r)
     # possibly reorthogonalize
     if iter.orth isa Union{ClassicalGramSchmidt2,ModifiedGramSchmidt2}
-        dα = dot(v, r)
+        dα = inner(v, r)
         n = hypot(dα, β)
         imag(dα) <= sqrt(max(eps(n), eps(one(n)))) ||
             error("operator does not appear to be hermitian: $(imag(dα)) vs $n")
         α += dα
-        r = axpy!(-dα, v, r)
+        r = add(r, v, -dα)
         β = norm(r)
     elseif iter.orth isa Union{ClassicalGramSchmidtIR,ModifiedGramSchmidtIR}
         while eps(one(β)) < β < iter.orth.η * βold
             βold = β
-            dα = dot(v, r)
+            dα = inner(v, r)
             n = hypot(dα, β)
             imag(dα) <= sqrt(max(eps(n), eps(one(n)))) ||
                 error("operator does not appear to be hermitian: $(imag(dα)) vs $n")
             α += dα
-            r = axpy!(-dα, v, r)
+            r = add(r, v, -dα)
             β = norm(r)
         end
     end
@@ -223,9 +225,9 @@ function initialize!(iter::LanczosIterator, state::LanczosFactorization; verbosi
     αs = empty!(state.αs)
     βs = empty!(state.βs)
 
-    v = mul!(V[1], x₀, 1 / norm(x₀))
-    w = apply(iter.operator, v)
-    r, α = orthogonalize!(w, v, iter.orth)
+    V[1] = scale(x₀, 1 / norm(x₀))
+    w = apply(iter.operator, V[1])
+    r, α = orthogonalize!(w, V[1], iter.orth)
     β = norm(r)
     n = hypot(α, β)
     imag(α) <= sqrt(max(eps(n), eps(one(n)))) ||
@@ -244,7 +246,7 @@ function expand!(iter::LanczosIterator, state::LanczosFactorization; verbosity::
     βold = normres(state)
     V = state.V
     r = state.r
-    V = push!(V, rmul!(r, 1 / βold))
+    V = push!(V, scale(r, 1 / βold))
     r, α, β = lanczosrecurrence(iter.operator, V, βold, iter.orth)
     n = hypot(α, β, βold)
     imag(α) <= sqrt(max(eps(n), eps(one(n)))) ||
@@ -274,7 +276,7 @@ function shrink!(state::LanczosFactorization, k)
     resize!(state.αs, k)
     resize!(state.βs, k)
     state.k = k
-    state.r = rmul!(r, normres(state))
+    state.r = scale(r, normres(state))
     return state
 end
 
@@ -283,7 +285,7 @@ end
 function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ClassicalGramSchmidt)
     v = V[end]
     w = apply(operator, v)
-    α = dot(v, w)
+    α = inner(v, w)
     w = axpy!(-β, V[end-1], w)
     w = axpy!(-α, v, w)
     β = norm(w)
@@ -292,19 +294,19 @@ end
 function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ModifiedGramSchmidt)
     v = V[end]
     w = apply(operator, v)
-    w = axpy!(-β, V[end-1], w)
-    α = dot(v, w)
-    w = axpy!(-α, v, w)
+    w = add(w, V[end-1], -β)
+    α = inner(v, w)
+    w = add(w, v, -α)
     β = norm(w)
     return w, α, β
 end
 function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ClassicalGramSchmidt2)
     v = V[end]
     w = apply(operator, v)
-    α = dot(v, w)
-    w = axpy!(-β, V[end-1], w)
-    w = axpy!(-α, v, w)
-
+    α = inner(v, w)
+    w = add(w, V[end-1], -β)
+    w = add(w, v, -α)
+    
     w, s = orthogonalize!(w, V, ClassicalGramSchmidt())
     α += s[end]
     β = norm(w)
@@ -313,7 +315,7 @@ end
 function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ModifiedGramSchmidt2)
     v = V[end]
     w = apply(operator, v)
-    w = axpy!(-β, V[end-1], w)
+    w = add(w, V[end-1], -β)
     w, α = orthogonalize!(w, v, ModifiedGramSchmidt())
 
     s = α
@@ -327,10 +329,10 @@ end
 function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ClassicalGramSchmidtIR)
     v = V[end]
     w = apply(operator, v)
-    α = dot(v, w)
-    w = axpy!(-β, V[end-1], w)
-    w = axpy!(-α, v, w)
-
+    α = inner(v, w)
+    w = add(w, V[end-1], -β)
+    w = add(w, v, -α)
+    
     ab2 = abs2(α) + abs2(β)
     β = norm(w)
     nold = sqrt(abs2(β) + ab2)
@@ -345,7 +347,7 @@ end
 function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ModifiedGramSchmidtIR)
     v = V[end]
     w = apply(operator, v)
-    w = axpy!(-β, V[end-1], w)
+    w = add(w, V[end-1], -β)
 
     w, α = orthogonalize!(w, v, ModifiedGramSchmidt())
     ab2 = abs2(α) + abs2(β)

@@ -11,16 +11,20 @@ end
 
 VectorInterface.scalartype(::Type{<:MinimalVec{V}}) where {V} = scalartype(V)
 
-VectorInterface.zerovector(v::MinimalVec, S) = MinimalVec(zerovector(v.vec, S))
-VectorInterface.zerovector!!(v::MinimalVec, S) = zerovector(v, S)
+function VectorInterface.zerovector(v::MinimalVec, S::Type{<:Number})
+    return MinimalVec(zerovector(v.vec, S))
+end
+VectorInterface.zerovector!!(v::MinimalVec, S::Type{<:Number}) = zerovector(v, S)
 
-VectorInterface.scale(v::MinimalVec, α) = MinimalVec(scale(v.vec, α))
-VectorInterface.scale!!(v::MinimalVec, α) = scale(v, α)
+VectorInterface.scale(v::MinimalVec, α::Number) = MinimalVec(scale(v.vec, α))
+VectorInterface.scale!!(v::MinimalVec, α::Number) = scale(v, α)
 
-function VectorInterface.add(y::MinimalVec, x::MinimalVec, α=1, β=1)
+function VectorInterface.add(y::MinimalVec, x::MinimalVec, α::Number=1, β::Number=1)
     return MinimalVec(add(y.vec, x.vec, α, β))
 end
-VectorInterface.add!!(y::MinimalVec, x::MinimalVec, α=1, β=1) = add(y, x, α, β)
+function VectorInterface.add!!(y::MinimalVec, x::MinimalVec, α::Number=1, β::Number=1)
+    return add(y, x, α, β)
+end
 
 VectorInterface.inner(x::MinimalVec, y::MinimalVec) = inner(x.vec, y.vec)
 VectorInterface.norm(x::MinimalVec) = norm(x.vec)

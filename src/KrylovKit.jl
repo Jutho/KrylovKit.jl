@@ -20,7 +20,7 @@ The high level interface of KrylovKit is provided by the following functions:
     computes a linear combination of the `ϕⱼ` functions which generalize `ϕ₀(z) = exp(z)`.
 """
 module KrylovKit
-
+using VectorInterface
 using LinearAlgebra
 using Printf
 using ChainRulesCore
@@ -48,7 +48,7 @@ function set_num_threads(n::Int)
         n = N
         _set_num_threads_warn(n)
     end
-    _NTHREADS[] = n
+    return _NTHREADS[] = n
 end
 @noinline function _set_num_threads_warn(n)
     @warn "Maximal number of threads limited by number of Julia threads,
@@ -59,7 +59,7 @@ enable_threads() = set_num_threads(Base.Threads.nthreads())
 disable_threads() = set_num_threads(1)
 
 function __init__()
-    set_num_threads(Base.Threads.nthreads())
+    return set_num_threads(Base.Threads.nthreads())
 end
 
 struct SplitRange
@@ -80,20 +80,20 @@ function splitrange(r::OrdinalRange, n::Integer)
     outerlength = n
     return SplitRange(start, stp, stop, innerlength, outerlength1, outerlength)
 end
-function Base.iterate(r::SplitRange, i = 1)
+function Base.iterate(r::SplitRange, i=1)
     step = r.step
     if i <= r.outerlength1
-        offset = (i-1)*(r.innerlength+1)*step
+        offset = (i - 1) * (r.innerlength + 1) * step
         start = r.start + offset
-        stop = start + step*r.innerlength
+        stop = start + step * r.innerlength
     elseif i <= r.outerlength
-        offset = (r.outerlength1 + (i-1)*r.innerlength)*step
+        offset = (r.outerlength1 + (i - 1) * r.innerlength) * step
         start = r.start + offset
-        stop = start + step*(r.innerlength-1)
+        stop = start + step * (r.innerlength - 1)
     else
         return nothing
     end
-    return StepRange(start, step, stop), i+1
+    return StepRange(start, step, stop), i + 1
 end
 Base.length(r::SplitRange) = r.outerlength
 
@@ -150,7 +150,7 @@ function checkposdef(z)
     r > 0 || error("operator does not appear to be positive definite: diagonal element $z")
     return r
 end
-function checkhermitian(z, n = abs(z))
+function checkhermitian(z, n=abs(z))
     imag(z) <= sqrt(max(eps(n), eps(one(n)))) ||
         error("operator does not appear to be hermitian: diagonal element $z")
     return real(z)
@@ -206,14 +206,12 @@ function Base.show(io::IO, info::ConvergenceInfo)
     info.converged == 0 && print(io, "no converged values ")
     info.converged == 1 && print(io, "one converged value ")
     info.converged > 1 && print(io, "$(info.converged) converged values ")
-    println(
-        io,
-        "after ",
-        info.numiter,
-        " iterations and ",
-        info.numops,
-        " applications of the linear map;"
-    )
+    println(io,
+            "after ",
+            info.numiter,
+            " iterations and ",
+            info.numops,
+            " applications of the linear map;")
     return println(io, "norms of residuals are given by $((info.normres...,)).")
 end
 
