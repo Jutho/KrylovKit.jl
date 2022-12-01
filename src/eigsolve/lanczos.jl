@@ -106,7 +106,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
             B = basis(fact)
             basistransform!(B, view(U, :, 1:keep))
             r = residual(fact)
-            B[keep+1] = rmul!(r, 1 / β)
+            B[keep+1] = scale!(r, 1 / β)
 
             # Shrink Lanczos factorization
             fact = shrink!(fact, keep)
@@ -127,7 +127,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
         [B * v for v in cols(V)]
     end
     residuals = let r = residual(fact)
-        [last(v) * r for v in cols(V)]
+        [scale(r, last(v)) for v in cols(V)]
     end
     normresiduals = let f = f
         map(i -> abs(f[i]), 1:howmany)

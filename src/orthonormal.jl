@@ -55,7 +55,7 @@ Base.resize!(b::OrthonormalBasis, k::Int) = (resize!(b.basis, k); return b)
 
 # Multiplication methods with OrthonormalBasis
 function Base.:*(b::OrthonormalBasis, x::AbstractVector)
-    y = zero(eltype(x)) * first(b)
+    y = zerovector(first(b), promote_type(scalartype(x), scalartype(first(b))))
     return mul!(y, b, x)
 end
 LinearAlgebra.mul!(y, b::OrthonormalBasis, x::AbstractVector) = unproject!(y, b, x, 1, 0)
@@ -301,21 +301,21 @@ function basistransform!(b::OrthonormalBasis{T}, U::AbstractMatrix) where {T} # 
     m, n = size(U)
     m == length(b) || throw(DimensionMismatch())
 
-    let b2 = [similar(b[1]) for j in 1:n]
+    let b2 = [zerovector(b[1]) for j in 1:n]
         if get_num_threads() > 1
             @sync for J in splitrange(1:n, get_num_threads())
                 Threads.@spawn for j in $J
-                    mul!(b2[j], b[1], U[1, j])
+                    scale!(b2[j], b[1], U[1, j])
                     for i in 2:m
-                        axpy!(U[i, j], b[i], b2[j])
+                        add!(b2[j], b[i], U[i,j])
                     end
                 end
             end
         else
             for j in 1:n
-                mul!(b2[j], b[1], U[1, j])
+                scale!(b2[j], b[1], U[1, j])
                 for i in 2:m
-                    axpy!(U[i, j], b[i], b2[j])
+                    add!(b2[j], b[i], U[i, j])
                 end
             end
         end
