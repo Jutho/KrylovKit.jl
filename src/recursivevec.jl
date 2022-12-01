@@ -62,8 +62,9 @@ end
 
 VectorInterface.scalartype(::Type{RecursiveVec{T}}) where {T} = scalartype(eltype(T))
 
-VectorInterface.zerovector(v::RecursiveVec, T::Type{<:Number}) =
-    RecursiveVec(zerovector.(v.vecs, T))
+function VectorInterface.zerovector(v::RecursiveVec, T::Type{<:Number})
+    return RecursiveVec(zerovector.(v.vecs, T))
+end
 
 VectorInterface.scale(v::RecursiveVec, a::Number) = RecursiveVec(scale.(v.vecs, a))
 
@@ -73,7 +74,6 @@ function VectorInterface.scale!(v::RecursiveVec, a::Number)
     end
     return v
 end
-
 
 function VectorInterface.scale!(w::RecursiveVec, v::RecursiveVec, a::Number)
     @assert length(w.vecs) == length(v.vecs)
@@ -90,7 +90,20 @@ function VectorInterface.scale!(v::RecursiveVec, a::Number)
     return v
 end
 
-function VectorInterface.add!(w::RecursiveVec, v::RecursiveVec, a::Number=1, b::Number=1)
+VectorInterface.scale!!(x::RecursiveVec, a::Number) = RecursiveVec(scale!!.(x.vecs, a))
+
+function VectorInterface.add(w::RecursiveVec{T}, v::RecursiveVec{T}, a::ONumber=_one,
+                             b::ONumber=_one) where {T<:Tuple}
+    return RecursiveVec(ntuple(i -> add(w[i], v[i], a, b), length(w)))
+end
+
+function VectorInterface.add(w::RecursiveVec{T}, v::RecursiveVec{T}, a::ONumber=_one,
+                             b::ONumber=_one) where {T<:AbstractVector}
+    return RecursiveVec(add.(w, v, Ref(a), Ref(b)))
+end
+
+function VectorInterface.add!(w::RecursiveVec, v::RecursiveVec, a::ONumber=_one,
+                              b::ONumber=_one)
     @assert length(w.vecs) == length(v.vecs)
     @inbounds for i in 1:length(w.vecs)
         add!(w.vecs[i], v.vecs[i], a, b)
@@ -98,7 +111,14 @@ function VectorInterface.add!(w::RecursiveVec, v::RecursiveVec, a::Number=1, b::
     return w
 end
 
-VectorInterface.inner(v::RecursiveVec{T}, w::RecursiveVec{T}) where {T} =
-    sum(inner.(v.vecs, w.vecs))
-    
+function VectorInterface.add!!(w::RecursiveVec, v::RecursiveVec,
+                               a::ONumber=_one,
+                               b::ONumber=_one)
+    return RecursiveVec(add!!.(w, v, a, b))
+end
+
+function VectorInterface.inner(v::RecursiveVec{T}, w::RecursiveVec{T}) where {T}
+    return sum(inner.(v.vecs, w.vecs))
+end
+
 VectorInterface.norm(v::RecursiveVec) = norm(norm.(v.vecs))

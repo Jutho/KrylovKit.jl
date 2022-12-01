@@ -69,40 +69,8 @@ function VectorInterface.add!(v::InnerProductVec{F}, w::InnerProductVec{F}, a::N
     return v
 end
 
-function LinearAlgebra.mul!(w::InnerProductVec{F},
-                            a::Number,
-                            v::InnerProductVec{F}) where {F}
-    mul!(w.vec, a, v.vec)
-    return w
+function VectorInterface.inner(v::InnerProductVec{F}, w::InnerProductVec{F}) where {F}
+    return v.dotf(v[], w[])
 end
 
-function LinearAlgebra.mul!(w::InnerProductVec{F},
-                            v::InnerProductVec{F},
-                            a::Number) where {F}
-    mul!(w.vec, v.vec, a)
-    return w
-end
-
-function LinearAlgebra.rmul!(v::InnerProductVec, a::Number)
-    rmul!(v.vec, a)
-    return v
-end
-
-function LinearAlgebra.axpy!(a::Number,
-                             v::InnerProductVec{F},
-                             w::InnerProductVec{F}) where {F}
-    axpy!(a, v.vec, w.vec)
-    return w
-end
-function LinearAlgebra.axpby!(a::Number,
-                              v::InnerProductVec{F},
-                              b,
-                              w::InnerProductVec{F}) where {F}
-    axpby!(a, v.vec, b, w.vec)
-    return w
-end
-
-function LinearAlgebra.dot(v::InnerProductVec{F}, w::InnerProductVec{F}) where {F}
-    return v.dotf(v.vec, w.vec)
-end
-LinearAlgebra.norm(v::InnerProductVec) = sqrt(real(dot(v, v)))
+VectorInterface.norm(v::InnerProductVec) = sqrt(real(inner(v, v)))

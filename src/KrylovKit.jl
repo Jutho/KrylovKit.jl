@@ -21,6 +21,7 @@ The high level interface of KrylovKit is provided by the following functions:
 """
 module KrylovKit
 using VectorInterface
+using VectorInterface: _one, ONumber
 using LinearAlgebra
 using Printf
 using ChainRulesCore
