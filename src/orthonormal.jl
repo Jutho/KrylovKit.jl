@@ -223,9 +223,9 @@ It is the user's responsibility to make sure that the result is still an orthono
         if β == 1
             b[ri] = add!(b[ri], y, α * conj(x[i]))
         elseif β == 0
-            b[ri] = scale!(b[ri], y, α * x[i])
+            b[ri] = scale!(b[ri], y, α * conj(x[i]))
         else
-            b[ri] = add!(b[ri], y, α * x[i], β)
+            b[ri] = add!(b[ri], y, α * conj(x[i]), β)
         end
     end
     return b
