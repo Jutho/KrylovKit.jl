@@ -96,14 +96,14 @@ use complex time steps in combination with e.g. a real symmetric map.
 function expintegrator end
 
 function expintegrator(A, t::Number, u₀, us...; kwargs...)
-    Ts = typeof.(dot.((u₀, us...), (u₀,)))
+    Ts = typeof.(inner.((u₀, us...), (u₀,)))
     T = promote_type(typeof(t), Ts...)
     alg = eigselector(A, T; kwargs...)
     return expintegrator(A, t, (u₀, us...), alg)
 end
 
 function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
-    length(u) == 1 && return expintegrator(A, t, (u[1], rmul!(similar(u[1]), false)), alg)
+    length(u) == 1 && return expintegrator(A, t, (u[1], zerovector(u[1])), alg)
 
     p = length(u) - 1
 
@@ -112,9 +112,9 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
     β₀ = norm(u₀)
     Au₀ = apply(A, u₀) # used to determine return type
     numops = 1
-    T = promote_type(typeof(t), (typeof.(dot.(u, (Au₀,))))...)
+    T = promote_type(typeof(t), (typeof.(inner.(u, (Au₀,))))...)
     S = real(T)
-    w₀ = one(T) * u₀
+    w₀ = scale(u₀, one(T))
 
     # krylovdim and related allocations
     krylovdim = alg.krylovdim
@@ -137,7 +137,7 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
     w = Vector{typeof(w₀)}(undef, p + 1)
     w[1] = w₀
     # reuse the result of apply computed earlier:
-    w[2] = mul!(similar(w₀), Au₀, one(T))
+    w[2] = scale!(zerovector(w₀), Au₀, one(T))
     for j in 1:p
         if j > 1
           w[j+1] = apply(A, w[j])
@@ -145,11 +145,11 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
         end
         lfac = 1
         for l in 0:p-j
-            w[j+1] = axpy!((sgn * τ₀)^l / lfac, u[j+l+1], w[j+1])
+            w[j+1] = add!(w[j+1], u[j+l+1], (sgn * τ₀)^l / lfac)
             lfac *= l + 1
         end
     end
-    v = similar(w₀)
+    v = zerovector(w₀)
     β = norm(w[p+1])
     if β < alg.tol && p == 1
         if alg.verbosity > 0
@@ -157,7 +157,7 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
         end
         return w₀, ConvergenceInfo(1, zero(τ), β, 0, numops)
     end
-    mul!(v, w[p+1], 1 / β)
+    scale!(v, w[p+1], 1 / β)
 
     # initialize iterator
     if alg isa Lanczos
@@ -211,13 +211,13 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
             totalerr += ϵ
             jfac = 1
             for j in 1:p-1
-                w₀ = axpy!((sgn * Δτ)^j / jfac, w[j+1], w₀)
+                w₀ = add!(w₀, w[j+1],(sgn * Δτ)^j / jfac)
                 jfac *= (j + 1)
             end
             w[p+1] = mul!(w[p+1], basis(fact), view(expH, 1:K, K + p))
             # add first correction
-            w[p+1] = axpy!(expH[K, K+p+1], residual(fact), w[p+1])
-            w₀ = axpy!(β * (sgn * Δτ)^p, w[p+1], w₀)
+            w[p+1] = add!(w[p+1], residual(fact), expH[K, K+p+1])
+            w₀ = add!(w₀, w[p+1], β * (sgn * Δτ)^p)
             τ₀ += Δτ
 
             # increase time step for next iteration:
@@ -247,13 +247,13 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
                 totalerr += ϵ
                 jfac = 1
                 for j in 1:p-1
-                    w₀ = axpy!((sgn * (τ - τ₀))^j / jfac, w[j+1], w₀)
+                    w₀ = add!(w₀, w[j+1], (sgn * (τ - τ₀))^j / jfac)
                     jfac *= (j + 1)
                 end
                 w[p+1] = mul!(w[p+1], basis(fact), view(expH, 1:K, K + p))
                 # add first correction
-                w[p+1] = axpy!(expH[K, K+p+1], residual(fact), w[p+1])
-                w₀ = axpy!(β * (sgn * (τ - τ₀))^p, w[p+1], w₀)
+                w[p+1] = add!(w[p+1], residual(fact), expH[K, K+p+1])
+                w₀ = add!(w₀, w[p+1], β * (sgn * (τ - τ₀))^p)
                 τ₀ = τ
             end
         end
@@ -279,7 +279,7 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
                     numops += 1
                     lfac = 1
                     for l in 0:p-j
-                        w[j+1] = axpy!((sgn * τ₀)^l / lfac, u[j+l+1], w[j+1])
+                        w[j+1] = add!(w[j+1], u[j+l+1], (sgn * τ₀)^l / lfac)
                         lfac *= l + 1
                     end
                 end
@@ -290,7 +290,7 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
                     end
                     return w₀, ConvergenceInfo(1, zero(τ), β, numiter, numops)
                 end
-                mul!(v, w[p+1], 1 / β)
+                scale!(v, w[p+1], 1 / β)
 
                 if alg isa Lanczos
                     iter = LanczosIterator(A, w[p+1], alg.orth)

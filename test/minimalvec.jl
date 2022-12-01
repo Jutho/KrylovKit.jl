@@ -17,11 +17,24 @@ end
 VectorInterface.zerovector!!(v::MinimalVec, S::Type{<:Number}) = zerovector(v, S)
 
 VectorInterface.scale(v::MinimalVec, α::Number) = MinimalVec(scale(v.vec, α))
+function VectorInterface.scale!(v::MinimalVec, α::Number)
+    scale!(v.vec, α)
+    return v
+end
+function VectorInterface.scale!(w::MinimalVec, v::MinimalVec, α::Number)
+    scale!(w.vec, v.vec, α)
+    return w
+end
 VectorInterface.scale!!(v::MinimalVec, α::Number) = scale(v, α)
 
 function VectorInterface.add(y::MinimalVec, x::MinimalVec, α::Number=1, β::Number=1)
     return MinimalVec(add(y.vec, x.vec, α, β))
 end
+function VectorInterface.add!(y::MinimalVec, x::MinimalVec, α::Number=1, β::Number=1)
+    add!(y.vec, x.vec, α, β)
+    return y
+end
+
 function VectorInterface.add!!(y::MinimalVec, x::MinimalVec, α::Number=1, β::Number=1)
     return add(y, x, α, β)
 end
