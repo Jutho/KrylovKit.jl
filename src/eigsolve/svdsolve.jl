@@ -231,7 +231,7 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
 
             # Shrink GKL factorization (no longer strictly GKL)
             r = residual(fact)
-            U[keep+1] = rmul!(r, 1 / normres(fact))
+            U[keep+1] = scale!(r, 1 / normres(fact))
             H = fill!(view(HH, 1:keep+1, 1:keep), zero(eltype(HH)))
             @inbounds for j in 1:keep
                 H[j, j] = S[j]
@@ -277,7 +277,7 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
         [V * v for v in cols(Qv')]
     end
     residuals = let r = residual(fact)
-        [last(v) * r for v in cols(Qv')]
+        [scale(r, last(v)) for v in cols(Qv')]
     end
     normresiduals = let f = f
         map(i -> abs(f[i]), 1:howmany)

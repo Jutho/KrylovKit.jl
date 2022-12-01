@@ -221,11 +221,11 @@ It is the user's responsibility to make sure that the result is still an orthono
     length(x) == length(r) || throw(DimensionMismatch())
     @inbounds for (i, ri) in enumerate(r)
         if β == 1
-            b[ri] = axpy!(α * conj(x[i]), y, b[ri])
+            b[ri] = add!(b[ri], y, α * conj(x[i]))
         elseif β == 0
-            b[ri] = mul!(b[ri], α * x[i], y)
+            b[ri] = scale!(b[ri], y, α * x[i])
         else
-            b[ri] = axpby!(α * x[i], y, β, b[ri])
+            b[ri] = add!(b[ri], y, α * x[i], β)
         end
     end
     return b

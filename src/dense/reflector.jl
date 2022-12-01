@@ -145,7 +145,7 @@ function LinearAlgebra.rmul!(b::OrthonormalBasis, H::Householder)
     r = H.r
     β = H.β
     iszero(β) && return b
-    w = similar(b[first(r)])
+    w = zerovector(b[first(r)])
     @inbounds begin
         unproject!(w, b, v, 1, 0, r)
         rank1update!(b, w, v, -β, 1, r)
