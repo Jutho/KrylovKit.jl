@@ -60,44 +60,45 @@ function Base.copy!(w::RecursiveVec, v::RecursiveVec)
     return w
 end
 
-function LinearAlgebra.mul!(w::RecursiveVec, a::Number, v::RecursiveVec)
-    @assert length(w.vecs) == length(v.vecs)
-    @inbounds for i in 1:length(w.vecs)
-        mul!(w.vecs[i], a, v.vecs[i])
-    end
-    return w
-end
+VectorInterface.scalartype(::Type{RecursiveVec{T}}) where {T} = scalartype(eltype(T))
 
-function LinearAlgebra.mul!(w::RecursiveVec, v::RecursiveVec, a::Number)
-    @assert length(w.vecs) == length(v.vecs)
-    @inbounds for i in 1:length(w.vecs)
-        mul!(w.vecs[i], v.vecs[i], a)
-    end
-    return w
-end
+VectorInterface.zerovector(v::RecursiveVec, T::Type{<:Number}) =
+    RecursiveVec(zerovector.(v.vecs, T))
 
-function LinearAlgebra.rmul!(v::RecursiveVec, a::Number)
-    for x in v.vecs
-        rmul!(x, a)
+VectorInterface.scale(v::RecursiveVec, a::Number) = RecursiveVec(scale.(v.vecs, a))
+
+function VectorInterface.scale!(v::RecursiveVec, a::Number)
+    @inbounds for i in 1:length(v.vecs)
+        scale!(v.vecs[i], a)
     end
     return v
 end
 
-function LinearAlgebra.axpy!(a::Number, v::RecursiveVec, w::RecursiveVec)
+
+function VectorInterface.scale!(w::RecursiveVec, v::RecursiveVec, a::Number)
     @assert length(w.vecs) == length(v.vecs)
     @inbounds for i in 1:length(w.vecs)
-        axpy!(a, v.vecs[i], w.vecs[i])
-    end
-    return w
-end
-function LinearAlgebra.axpby!(a::Number, v::RecursiveVec, b, w::RecursiveVec)
-    @assert length(w.vecs) == length(v.vecs)
-    @inbounds for i in 1:length(w.vecs)
-        axpby!(a, v.vecs[i], b, w.vecs[i])
+        scale!(w.vecs[i], v.vecs[i], a)
     end
     return w
 end
 
-LinearAlgebra.dot(v::RecursiveVec{T}, w::RecursiveVec{T}) where {T} =
-    sum(dot.(v.vecs, w.vecs))
-LinearAlgebra.norm(v::RecursiveVec) = norm(norm.(v.vecs))
+function VectorInterface.scale!(v::RecursiveVec, a::Number)
+    for x in v.vecs
+        scale!(x, a)
+    end
+    return v
+end
+
+function VectorInterface.add!(w::RecursiveVec, v::RecursiveVec, a::Number=1, b::Number=1)
+    @assert length(w.vecs) == length(v.vecs)
+    @inbounds for i in 1:length(w.vecs)
+        add!(w.vecs[i], v.vecs[i], a, b)
+    end
+    return w
+end
+
+VectorInterface.inner(v::RecursiveVec{T}, w::RecursiveVec{T}) where {T} =
+    sum(inner.(v.vecs, w.vecs))
+    
+VectorInterface.norm(v::RecursiveVec) = norm(norm.(v.vecs))
