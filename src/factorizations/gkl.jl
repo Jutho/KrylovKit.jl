@@ -183,7 +183,7 @@ function Base.iterate(iter::GKLIterator, state::GKLFactorization)
     end
 end
 
-function initialize(iter::GKLIterator; verbosity::Int = 0)
+function initialize(iter::GKLIterator; verbosity::Int=0)
     # initialize without using eltype
     u₀ = iter.u₀
     β₀ = norm(u₀)
@@ -191,18 +191,18 @@ function initialize(iter::GKLIterator; verbosity::Int = 0)
     v₀ = apply_adjoint(iter.operator, u₀)
     α = norm(v₀) / β₀
     Av₀ = apply_normal(iter.operator, v₀) # apply operator
-    α² = dot(u₀, Av₀) / β₀^2
+    α² = inner(u₀, Av₀) / β₀^2
     α² ≈ α * α || throw(ArgumentError("operator and its adjoint are not compatible"))
     T = typeof(α²)
     # these lines determines the type that we will henceforth use
-    u = mul!(zero(T)*Av₀, u₀, 1 / β₀) # (one(T) / β₀) * u₀
-    v = (one(T) / (α * β₀)) * v₀
+    u = scale!(scale(Av₀, zero(T)), u₀, 1 / β₀) # (one(T) / β₀) * u₀
+    v = scale(v₀, one(T) / (α * β₀))
     if typeof(Av₀) == typeof(u)
-        r = rmul!(Av₀, 1 / (α * β₀))
+        r = scale!(Av₀, 1 / (α * β₀))
     else
-        r = mul!(similar(u), Av₀, 1 / (α * β₀))
+        r = scale!(zerovector(u), Av₀, 1 / (α * β₀))
     end
-    r = axpy!(-α, u, r)
+    r = add!(r, u, -α)
     β = norm(r)
 
     U = OrthonormalBasis([u])
@@ -225,12 +225,12 @@ function initialize!(iter::GKLIterator, state::GKLFactorization; verbosity::Int 
     αs = empty!(state.αs)
     βs = empty!(state.βs)
 
-    u = mul!(U[1], iter.u₀, 1 / norm(iter.u₀))
+    u = scale!(U[1], iter.u₀, 1 / norm(iter.u₀))
     v = apply_adjoint(iter.operator, u)
     α = norm(v)
-    rmul!(v, 1 / α)
+    scale!(v, 1 / α)
     r = apply_normal(iter.operator, v)
-    r = axpy!(-α, u, r)
+    r = add!(r, u, -α)
     β = norm(r)
 
     state.k = 1
@@ -249,7 +249,7 @@ function expand!(iter::GKLIterator, state::GKLFactorization; verbosity::Int = 0)
     U = state.U
     V = state.V
     r = state.r
-    U = push!(U, rmul!(r, 1 / βold))
+    U = push!(U, scale!(r, 1 / βold))
     v, r, α, β = gklrecurrence(iter.operator, U, V, βold, iter.orth)
 
     push!(V, v)
@@ -281,7 +281,7 @@ function shrink!(state::GKLFactorization, k)
     resize!(state.αs, k)
     resize!(state.βs, k)
     state.k = k
-    state.r = rmul!(r, normres(state))
+    state.r = scale!(r, normres(state))
     return state
 end
 
@@ -295,12 +295,12 @@ function gklrecurrence(
 )
     u = U[end]
     v = apply_adjoint(operator, u)
-    v = axpy!(-β, V[end], v)
+    v = add!(v, V[end], -β)
     α = norm(v)
-    rmul!(v, inv(α))
+    scale!(v, inv(α))
 
     r = apply_normal(operator, v)
-    r = axpy!(-α, u, r)
+    r = add!(r, u, -α)
     β = norm(r)
     return v, r, α, β
 end
@@ -313,13 +313,13 @@ function gklrecurrence(
 )
     u = U[end]
     v = apply_adjoint(operator, u)
-    v = axpy!(-β, V[end], v) # not necessary if we definitely reorthogonalize next step and previous step
+    v = add!(v, V[end], -β) # not necessary if we definitely reorthogonalize next step and previous step
     # v, = orthogonalize!(v, V, ClassicalGramSchmidt())
     α = norm(v)
-    rmul!(v, inv(α))
+    scale!(v, inv(α))
 
     r = apply_normal(operator, v)
-    r = axpy!(-α, u, r)
+    r = add!(r, u, -α)
     r, = orthogonalize!(r, U, ClassicalGramSchmidt())
     β = norm(r)
     return v, r, α, β
@@ -333,15 +333,15 @@ function gklrecurrence(
 )
     u = U[end]
     v = apply_adjoint(operator, u)
-    v = axpy!(-β, V[end], v)
+    v = add!(v, V[end], -β)
     # for q in V # not necessary if we definitely reorthogonalize next step and previous step
     #     v, = orthogonalize!(v, q, ModifiedGramSchmidt())
     # end
     α = norm(v)
-    rmul!(v, inv(α))
+    scale!(v, inv(α))
 
     r = apply_normal(operator, v)
-    r = axpy!(-α, u, r)
+    r = add!(r, u, -α)
     for q in U
         r, = orthogonalize!(r, q, ModifiedGramSchmidt())
     end
@@ -357,7 +357,7 @@ function gklrecurrence(
 )
     u = U[end]
     v = apply_adjoint(operator, u)
-    v = axpy!(-β, V[end], v)
+    v = add!(v, V[end], -β)
     α = norm(v)
     nold = sqrt(abs2(α) + abs2(β))
     while α < orth.η * nold
@@ -365,10 +365,10 @@ function gklrecurrence(
         v, = orthogonalize!(v, V, ClassicalGramSchmidt())
         α = norm(v)
     end
-    rmul!(v, inv(α))
+    scale!(v, inv(α))
 
     r = apply_normal(operator, v)
-    r = axpy!(-α, u, r)
+    r = add!(r, u, -α)
     β = norm(r)
     nold = sqrt(abs2(α) + abs2(β))
     while eps(one(β)) < β < orth.η * nold
@@ -388,7 +388,7 @@ function gklrecurrence(
 )
     u = U[end]
     v = apply_adjoint(operator, u)
-    v = axpy!(-β, V[end], v)
+    v = add!(v, V[end], -β)
     α = norm(v)
     nold = sqrt(abs2(α) + abs2(β))
     while eps(one(α)) < α < orth.η * nold
@@ -398,10 +398,10 @@ function gklrecurrence(
         end
         α = norm(v)
     end
-    rmul!(v, inv(α))
+    scale!(v, inv(α))
 
     r = apply_normal(operator, v)
-    r = axpy!(-α, u, r)
+    r = add!(r, u, -α)
     β = norm(r)
     nold = sqrt(abs2(α) + abs2(β))
     while eps(one(β)) < β < orth.η * nold
