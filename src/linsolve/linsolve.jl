@@ -90,13 +90,13 @@ linsolve(A::AbstractMatrix, b::AbstractVector, a₀::Number = 0, a₁::Number = 
     linsolve(A, b, (zero(a₀) * zero(a₁)) * b, a₀, a₁; kwargs...)
 
 linsolve(f, b, a₀::Number = 0, a₁::Number = 1; kwargs...) =
-    linsolve(f, b, (zero(a₀) * zero(a₁)) * b, a₀, a₁; kwargs...)
+    linsolve(f, b, scale(b, zero(a₀) * zero(a₁)), a₀, a₁; kwargs...)
 
 function linsolve(f, b, x₀, a₀::Number = 0, a₁::Number = 1; kwargs...)
     Tx = promote_type(typeof(x₀))
     Tb = typeof(b)
     Tfx = Core.Compiler.return_type(apply, Tuple{typeof(f),Tx})
-    T = promote_type(Core.Compiler.return_type(dot, Tuple{Tb,Tfx}), typeof(a₀), typeof(a₁))
+    T = promote_type(Core.Compiler.return_type(inner, Tuple{Tb,Tfx}), typeof(a₀), typeof(a₁))
     alg = linselector(f, b, T; kwargs...)
     return linsolve(f, b, x₀, alg, a₀, a₁)
 end

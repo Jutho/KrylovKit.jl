@@ -1,14 +1,14 @@
 function linsolve(operator, b, x₀, alg::CG, a₀::Real = 0, a₁::Real = 1)
     # Initial function operation and division defines number type
     y₀ = apply(operator, x₀)
-    T = typeof(dot(b, y₀) / norm(b) * one(a₀) * one(a₁))
+    T = typeof(inner(b, y₀) / norm(b) * one(a₀) * one(a₁))
     α₀ = convert(T, a₀)
     α₁ = convert(T, a₁)
     # Continue computing r = b - a₀ * x₀ - a₁ * operator(x₀)
-    r = one(T) * b # r = mul!(similar(b, T), b, 1)
-    r = iszero(α₀) ? r : axpy!(-α₀, x₀, r)
-    r = axpy!(-α₁, y₀, r)
-    x = mul!(similar(r), x₀, 1)
+    r = scale(b, one(T)) # r = mul!(similar(b, T), b, 1)
+    r = iszero(α₀) ? r : add!(r, x₀, -α₀)
+    r = add!(r, y₀, -α₁)
+    x = scale!(zerovector(r), x₀, 1)
     normr = norm(r)
     S = typeof(normr)
 
@@ -23,11 +23,11 @@ function linsolve(operator, b, x₀, alg::CG, a₀::Real = 0, a₁::Real = 1)
 
     # First iteration
     ρ = normr^2
-    p = mul!(similar(r), r, 1)
+    p = scale!(zerovector(r), r, 1)
     q = apply(operator, p, α₀, α₁)
-    α = ρ / dot(p, q)
-    x = axpy!(+α, p, x)
-    r = axpy!(-α, q, r)
+    α = ρ / inner(p, q)
+    x = add!(x, p, +α)
+    r = add!(r, q, -α)
     normr = norm(r)
     ρold = ρ
     ρ = normr^2
@@ -45,15 +45,15 @@ function linsolve(operator, b, x₀, alg::CG, a₀::Real = 0, a₁::Real = 1)
     normr < tol && return (x, ConvergenceInfo(1, r, normr, numiter, numops))
 
     while numiter < maxiter
-        axpby!(1, r, β, p)
+        add!(p, r, 1, β)
         q = apply(operator, p, α₀, α₁)
-        α = ρ / dot(p, q)
-        x = axpy!(+α, p, x)
-        r = axpy!(-α, q, r)
+        α = ρ / inner(p, q)
+        x = add!(x, p, α)
+        r = add!(r, q, -α)
         normr = norm(r)
         if normr < tol # recompute to account for buildup of floating point errors
-            r = mul!(r, b, 1)
-            r = axpy!(-1, apply(operator, x, α₀,α₁), r)
+            r = scale!(r, b, 1)
+            r = add!(r, apply(operator, x, α₀, α₁), -1)
             normr = norm(r)
             ρ = normr^2
             β = zero(β) # restart CG
