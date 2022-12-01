@@ -106,7 +106,7 @@ function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
         [B * u for u in cols(U, 1:howmany)]
     end
     residuals = let r = residual(fact)
-        [last(u) * r for u in cols(U, 1:howmany)]
+        [scale(r, last(u)) for u in cols(U, 1:howmany)]
     end
     normresiduals = [normres(fact) * abs(last(u)) for u in cols(U, 1:howmany)]
 
