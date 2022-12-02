@@ -104,9 +104,9 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
 
             # Update B by applying U using Householder reflections
             B = basis(fact)
-            basistransform!(B, view(U, :, 1:keep))
+            B = basistransform!(B, view(U, :, 1:keep))
             r = residual(fact)
-            B[keep + 1] = scale!(r, 1 / β)
+            B[keep + 1] = scale!!(B[keep + 1], r, 1 / β)
 
             # Shrink Lanczos factorization
             fact = shrink!(fact, keep)
