@@ -193,16 +193,17 @@ function initialize(iter::GKLIterator; verbosity::Int=0)
     Av₀ = apply_normal(iter.operator, v₀) # apply operator
     α² = inner(u₀, Av₀) / β₀^2
     α² ≈ α * α || throw(ArgumentError("operator and its adjoint are not compatible"))
-    T = typeof(α²)
+    T = promote_type(typeof(α²), scalartype(Av₀))
     # these lines determines the type that we will henceforth use
-    u = scale!(scale(Av₀, zero(T)), u₀, 1 / β₀) # (one(T) / β₀) * u₀
+    
+    u = scale!!(zerovector(u₀, T), u₀, 1 / β₀) # (one(T) / β₀) * u₀
     v = scale(v₀, one(T) / (α * β₀))
     if typeof(Av₀) == typeof(u)
-        r = scale!(Av₀, 1 / (α * β₀))
+        r = scale!!(Av₀, 1 / (α * β₀))
     else
-        r = scale!(zerovector(u), Av₀, 1 / (α * β₀))
+        r = scale!!(zerovector(u), Av₀, 1 / (α * β₀))
     end
-    r = add!(r, u, -α)
+    r = add!!(r, u, -α)
     β = norm(r)
 
     U = OrthonormalBasis([u])
@@ -225,12 +226,12 @@ function initialize!(iter::GKLIterator, state::GKLFactorization; verbosity::Int=
     αs = empty!(state.αs)
     βs = empty!(state.βs)
 
-    u = scale!(U[1], iter.u₀, 1 / norm(iter.u₀))
+    u = scale!!(U[1], iter.u₀, 1 / norm(iter.u₀))
     v = apply_adjoint(iter.operator, u)
     α = norm(v)
-    scale!(v, 1 / α)
+    v = scale!!(v, inv(α))
     r = apply_normal(iter.operator, v)
-    r = add!(r, u, -α)
+    r = add!!(r, u, -α)
     β = norm(r)
 
     state.k = 1
@@ -249,7 +250,7 @@ function expand!(iter::GKLIterator, state::GKLFactorization; verbosity::Int=0)
     U = state.U
     V = state.V
     r = state.r
-    U = push!(U, scale!(r, 1 / βold))
+    U = push!(U, scale!!(r, 1 / βold))
     v, r, α, β = gklrecurrence(iter.operator, U, V, βold, iter.orth)
 
     push!(V, v)
@@ -281,7 +282,7 @@ function shrink!(state::GKLFactorization, k)
     resize!(state.αs, k)
     resize!(state.βs, k)
     state.k = k
-    state.r = scale!(r, normres(state))
+    state.r = scale!!(r, normres(state))
     return state
 end
 
@@ -293,12 +294,12 @@ function gklrecurrence(operator,
                        orth::Union{ClassicalGramSchmidt,ModifiedGramSchmidt})
     u = U[end]
     v = apply_adjoint(operator, u)
-    v = add!(v, V[end], -β)
+    v = add!!(v, V[end], -β)
     α = norm(v)
-    scale!(v, inv(α))
+    v = scale!!(v, inv(α))
 
     r = apply_normal(operator, v)
-    r = add!(r, u, -α)
+    r = add!!(r, u, -α)
     β = norm(r)
     return v, r, α, β
 end
@@ -309,14 +310,14 @@ function gklrecurrence(operator,
                        orth::ClassicalGramSchmidt2)
     u = U[end]
     v = apply_adjoint(operator, u)
-    v = add!(v, V[end], -β) # not necessary if we definitely reorthogonalize next step and previous step
+    v = add!!(v, V[end], -β) # not necessary if we definitely reorthogonalize next step and previous step
     # v, = orthogonalize!(v, V, ClassicalGramSchmidt())
     α = norm(v)
-    scale!(v, inv(α))
+    v = scale!!(v, inv(α))
 
     r = apply_normal(operator, v)
-    r = add!(r, u, -α)
-    r, = orthogonalize!(r, U, ClassicalGramSchmidt())
+    r = add!!(r, u, -α)
+    r, = orthogonalize!!(r, U, ClassicalGramSchmidt())
     β = norm(r)
     return v, r, α, β
 end
@@ -327,17 +328,17 @@ function gklrecurrence(operator,
                        orth::ModifiedGramSchmidt2)
     u = U[end]
     v = apply_adjoint(operator, u)
-    v = add!(v, V[end], -β)
+    v = add!!(v, V[end], -β)
     # for q in V # not necessary if we definitely reorthogonalize next step and previous step
     #     v, = orthogonalize!(v, q, ModifiedGramSchmidt())
     # end
     α = norm(v)
-    scale!(v, inv(α))
+    v = scale!!(v, inv(α))
 
     r = apply_normal(operator, v)
-    r = add!(r, u, -α)
+    r = add!!(r, u, -α)
     for q in U
-        r, = orthogonalize!(r, q, ModifiedGramSchmidt())
+        r, = orthogonalize!!(r, q, ModifiedGramSchmidt())
     end
     β = norm(r)
     return v, r, α, β
@@ -349,23 +350,23 @@ function gklrecurrence(operator,
                        orth::ClassicalGramSchmidtIR)
     u = U[end]
     v = apply_adjoint(operator, u)
-    v = add!(v, V[end], -β)
+    v = add!!(v, V[end], -β)
     α = norm(v)
     nold = sqrt(abs2(α) + abs2(β))
     while α < orth.η * nold
         nold = α
-        v, = orthogonalize!(v, V, ClassicalGramSchmidt())
+        v, = orthogonalize!!(v, V, ClassicalGramSchmidt())
         α = norm(v)
     end
-    scale!(v, inv(α))
+    v = scale!!(v, inv(α))
 
     r = apply_normal(operator, v)
-    r = add!(r, u, -α)
+    r = add!!(r, u, -α)
     β = norm(r)
     nold = sqrt(abs2(α) + abs2(β))
     while eps(one(β)) < β < orth.η * nold
         nold = β
-        r, = orthogonalize!(r, U, ClassicalGramSchmidt())
+        r, = orthogonalize!!(r, U, ClassicalGramSchmidt())
         β = norm(r)
     end
 
@@ -378,26 +379,26 @@ function gklrecurrence(operator,
                        orth::ModifiedGramSchmidtIR)
     u = U[end]
     v = apply_adjoint(operator, u)
-    v = add!(v, V[end], -β)
+    v = add!!(v, V[end], -β)
     α = norm(v)
     nold = sqrt(abs2(α) + abs2(β))
     while eps(one(α)) < α < orth.η * nold
         nold = α
         for q in V
-            v, = orthogonalize!(v, q, ModifiedGramSchmidt())
+            v, = orthogonalize!!(v, q, ModifiedGramSchmidt())
         end
         α = norm(v)
     end
-    scale!(v, inv(α))
+    v = scale!!(v, inv(α))
 
     r = apply_normal(operator, v)
-    r = add!(r, u, -α)
+    r = add!!(r, u, -α)
     β = norm(r)
     nold = sqrt(abs2(α) + abs2(β))
     while eps(one(β)) < β < orth.η * nold
         nold = β
         for q in U
-            r, = orthogonalize!(r, q, ModifiedGramSchmidt())
+            r, = orthogonalize!!(r, q, ModifiedGramSchmidt())
         end
         β = norm(r)
     end
