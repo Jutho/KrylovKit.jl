@@ -6,9 +6,9 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number=0, a₁::Number=1)
     α₁ = convert(T, a₁)::T
     # Continue computing r = b - a₀ * x₀ - a₁ * operator(x₀)
     r = scale(b, one(T)) # mul!(similar(b, T), b, 1)
-    r = iszero(α₀) ? r : add!(r, x₀, -α₀)
-    r = add!(r, y₀, -α₁)
-    x = scale!(zerovector(r), x₀, 1)
+    r = iszero(α₀) ? r : add!!(r, x₀, -α₀)
+    r = add!!(r, y₀, -α₁)
+    x = scale!!(zerovector(r), x₀, 1)
     β = norm(r)
     S = typeof(β)
 
@@ -103,22 +103,22 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number=0, a₁::Number=1)
         # Update x
         V = basis(fact)
         @inbounds for i in 1:k
-            x = add!(x, V[i], y[i])
+            x = add!!(x, V[i], y[i])
         end
 
         if β > tol
             # Recompute residual without reevaluating operator
             w = residual(fact)
-            push!(V, scale!(w, 1 / normres(fact)))
+            push!(V, scale!!(w, 1 / normres(fact)))
             for i in 1:k
                 rmul!(V, gs[i]')
             end
-            r = scale!(r, V[k + 1], y[k + 1])
+            r = scale!!(r, V[k + 1], y[k + 1])
         else
             # Recompute residual and its norm explicitly, to ensure that no
             # numerical errors have accumulated
-            r = scale!(r, b, 1)
-            r = add!(r, apply(operator, x, α₀, α₁), -1)
+            r = scale!!(r, b, 1)
+            r = add!!(r, apply(operator, x, α₀, α₁), -1)
             numops += 1
             β = norm(r)
             if β < tol

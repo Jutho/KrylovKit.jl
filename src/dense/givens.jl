@@ -29,9 +29,9 @@ end
 
 function _rmul!(b::OrthonormalBasis, G::Givens)
     q1, q2 = b[G.i1], b[G.i2]
-    q1old = scale!(zerovector(q1), q1, true)
-    q1 = add!(q1, q2, -conj(G.s), G.c)
-    q2 = add!(q2, q1old, G.s, G.c)
+    q1old = scale!!(zerovector(q1), q1, true)
+    b[G.i1] = add!!(q1, q2, -conj(G.s), G.c)
+    b[G.i2] = add!!(q2, q1old, G.s, G.c)
     return b
 end
 

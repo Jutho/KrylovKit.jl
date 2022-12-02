@@ -4,7 +4,7 @@ apply(f, x) = f(x)
 function apply(operator, x, α₀, α₁)
     y = apply(operator, x)
     if α₀ != zero(α₀) || α₁ != one(α₁)
-        add!(y, x, α₀, α₁)
+        y = add!!(y, x, α₀, α₁)
     end
 
     return y
