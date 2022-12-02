@@ -142,28 +142,28 @@ function initialize(iter::ArnoldiIterator; verbosity::Int=0)
     α = inner(x₀, Ax₀) / (β₀ * β₀)
     T = typeof(α)
     # this line determines the vector type that we will henceforth use
-    v = add!(zerovector(Ax₀, T), x₀, 1 / β₀)
+    v = add!!(zerovector(Ax₀, T), x₀, 1 / β₀)
     # v = mul!(zero(T)*Ax₀, x₀, 1 / β₀) # (one(T) / β₀) * x₀ # mul!(similar(x₀, T), x₀, 1/β₀)
     if typeof(Ax₀) != typeof(v)
-        r = add!(zerovector(v), Ax₀, 1 / β₀)
+        r = add!!(zerovector(v), Ax₀, 1 / β₀)
     else
-        r = scale(Ax₀, 1 / β₀)
+        r = scale!!(Ax₀, Ax₀, 1 / β₀)
     end
     βold = norm(r)
-    r = add!(r, v, -α)
+    r = add!!(r, v, -α)
     β = norm(r)
     # possibly reorthogonalize
     if iter.orth isa Union{ClassicalGramSchmidt2,ModifiedGramSchmidt2}
         dα = inner(v, r)
         α += dα
-        r = add!(r, v, -dα)
+        r = add!!(r, v, -dα)
         β = norm(r)
     elseif iter.orth isa Union{ClassicalGramSchmidtIR,ModifiedGramSchmidtIR}
         while eps(one(β)) < β < iter.orth.η * βold
             βold = β
             dα = inner(v, r)
             α += dα
-            r = add!(r, v, -dα)
+            r = add!!(r, v, -dα)
             β = norm(r)
         end
     end
@@ -182,9 +182,9 @@ function initialize!(iter::ArnoldiIterator, state::ArnoldiFactorization; verbosi
     end
     H = empty!(state.H)
 
-    V[1] = scale(x₀, 1 / norm(x₀))
+    V[1] = scale!!(V[1], x₀, 1 / norm(x₀))
     w = apply(iter.operator, V[1])
-    r, α = orthogonalize!(w, V[1], iter.orth)
+    r, α = orthogonalize!!(w, V[1], iter.orth)
     β = norm(r)
     state.k = 1
     push!(H, α, β)
@@ -204,7 +204,7 @@ function expand!(iter::ArnoldiIterator, state::ArnoldiFactorization; verbosity::
     push!(V, scale(r, 1 / β))
     m = length(H)
     resize!(H, m + k + 1)
-    r, β = arnoldirecurrence!(iter.operator, V, view(H, (m + 1):(m + k)), iter.orth)
+    r, β = arnoldirecurrence!!(iter.operator, V, view(H, (m + 1):(m + k)), iter.orth)
     H[m + k + 1] = β
     state.r = r
     if verbosity > 0
@@ -222,16 +222,16 @@ function shrink!(state::ArnoldiFactorization, k)
     r = pop!(V)
     resize!(H, (k * k + 3 * k) >> 1)
     state.k = k
-    state.r = scale(r, normres(state))
+    state.r = scale!!(state.r, r, normres(state))
     return state
 end
 
 # Arnoldi recurrence: simply use provided orthonormalization routines
-function arnoldirecurrence!(operator,
+function arnoldirecurrence!!(operator,
                             V::OrthonormalBasis,
                             h::AbstractVector,
                             orth::Orthogonalizer)
     w = apply(operator, last(V))
-    r, h = orthogonalize!(w, V, h, orth)
+    r, h = orthogonalize!!(w, V, h, orth)
     return r, norm(r)
 end
