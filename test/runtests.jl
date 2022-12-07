@@ -28,19 +28,19 @@ unwrapvec2(v) = v
 wrapop(A::AbstractMatrix) = A
 
 t = time()
-include("factorize.jl")
-include("gklfactorize.jl")
-include("linsolve.jl")
-include("eigsolve.jl")
-include("schursolve.jl")
-include("geneigsolve.jl")
-include("svdsolve.jl")
-include("expintegrator.jl")
+# include("factorize.jl")
+# include("gklfactorize.jl")
+# include("linsolve.jl")
+# include("eigsolve.jl")
+# include("schursolve.jl")
+# include("geneigsolve.jl")
+# include("svdsolve.jl")
+# include("expintegrator.jl")
 t = time() - t
 println("Julia Vector type: tests finished in $t seconds")
 end
 
-module MinimalVecs
+module InplaceVecs
 using Test, TestExtras
 using LinearAlgebra
 using Random
@@ -60,7 +60,54 @@ const mgs2 = ModifiedGramSchmidt2()
 const cgsr = ClassicalGramSchmidtIR(η₀)
 const mgsr = ModifiedGramSchmidtIR(η₀)
 
-include("minimalvec.jl")
+include("inplacevec.jl")
+
+wrapvec(v) = MinimalVec(v)
+unwrapvec(v::MinimalVec) = getindex(v)
+wrapvec2(v) = MinimalVec(v)
+unwrapvec2(v::MinimalVec) = getindex(v)
+wrapop(A::AbstractMatrix) = function (v, flag=Val(false))
+    if flag === Val(true)
+        return wrapvec(A' * unwrapvec2(v))
+    else
+        return wrapvec2(A * unwrapvec(v))
+    end
+end
+
+t = time()
+# include("factorize.jl")
+# include("gklfactorize.jl")
+# include("linsolve.jl")
+# include("eigsolve.jl")
+# include("schursolve.jl")
+# include("geneigsolve.jl")
+# include("svdsolve.jl")
+# include("expintegrator.jl")
+t = time() - t
+println("Minimal vector inplace type: tests finished in $t seconds")
+end
+
+module OutplaceVec
+using Test, TestExtras
+using LinearAlgebra
+using Random
+using KrylovKit
+
+precision(T::Type{<:Number}) = eps(real(T))^(2 / 3)
+include("setcomparison.jl")
+
+const n = 10
+const N = 100
+
+const η₀ = 0.75 # seems to be necessary to get sufficient convergence for GKL iteration with Float32 precision
+const cgs = ClassicalGramSchmidt()
+const mgs = ModifiedGramSchmidt()
+const cgs2 = ClassicalGramSchmidt2()
+const mgs2 = ModifiedGramSchmidt2()
+const cgsr = ClassicalGramSchmidtIR(η₀)
+const mgsr = ModifiedGramSchmidtIR(η₀)
+
+include("outplacevec.jl")
 
 wrapvec(v) = MinimalVec(v)
 unwrapvec(v::MinimalVec) = getindex(v)
@@ -84,7 +131,7 @@ include("geneigsolve.jl")
 include("svdsolve.jl")
 include("expintegrator.jl")
 t = time() - t
-println("Minimal vector type: tests finished in $t seconds")
+println("Minimal vector outplace type: tests finished in $t seconds")
 end
 
 module MixedSVD
@@ -107,7 +154,7 @@ const mgs2 = ModifiedGramSchmidt2()
 const cgsr = ClassicalGramSchmidtIR(η₀)
 const mgsr = ModifiedGramSchmidtIR(η₀)
 
-include("minimalvec.jl")
+include("outplacevec.jl")
 
 wrapvec(v) = MinimalVec(v)
 unwrapvec(v::MinimalVec) = getindex(v)
