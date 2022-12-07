@@ -28,14 +28,14 @@ unwrapvec2(v) = v
 wrapop(A::AbstractMatrix) = A
 
 t = time()
-# include("factorize.jl")
-# include("gklfactorize.jl")
-# include("linsolve.jl")
-# include("eigsolve.jl")
-# include("schursolve.jl")
-# include("geneigsolve.jl")
-# include("svdsolve.jl")
-# include("expintegrator.jl")
+include("factorize.jl")
+include("gklfactorize.jl")
+include("linsolve.jl")
+include("eigsolve.jl")
+include("schursolve.jl")
+include("geneigsolve.jl")
+include("svdsolve.jl")
+include("expintegrator.jl")
 t = time() - t
 println("Julia Vector type: tests finished in $t seconds")
 end
@@ -75,14 +75,14 @@ wrapop(A::AbstractMatrix) = function (v, flag=Val(false))
 end
 
 t = time()
-# include("factorize.jl")
-# include("gklfactorize.jl")
-# include("linsolve.jl")
-# include("eigsolve.jl")
-# include("schursolve.jl")
-# include("geneigsolve.jl")
-# include("svdsolve.jl")
-# include("expintegrator.jl")
+include("factorize.jl")
+include("gklfactorize.jl")
+include("linsolve.jl")
+include("eigsolve.jl")
+include("schursolve.jl")
+include("geneigsolve.jl")
+include("svdsolve.jl")
+include("expintegrator.jl")
 t = time() - t
 println("Minimal vector inplace type: tests finished in $t seconds")
 end
