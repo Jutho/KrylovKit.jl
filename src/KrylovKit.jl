@@ -29,7 +29,7 @@ using GPUArraysCore
 const IndexRange = AbstractRange{Int}
 
 export linsolve, eigsolve, geneigsolve, svdsolve, schursolve, exponentiate, expintegrator
-export orthogonalize, orthogonalize!, orthonormalize, orthonormalize!
+export orthogonalize, orthogonalize!!, orthonormalize, orthonormalize!!
 export basis, rayleighquotient, residual, normres, rayleighextension
 export initialize, initialize!, expand!, shrink!
 export ClassicalGramSchmidt, ClassicalGramSchmidt2, ClassicalGramSchmidtIR

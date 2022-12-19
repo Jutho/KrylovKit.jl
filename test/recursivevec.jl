@@ -3,7 +3,7 @@
         @testset for orth in (cgs2, mgs2, cgsr, mgsr)
             A = rand(T, (n, n))
             v = rand(T, (n,))
-            v2 = RecursiveVec((v, zero(v)))
+            v2 = RecursiveVec(v, zero(v))
             alg = Lanczos(; orth=orth, krylovdim=2 * n, maxiter=1, tol=precision(T))
             D, V, info = eigsolve(v2, n, :LR, alg) do x
                 x1, x2 = x
@@ -27,7 +27,7 @@ end
             A = rand(T, (N, 2 * N))
             v = rand(T, (N,))
             w = rand(T, (2 * N,))
-            v2 = RecursiveVec((v, w))
+            v2 = RecursiveVec(v, w)
             alg = Lanczos(; orth=orth, krylovdim=n, maxiter=300, tol=precision(T))
             n1 = div(n, 2)
             D, V, info = eigsolve(v2, n1, :LR, alg) do x

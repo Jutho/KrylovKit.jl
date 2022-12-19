@@ -97,7 +97,7 @@ precision(T::Type{<:Number}) = eps(real(T))^(2 / 3)
 include("setcomparison.jl")
 
 const n = 10
-const N = 100
+const N = 30
 
 const η₀ = 0.75 # seems to be necessary to get sufficient convergence for GKL iteration with Float32 precision
 const cgs = ClassicalGramSchmidt()
@@ -144,7 +144,7 @@ precision(T::Type{<:Number}) = eps(real(T))^(2 / 3)
 include("setcomparison.jl")
 
 const n = 10
-const N = 100
+const N = 40
 
 const η₀ = 0.75 # seems to be necessary to get sufficient convergence for GKL iteration with Float32 precision
 const cgs = ClassicalGramSchmidt()

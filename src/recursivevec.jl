@@ -53,33 +53,38 @@ function Base.similar(v::RecursiveVec)
 end
 
 function Base.copy!(w::RecursiveVec, v::RecursiveVec)
-    @assert length(w.vecs) == length(v.vecs)
-    @inbounds for i in 1:length(w.vecs)
-        copyto!(w.vecs[i], v.vecs[i])
+    @assert length(w) == length(v)
+    @inbounds for i in 1:length(w)
+        copyto!(w[i], v[i])
     end
     return w
 end
 
 VectorInterface.scalartype(::Type{RecursiveVec{T}}) where {T} = scalartype(eltype(T))
 
-function VectorInterface.zerovector(v::RecursiveVec, T::Type{<:Number})
-    return RecursiveVec(zerovector.(v.vecs, T))
+function VectorInterface.zerovector(v::RecursiveVec{<:AbstractVector}, T::Type{<:Number})
+    return RecursiveVec(zerovector.(v, T))
 end
 
-VectorInterface.scale(v::RecursiveVec, a::Number) = RecursiveVec(scale.(v.vecs, a))
+function VectorInterface.zerovector(v::RecursiveVec{<:Tuple}, T::Type{<:Number})
+    return RecursiveVec(ntuple(i -> zerovector(v[i], T), length(v)))
+end
+
+function VectorInterface.scale(v::RecursiveVec{<:AbstractVector}, a::Number)
+    return RecursiveVec(scale.(v, a))
+end
+function VectorInterface.scale(v::RecursiveVec{<:Tuple}, a::Number)
+    return RecursiveVec(ntuple(i -> scale(v[i], a), length(v)))
+end
 
 function VectorInterface.scale!(v::RecursiveVec, a::Number)
-    @inbounds for i in 1:length(v.vecs)
-        scale!(v.vecs[i], a)
-    end
+    scale!.(v, a)
     return v
 end
 
 function VectorInterface.scale!(w::RecursiveVec, v::RecursiveVec, a::Number)
-    @assert length(w.vecs) == length(v.vecs)
-    @inbounds for i in 1:length(w.vecs)
-        scale!(w.vecs[i], v.vecs[i], a)
-    end
+    @assert length(w) == length(v)
+    scale!.(w, v, a)
     return w
 end
 
@@ -88,11 +93,23 @@ function VectorInterface.scale!!(x::RecursiveVec{<:Tuple}, a::Number)
 end
 
 function VectorInterface.scale!!(x::RecursiveVec{<:AbstractVector}, a::Number)
-    return RecursiveVec(scale!!.(x.vecs, a))
+    return RecursiveVec(scale!!.(x, a))
+end
+
+function VectorInterface.scale!!(w::RecursiveVec{<:Tuple}, v::RecursiveVec{<:Tuple},
+                                 a::Number)
+    @assert length(w) == length(v)
+    return RecursiveVec(ntuple(i -> scale!!(w[i], v[i], a), length(v)))
+end
+
+function VectorInterface.scale!!(w::RecursiveVec{<:AbstractVector},
+                                 v::RecursiveVec{<:AbstractVector}, a::Number)
+    return RecursiveVec(scale!!.(w, v, a))
 end
 
 function VectorInterface.add(w::RecursiveVec{T}, v::RecursiveVec{T}, a::ONumber=_one,
                              b::ONumber=_one) where {T<:Tuple}
+    @assert length(w) == length(v)
     return RecursiveVec(ntuple(i -> add(w[i], v[i], a, b), length(w)))
 end
 
@@ -103,21 +120,25 @@ end
 
 function VectorInterface.add!(w::RecursiveVec, v::RecursiveVec, a::ONumber=_one,
                               b::ONumber=_one)
-    @assert length(w.vecs) == length(v.vecs)
-    @inbounds for i in 1:length(w.vecs)
-        add!(w.vecs[i], v.vecs[i], a, b)
-    end
+    @assert length(w) == length(v)
+    add!.(w, v, Ref(a), Ref(b))
     return w
 end
 
-function VectorInterface.add!!(w::RecursiveVec, v::RecursiveVec,
+function VectorInterface.add!!(w::RecursiveVec{T}, v::RecursiveVec{T},
                                a::ONumber=_one,
-                               b::ONumber=_one)
-    return RecursiveVec(add!!.(w, v, a, b))
+                               b::ONumber=_one) where {T<:AbstractVector}
+    return RecursiveVec(add!!.(w, v, Ref(a), Ref(b)))
+end
+
+function VectorInterface.add!!(w::RecursiveVec{T}, v::RecursiveVec{T},
+                               a::ONumber=_one,
+                               b::ONumber=_one) where {T<:Tuple}
+    return RecursiveVec(ntuple(i -> add!!(w[i], v[i], a, b), length(w)))
 end
 
 function VectorInterface.inner(v::RecursiveVec{T}, w::RecursiveVec{T}) where {T}
-    return sum(inner.(v.vecs, w.vecs))
+    return sum(inner.(v, w))
 end
 
-VectorInterface.norm(v::RecursiveVec) = norm(norm.(v.vecs))
+VectorInterface.norm(v::RecursiveVec) = norm(norm.(v))

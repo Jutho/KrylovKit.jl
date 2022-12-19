@@ -196,7 +196,7 @@ function unproject_linear_kernel!(y::AbstractArray,
 end
 
 """
-    rank1update!!(b::OrthonormalBasis, y, x::AbstractVector,
+    rank1update!(b::OrthonormalBasis, y, x::AbstractVector,
         [α::Number = 1, β::Number = 1, r = Base.OneTo(length(b))])
 
 Perform a rank 1 update of a basis `b`, i.e. update the basis vectors as
@@ -207,12 +207,12 @@ Perform a rank 1 update of a basis `b`, i.e. update the basis vectors as
 
 It is the user's responsibility to make sure that the result is still an orthonormal basis.
 """
-@fastmath function rank1update!!(b::OrthonormalBasis,
-                                 y,
-                                 x::AbstractVector,
-                                 α::Number=true,
-                                 β::Number=true,
-                                 r=Base.OneTo(length(b)))
+@fastmath function rank1update!(b::OrthonormalBasis,
+                                y,
+                                x::AbstractVector,
+                                α::Number=true,
+                                β::Number=true,
+                                r=Base.OneTo(length(b)))
     if y isa AbstractArray && !(y isa AbstractGPUArray) && IndexStyle(y) isa IndexLinear &&
        Threads.nthreads() > 1
         return rank1update_linear_multithreaded!(b, y, x, α, β, r)
@@ -503,10 +503,10 @@ end
 
 """
     orthogonalize(v, b::OrthonormalBasis, [x::AbstractVector,] alg::Orthogonalizer]) -> w, x
-    orthogonalize!(v, b::OrthonormalBasis, [x::AbstractVector,] alg::Orthogonalizer]) -> w, x
+    orthogonalize!!(v, b::OrthonormalBasis, [x::AbstractVector,] alg::Orthogonalizer]) -> w, x
 
     orthogonalize(v, q, algorithm::Orthogonalizer]) -> w, s
-    orthogonalize!(v, q, algorithm::Orthogonalizer]) -> w, s
+    orthogonalize!!(v, q, algorithm::Orthogonalizer]) -> w, s
 
 Orthogonalize vector `v` against all the vectors in the orthonormal basis `b` using the
 orthogonalization algorithm `alg` of type [`Orthogonalizer`](@ref), and return the resulting
@@ -527,7 +527,7 @@ and its concrete subtypes [`ClassicalGramSchmidt`](@ref), [`ModifiedGramSchmidt`
 [`ClassicalGramSchmidt2`](@ref), [`ModifiedGramSchmidt2`](@ref),
 [`ClassicalGramSchmidtIR`](@ref) and [`ModifiedGramSchmidtIR`](@ref).
 """
-orthogonalize, orthogonalize!
+orthogonalize, orthogonalize!!
 
 # Orthonormalization: orthogonalization and normalization
 orthonormalize(v, args...) = orthonormalize!!(scale(v, true), args...)
@@ -541,10 +541,10 @@ end
 
 """
     orthonormalize(v, b::OrthonormalBasis, [x::AbstractVector,] alg::Orthogonalizer]) -> w, β, x
-    orthonormalize!(v, b::OrthonormalBasis, [x::AbstractVector,] alg::Orthogonalizer]) -> w, β, x
+    orthonormalize!!(v, b::OrthonormalBasis, [x::AbstractVector,] alg::Orthogonalizer]) -> w, β, x
 
     orthonormalize(v, q, algorithm::Orthogonalizer]) -> w, β, s
-    orthonormalize!(v, q, algorithm::Orthogonalizer]) -> w, β, s
+    orthonormalize!!(v, q, algorithm::Orthogonalizer]) -> w, β, s
 
 Orthonormalize vector `v` against all the vectors in the orthonormal basis `b` using the
 orthogonalization algorithm `alg` of type [`Orthogonalizer`](@ref), and return the resulting
@@ -566,4 +566,4 @@ and its concrete subtypes [`ClassicalGramSchmidt`](@ref), [`ModifiedGramSchmidt`
 [`ClassicalGramSchmidt2`](@ref), [`ModifiedGramSchmidt2`](@ref),
 [`ClassicalGramSchmidtIR`](@ref) and [`ModifiedGramSchmidtIR`](@ref).
 """
-orthonormalize, orthonormalize!
+orthonormalize, orthonormalize!!

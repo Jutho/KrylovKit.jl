@@ -232,7 +232,7 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
 
             # Shrink GKL factorization (no longer strictly GKL)
             r = residual(fact)
-            U[keep + 1] = scale!(r, 1 / normres(fact))
+            U[keep + 1] = scale!!(r, 1 / normres(fact))
             H = fill!(view(HH, 1:(keep + 1), 1:keep), zero(eltype(HH)))
             @inbounds for j in 1:keep
                 H[j, j] = S[j]
