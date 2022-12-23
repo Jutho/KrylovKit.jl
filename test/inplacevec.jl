@@ -2,14 +2,14 @@ using VectorInterface
 
 """
     MinimalVec{T<:Number}
-
+a
 Minimal interface for an in-place vector.
 """
-struct MinimalVec{T<:Number}
-    vec::Vector{T}
+struct MinimalVec{V<:AbstractVector}
+    vec::V
 end
 
-VectorInterface.scalartype(::Type{MinimalVec{T}}) where {T} = T
+VectorInterface.scalartype(::Type{MinimalVec{V}}) where {V} = scalartype(V)
 
 function VectorInterface.zerovector(v::MinimalVec, S::Type{<:Number})
     return MinimalVec(zerovector(v.vec, S))

@@ -5,11 +5,11 @@ using VectorInterface
 
 Minimal interface for an out-of-place vector.
 """
-struct MinimalVec{T<:Number}
-    vec::Vector{T}
+struct MinimalVec{V<:AbstractVector}
+    vec::V
 end
 
-VectorInterface.scalartype(::Type{MinimalVec{T}}) where {T} = T
+VectorInterface.scalartype(::Type{MinimalVec{V}}) where {V} = scalartype(V)
 
 function VectorInterface.zerovector(v::MinimalVec, S::Type{<:Number})
     return MinimalVec(zerovector(v.vec, S))
@@ -18,8 +18,8 @@ VectorInterface.zerovector!!(v::MinimalVec) = zerovector(v)
 
 VectorInterface.scale(v::MinimalVec, α::Number) = MinimalVec(scale(v.vec, α))
 VectorInterface.scale!!(v::MinimalVec, α::Number) = scale(v, α)
-function VectorInterface.scale!!(w::MinimalVec{T₁}, v::MinimalVec{T₂},
-                                 α::Number) where {T₁,T₂}
+function VectorInterface.scale!!(w::MinimalVec{V₁}, v::MinimalVec{V₂},
+                                 α::Number) where {V₁,V₂}
     return MinimalVec(scale!!(copy(w[]), v[], α))
 end
 
