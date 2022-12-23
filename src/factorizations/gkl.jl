@@ -195,7 +195,7 @@ function initialize(iter::GKLIterator; verbosity::Int=0)
     α² ≈ α * α || throw(ArgumentError("operator and its adjoint are not compatible"))
     T = promote_type(typeof(α²), scalartype(Av₀))
     # these lines determines the type that we will henceforth use
-    
+
     u = scale!!(zerovector(u₀, T), u₀, 1 / β₀) # (one(T) / β₀) * u₀
     v = scale(v₀, one(T) / (α * β₀))
     if typeof(Av₀) == typeof(u)

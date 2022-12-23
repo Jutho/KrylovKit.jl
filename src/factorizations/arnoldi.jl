@@ -228,9 +228,9 @@ end
 
 # Arnoldi recurrence: simply use provided orthonormalization routines
 function arnoldirecurrence!!(operator,
-                            V::OrthonormalBasis,
-                            h::AbstractVector,
-                            orth::Orthogonalizer)
+                             V::OrthonormalBasis,
+                             h::AbstractVector,
+                             orth::Orthogonalizer)
     w = apply(operator, last(V))
     r, h = orthogonalize!!(w, V, h, orth)
     return r, norm(r)
