@@ -2,7 +2,7 @@ using VectorInterface
 
 """
     MinimalVec{T<:Number}
-a
+
 Minimal interface for an in-place vector.
 """
 struct MinimalVec{V<:AbstractVector}
