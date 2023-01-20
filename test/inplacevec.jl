@@ -46,4 +46,17 @@ end
 VectorInterface.inner(x::MinimalVec, y::MinimalVec) = inner(x.vec, y.vec)
 VectorInterface.norm(x::MinimalVec) = norm(x.vec)
 
-Base.getindex(v::MinimalVec) = v.vec # for convience, should not interfere
+# Base.getindex(v::MinimalVec) = v.vec # for convience, should not interfere
+
+function ChainRulesCore.rrule(::Type{MinimalVec}, v)
+    MinimalVec_pullback(Δmvec) = ChainRulesCore.NoTangent(), Δmvec.vec
+    return MinimalVec(v), MinimalVec_pullback
+end
+
+function ChainRulesCore.rrule(::typeof(getproperty), mvec::MinimalVec, f::Symbol)
+    v = getproperty(mvec, f)
+    getproperty_pullback(Δvec) = ChainRulesCore.NoTangent(), MinimalVec(Δvec)
+    return v, getproperty_pullback
+end
+
+Base.:+(a::MinimalVec, b::MinimalVec) = add(a, b)

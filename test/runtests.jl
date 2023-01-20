@@ -36,6 +36,9 @@ include("schursolve.jl")
 include("geneigsolve.jl")
 include("svdsolve.jl")
 include("expintegrator.jl")
+if VERSION >= v"1.6"
+    include("ad.jl")
+end
 t = time() - t
 println("Julia Vector type: tests finished in $t seconds")
 end
@@ -63,9 +66,9 @@ const mgsr = ModifiedGramSchmidtIR(η₀)
 include("inplacevec.jl")
 
 wrapvec(v) = MinimalVec(v)
-unwrapvec(v::MinimalVec) = getindex(v)
+unwrapvec(v::MinimalVec) = v.vec
 wrapvec2(v) = MinimalVec(v)
-unwrapvec2(v::MinimalVec) = getindex(v)
+unwrapvec2(v::MinimalVec) = v.vec
 wrapop(A::AbstractMatrix) = function (v, flag=Val(false))
     if flag === Val(true)
         return wrapvec(A' * unwrapvec2(v))
@@ -83,6 +86,9 @@ include("schursolve.jl")
 include("geneigsolve.jl")
 include("svdsolve.jl")
 include("expintegrator.jl")
+if VERSION >= v"1.6"
+    include("ad.jl")
+end
 t = time() - t
 println("Minimal vector inplace type: tests finished in $t seconds")
 end
@@ -110,9 +116,9 @@ const mgsr = ModifiedGramSchmidtIR(η₀)
 include("outplacevec.jl")
 
 wrapvec(v) = MinimalVec(v)
-unwrapvec(v::MinimalVec) = getindex(v)
+unwrapvec(v::MinimalVec) = v.vec
 wrapvec2(v) = MinimalVec(v)
-unwrapvec2(v::MinimalVec) = getindex(v)
+unwrapvec2(v::MinimalVec) = v.vec
 wrapop(A::AbstractMatrix) = function (v, flag=Val(false))
     if flag === Val(true)
         return wrapvec(A' * unwrapvec2(v))
@@ -130,6 +136,9 @@ include("schursolve.jl")
 include("geneigsolve.jl")
 include("svdsolve.jl")
 include("expintegrator.jl")
+if VERSION >= v"1.6"
+    include("ad.jl")
+end
 t = time() - t
 println("Minimal vector outplace type: tests finished in $t seconds")
 end
@@ -157,7 +166,7 @@ const mgsr = ModifiedGramSchmidtIR(η₀)
 include("outplacevec.jl")
 
 wrapvec(v) = MinimalVec(v)
-unwrapvec(v::MinimalVec) = getindex(v)
+unwrapvec(v::MinimalVec) = v.vec
 wrapvec2(v) = reshape(v, (length(v), 1)) # vector type 2 is a n x 1 Matrix
 unwrapvec2(v) = reshape(v, (length(v),))
 function wrapop(A::AbstractMatrix)
@@ -193,10 +202,6 @@ const mgsr = ModifiedGramSchmidtIR(η₀)
 
 include("linalg.jl")
 include("recursivevec.jl")
-end
-
-if VERSION >= v"1.6"
-    include("ad.jl")
 end
 
 module AquaTests

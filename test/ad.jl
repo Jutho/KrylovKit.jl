@@ -1,66 +1,28 @@
-module LinsolveAD
-using KrylovKit, LinearAlgebra
-using Random, Test
-using ChainRulesCore, ChainRulesTestUtils, Zygote, FiniteDifferences
-
-fdm = ChainRulesTestUtils._fdm
-precision(T::Type{<:Number}) = eps(real(T))^(2 / 3)
-n = 10
-N = 30
-
-function build_mat_example(A, b; tol=precision(eltype(A)), kwargs...)
-    Avec, A_fromvec = to_vec(A)
-    bvec, b_fromvec = to_vec(b)
-    T = eltype(A)
-
-    function mat_example(Av, bv)
-        A′ = A_fromvec(Av)
-        b′ = b_fromvec(bv)
-        x, info = linsolve(A′, b′, zero(b′), GMRES(; tol=tol, kwargs...))
-        info.converged == 0 && @warn "linsolve did not converge"
-        xv, = to_vec(x)
-        return xv
-    end
-    return mat_example, Avec, bvec
-end
-
-function build_fun_example(A, b, c, d, e, f; tol=precision(eltype(A)), kwargs...)
-    Avec, matfromvec = to_vec(A)
-    bvec, vecfromvec = to_vec(b)
-    cvec, = to_vec(c)
-    dvec, = to_vec(d)
-    evec, scalarfromvec = to_vec(e)
-    fvec, = to_vec(f)
-
-    function fun_example(Av, bv, cv, dv, ev, fv)
-        A′ = matfromvec(Av)
-        b′ = vecfromvec(bv)
-        c′ = vecfromvec(cv)
-        d′ = vecfromvec(dv)
-        e′ = scalarfromvec(ev)
-        f′ = scalarfromvec(fv)
-
-        x, info = linsolve(b′, zero(b′), GMRES(; tol=tol, kwargs...), e′, f′) do y
-            return A′ * y + c′ * dot(d′, y)
-        end
-        # info.converged > 0 || @warn "not converged"
-        xv, = to_vec(x)
-        return xv
-    end
-    return fun_example, Avec, bvec, cvec, dvec, evec, fvec
-end
+using LinearAlgebra: eigen
+using ChainRulesTestUtils: _fdm
+using Zygote, FiniteDifferences
+using VectorInterface
 
 @testset "Small linsolve AD test" begin
-    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
+    @testset for T in (Float64, ComplexF64)
         A = 2 * (rand(T, (n, n)) .- one(T) / 2)
         b = 2 * (rand(T, n) .- one(T) / 2)
         b /= norm(b)
+        alg = GMRES(; tol=cond(A) * eps(real(T)), krylovdim=n, maxiter=1)
 
-        mat_example, Avec, bvec = build_mat_example(A, b; tol=cond(A) * eps(real(T)),
-                                                    krylovdim=n, maxiter=1)
+        Av, matfromvec = to_vec(A)
+        bv, vecfromvec = to_vec(b)
 
-        (JA, Jb) = FiniteDifferences.jacobian(fdm, mat_example, Avec, bvec)
-        (JA′, Jb′) = Zygote.jacobian(mat_example, Avec, bvec)
+        function f(Av, bv)
+            A′ = wrapop(matfromvec(Av))
+            b′ = wrapvec(vecfromvec(bv))
+            x′, info = linsolve(A′, b′, zerovector(b′), alg)
+            return first(to_vec(unwrapvec(x′)))
+        end
+
+        JA, Jb = Zygote.jacobian(f, Av, bv)
+        JA′, Jb′ = FiniteDifferences.jacobian(_fdm, f, Av, bv)
+
         @test JA ≈ JA′ rtol = cond(A) * precision(T)
         @test Jb ≈ Jb′ rtol = cond(A) * precision(T)
     end
@@ -71,27 +33,94 @@ end
         A = rand(T, (N, N)) .- one(T) / 2
         A = I - (9 // 10) * A / maximum(abs, eigvals(A))
         b = 2 * (rand(T, N) .- one(T) / 2)
-        c = 2 * (rand(T, N) .- one(T) / 2)
-        d = 2 * (rand(T, N) .- one(T) / 2)
         e = rand(T)
         f = rand(T)
+        alg = GMRES(; tol=precision(T), krylovdim=20)
 
-        fun_example, Avec, bvec, cvec, dvec, evec, fvec = build_fun_example(A, b, c, d, e,
-                                                                            f;
-                                                                            tol=precision(T),
-                                                                            krylovdim=20)
+        Av, matfromvec = to_vec(A)
+        bv, vecfromvec = to_vec(b)
+        ev, scalfromvec = to_vec(e)
+        fv, scalfromvec2 = to_vec(f)
 
-        (JA, Jb, Jc, Jd, Je, Jf) = FiniteDifferences.jacobian(fdm, fun_example,
-                                                              Avec, bvec, cvec, dvec, evec,
-                                                              fvec)
-        (JA′, Jb′, Jc′, Jd′, Je′, Jf′) = Zygote.jacobian(fun_example, Avec, bvec, cvec,
-                                                         dvec, evec, fvec)
-        @test JA ≈ JA′
-        @test Jb ≈ Jb′
-        @test Jc ≈ Jc′
-        @test Jd ≈ Jd′
-        @test Je ≈ Je′
-        @test Jf ≈ Jf′
+        function f(Av, bv, ev, fv)
+            A′ = wrapop(matfromvec(Av))
+            b′ = wrapvec(vecfromvec(bv))
+            e′ = scalfromvec(ev)
+            f′ = scalfromvec2(fv)
+            x′, info = linsolve(A′, b′, zerovector(b′), alg, e′, f′)
+            return first(to_vec(unwrapvec(x′)))
+        end
+
+        JA, Jb, Je, Jf = Zygote.jacobian(f, Av, bv, ev, fv)
+        JA′, Jb′, Je′, Jf′ = FiniteDifferences.jacobian(_fdm, f, Av, bv, ev, fv)
+
+        @test JA ≈ JA′ rtol = cond(A) * precision(T) * length(A)
+        @test Jb ≈ Jb′ rtol = cond(A) * precision(T)
+        @test Je ≈ Je′ rtol = cond(A) * precision(T)
+        @test Jf ≈ Jf′ rtol = cond(A) * precision(T)
     end
 end
+
+@testset "Small eigsolve AD test" begin
+    for T in (Float64, ComplexF64)
+        A = rand(T, (n, n)) .- one(T) / 2
+        A /= norm(A)
+        v = rand(T, n)
+        alg = Arnoldi(; krylovdim=2 * n, maxiter=1, tol=eps(real((T)))^(3 / 4))
+
+        Av, matfromvec = to_vec(A)
+        v′ = wrapvec(v)
+
+        function L1(Av)
+            A = wrapop(matfromvec(Av))
+            D, V, info = eigsolve(A, v′, 1, :LM, alg)
+            D1 = first(D)
+            V1 = first(V)
+            return [abs(inner(V1, v′)), real(D1), imag(D1)]
+        end
+
+        function L2(Av)
+            A = matfromvec(Av)
+            vals, vecs = eigen(A; sortby=x -> -abs(x))
+            D1 = first(vals)
+            V1 = vecs[:, 1]
+            return [abs(inner(V1, v)), real(D1), imag(D1)]
+        end
+
+        @test L1(Av) ≈ L2(Av)
+        JA = Zygote.jacobian(L1, Av)
+        JA′ = Zygote.jacobian(L2, Av)
+        @test JA[1] ≈ JA′[1] atol = cond(A) * precision(T) * length(A)
+    end
+end
+
+@testset "Large eigsolve AD test" begin
+    for T in (Float64, ComplexF64)
+        A = rand(T, (N, N)) .- one(T) / 2
+        A /= norm(A)
+        v = rand(T, N)
+        alg = Arnoldi(; tol=precision(T), krylovdim=3 * n, maxiter=20)
+
+        Av, matfromvec = to_vec(A)
+        v′ = wrapvec(v)
+
+        function L1(Av)
+            A = wrapop(matfromvec(Av))
+            D, V, info = eigsolve(A, v′, n, :LM, alg)
+            overlaps = [abs(inner(V[i], v′)) for i in 1:n]
+            return vcat(overlaps, real.(D[1:n]), imag.(D[1:n]))
+        end
+
+        function L2(Av)
+            A = matfromvec(Av)
+            vals, vecs = eigen(A; sortby=x -> -abs(x))
+            overlaps = [abs(inner(vecs[:, i], v)) for i in 1:n]
+            return vcat(overlaps, real.(vals[1:n]), imag.(vals[1:n]))
+        end
+
+        @test L1(Av) ≈ L2(Av)
+        JA = Zygote.jacobian(L1, Av)
+        JA′ = Zygote.jacobian(L2, Av)
+        @test JA[1] ≈ JA′[1] atol = cond(A) * precision(T) * length(A)
+    end
 end

@@ -58,7 +58,7 @@ function ChainRulesCore.rrule(config::RuleConfig{>:HasReverseMode},
 
     # f defines a linear map => pullback defines action of the adjoint
     (y, f_pullback) = rrule_via_ad(config, f, x)
-    fᴴ(xᴴ) = f_pullback(xᴴ)[2]
+    fᴴ(xᴴ) = add(zerovector(x), f_pullback(xᴴ)[2])
     # TODO can we avoid computing f_pullback if algorithm isa Union{CG,MINRES}?
 
     function linsolve_pullback(X̄)
@@ -66,18 +66,18 @@ function ChainRulesCore.rrule(config::RuleConfig{>:HasReverseMode},
         ∂self = NoTangent()
         ∂x₀ = ZeroTangent()
         ∂algorithm = NoTangent()
-        (∂b, reverse_info) = linsolve(fᴴ, x̄, (zero(a₀) * zero(a₁)) * x̄, algorithm,
+        (∂b, reverse_info) = linsolve(fᴴ, x̄, zerovector(x̄), algorithm,
                                       conj(a₀), conj(a₁))
         if reverse_info.converged == 0
             @warn "Linear problem for reverse rule did not converge." reverse_info
         end
-        ∂f = @thunk(f_pullback(-conj(a₁) * ∂b)[1])
-        ∂a₀ = @thunk(-dot(x, ∂b))
+        ∂f = @thunk(f_pullback(scale(∂b, -conj(a₁)))[1])
+        ∂a₀ = @thunk(-inner(x, ∂b))
         # ∂a₁ = @thunk(-dot(f(x), ∂b))
         if a₀ == zero(a₀) && a₁ == one(a₁)
-            ∂a₁ = @thunk(-dot(b, ∂b))
+            ∂a₁ = @thunk(-inner(b, ∂b))
         else
-            ∂a₁ = @thunk(-dot((b - a₀ * x) / a₁, ∂b))
+            ∂a₁ = @thunk(-inner(scale(add(b, x, -a₀), inv(a₁)), ∂b))
         end
         return ∂self, ∂f, ∂b, ∂x₀, ∂algorithm, ∂a₀, ∂a₁
     end
