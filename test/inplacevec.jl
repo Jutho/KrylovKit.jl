@@ -48,6 +48,8 @@ VectorInterface.norm(x::MinimalVec) = norm(x.vec)
 
 # Base.getindex(v::MinimalVec) = v.vec # for convience, should not interfere
 
+using ChainRulesCore
+
 function ChainRulesCore.rrule(::Type{MinimalVec}, v)
     MinimalVec_pullback(Δmvec) = ChainRulesCore.NoTangent(), Δmvec.vec
     return MinimalVec(v), MinimalVec_pullback
