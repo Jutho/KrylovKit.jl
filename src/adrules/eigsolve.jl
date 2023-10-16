@@ -163,16 +163,15 @@ function ChainRulesCore.rrule(config::RuleConfig{>:HasReverseMode},
         end
 
         if _Δvals isa AbstractZero
-            Δvals = fill(NoTangent(), howmany)
+            Δvals = fill(NoTangent(), length(_Δvecs))
         else
             Δvals = _Δvals
         end
         if _Δvecs isa AbstractZero
-            Δvecs = fill(NoTangent(), howmany)
+            Δvecs = fill(NoTangent(), length(_Δvals))
         else
             Δvecs = _Δvecs
         end
-
         @assert length(Δvals) == length(Δvecs)
 
         # Determine algorithm to solve linear problem
@@ -205,11 +204,12 @@ function ChainRulesCore.rrule(config::RuleConfig{>:HasReverseMode},
             end
 
             # General case :
+            b2 = Δλ isa AbstractZero ? zero(T) : T(-Δλ)
             if isa(Δv, AbstractZero)
-                b = (zerovector(v), T(-Δλ))
+                b = (zerovector(v), b2)
             else
                 @assert isa(Δv, typeof(v))
-                b = (scale(Δv, -one(T)), T(-Δλ))
+                b = (scale(Δv, -one(T)), b2)
             end
 
             # TODO: is there any analogy to this for general vector-like user types

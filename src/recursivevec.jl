@@ -89,20 +89,20 @@ function VectorInterface.scale!!(w::RecursiveVec,
     return RecursiveVec(scale!!(w.vecs, v.vecs, a))
 end
 
-function VectorInterface.add(w::RecursiveVec, v::RecursiveVec, a::ONumber=_one,
-                             b::ONumber=_one)
+function VectorInterface.add(w::RecursiveVec, v::RecursiveVec, a::Number=One(),
+                             b::Number=One())
     return RecursiveVec(add(w.vecs, v.vecs, a, b))
 end
 
-function VectorInterface.add!(w::RecursiveVec, v::RecursiveVec, a::ONumber=_one,
-                              b::ONumber=_one)
+function VectorInterface.add!(w::RecursiveVec, v::RecursiveVec, a::Number=One(),
+                              b::Number=One())
     add!(w.vecs, v.vecs, a, b)
     return w
 end
 
 function VectorInterface.add!!(w::RecursiveVec, v::RecursiveVec,
-                               a::ONumber=_one,
-                               b::ONumber=_one)
+                               a::Number=One(),
+                               b::Number=One())
     return RecursiveVec(add!!(w.vecs, v.vecs, a, b))
 end
 
