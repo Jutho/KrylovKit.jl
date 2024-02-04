@@ -243,9 +243,7 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
             fact = expand!(iter, fact; verbosity = alg.verbosity - 2)
             numops += 1
         else # shrink
-            if numiter == maxiter
-                break
-            end
+            numiter == maxiter && break
 
             # Determine how many to keep
             keep = div(3 * krylovdim + 2 * converged, 5) # strictly smaller than krylovdim since converged < howmany <= krylovdim, at least equal to converged

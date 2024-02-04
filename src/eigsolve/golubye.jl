@@ -26,235 +26,174 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
     HHB = fill(zero(T), krylovdim + 1, krylovdim + 1)
 
     # Start Lanczos iteration with A - ρ ⋅ B
+    numiter = 1
+    vold = v
     V = OrthonormalBasis([v])
     BV = [bv]
     sizehint!(V, krylovdim + 1)
     sizehint!(BV, krylovdim + 1)
-
     r, α = orthogonalize!(r, v, alg.orth) # α should be zero, otherwise ρ was miscalculated
     β = norm(r)
-    m = 1
-    HHA[m, m] = real(α)
-
-    while m < krylovdim
-        v = rmul!(r, 1 / β)
-        push!(V, r)
-        HHA[m+1, m] = β
-        HHA[m, m+1] = β
-        βold = β
-        r, α, β, bv = golubyerecurrence(f, ρ, V, βold, alg.orth)
-        numops += 1
-        m += 1
-        n = hypot(α, β, βold)
-        HHA[m, m] = checkhermitian(α, n)
-        push!(BV, bv)
-
-        if alg.verbosity > 2
-            @info "Golub Ye iteration step $m: normres = $β"
-        end
-        β < tol && m >= howmany && break
-    end
-
-    # Process
-    HA = view(HHA, 1:m, 1:m)
-    HB = view(HHB, 1:m, 1:m)
-    buildHB!(HB, V, BV)
-    HA .+= ρ .* HB
-
-    D, Z = geneigh!(HA, HB)
-    by, rev = eigsort(which)
-    p = sortperm(D, by = by, rev = rev)
-    xold = V[1]
-
-    z = view(Z, :, p[1])
-    x = mul!(similar(xold), V, z)
-    ax, bx = genapply(f, x)
-    numops += 1
-    ρ = checkhermitian(dot(x, ax)) / checkposdef(dot(x, bx))
-    r = axpy!(-ρ, bx, ax)
-    normr = norm(r)
-
     converged = 0
-    values = Vector{typeof(ρ)}(undef, 0)
-    vectors = Vector{typeof(x)}(undef, 0)
-    residuals = Vector{typeof(r)}(undef, 0)
-    normresiduals = Vector{typeof(normr)}(undef, 0)
-    while normr <= tol && converged < howmany
-        push!(values, ρ)
-        push!(vectors, x)
-        push!(residuals, r)
-        push!(normresiduals, normr)
-        converged += 1
 
-        z = view(Z, :, p[converged+1])
-        x = mul!(similar(xold), V, z)
-        ax, bx = genapply(f, x)
-        numops += 1
-        ρ = checkhermitian(dot(x, ax)) / checkposdef(dot(x, bx))
-        r = axpy!(-ρ, bx, ax)
-        normr = norm(r)
-    end
+    values = resize!(Vector{typeof(ρ)}(undef, howmany), 0)
+    vectors = resize!(Vector{typeof(v)}(undef, howmany), 0)
+    residuals = resize!(Vector{typeof(r)}(undef, howmany), 0)
+    normresiduals = resize!(Vector{typeof(β)}(undef, howmany), 0)
 
-    if alg.verbosity > 1
-        msg = "Golub-Ye generalized eigsolve in iter $numiter: "
-        msg *= "$converged values converged: $ρ, normres = ("
-        for i in 1:converged
-            msg *= @sprintf("%.2e", normresiduals[i])
-            msg *= ", "
-        end
-        if converged < howmany
-            msg *= @sprintf("%.2e", normr)
-        end
-        msg *= ")"
-        @info msg
-    end
-
-    ## OTHER ITERATIONS: recycle
-    while numiter < maxiter && converged < howmany
-        numiter += 1
-        fill!(HHA, zero(T))
-        fill!(HHB, zero(T))
-        resize!(V, 0)
-        resize!(BV, 0)
-
-        # Start Lanczos iteration with A - ρ ⋅ B
-        invβ = 1 / norm(x)
-        v = rmul!(x, invβ)
-        bv = rmul!(bx, invβ)
-        r = rmul!(r, invβ)
-        r, α = orthogonalize!(r, v, alg.orth) # α should be zero, otherwise ρ was miscalculated
+    K = 1
+    HHA[K, K] = real(α)
+    while true
         β = norm(r)
-        m = 1
-        push!(V, v)
-        HHA[m, m] = real(α)
-        push!(BV, bv)
+        if β <= tol && K < howmany
+            @warn "Invariant subspace of dimension $K (up to requested tolerance `tol = $tol`), which is smaller than the number of requested eigenvalues (i.e. `howmany == $howmany`); setting `howmany = $K`."
+            howmany = K
+        end
+        if K == krylovdim - converged || β <= tol # process
+            if numiter > 1
+                # add vold - v, or thus just vold as v is first vector in subspace
+                v, = orthonormalize!(vold, V, alg.orth)
+                av, bv = genapply(f, v)
+                numops += 1
+                av = axpy!(-ρ, bv, av)
+                for i in 1:K
+                    HHA[i, K+1] = dot(V[i], av)
+                    HHA[K+1, i] = conj(HHA[i, K+1])
+                end
+                K += 1
+                HHA[K, K] = checkhermitian(dot(v, av))
+                push!(V, v)
+                push!(BV, bv)
+            end
+            for i in 1:converged
+                # add converged vectors
+                v, = orthonormalize(vectors[i], V, alg.orth)
+                av, bv = genapply(f, v)
+                numops += 1
+                av = axpy!(-ρ, bv, av)
+                for j in 1:K
+                    HHA[j, K+1] = dot(V[j], av)
+                    HHA[K+1, j] = conj(HHA[j, K+1])
+                end
+                K += 1
+                HHA[K, K] = checkhermitian(dot(v, av))
+                push!(V, v)
+                push!(BV, bv)
+            end
 
-        while m < krylovdim - converged
+            # Process
+            HA = view(HHA, 1:K, 1:K)
+            HB = view(HHB, 1:K, 1:K)
+            buildHB!(HB, V, BV)
+            HA .+= ρ .* HB
+
+            D, Z = geneigh!(HA, HB)
+            by, rev = eigsort(which)
+            p = sortperm(D, by = by, rev = rev)
+
+            # replace vold
+            vold = V[1]
+
+            converged = 0
+            resize!(values, 0)
+            resize!(vectors, 0)
+            resize!(residuals, 0)
+            resize!(normresiduals, 0)
+            while converged < K
+                z = view(Z, :, p[converged+1])
+                v = mul!(similar(vold), V, z)
+                av, bv = genapply(f, v)
+                numops += 1
+                ρ = checkhermitian(dot(v, av)) / checkposdef(dot(v, bv))
+                r = axpy!(-ρ, bv, av)
+                β = norm(r)
+
+                if β > tol * norm(z)
+                    break
+                end
+
+                push!(values, ρ)
+                push!(vectors, v)
+                push!(residuals, r)
+                push!(normresiduals, β)
+                converged += 1
+            end
+
+            if converged >= howmany
+                howmany = converged
+                break
+            elseif numiter == maxiter
+                for k in converged+1:howmany
+                    z = view(Z, :, p[k])
+                    v = mul!(similar(vold), V, z)
+                    av, bv = genapply(f, v)
+                    numops += 1
+                    ρ = checkhermitian(dot(v, av)) / checkposdef(dot(v, bv))
+                    r = axpy!(-ρ, bv, av)
+                    β = norm(r)
+            
+                    push!(values, ρ)
+                    push!(vectors, v)
+                    push!(residuals, r)
+                    push!(normresiduals, β)
+                end
+            elseif alg.verbosity > 1
+                msg = "Golub-Ye geneigsolve in iter $numiter: "
+                msg *= "$converged values converged, normres = ("
+                for i in 1:converged
+                    msg *= @sprintf("%.2e", normresiduals[i])
+                    msg *= ", "
+                end
+                msg *= @sprintf("%.2e", β) * ")"
+                @info msg
+            end
+        end
+
+        if K < krylovdim - converged
+            # expand
             v = rmul!(r, 1 / β)
-            push!(V, r)
-            HHA[m+1, m] = β
-            HHA[m, m+1] = β
+            push!(V, v)
+            HHA[K+1, K] = β
+            HHA[K, K+1] = β
             βold = β
             r, α, β, bv = golubyerecurrence(f, ρ, V, βold, alg.orth)
             numops += 1
-            m += 1
+            K += 1
             n = hypot(α, β, βold)
-            HHA[m, m] = checkhermitian(α, n)
+            HHA[K, K] = checkhermitian(α, n)
             push!(BV, bv)
 
             if alg.verbosity > 2
-                @info "Golub Ye iteration step $m: normres = $β"
+                @info "Golub-Ye iteration $numiter, step $K: normres = $β"
             end
-            β < tol && m >= howmany && break
-        end
+        else # restart
+            numiter == maxiter && break
+            resize!(V, 0)
+            resize!(BV, 0)    
+            fill!(HHA, zero(T))
+            fill!(HHB, zero(T))
+            K = 1
 
-        # add xold
-        v, = orthonormalize!(xold, V, alg.orth)
-        av, bv = genapply(f, v)
-        numops += 1
-        av = axpy!(-ρ, bv, av)
-        for i in 1:m
-            HHA[i, m+1] = dot(V[i], av)
-            HHA[m+1, i] = conj(HHA[i, m+1])
-        end
-        m += 1
-        HHA[m, m] = checkhermitian(dot(v, av))
-        push!(V, v)
-        push!(BV, bv)
-
-        # add converged vectors
-        @inbounds for i in 1:converged
-            v, = orthonormalize(vectors[i], V, alg.orth)
-            av, bv = genapply(f, v)
-            numops += 1
-            av = axpy!(-ρ, bv, av)
-            for i in 1:m
-                HHA[i, m+1] = dot(V[i], av)
-                HHA[m+1, i] = conj(HHA[i, m+1])
-            end
-            m += 1
-            HHA[m, m] = checkhermitian(dot(v, av))
+            invβ = 1 / norm(v)
+            v = rmul!(v, invβ)
+            bv = rmul!(bv, invβ)
+            r = rmul!(r, invβ)
+            r, α = orthogonalize!(r, v, alg.orth) # α should be zero, otherwise ρ was miscalculated
+            β = norm(r)
             push!(V, v)
+            HHA[K, K] = real(α)
             push!(BV, bv)
-        end
-
-        # Process
-        HA = view(HHA, 1:m, 1:m)
-        HB = view(HHB, 1:m, 1:m)
-        buildHB!(HB, V, BV)
-        HA .+= ρ .* HB
-
-        D, Z = geneigh!(HA, HB)
-        by, rev = eigsort(which)
-        p = sortperm(D, by = by, rev = rev)
-        xold = V[1]
-
-        converged = 0
-        resize!(values, 0)
-        resize!(vectors, 0)
-        resize!(residuals, 0)
-        resize!(normresiduals, 0)
-        while true
-            z = view(Z, :, p[converged+1])
-            x = mul!(similar(xold), V, z)
-            ax, bx = genapply(f, x)
-            numops += 1
-            ρ = checkhermitian(dot(x, ax)) / checkposdef(dot(x, bx))
-            r = axpy!(-ρ, bx, ax)
-            normr = norm(r)
-
-            if normr > tol || converged >= howmany
-                break
-            end
-
-            push!(values, ρ)
-            push!(vectors, x)
-            push!(residuals, r)
-            push!(normresiduals, normr)
-            converged += 1
-        end
-
-        if alg.verbosity > 1
-            msg = "Golub-Ye generalized eigsolve in iter $numiter: "
-            msg *= "$converged values converged: $ρ, normres = ("
-            for i in 1:converged
-                msg *= @sprintf("%.2e", normresiduals[i])
-                msg *= ", "
-            end
-            if converged < howmany
-                msg *= @sprintf("%.2e", normr)
-            end
-            msg *= ")"
-            @info msg
+            numiter += 1
         end
     end
-
-    if converged > howmany
-        howmany = converged
-    end
-    for k in converged+1:howmany
-        z = view(Z, :, p[k])
-        x = mul!(similar(xold), V, z)
-        ax, bx = genapply(f, x)
-        numops += 1
-        ρ = checkhermitian(dot(x, ax)) / checkposdef(dot(x, bx))
-        r = axpy!(-ρ, bx, ax)
-        normr = norm(r)
-
-        push!(values, ρ)
-        push!(vectors, x)
-        push!(residuals, r)
-        push!(normresiduals, normr)
-    end
-
     if alg.verbosity > 0
         if converged < howmany
-            @warn """GolubYe eigsolve finished without convergence after $numiter iterations:
+            @warn """Golub-Ye geneigsolve finished without convergence after $numiter iterations:
              *  $converged eigenvalues converged
              *  norm of residuals = $((normresiduals...,))
              *  number of operations = $numops"""
         else
-            @info """Lanczos eigsolve finished after $numiter iterations:
+            @info """Golub-Ye geneigsolve finished after $numiter iterations:
              *  $converged eigenvalues converged
              *  norm of residuals = $((normresiduals...,))
              *  number of operations = $numops"""
