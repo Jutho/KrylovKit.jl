@@ -29,7 +29,6 @@ factorizations of a given linear map and a starting vector.
 """
 abstract type KrylovFactorization{T,S} end
 
-
 """
     abstract type KrylovIterator{F,T}
 
@@ -122,11 +121,14 @@ function initialize end
 
 # iteration for destructuring into components
 Base.iterate(F::KrylovFactorization) = (basis(F), Val(:rayleighquotient))
-Base.iterate(F::KrylovFactorization, ::Val{:rayleighquotient}) =
-    (rayleighquotient(F), Val(:residual))
+function Base.iterate(F::KrylovFactorization, ::Val{:rayleighquotient})
+    return (rayleighquotient(F), Val(:residual))
+end
 Base.iterate(F::KrylovFactorization, ::Val{:residual}) = (residual(F), Val(:normres))
-Base.iterate(F::KrylovFactorization, ::Val{:normres}) =
-    (normres(F), Val(:rayleighextension))
-Base.iterate(F::KrylovFactorization, ::Val{:rayleighextension}) =
-    (rayleighextension(F), Val(:done))
+function Base.iterate(F::KrylovFactorization, ::Val{:normres})
+    return (normres(F), Val(:rayleighextension))
+end
+function Base.iterate(F::KrylovFactorization, ::Val{:rayleighextension})
+    return (rayleighextension(F), Val(:done))
+end
 Base.iterate(F::KrylovFactorization, ::Val{:done}) = nothing

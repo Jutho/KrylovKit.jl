@@ -1,4 +1,4 @@
-function linsolve(operator, b, x₀, alg::CG, a₀::Real = 0, a₁::Real = 1)
+function linsolve(operator, b, x₀, alg::CG, a₀::Real=0, a₁::Real=1)
     # Initial function operation and division defines number type
     y₀ = apply(operator, x₀)
     T = typeof(dot(b, y₀) / norm(b) * one(a₀) * one(a₁))
@@ -53,7 +53,7 @@ function linsolve(operator, b, x₀, alg::CG, a₀::Real = 0, a₁::Real = 1)
         normr = norm(r)
         if normr < tol # recompute to account for buildup of floating point errors
             r = mul!(r, b, 1)
-            r = axpy!(-1, apply(operator, x, α₀,α₁), r)
+            r = axpy!(-1, apply(operator, x, α₀, α₁), r)
             normr = norm(r)
             ρ = normr^2
             β = zero(β) # restart CG

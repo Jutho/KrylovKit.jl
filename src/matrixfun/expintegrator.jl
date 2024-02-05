@@ -140,32 +140,32 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
     w[2] = mul!(similar(w₀), Au₀, one(T))
     for j in 1:p
         if j > 1
-          w[j+1] = apply(A, w[j])
-          numops += 1
+            w[j + 1] = apply(A, w[j])
+            numops += 1
         end
         lfac = 1
-        for l in 0:p-j
-            w[j+1] = axpy!((sgn * τ₀)^l / lfac, u[j+l+1], w[j+1])
+        for l in 0:(p - j)
+            w[j + 1] = axpy!((sgn * τ₀)^l / lfac, u[j + l + 1], w[j + 1])
             lfac *= l + 1
         end
     end
     v = similar(w₀)
-    β = norm(w[p+1])
+    β = norm(w[p + 1])
     if β < alg.tol && p == 1
         if alg.verbosity > 0
             @info """expintegrate finished after 0 iterations, converged to fixed point up to error = $β"""
         end
         return w₀, ConvergenceInfo(1, zero(τ), β, 0, numops)
     end
-    mul!(v, w[p+1], 1 / β)
+    mul!(v, w[p + 1], 1 / β)
 
     # initialize iterator
     if alg isa Lanczos
-        iter = LanczosIterator(A, w[p+1], alg.orth)
+        iter = LanczosIterator(A, w[p + 1], alg.orth)
     else
-        iter = ArnoldiIterator(A, w[p+1], alg.orth)
+        iter = ArnoldiIterator(A, w[p + 1], alg.orth)
     end
-    fact = initialize(iter; verbosity = alg.verbosity - 2)
+    fact = initialize(iter; verbosity=alg.verbosity - 2)
     numops += 1
     sizehint!(fact, krylovdim)
 
@@ -180,14 +180,14 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
             Δτ = min(Δτ, τ - τ₀)
 
             # Small matrix exponential and error estimation
-            H = fill!(view(HH, 1:K+p+1, 1:K+p+1), zero(T))
+            H = fill!(view(HH, 1:(K + p + 1), 1:(K + p + 1)), zero(T))
             mul!(view(H, 1:K, 1:K), rayleighquotient(fact), sgn * Δτ)
-            H[1, K+1] = 1
+            H[1, K + 1] = 1
             for i in 1:p
-                H[K+i, K+i+1] = 1
+                H[K + i, K + i + 1] = 1
             end
             expH = LinearAlgebra.exp!(H)
-            ϵ = abs(Δτ^p * β * normres(fact) * expH[K, K+p+1])
+            ϵ = abs(Δτ^p * β * normres(fact) * expH[K, K + p + 1])
             ω = ϵ / (Δτ * η)
 
             q = K / 2
@@ -195,14 +195,14 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
                 ϵ_prev = ϵ
                 Δτ_prev = Δτ
                 Δτ *= (γ / ω)^(1 / (q + 1))
-                H = fill!(view(HH, 1:K+p+1, 1:K+p+1), zero(T))
+                H = fill!(view(HH, 1:(K + p + 1), 1:(K + p + 1)), zero(T))
                 mul!(view(H, 1:K, 1:K), rayleighquotient(fact), sgn * Δτ)
-                H[1, K+1] = 1
+                H[1, K + 1] = 1
                 for i in 1:p
-                    H[K+i, K+i+1] = 1
+                    H[K + i, K + i + 1] = 1
                 end
                 expH = LinearAlgebra.exp!(H)
-                ϵ = abs(Δτ^p * β * normres(fact) * expH[K, K+p+1])
+                ϵ = abs(Δτ^p * β * normres(fact) * expH[K, K + p + 1])
                 ω = ϵ / (Δτ * η)
                 q = max(zero(q), log(ϵ / ϵ_prev) / log(Δτ / Δτ_prev) - 1)
             end
@@ -210,14 +210,14 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
             # take time step
             totalerr += ϵ
             jfac = 1
-            for j in 1:p-1
-                w₀ = axpy!((sgn * Δτ)^j / jfac, w[j+1], w₀)
+            for j in 1:(p - 1)
+                w₀ = axpy!((sgn * Δτ)^j / jfac, w[j + 1], w₀)
                 jfac *= (j + 1)
             end
-            w[p+1] = mul!(w[p+1], basis(fact), view(expH, 1:K, K + p))
+            w[p + 1] = mul!(w[p + 1], basis(fact), view(expH, 1:K, K + p))
             # add first correction
-            w[p+1] = axpy!(expH[K, K+p+1], residual(fact), w[p+1])
-            w₀ = axpy!(β * (sgn * Δτ)^p, w[p+1], w₀)
+            w[p + 1] = axpy!(expH[K, K + p + 1], residual(fact), w[p + 1])
+            w₀ = axpy!(β * (sgn * Δτ)^p, w[p + 1], w₀)
             τ₀ += Δτ
 
             # increase time step for next iteration:
@@ -233,27 +233,27 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
             end
         elseif normres(fact) <= ((τ - τ₀) * η) || alg.eager
             # Small matrix exponential and error estimation
-            H = fill!(view(HH, 1:K+p+1, 1:K+p+1), zero(T))
+            H = fill!(view(HH, 1:(K + p + 1), 1:(K + p + 1)), zero(T))
             mul!(view(H, 1:K, 1:K), rayleighquotient(fact), sgn * (τ - τ₀))
-            H[1, K+1] = 1
+            H[1, K + 1] = 1
             for i in 1:p
-                H[K+i, K+i+1] = 1
+                H[K + i, K + i + 1] = 1
             end
             expH = LinearAlgebra.exp!(H)
-            ϵ = abs((τ - τ₀)^p * β * normres(fact) * expH[K, K+p+1])
+            ϵ = abs((τ - τ₀)^p * β * normres(fact) * expH[K, K + p + 1])
             ω = ϵ / ((τ - τ₀) * η)
             if ω < one(ω)
                 # take time step
                 totalerr += ϵ
                 jfac = 1
-                for j in 1:p-1
-                    w₀ = axpy!((sgn * (τ - τ₀))^j / jfac, w[j+1], w₀)
+                for j in 1:(p - 1)
+                    w₀ = axpy!((sgn * (τ - τ₀))^j / jfac, w[j + 1], w₀)
                     jfac *= (j + 1)
                 end
-                w[p+1] = mul!(w[p+1], basis(fact), view(expH, 1:K, K + p))
+                w[p + 1] = mul!(w[p + 1], basis(fact), view(expH, 1:K, K + p))
                 # add first correction
-                w[p+1] = axpy!(expH[K, K+p+1], residual(fact), w[p+1])
-                w₀ = axpy!(β * (sgn * (τ - τ₀))^p, w[p+1], w₀)
+                w[p + 1] = axpy!(expH[K, K + p + 1], residual(fact), w[p + 1])
+                w₀ = axpy!(β * (sgn * (τ - τ₀))^p, w[p + 1], w₀)
                 τ₀ = τ
             end
         end
@@ -264,7 +264,7 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
             return w₀, ConvergenceInfo(1, zero(τ), totalerr, numiter, numops)
         end
         if K < krylovdim
-            fact = expand!(iter, fact; verbosity = alg.verbosity - 2)
+            fact = expand!(iter, fact; verbosity=alg.verbosity - 2)
             numops += 1
         else
             if numiter == maxiter
@@ -275,29 +275,29 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
                 return w₀, ConvergenceInfo(0, τ - τ₀, totalerr, numiter, numops)
             else # reinitialize
                 for j in 1:p
-                    w[j+1] = apply(A, w[j])
+                    w[j + 1] = apply(A, w[j])
                     numops += 1
                     lfac = 1
-                    for l in 0:p-j
-                        w[j+1] = axpy!((sgn * τ₀)^l / lfac, u[j+l+1], w[j+1])
+                    for l in 0:(p - j)
+                        w[j + 1] = axpy!((sgn * τ₀)^l / lfac, u[j + l + 1], w[j + 1])
                         lfac *= l + 1
                     end
                 end
-                β = norm(w[p+1])
+                β = norm(w[p + 1])
                 if β < alg.tol && p == 1 # w₀ is fixed point of ODE
                     if alg.verbosity > 0
                         @info """expintegrate finished after $numiter iterations, converged to fixed point up to error = $β"""
                     end
                     return w₀, ConvergenceInfo(1, zero(τ), β, numiter, numops)
                 end
-                mul!(v, w[p+1], 1 / β)
+                mul!(v, w[p + 1], 1 / β)
 
                 if alg isa Lanczos
-                    iter = LanczosIterator(A, w[p+1], alg.orth)
+                    iter = LanczosIterator(A, w[p + 1], alg.orth)
                 else
-                    iter = ArnoldiIterator(A, w[p+1], alg.orth)
+                    iter = ArnoldiIterator(A, w[p + 1], alg.orth)
                 end
-                fact = initialize!(iter, fact; verbosity = alg.verbosity - 2)
+                fact = initialize!(iter, fact; verbosity=alg.verbosity - 2)
                 numops += 1
                 numiter += 1
             end

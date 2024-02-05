@@ -1,18 +1,31 @@
 name: Documentation
+
 on:
   push:
     branches:
-      - master
+      - 'master'
+      - 'main'
+      - 'release-'
     tags: '*'
   pull_request:
+
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        version:
+          - '1' # automatically expands to the latest stable 1.x release of Julia
+        os:
+          - ubuntu-latest
+        arch:
+          - x64
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@latest
         with:
-          version: '1'
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
       - name: Install dependencies
         run: julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
       - name: Build and deploy

@@ -98,6 +98,7 @@ function LinearAlgebra.axpby!(a::Number, v::RecursiveVec, b, w::RecursiveVec)
     return w
 end
 
-LinearAlgebra.dot(v::RecursiveVec{T}, w::RecursiveVec{T}) where {T} =
-    sum(dot.(v.vecs, w.vecs))
+function LinearAlgebra.dot(v::RecursiveVec{T}, w::RecursiveVec{T}) where {T}
+    return sum(dot.(v.vecs, w.vecs))
+end
 LinearAlgebra.norm(v::RecursiveVec) = norm(norm.(v.vecs))

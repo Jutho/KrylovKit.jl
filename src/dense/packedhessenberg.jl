@@ -15,16 +15,15 @@ struct PackedHessenberg{T,V<:AbstractVector{T}} <: AbstractMatrix{T}
         return new{T,V}(data, n)
     end
 end
-PackedHessenberg(data::AbstractVector, n::Int) =
-    PackedHessenberg{eltype(data),typeof(data)}(data, n)
+function PackedHessenberg(data::AbstractVector, n::Int)
+    return PackedHessenberg{eltype(data),typeof(data)}(data, n)
+end
 Base.size(A::PackedHessenberg) = (A.n, A.n)
 
-function Base.replace_in_print_matrix(
-    A::PackedHessenberg,
-    i::Integer,
-    j::Integer,
-    s::AbstractString
-)
+function Base.replace_in_print_matrix(A::PackedHessenberg,
+                                      i::Integer,
+                                      j::Integer,
+                                      s::AbstractString)
     return i <= j + 1 ? s : Base.replace_with_centered_mark(s)
 end
 
@@ -33,7 +32,7 @@ function Base.getindex(A::PackedHessenberg{T}, i::Integer, j::Integer) where {T}
     if i > j + 1
         return zero(T)
     else
-        return A.data[((j*j+j-2)>>1)+i]
+        return A.data[((j * j + j - 2) >> 1) + i]
     end
 end
 function Base.setindex!(A::PackedHessenberg{T}, v, i::Integer, j::Integer) where {T}
@@ -41,7 +40,7 @@ function Base.setindex!(A::PackedHessenberg{T}, v, i::Integer, j::Integer) where
     if i > j + 1 && !iszero(v)
         throw(ReadOnlyMemoryError())
     else
-        A.data[((j*j+j-2)>>1)+i] = v
+        A.data[((j * j + j - 2) >> 1) + i] = v
     end
     return v
 end

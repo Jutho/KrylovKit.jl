@@ -110,14 +110,15 @@ struct Lanczos{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     eager::Bool
     verbosity::Int
 end
-Lanczos(;
-    krylovdim::Int = KrylovDefaults.krylovdim,
-    maxiter::Int = KrylovDefaults.maxiter,
-    tol::Real = KrylovDefaults.tol,
-    orth::Orthogonalizer = KrylovDefaults.orth,
-    eager::Bool = false,
-    verbosity::Int = 0
-) = Lanczos(orth, krylovdim, maxiter, tol, eager, verbosity)
+function Lanczos(;
+                 krylovdim::Int=KrylovDefaults.krylovdim,
+                 maxiter::Int=KrylovDefaults.maxiter,
+                 tol::Real=KrylovDefaults.tol,
+                 orth::Orthogonalizer=KrylovDefaults.orth,
+                 eager::Bool=false,
+                 verbosity::Int=0)
+    return Lanczos(orth, krylovdim, maxiter, tol, eager, verbosity)
+end
 
 """
     GKL(; krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter,
@@ -141,14 +142,15 @@ struct GKL{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     eager::Bool
     verbosity::Int
 end
-GKL(;
-    krylovdim::Int = KrylovDefaults.krylovdim,
-    maxiter::Int = KrylovDefaults.maxiter,
-    tol::Real = KrylovDefaults.tol,
-    orth::Orthogonalizer = KrylovDefaults.orth,
-    eager::Bool = false,
-    verbosity::Int = 0
-) = GKL(orth, krylovdim, maxiter, tol, eager, verbosity)
+function GKL(;
+             krylovdim::Int=KrylovDefaults.krylovdim,
+             maxiter::Int=KrylovDefaults.maxiter,
+             tol::Real=KrylovDefaults.tol,
+             orth::Orthogonalizer=KrylovDefaults.orth,
+             eager::Bool=false,
+             verbosity::Int=0)
+    return GKL(orth, krylovdim, maxiter, tol, eager, verbosity)
+end
 
 """
     Arnoldi(; krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter,
@@ -177,14 +179,15 @@ struct Arnoldi{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     eager::Bool
     verbosity::Int
 end
-Arnoldi(;
-    krylovdim::Int = KrylovDefaults.krylovdim,
-    maxiter::Int = KrylovDefaults.maxiter,
-    tol::Real = KrylovDefaults.tol,
-    orth::Orthogonalizer = KrylovDefaults.orth,
-    eager::Bool = false,
-    verbosity::Int = 0
-) = Arnoldi(orth, krylovdim, maxiter, tol, eager, verbosity)
+function Arnoldi(;
+                 krylovdim::Int=KrylovDefaults.krylovdim,
+                 maxiter::Int=KrylovDefaults.maxiter,
+                 tol::Real=KrylovDefaults.tol,
+                 orth::Orthogonalizer=KrylovDefaults.orth,
+                 eager::Bool=false,
+                 verbosity::Int=0)
+    return Arnoldi(orth, krylovdim, maxiter, tol, eager, verbosity)
+end
 
 """
     GolubYe(; krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter,
@@ -206,13 +209,14 @@ struct GolubYe{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     tol::S
     verbosity::Int
 end
-GolubYe(;
-    krylovdim::Int = KrylovDefaults.krylovdim,
-    maxiter::Int = KrylovDefaults.maxiter,
-    tol::Real = KrylovDefaults.tol,
-    orth::Orthogonalizer = KrylovDefaults.orth,
-    verbosity::Int = 0
-) = GolubYe(orth, krylovdim, maxiter, tol, verbosity)
+function GolubYe(;
+                 krylovdim::Int=KrylovDefaults.krylovdim,
+                 maxiter::Int=KrylovDefaults.maxiter,
+                 tol::Real=KrylovDefaults.tol,
+                 orth::Orthogonalizer=KrylovDefaults.orth,
+                 verbosity::Int=0)
+    return GolubYe(orth, krylovdim, maxiter, tol, verbosity)
+end
 
 # Solving linear systems specifically
 abstract type LinearSolver <: KrylovAlgorithm end
@@ -235,11 +239,12 @@ struct CG{S<:Real} <: LinearSolver
     tol::S
     verbosity::Int
 end
-CG(;
-    maxiter::Integer = KrylovDefaults.maxiter,
-    tol::Real = KrylovDefaults.tol,
-    verbosity::Int = 0
-) = CG(maxiter, tol, verbosity)
+function CG(;
+            maxiter::Integer=KrylovDefaults.maxiter,
+            tol::Real=KrylovDefaults.tol,
+            verbosity::Int=0)
+    return CG(maxiter, tol, verbosity)
+end
 
 """
     GMRES(; krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter,
@@ -267,13 +272,14 @@ struct GMRES{O<:Orthogonalizer,S<:Real} <: LinearSolver
     tol::S
     verbosity::Int
 end
-GMRES(;
-    krylovdim::Integer = KrylovDefaults.krylovdim,
-    maxiter::Integer = KrylovDefaults.maxiter,
-    tol::Real = KrylovDefaults.tol,
-    orth::Orthogonalizer = KrylovDefaults.orth,
-    verbosity::Int = 0
-) = GMRES(orth, maxiter, krylovdim, tol, verbosity)
+function GMRES(;
+               krylovdim::Integer=KrylovDefaults.krylovdim,
+               maxiter::Integer=KrylovDefaults.maxiter,
+               tol::Real=KrylovDefaults.tol,
+               orth::Orthogonalizer=KrylovDefaults.orth,
+               verbosity::Int=0)
+    return GMRES(orth, maxiter, krylovdim, tol, verbosity)
+end
 
 # TODO
 """
@@ -297,11 +303,12 @@ struct MINRES{S<:Real} <: LinearSolver
     tol::S
     verbosity::Int
 end
-MINRES(;
-    maxiter::Integer = KrylovDefaults.maxiter,
-    tol::Real = KrylovDefaults.tol,
-    verbosity::Int = 0
-) = MINRES(maxiter, tol, verbosity)
+function MINRES(;
+                maxiter::Integer=KrylovDefaults.maxiter,
+                tol::Real=KrylovDefaults.tol,
+                verbosity::Int=0)
+    return MINRES(maxiter, tol, verbosity)
+end
 
 """
     BiCG(; maxiter = KrylovDefaults.maxiter, tol = KrylovDefaults.tol)
@@ -323,11 +330,12 @@ struct BiCG{S<:Real} <: LinearSolver
     tol::S
     verbosity::Int
 end
-BiCG(;
-    maxiter::Integer = KrylovDefaults.maxiter,
-    tol::Real = KrylovDefaults.tol,
-    verbosity::Int = 0
-) = BiCG(maxiter, tol, verbosity)
+function BiCG(;
+              maxiter::Integer=KrylovDefaults.maxiter,
+              tol::Real=KrylovDefaults.tol,
+              verbosity::Int=0)
+    return BiCG(maxiter, tol, verbosity)
+end
 
 """
     BiCGStab(; maxiter = KrylovDefaults.maxiter, tol = KrylovDefaults.tol)
@@ -348,11 +356,12 @@ struct BiCGStab{S<:Real} <: LinearSolver
     tol::S
     verbosity::Int
 end
-BiCGStab(;
-    maxiter::Integer = KrylovDefaults.maxiter,
-    tol::Real = KrylovDefaults.tol,
-    verbosity::Int = 0
-) = BiCGStab(maxiter, tol, verbosity)
+function BiCGStab(;
+                  maxiter::Integer=KrylovDefaults.maxiter,
+                  tol::Real=KrylovDefaults.tol,
+                  verbosity::Int=0)
+    return BiCGStab(maxiter, tol, verbosity)
+end
 
 # Solving eigenvalue systems specifically
 abstract type EigenSolver <: KrylovAlgorithm end

@@ -2,7 +2,7 @@ using Documenter
 using KrylovKit
 
 makedocs(
-    modules=[KrylovKit],
+    modules = [KrylovKit],
     sitename = "KrylovKit.jl",
     authors = "Jutho Haegeman",
     pages = [
@@ -14,12 +14,10 @@ makedocs(
             "man/svd.md",
             "man/matfun.md",
             "man/algorithms.md",
-            "man/implementation.md"
-        ]
+            "man/implementation.md",
+        ],
     ],
-    format = Documenter.HTML(
-        prettyurls = get(ENV, "CI", nothing) == "true"
-    )
+    format = Documenter.HTML(prettyurls = get(ENV, "CI", nothing) == "true"),
 )
 
 deploydocs(repo = "github.com/Jutho/KrylovKit.jl.git")

@@ -163,21 +163,23 @@ struct EigSorter{F}
     by::F
     rev::Bool
 end
-EigSorter(f::F; rev = false) where {F} = EigSorter{F}(f, rev)
+EigSorter(f::F; rev=false) where {F} = EigSorter{F}(f, rev)
 
 const Selector = Union{Symbol,EigSorter}
 
-eigsolve(
-    A::AbstractMatrix,
-    howmany::Int = 1,
-    which::Selector = :LM,
-    T::Type = eltype(A);
-    kwargs...
-) = eigsolve(A, rand(T, size(A, 1)), howmany, which; kwargs...)
+function eigsolve(A::AbstractMatrix,
+                  howmany::Int=1,
+                  which::Selector=:LM,
+                  T::Type=eltype(A);
+                  kwargs...)
+    return eigsolve(A, rand(T, size(A, 1)), howmany, which; kwargs...)
+end
 
-eigsolve(f, n::Int, howmany::Int = 1, which::Selector = :LM, T::Type = Float64; kwargs...) =
-    eigsolve(f, rand(T, n), howmany, which; kwargs...)
-function eigsolve(f, x₀, howmany::Int = 1, which::Selector = :LM; kwargs...)
+function eigsolve(f, n::Int, howmany::Int=1, which::Selector=:LM, T::Type=Float64;
+                  kwargs...)
+    return eigsolve(f, rand(T, n), howmany, which; kwargs...)
+end
+function eigsolve(f, x₀, howmany::Int=1, which::Selector=:LM; kwargs...)
     Tx = typeof(x₀)
     Tfx = Core.Compiler.return_type(apply, Tuple{typeof(f),Tx})
     T = Core.Compiler.return_type(dot, Tuple{Tx,Tfx})
@@ -185,85 +187,69 @@ function eigsolve(f, x₀, howmany::Int = 1, which::Selector = :LM; kwargs...)
     checkwhich(which) || error("Unknown eigenvalue selector: which = $which")
     if alg isa Lanczos
         if which == :LI || which == :SI
-            error(
-                "Eigenvalue selector which = $which invalid: real eigenvalues expected with Lanczos algorithm"
-            )
+            error("Eigenvalue selector which = $which invalid: real eigenvalues expected with Lanczos algorithm")
         end
     elseif T <: Real
         if which == :LI ||
            which == :SI ||
            (which isa EigSorter && which.by(+im) != which.by(-im))
-            error(
-                "Eigenvalue selector which = $which invalid because it does not treat
-          `λ` and `conj(λ)` equally: work in complex arithmetic by providing a complex starting vector `x₀`"
-            )
+            error("Eigenvalue selector which = $which invalid because it does not treat
+            `λ` and `conj(λ)` equally: work in complex arithmetic by providing a complex starting vector `x₀`")
         end
     end
     return eigsolve(f, x₀, howmany, which, alg)
 end
 
-function eigselector(
-    f,
-    T::Type;
-    issymmetric::Bool = false,
-    ishermitian::Bool = issymmetric && !(T <: Complex),
-    krylovdim::Int = KrylovDefaults.krylovdim,
-    maxiter::Int = KrylovDefaults.maxiter,
-    tol::Real = KrylovDefaults.tol,
-    orth::Orthogonalizer = KrylovDefaults.orth,
-    eager::Bool = false,
-    verbosity::Int = 0
-)
+function eigselector(f,
+                     T::Type;
+                     issymmetric::Bool=false,
+                     ishermitian::Bool=issymmetric && !(T <: Complex),
+                     krylovdim::Int=KrylovDefaults.krylovdim,
+                     maxiter::Int=KrylovDefaults.maxiter,
+                     tol::Real=KrylovDefaults.tol,
+                     orth::Orthogonalizer=KrylovDefaults.orth,
+                     eager::Bool=false,
+                     verbosity::Int=0)
     if (issymmetric && !(T <: Complex)) || ishermitian
-        return Lanczos(
-            krylovdim = krylovdim,
-            maxiter = maxiter,
-            tol = tol,
-            orth = orth,
-            eager = eager,
-            verbosity = verbosity
-        )
+        return Lanczos(; krylovdim=krylovdim,
+                       maxiter=maxiter,
+                       tol=tol,
+                       orth=orth,
+                       eager=eager,
+                       verbosity=verbosity)
     else
-        return Arnoldi(
-            krylovdim = krylovdim,
-            maxiter = maxiter,
-            tol = tol,
-            orth = orth,
-            eager = eager,
-            verbosity = verbosity
-        )
+        return Arnoldi(; krylovdim=krylovdim,
+                       maxiter=maxiter,
+                       tol=tol,
+                       orth=orth,
+                       eager=eager,
+                       verbosity=verbosity)
     end
 end
-function eigselector(
-    A::AbstractMatrix,
-    T::Type;
-    issymmetric::Bool = T <: Real && LinearAlgebra.issymmetric(A),
-    ishermitian::Bool = issymmetric || LinearAlgebra.ishermitian(A),
-    krylovdim::Int = KrylovDefaults.krylovdim,
-    maxiter::Int = KrylovDefaults.maxiter,
-    tol::Real = KrylovDefaults.tol,
-    orth::Orthogonalizer = KrylovDefaults.orth,
-    eager::Bool = false,
-    verbosity::Int = 0
-)
+function eigselector(A::AbstractMatrix,
+                     T::Type;
+                     issymmetric::Bool=T <: Real && LinearAlgebra.issymmetric(A),
+                     ishermitian::Bool=issymmetric || LinearAlgebra.ishermitian(A),
+                     krylovdim::Int=KrylovDefaults.krylovdim,
+                     maxiter::Int=KrylovDefaults.maxiter,
+                     tol::Real=KrylovDefaults.tol,
+                     orth::Orthogonalizer=KrylovDefaults.orth,
+                     eager::Bool=false,
+                     verbosity::Int=0)
     if (T <: Real && issymmetric) || ishermitian
-        return Lanczos(
-            krylovdim = krylovdim,
-            maxiter = maxiter,
-            tol = tol,
-            orth = orth,
-            eager = eager,
-            verbosity = verbosity
-        )
+        return Lanczos(; krylovdim=krylovdim,
+                       maxiter=maxiter,
+                       tol=tol,
+                       orth=orth,
+                       eager=eager,
+                       verbosity=verbosity)
     else
-        return Arnoldi(
-            krylovdim = krylovdim,
-            maxiter = maxiter,
-            tol = tol,
-            orth = orth,
-            eager = eager,
-            verbosity = verbosity
-        )
+        return Arnoldi(; krylovdim=krylovdim,
+                       maxiter=maxiter,
+                       tol=tol,
+                       orth=orth,
+                       eager=eager,
+                       verbosity=verbosity)
     end
 end
 

@@ -133,7 +133,7 @@ function Base.iterate(iter::ArnoldiIterator, state)
     end
 end
 
-function initialize(iter::ArnoldiIterator; verbosity::Int = 0)
+function initialize(iter::ArnoldiIterator; verbosity::Int=0)
     # initialize without using eltype
     x₀ = iter.x₀
     β₀ = norm(x₀)
@@ -142,7 +142,7 @@ function initialize(iter::ArnoldiIterator; verbosity::Int = 0)
     α = dot(x₀, Ax₀) / (β₀ * β₀)
     T = typeof(α)
     # this line determines the vector type that we will henceforth use
-    v = mul!(zero(T)*Ax₀, x₀, 1 / β₀) # (one(T) / β₀) * x₀ # mul!(similar(x₀, T), x₀, 1/β₀)
+    v = mul!(zero(T) * Ax₀, x₀, 1 / β₀) # (one(T) / β₀) * x₀ # mul!(similar(x₀, T), x₀, 1/β₀)
     if typeof(Ax₀) != typeof(v)
         r = mul!(similar(v), Ax₀, 1 / β₀)
     else
@@ -173,7 +173,7 @@ function initialize(iter::ArnoldiIterator; verbosity::Int = 0)
     end
     return state = ArnoldiFactorization(1, V, H, r)
 end
-function initialize!(iter::ArnoldiIterator, state::ArnoldiFactorization; verbosity::Int = 0)
+function initialize!(iter::ArnoldiIterator, state::ArnoldiFactorization; verbosity::Int=0)
     x₀ = iter.x₀
     V = state.V
     while length(V) > 1
@@ -193,7 +193,7 @@ function initialize!(iter::ArnoldiIterator, state::ArnoldiFactorization; verbosi
     end
     return state
 end
-function expand!(iter::ArnoldiIterator, state::ArnoldiFactorization; verbosity::Int = 0)
+function expand!(iter::ArnoldiIterator, state::ArnoldiFactorization; verbosity::Int=0)
     state.k += 1
     k = state.k
     V = state.V
@@ -203,8 +203,8 @@ function expand!(iter::ArnoldiIterator, state::ArnoldiFactorization; verbosity::
     push!(V, rmul!(r, 1 / β))
     m = length(H)
     resize!(H, m + k + 1)
-    r, β = arnoldirecurrence!(iter.operator, V, view(H, (m+1):(m+k)), iter.orth)
-    H[m+k+1] = β
+    r, β = arnoldirecurrence!(iter.operator, V, view(H, (m + 1):(m + k)), iter.orth)
+    H[m + k + 1] = β
     state.r = r
     if verbosity > 0
         @info "Arnoldi iteration step $k: normres = $β"
@@ -226,12 +226,10 @@ function shrink!(state::ArnoldiFactorization, k)
 end
 
 # Arnoldi recurrence: simply use provided orthonormalization routines
-function arnoldirecurrence!(
-    operator,
-    V::OrthonormalBasis,
-    h::AbstractVector,
-    orth::Orthogonalizer
-)
+function arnoldirecurrence!(operator,
+                            V::OrthonormalBasis,
+                            h::AbstractVector,
+                            orth::Orthogonalizer)
     w = apply(operator, last(V))
     r, h = orthogonalize!(w, V, h, orth)
     return r, norm(r)

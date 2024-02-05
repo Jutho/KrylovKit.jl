@@ -8,7 +8,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
 
     # Initialize Lanczos factorization
     iter = LanczosIterator(A, x₀, alg.orth)
-    fact = initialize(iter; verbosity = alg.verbosity - 2)
+    fact = initialize(iter; verbosity=alg.verbosity - 2)
     numops = 1
     numiter = 1
     sizehint!(fact, krylovdim)
@@ -48,11 +48,11 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
                 end
                 D, U = tridiageigh!(T, U)
                 by, rev = eigsort(which)
-                p = sortperm(D, by = by, rev = rev)
+                p = sortperm(D; by=by, rev=rev)
                 D, U = permuteeig!(D, U, p)
                 mul!(f, view(U, K, :), β)
                 converged = 0
-                while converged < K && abs(f[converged+1]) <= tol
+                while converged < K && abs(f[converged + 1]) <= tol
                     converged += 1
                 end
             end
@@ -73,7 +73,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
         end
 
         if K < krylovdim# expand Krylov factorization
-            fact = expand!(iter, fact; verbosity = alg.verbosity - 2)
+            fact = expand!(iter, fact; verbosity=alg.verbosity - 2)
             numops += 1
         else ## shrink and restart
             if numiter == maxiter
@@ -84,29 +84,29 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
             keep = div(3 * krylovdim + 2 * converged, 5) # strictly smaller than krylovdim since converged < howmany <= krylovdim, at least equal to converged
 
             # Restore Lanczos form in the first keep columns
-            H = fill!(view(HH, 1:keep+1, 1:keep), zero(eltype(HH)))
+            H = fill!(view(HH, 1:(keep + 1), 1:keep), zero(eltype(HH)))
             @inbounds for j in 1:keep
                 H[j, j] = D[j]
-                H[keep+1, j] = f[j]
+                H[keep + 1, j] = f[j]
             end
             @inbounds for j in keep:-1:1
                 h, ν = householder(H, j + 1, 1:j, j)
-                H[j+1, j] = ν
-                H[j+1, 1:j-1] .= zero(eltype(H))
+                H[j + 1, j] = ν
+                H[j + 1, 1:(j - 1)] .= zero(eltype(H))
                 lmul!(h, H)
                 rmul!(view(H, 1:j, :), h')
                 rmul!(U, h')
             end
             @inbounds for j in 1:keep
                 fact.αs[j] = H[j, j]
-                fact.βs[j] = H[j+1, j]
+                fact.βs[j] = H[j + 1, j]
             end
 
             # Update B by applying U using Householder reflections
             B = basis(fact)
             basistransform!(B, view(U, :, 1:keep))
             r = residual(fact)
-            B[keep+1] = rmul!(r, 1 / β)
+            B[keep + 1] = rmul!(r, 1 / β)
 
             # Shrink Lanczos factorization
             fact = shrink!(fact, keep)
@@ -148,6 +148,6 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
     end
 
     return values,
-    vectors,
-    ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
+           vectors,
+           ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end

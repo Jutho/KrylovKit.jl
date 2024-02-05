@@ -136,49 +136,43 @@ suggested by Money and Ye. With `krylovdim = 2`, this algorithm becomes equivale
 """
 function geneigsolve end
 
-function geneigsolve(
-    AB::Tuple{AbstractMatrix,AbstractMatrix},
-    howmany::Int = 1,
-    which::Selector = :LM,
-    T = promote_type(eltype.(AB)...);
-    kwargs...
-)
+function geneigsolve(AB::Tuple{AbstractMatrix,AbstractMatrix},
+                     howmany::Int=1,
+                     which::Selector=:LM,
+                     T=promote_type(eltype.(AB)...);
+                     kwargs...)
     if !(size(AB[1], 1) == size(AB[1], 2) == size(AB[2], 1) == size(AB[2], 2))
-        throw(
-            DimensionMismatch(
-                "Matrices `A` and `B` should be square and have matching size"
-            )
-        )
+        throw(DimensionMismatch("Matrices `A` and `B` should be square and have matching size"))
     end
     return geneigsolve(AB, rand(T, size(AB[1], 1)), howmany::Int, which; kwargs...)
 end
-geneigsolve(
-    AB::Tuple{Any,AbstractMatrix},
-    howmany::Int = 1,
-    which::Selector = :LM,
-    T = eltype(AB[2]);
-    kwargs...
-) = geneigsolve(AB, rand(T, size(AB[2], 1)), howmany, which; kwargs...)
-geneigsolve(
-    AB::Tuple{AbstractMatrix,Any},
-    howmany::Int = 1,
-    which::Selector = :LM,
-    T = eltype(AB[1]);
-    kwargs...
-) = geneigsolve(AB, rand(T, size(AB[1], 1)), howmany, which; kwargs...)
+function geneigsolve(AB::Tuple{Any,AbstractMatrix},
+                     howmany::Int=1,
+                     which::Selector=:LM,
+                     T=eltype(AB[2]);
+                     kwargs...)
+    return geneigsolve(AB, rand(T, size(AB[2], 1)), howmany, which; kwargs...)
+end
+function geneigsolve(AB::Tuple{AbstractMatrix,Any},
+                     howmany::Int=1,
+                     which::Selector=:LM,
+                     T=eltype(AB[1]);
+                     kwargs...)
+    return geneigsolve(AB, rand(T, size(AB[1], 1)), howmany, which; kwargs...)
+end
 
-geneigsolve(
-    f,
-    n::Int,
-    howmany::Int = 1,
-    which::Selector = :LM,
-    T::Type = Float64;
-    kwargs...
-) = geneigsolve(f, rand(T, n), howmany, which; kwargs...)
+function geneigsolve(f,
+                     n::Int,
+                     howmany::Int=1,
+                     which::Selector=:LM,
+                     T::Type=Float64;
+                     kwargs...)
+    return geneigsolve(f, rand(T, n), howmany, which; kwargs...)
+end
 
-function geneigsolve(f, x₀, howmany::Int = 1, which::Selector = :LM; kwargs...)
+function geneigsolve(f, x₀, howmany::Int=1, which::Selector=:LM; kwargs...)
     Tx = typeof(x₀)
-    Tfx = Core.Compiler.return_type(genapply, Tuple{typeof(f), Tx}) # should be a tuple type
+    Tfx = Core.Compiler.return_type(genapply, Tuple{typeof(f),Tx}) # should be a tuple type
     Tfx1 = Base.tuple_type_head(Tfx)
     Tfx2 = Base.tuple_type_head(Base.tuple_type_tail(Tfx))
     T1 = Core.Compiler.return_type(dot, Tuple{Tx,Tfx1})
@@ -186,46 +180,32 @@ function geneigsolve(f, x₀, howmany::Int = 1, which::Selector = :LM; kwargs...
     T = promote_type(T1, T2)
     alg = geneigselector(f, T; kwargs...)
     if alg isa GolubYe && (which == :LI || which == :SI)
-        error(
-            "Eigenvalue selector which = $which invalid: real eigenvalues expected with Lanczos algorithm"
-        )
+        error("Eigenvalue selector which = $which invalid: real eigenvalues expected with Lanczos algorithm")
     end
     return geneigsolve(f, x₀, howmany, which, alg)
 end
 
-function geneigselector(
-    AB::Tuple{AbstractMatrix,AbstractMatrix},
-    T::Type;
-    issymmetric = T <: Real && all(LinearAlgebra.issymmetric, AB),
-    ishermitian = issymmetric || all(LinearAlgebra.ishermitian, AB),
-    isposdef = ishermitian && LinearAlgebra.isposdef(AB[2]),
-    kwargs...
-)
+function geneigselector(AB::Tuple{AbstractMatrix,AbstractMatrix},
+                        T::Type;
+                        issymmetric=T <: Real && all(LinearAlgebra.issymmetric, AB),
+                        ishermitian=issymmetric || all(LinearAlgebra.ishermitian, AB),
+                        isposdef=ishermitian && LinearAlgebra.isposdef(AB[2]),
+                        kwargs...)
     if (issymmetric || ishermitian) && isposdef
         return GolubYe(; kwargs...)
     else
-        throw(
-            ArgumentError(
-                "Only symmetric or hermitian generalized eigenvalue problems with positive definite `B` matrix are currently supported."
-            )
-        )
+        throw(ArgumentError("Only symmetric or hermitian generalized eigenvalue problems with positive definite `B` matrix are currently supported."))
     end
 end
-function geneigselector(
-    f,
-    T::Type;
-    issymmetric = false,
-    ishermitian = issymmetric,
-    isposdef = false,
-    kwargs...
-)
+function geneigselector(f,
+                        T::Type;
+                        issymmetric=false,
+                        ishermitian=issymmetric,
+                        isposdef=false,
+                        kwargs...)
     if (issymmetric || ishermitian) && isposdef
         return GolubYe(; kwargs...)
     else
-        throw(
-            ArgumentError(
-                "Only symmetric or hermitian generalized eigenvalue problems with positive definite `B` matrix are currently supported."
-            )
-        )
+        throw(ArgumentError("Only symmetric or hermitian generalized eigenvalue problems with positive definite `B` matrix are currently supported."))
     end
 end

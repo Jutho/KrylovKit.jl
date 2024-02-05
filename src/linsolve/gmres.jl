@@ -1,4 +1,4 @@
-function linsolve(operator, b, x₀, alg::GMRES, a₀::Number = 0, a₁::Number = 1)
+function linsolve(operator, b, x₀, alg::GMRES, a₀::Number=0, a₁::Number=1)
     # Initial function operation and division defines number type
     y₀ = apply(operator, x₀)
     T = typeof(dot(b, y₀) / norm(b) * one(a₀) * one(a₁))
@@ -63,7 +63,7 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number = 0, a₁::Number 
 
             # copy Arnoldi Hessenberg matrix into R
             @inbounds begin
-                for i in 1:k-1
+                for i in 1:(k - 1)
                     R[i, k] = α₁ * H[i, k]
                 end
                 R[k, k] = α₀ + α₁ * H[k, k]
@@ -71,17 +71,17 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number = 0, a₁::Number 
 
             # Apply Givens rotations
             Rk = view(R, :, k)
-            @inbounds for i in 1:k-1
+            @inbounds for i in 1:(k - 1)
                 lmul!(gs[i], Rk)
             end
             gs[k], R[k, k] = givens(R[k, k], α₁ * normres(fact), k, k + 1)
 
             # Apply Givens rotations to right hand side
-            y[k+1] = zero(T)
+            y[k + 1] = zero(T)
             lmul!(gs[k], y)
 
             # New error
-            β = convert(S, abs(y[k+1]))
+            β = convert(S, abs(y[k + 1]))
             if alg.verbosity > 2
                 msg = "GMRES linsolve in iter $numiter; step $k: "
                 msg *= "normres = "
@@ -113,7 +113,7 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number = 0, a₁::Number 
             for i in 1:k
                 rmul!(V, gs[i]')
             end
-            r = mul!(r, V[k+1], y[k+1])
+            r = mul!(r, V[k + 1], y[k + 1])
         else
             # Recompute residual and its norm explicitly, to ensure that no
             # numerical errors have accumulated
