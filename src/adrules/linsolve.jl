@@ -13,8 +13,8 @@ function ChainRulesCore.rrule(::typeof(linsolve),
         ∂self = NoTangent()
         ∂x₀ = ZeroTangent()
         ∂algorithm = NoTangent()
-        ∂b, reverse_info = linsolve(A', x̄, (zero(a₀) * zero(a₁)) * x̄, algorithm,
-                                    conj(a₀), conj(a₁))
+        ∂b, reverse_info = linsolve(A', x̄, (zero(a₀) * zero(a₁)) * x̄, algorithm, conj(a₀),
+                                    conj(a₁))
         if info.converged > 0 && reverse_info.converged == 0
             @warn "The cotangent linear problem did not converge, whereas the primal linear problem did."
         end
@@ -66,8 +66,8 @@ function ChainRulesCore.rrule(config::RuleConfig{>:HasReverseMode},
         ∂self = NoTangent()
         ∂x₀ = ZeroTangent()
         ∂algorithm = NoTangent()
-        (∂b, reverse_info) = linsolve(fᴴ, x̄, zerovector(x̄), algorithm,
-                                      conj(a₀), conj(a₁))
+        T = promote_scale(promote_scale(x̄, scalartype(a₀)), scalartype(a₁))
+        ∂b, reverse_info = linsolve(fᴴ, x̄, zerovector(x̄, T), algorithm, conj(a₀), conj(a₁))
         if reverse_info.converged == 0
             @warn "Linear problem for reverse rule did not converge." reverse_info
         end
@@ -77,7 +77,7 @@ function ChainRulesCore.rrule(config::RuleConfig{>:HasReverseMode},
         if a₀ == zero(a₀) && a₁ == one(a₁)
             ∂a₁ = @thunk(-inner(b, ∂b))
         else
-            ∂a₁ = @thunk(-inner(scale(add(b, x, -a₀), inv(a₁)), ∂b))
+            ∂a₁ = @thunk(-inner(scale!!(add(b, x, -a₀), inv(a₁)), ∂b))
         end
         return ∂self, ∂f, ∂b, ∂x₀, ∂algorithm, ∂a₀, ∂a₁
     end

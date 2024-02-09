@@ -60,6 +60,11 @@ function Base.copy!(w::RecursiveVec, v::RecursiveVec)
     return w
 end
 
+function LinearAlgebra.dot(v::RecursiveVec{T}, w::RecursiveVec{T}) where {T}
+    return sum(dot.(v.vecs, w.vecs))
+end
+LinearAlgebra.norm(v::RecursiveVec) = norm(norm.(v.vecs))
+
 VectorInterface.scalartype(::Type{RecursiveVec{T}}) where {T} = scalartype(eltype(T))
 
 function VectorInterface.zerovector(v::RecursiveVec, T::Type{<:Number})

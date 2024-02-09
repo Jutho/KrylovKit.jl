@@ -187,16 +187,14 @@ function eigsolve(f, x₀, howmany::Int=1, which::Selector=:LM; kwargs...)
     checkwhich(which) || error("Unknown eigenvalue selector: which = $which")
     if alg isa Lanczos
         if which == :LI || which == :SI
-            error("Eigenvalue selector which = $which invalid: " *
-                  "real eigenvalues expected with Lanczos algorithm")
+            error("Eigenvalue selector which = $which invalid: real eigenvalues expected with Lanczos algorithm")
         end
     elseif T <: Real
         if which == :LI ||
            which == :SI ||
            (which isa EigSorter && which.by(+im) != which.by(-im))
-            error("Eigenvalue selector which = $which invalid because it does not treat " *
-                  "`λ` and `conj(λ)` equally: work in complex arithmetic by providing a " *
-                  "complex starting vector `x₀`")
+            error("Eigenvalue selector which = $which invalid because it does not treat
+            `λ` and `conj(λ)` equally: work in complex arithmetic by providing a complex starting vector `x₀`")
         end
     end
     return eigsolve(f, x₀, howmany, which, alg)

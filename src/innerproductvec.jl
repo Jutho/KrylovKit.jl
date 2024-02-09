@@ -32,7 +32,7 @@ Base.:*(a::Number, v::InnerProductVec) = InnerProductVec(a * v.vec, v.dotf)
 Base.:/(v::InnerProductVec, a::Number) = InnerProductVec(v.vec / a, v.dotf)
 Base.:\(a::Number, v::InnerProductVec) = InnerProductVec(a \ v.vec, v.dotf)
 
-function Base.similar(v::InnerProductVec, ::Type{T}=eltype(v)) where {T}
+function Base.similar(v::InnerProductVec, ::Type{T}=scalartype(v)) where {T}
     return InnerProductVec(similar(v.vec), v.dotf)
 end
 
@@ -43,34 +43,72 @@ function Base.copy!(w::InnerProductVec{F}, v::InnerProductVec{F}) where {F}
     return w
 end
 
-VectorInterface.scalartype(::Type{<:InnerProductVec{T}}) where {T} = scalartype(T)
+function LinearAlgebra.mul!(w::InnerProductVec{F},
+                            a::Number,
+                            v::InnerProductVec{F}) where {F}
+    mul!(w.vec, a, v.vec)
+    return w
+end
+
+function LinearAlgebra.mul!(w::InnerProductVec{F},
+                            v::InnerProductVec{F},
+                            a::Number) where {F}
+    mul!(w.vec, v.vec, a)
+    return w
+end
+
+function LinearAlgebra.rmul!(v::InnerProductVec, a::Number)
+    rmul!(v.vec, a)
+    return v
+end
+
+function LinearAlgebra.axpy!(a::Number,
+                             v::InnerProductVec{F},
+                             w::InnerProductVec{F}) where {F}
+    axpy!(a, v.vec, w.vec)
+    return w
+end
+function LinearAlgebra.axpby!(a::Number,
+                              v::InnerProductVec{F},
+                              b,
+                              w::InnerProductVec{F}) where {F}
+    axpby!(a, v.vec, b, w.vec)
+    return w
+end
+
+function LinearAlgebra.dot(v::InnerProductVec{F}, w::InnerProductVec{F}) where {F}
+    return v.dotf(v.vec, w.vec)
+end
+
+LinearAlgebra.norm(v::InnerProductVec) = sqrt(real(dot(v, v)))
+
+VectorInterface.scalartype(::Type{<:InnerProductVec{F,T}}) where {F,T} = scalartype(T)
 
 function VectorInterface.zerovector(v::InnerProductVec, T::Type{<:Number})
-    return InnerProductVec(zerovector(v[], T), v.dotf)
+    return InnerProductVec(zerovector(v.vec, T), v.dotf)
 end
 
 function VectorInterface.scale(v::InnerProductVec, a::Number)
-    return InnerProductVec(scale(v[], a), v.dotf)
+    return InnerProductVec(scale(v.vec, a), v.dotf)
 end
 
 function VectorInterface.scale!(v::InnerProductVec, a::Number)
     scale!(v.vec, a)
     return v
 end
-
-function VectorInterface.scale!(w::InnerProductVec, v::InnerProductVec, a::Number)
+function VectorInterface.scale!(w::InnerProductVec{F}, v::InnerProductVec{F}, a::Number) where {F}
     scale!(w.vec, v.vec, a)
     return w
 end
 
-function VectorInterface.add!(v::InnerProductVec{F}, w::InnerProductVec{F}, a::Number=1,
-                              b::Number=1) where {F}
-    add!(v[], w[], a, b)
+function VectorInterface.add!(v::InnerProductVec{F}, w::InnerProductVec{F}, a::Number,
+                              b::Number) where {F}
+    add!(v.vec, w.vec, a, b)
     return v
 end
 
 function VectorInterface.inner(v::InnerProductVec{F}, w::InnerProductVec{F}) where {F}
-    return v.dotf(v[], w[])
+    return v.dotf(v.vec, w.vec)
 end
 
 VectorInterface.norm(v::InnerProductVec) = sqrt(real(inner(v, v)))

@@ -4,14 +4,14 @@
             A = rand(T, (n, n)) .- one(T) / 2
             A = (A + A') / 2
             v = rand(T, (n,))
-            alg = Lanczos(; orth=orth, krylovdim=2 * n, maxiter=1, tol=precision(T),
-                          verbosity=1)
             n1 = div(n, 2)
             D1, V1, info = eigsolve(wrapop(A), wrapvec(v), n1, :SR; orth=orth, krylovdim=n,
                                     maxiter=1, tol=precision(T), verbosity=2)
             @test KrylovKit.eigselector(A, eltype(v); orth=orth, krylovdim=n, maxiter=1,
                                         tol=precision(T)) isa Lanczos
             n2 = n - n1
+            alg = Lanczos(; orth=orth, krylovdim=2 * n, maxiter=1, tol=precision(T),
+                          verbosity=1)
             D2, V2, info = @constinferred eigsolve(wrapop(A), wrapvec(v), n2, :LR, alg)
             @test vcat(D1[1:n1], reverse(D2[1:n2])) ≊ eigvals(A)
 
@@ -65,14 +65,14 @@ end
         @testset for orth in (cgs2, mgs2, cgsr, mgsr)
             A = rand(T, (n, n)) .- one(T) / 2
             v = rand(T, (n,))
-            alg = Arnoldi(; orth=orth, krylovdim=2 * n, maxiter=1, tol=precision(T),
-                          verbosity=1)
             n1 = div(n, 2)
             D1, V1, info1 = eigsolve(wrapop(A), wrapvec(v), n1, :SR; orth=orth, krylovdim=n,
                                      maxiter=1, tol=precision(T), verbosity=2)
             @test KrylovKit.eigselector(A, eltype(v); orth=orth, krylovdim=n, maxiter=1,
                                         tol=precision(T)) isa Arnoldi
             n2 = n - n1
+            alg = Arnoldi(; orth=orth, krylovdim=2 * n, maxiter=1, tol=precision(T),
+                          verbosity=1)
             D2, V2, info2 = @constinferred eigsolve(wrapop(A), wrapvec(v), n2, :LR, alg)
             D = sort(sort(eigvals(A); by=imag, rev=true); alg=MergeSort, by=real)
             D2′ = sort(sort(D2; by=imag, rev=true); alg=MergeSort, by=real)

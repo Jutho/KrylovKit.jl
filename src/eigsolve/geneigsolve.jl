@@ -180,8 +180,7 @@ function geneigsolve(f, x₀, howmany::Int=1, which::Selector=:LM; kwargs...)
     T = promote_type(T1, T2)
     alg = geneigselector(f, T; kwargs...)
     if alg isa GolubYe && (which == :LI || which == :SI)
-        error("Eigenvalue selector which = $which invalid: real eigenvalues expected with" *
-              " Lanczos algorithm")
+        error("Eigenvalue selector which = $which invalid: real eigenvalues expected with Lanczos algorithm")
     end
     return geneigsolve(f, x₀, howmany, which, alg)
 end
@@ -195,8 +194,7 @@ function geneigselector(AB::Tuple{AbstractMatrix,AbstractMatrix},
     if (issymmetric || ishermitian) && isposdef
         return GolubYe(; kwargs...)
     else
-        throw(ArgumentError("Only symmetric or hermitian generalized eigenvalue problems " *
-                            "with positive definite `B` matrix are currently supported."))
+        throw(ArgumentError("Only symmetric or hermitian generalized eigenvalue problems with positive definite `B` matrix are currently supported."))
     end
 end
 function geneigselector(f,
@@ -208,7 +206,6 @@ function geneigselector(f,
     if (issymmetric || ishermitian) && isposdef
         return GolubYe(; kwargs...)
     else
-        throw(ArgumentError("Only symmetric or hermitian generalized eigenvalue problems " *
-                            "with positive definite `B` matrix are currently supported."))
+        throw(ArgumentError("Only symmetric or hermitian generalized eigenvalue problems with positive definite `B` matrix are currently supported."))
     end
 end

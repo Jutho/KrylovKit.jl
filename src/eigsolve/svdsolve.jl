@@ -178,8 +178,7 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
                 reverserows!(S)
                 reverserows!(Q)
             elseif which != :LR
-                error("invalid specification of which singular values to target: " *
-                      "which = $which")
+                error("invalid specification of which singular values to target: which = $which")
             end
             mul!(f, view(Q', K, :), β)
 
