@@ -88,10 +88,10 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
             buildHB!(HB, V, BV)
             HA .+= ρ .* HB
 
-        D, Z = geneigh!(HA, HB)
-        by, rev = eigsort(which)
-        p = sortperm(D; by, rev)
-        xold = V[1]
+            D, Z = geneigh!(HA, HB)
+            by, rev = eigsort(which)
+            p = sortperm(D; by, rev)
+            xold = V[1]
 
             converged = 0
             resize!(values, 0)

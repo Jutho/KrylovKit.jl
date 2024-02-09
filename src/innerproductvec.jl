@@ -96,7 +96,8 @@ function VectorInterface.scale!(v::InnerProductVec, a::Number)
     scale!(v.vec, a)
     return v
 end
-function VectorInterface.scale!(w::InnerProductVec{F}, v::InnerProductVec{F}, a::Number) where {F}
+function VectorInterface.scale!(w::InnerProductVec{F}, v::InnerProductVec{F},
+                                a::Number) where {F}
     scale!(w.vec, v.vec, a)
     return w
 end

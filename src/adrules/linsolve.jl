@@ -67,7 +67,8 @@ function ChainRulesCore.rrule(config::RuleConfig{>:HasReverseMode},
         ∂x₀ = ZeroTangent()
         ∂algorithm = NoTangent()
         T = promote_scale(promote_scale(x̄, scalartype(a₀)), scalartype(a₁))
-        ∂b, reverse_info = linsolve(fᴴ, x̄, zerovector(x̄, T), algorithm, conj(a₀), conj(a₁))
+        ∂b, reverse_info = linsolve(fᴴ, x̄, zerovector(x̄, T), algorithm, conj(a₀),
+                                    conj(a₁))
         if reverse_info.converged == 0
             @warn "Linear problem for reverse rule did not converge." reverse_info
         end
