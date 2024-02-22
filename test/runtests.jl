@@ -45,7 +45,7 @@ include("geneigsolve.jl")
 include("svdsolve.jl")
 include("expintegrator.jl")
 t = time() - t
-println("Vector type $name: tests finished in $t seconds")
+println("Julia Vectors: tests finished in $t seconds")
 
 end
 
@@ -93,7 +93,7 @@ include("geneigsolve.jl")
 include("svdsolve.jl")
 include("expintegrator.jl")
 t = time() - t
-println("Vector type $name: tests finished in $t seconds")
+println("Inplace vectors: tests finished in $t seconds")
 
 end
 
@@ -141,7 +141,7 @@ include("geneigsolve.jl")
 include("svdsolve.jl")
 include("expintegrator.jl")
 t = time() - t
-println("Vector type $name: tests finished in $t seconds")
+println("Out of place Vectors: tests finished in $t seconds")
 
 end
 
