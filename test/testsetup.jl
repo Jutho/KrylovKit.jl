@@ -46,8 +46,7 @@ VI.scalartype(::Type{<:MinimalVec{V}}) where {V} = scalartype(V)
 function VI.zerovector(v::MinimalVec, S::Type{<:Number})
     return MinimalVec(zerovector(v.vec, S); inplace=isinplace(v))
 end
-function VI.zerovector!(v::MinimalVec)
-    isinplace(v) || throw(ArgumentError("In-place assignment not supported"))
+function VI.zerovector!(v::MinimalVec{V,true}) where {V}
     zerovector!(v.vec)
     return v
 end
@@ -56,16 +55,14 @@ VI.zerovector!!(v::MinimalVec) = isinplace(v) ? zerovector!(v) : zerovector(v)
 function VI.scale(v::MinimalVec, α::Number)
     return MinimalVec(scale(v.vec, α); inplace=isinplace(v))
 end
-function VI.scale!(v::MinimalVec, α::Number)
-    isinplace(v) || throw(ArgumentError("In-place assignment not supported"))
+function VI.scale!(v::MinimalVec{V,true}, α::Number) where {V}
     scale!(v.vec, α)
     return v
 end
 function VI.scale!!(v::MinimalVec, α::Number)
     return isinplace(v) ? scale!(v, α) : scale(v, α)
 end
-function VI.scale!(w::MinimalVec, v::MinimalVec, α::Number)
-    isinplace(w) || throw(ArgumentError("In-place assignment not supported"))
+function VI.scale!(w::MinimalVec{V,true}, v::MinimalVec{W,true}, α::Number) where {V,W}
     scale!(w.vec, v.vec, α)
     return w
 end
@@ -77,8 +74,7 @@ end
 function VI.add(y::MinimalVec, x::MinimalVec, α::Number, β::Number)
     return MinimalVec(add(y.vec, x.vec, α, β); inplace=isinplace(y))
 end
-function VI.add!(y::MinimalVec, x::MinimalVec, α::Number, β::Number)
-    isinplace(y) || throw(ArgumentError("In-place assignment not supported"))
+function VI.add!(y::MinimalVec{W,true}, x::MinimalVec{V,true}, α::Number, β::Number) where {W,V}
     add!(y.vec, x.vec, α, β)
     return y
 end
