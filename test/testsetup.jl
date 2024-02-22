@@ -4,9 +4,6 @@ import VectorInterface as VI
 using VectorInterface
 using LinearAlgebra: LinearAlgebra
 
-export precision, ≊
-export MinimalVec
-
 # Utility functions
 # -----------------
 "function for determining the precision of a type"

@@ -14,7 +14,7 @@ using Random
 using Test, TestExtras
 using LinearAlgebra
 using KrylovKit
-using ..TestSetup
+using ..TestSetup: precision, ≊, MinimalVec
 
 # Parameters
 # ----------
@@ -55,7 +55,7 @@ using Random
 using Test, TestExtras
 using LinearAlgebra
 using KrylovKit
-using ..TestSetup
+using ..TestSetup: precision, ≊, MinimalVec
 
 # Parameters
 # ----------
@@ -103,7 +103,7 @@ using Random
 using Test, TestExtras
 using LinearAlgebra
 using KrylovKit
-using ..TestSetup
+using ..TestSetup: precision, ≊, MinimalVec
 
 # Parameters
 # ----------
@@ -152,7 +152,7 @@ using Test, TestExtras
 using LinearAlgebra
 using Random
 using KrylovKit
-using ..TestSetup: precision, MinimalVec
+using ..TestSetup: precision, ≊, MinimalVec
 
 wrapvec(v) = MinimalVec(v)
 unwrapvec(v::MinimalVec) = v.vec
@@ -186,9 +186,7 @@ using Test, TestExtras
 using LinearAlgebra
 using Random
 using KrylovKit
-
-precision(T::Type{<:Number}) = eps(real(T))^(2 / 3)
-include("setcomparison.jl")
+using ..TestSetup: precision, MinimalVec, 
 
 const n = 10
 const N = 100
