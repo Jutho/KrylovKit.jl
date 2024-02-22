@@ -1,15 +1,23 @@
 using Random
-Random.seed!(76543210)
-
-module PureVecs
 using Test, TestExtras
 using LinearAlgebra
-using Random
 using KrylovKit
 
-precision(T::Type{<:Number}) = eps(real(T))^(2 / 3)
-include("setcomparison.jl")
+include("testsetup.jl")
+Random.seed!(76543210)
 
+# Different vector wrappings
+# --------------------------
+
+module PureVecs
+using Random
+using Test, TestExtras
+using LinearAlgebra
+using KrylovKit
+using ..TestSetup
+
+# Parameters
+# ----------
 const n = 10
 const N = 100
 
@@ -37,18 +45,20 @@ include("geneigsolve.jl")
 include("svdsolve.jl")
 include("expintegrator.jl")
 t = time() - t
-println("Julia Vector type: tests finisthed in $t seconds")
+println("Vector type $name: tests finished in $t seconds")
+
 end
 
-module MinimalVecs
+
+module InplaceVecs
+using Random
 using Test, TestExtras
 using LinearAlgebra
-using Random
 using KrylovKit
+using ..TestSetup
 
-precision(T::Type{<:Number}) = eps(real(T))^(2 / 3)
-include("setcomparison.jl")
-
+# Parameters
+# ----------
 const n = 10
 const N = 100
 
@@ -60,11 +70,11 @@ const mgs2 = ModifiedGramSchmidt2()
 const cgsr = ClassicalGramSchmidtIR(η₀)
 const mgsr = ModifiedGramSchmidtIR(η₀)
 
-include("minimalvec.jl")
+const inplace = true
 
-wrapvec(v) = MinimalVec(v)
+wrapvec(v) = MinimalVec(v; inplace)
 unwrapvec(v::MinimalVec) = getindex(v)
-wrapvec2(v) = MinimalVec(v)
+wrapvec2(v) = MinimalVec(v; inplace)
 unwrapvec2(v::MinimalVec) = getindex(v)
 wrapop(A::AbstractMatrix) = function (v, flag=Val(false))
     if flag === Val(true)
@@ -84,18 +94,19 @@ include("geneigsolve.jl")
 include("svdsolve.jl")
 include("expintegrator.jl")
 t = time() - t
-println("Minimal vector type: tests finisthed in $t seconds")
+println("Vector type $name: tests finished in $t seconds")
+
 end
 
-module MixedSVD
+module OutplaceVecs
+using Random
 using Test, TestExtras
 using LinearAlgebra
-using Random
 using KrylovKit
+using ..TestSetup
 
-precision(T::Type{<:Number}) = eps(real(T))^(2 / 3)
-include("setcomparison.jl")
-
+# Parameters
+# ----------
 const n = 10
 const N = 100
 
@@ -107,115 +118,12 @@ const mgs2 = ModifiedGramSchmidt2()
 const cgsr = ClassicalGramSchmidtIR(η₀)
 const mgsr = ModifiedGramSchmidtIR(η₀)
 
-include("minimalvec.jl")
+const inplace = false
 
-wrapvec(v) = MinimalVec(v)
+wrapvec(v) = MinimalVec(v; inplace)
 unwrapvec(v::MinimalVec) = getindex(v)
-wrapvec2(v) = reshape(v, (length(v), 1)) # vector type 2 is a n x 1 Matrix
-unwrapvec2(v) = reshape(v, (length(v),))
-function wrapop(A::AbstractMatrix)
-    return (x -> wrapvec2(A * unwrapvec(x)), y -> wrapvec(A' * unwrapvec2(y)))
-end
-
-t = time()
-include("gklfactorize.jl")
-include("svdsolve.jl")
-t = time() - t
-println("Mixed vector type for GKL/SVD: tests finisthed in $t seconds")
-end
-
-module ExtrasTest
-using Test, TestExtras
-using LinearAlgebra
-using Random
-using KrylovKit
-
-precision(T::Type{<:Number}) = eps(real(T))^(2 / 3)
-include("setcomparison.jl")
-
-const n = 10
-const N = 100
-
-const η₀ = 0.75 # seems to be necessary to get sufficient convergence for GKL iteration with Float32 precision
-const cgs = ClassicalGramSchmidt()
-const mgs = ModifiedGramSchmidt()
-const cgs2 = ClassicalGramSchmidt2()
-const mgs2 = ModifiedGramSchmidt2()
-const cgsr = ClassicalGramSchmidtIR(η₀)
-const mgsr = ModifiedGramSchmidtIR(η₀)
-
-include("linalg.jl")
-include("recursivevec.jl")
-end
-
-t = time()
-include("factorize.jl")
-include("gklfactorize.jl")
-include("linsolve.jl")
-include("eigsolve.jl")
-include("schursolve.jl")
-include("geneigsolve.jl")
-include("svdsolve.jl")
-include("expintegrator.jl")
-if VERSION >= v"1.6"
-    include("ad.jl")
-end
-t = time() - t
-println("Julia Vector type: tests finished in $t seconds")
-end
-
-module AquaTests
-using KrylovKit
-using Aqua
-Aqua.test_all(KrylovKit; ambiguities=false)
-# treat ambiguities special because of ambiguities between ChainRulesCore and Base
-if VERSION >= v"1.6" # ChainRulesCore leads to more ambiguities on julia < v1.6
-    Aqua.test_ambiguities([KrylovKit, Base, Core]; exclude=[Base.:(==)])
-end
-end
-
-t = time()
-include("factorize.jl")
-include("gklfactorize.jl")
-include("linsolve.jl")
-include("eigsolve.jl")
-include("schursolve.jl")
-include("geneigsolve.jl")
-include("svdsolve.jl")
-include("expintegrator.jl")
-if VERSION >= v"1.6"
-    include("ad.jl")
-end
-t = time() - t
-println("Minimal vector inplace type: tests finished in $t seconds")
-end
-
-module OutplaceVec
-using Test, TestExtras
-using LinearAlgebra
-using Random
-using KrylovKit
-
-precision(T::Type{<:Number}) = eps(real(T))^(2 / 3)
-include("setcomparison.jl")
-
-const n = 10
-const N = 30
-
-const η₀ = 0.75 # seems to be necessary to get sufficient convergence for GKL iteration with Float32 precision
-const cgs = ClassicalGramSchmidt()
-const mgs = ModifiedGramSchmidt()
-const cgs2 = ClassicalGramSchmidt2()
-const mgs2 = ModifiedGramSchmidt2()
-const cgsr = ClassicalGramSchmidtIR(η₀)
-const mgsr = ModifiedGramSchmidtIR(η₀)
-
-include("outplacevec.jl")
-
-wrapvec(v) = MinimalVec(v)
-unwrapvec(v::MinimalVec) = v.vec
-wrapvec2(v) = MinimalVec(v)
-unwrapvec2(v::MinimalVec) = v.vec
+wrapvec2(v) = MinimalVec(v; inplace)
+unwrapvec2(v::MinimalVec) = getindex(v)
 wrapop(A::AbstractMatrix) = function (v, flag=Val(false))
     if flag === Val(true)
         return wrapvec(A' * unwrapvec2(v))
@@ -233,34 +141,18 @@ include("schursolve.jl")
 include("geneigsolve.jl")
 include("svdsolve.jl")
 include("expintegrator.jl")
-if VERSION >= v"1.6"
-    include("ad.jl")
-end
 t = time() - t
-println("Minimal vector outplace type: tests finished in $t seconds")
+println("Vector type $name: tests finished in $t seconds")
+
 end
 
 module MixedSVD
+
 using Test, TestExtras
 using LinearAlgebra
 using Random
 using KrylovKit
-
-precision(T::Type{<:Number}) = eps(real(T))^(2 / 3)
-include("setcomparison.jl")
-
-const n = 10
-const N = 40
-
-const η₀ = 0.75 # seems to be necessary to get sufficient convergence for GKL iteration with Float32 precision
-const cgs = ClassicalGramSchmidt()
-const mgs = ModifiedGramSchmidt()
-const cgs2 = ClassicalGramSchmidt2()
-const mgs2 = ModifiedGramSchmidt2()
-const cgsr = ClassicalGramSchmidtIR(η₀)
-const mgsr = ModifiedGramSchmidtIR(η₀)
-
-include("outplacevec.jl")
+using ..TestSetup: precision, MinimalVec
 
 wrapvec(v) = MinimalVec(v)
 unwrapvec(v::MinimalVec) = v.vec
@@ -270,11 +162,23 @@ function wrapop(A::AbstractMatrix)
     return (x -> wrapvec2(A * unwrapvec(x)), y -> wrapvec(A' * unwrapvec2(y)))
 end
 
+const n = 10
+const N = 100
+
+const η₀ = 0.75 # seems to be necessary to get sufficient convergence for GKL iteration with Float32 precision
+const cgs = ClassicalGramSchmidt()
+const mgs = ModifiedGramSchmidt()
+const cgs2 = ClassicalGramSchmidt2()
+const mgs2 = ModifiedGramSchmidt2()
+const cgsr = ClassicalGramSchmidtIR(η₀)
+const mgsr = ModifiedGramSchmidtIR(η₀)
+
 t = time()
 include("gklfactorize.jl")
 include("svdsolve.jl")
 t = time() - t
-println("Mixed vector type for GKL/SVD: tests finished in $t seconds")
+println("Mixed vector type for GKL/SVD: tests finisthed in $t seconds")
+
 end
 
 module ExtrasTest
@@ -299,6 +203,10 @@ const mgsr = ModifiedGramSchmidtIR(η₀)
 
 include("linalg.jl")
 include("recursivevec.jl")
+end
+
+if VERSION >= v"1.6"
+    include("ad.jl")
 end
 
 module AquaTests
