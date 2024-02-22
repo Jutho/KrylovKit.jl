@@ -80,8 +80,6 @@ function LinearAlgebra.dot(v::InnerProductVec{F}, w::InnerProductVec{F}) where {
     return v.dotf(v.vec, w.vec)
 end
 
-LinearAlgebra.norm(v::InnerProductVec) = sqrt(real(dot(v, v)))
-
 VectorInterface.scalartype(::Type{<:InnerProductVec{F,T}}) where {F,T} = scalartype(T)
 
 function VectorInterface.zerovector(v::InnerProductVec, T::Type{<:Number})

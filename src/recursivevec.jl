@@ -63,7 +63,6 @@ end
 function LinearAlgebra.dot(v::RecursiveVec{T}, w::RecursiveVec{T}) where {T}
     return sum(dot.(v.vecs, w.vecs))
 end
-LinearAlgebra.norm(v::RecursiveVec) = norm(norm.(v.vecs))
 
 VectorInterface.scalartype(::Type{RecursiveVec{T}}) where {T} = scalartype(eltype(T))
 
@@ -115,4 +114,4 @@ function VectorInterface.inner(v::RecursiveVec{T}, w::RecursiveVec{T}) where {T}
     return inner(v.vecs, w.vecs)
 end
 
-VectorInterface.norm(v::RecursiveVec) = norm(v.vecs)
+VectorInterface.norm(v::RecursiveVec) = VectorInterface.norm(v.vecs)
