@@ -49,7 +49,6 @@ println("Vector type $name: tests finished in $t seconds")
 
 end
 
-
 module InplaceVecs
 using Random
 using Test, TestExtras
@@ -186,7 +185,7 @@ using Test, TestExtras
 using LinearAlgebra
 using Random
 using KrylovKit
-using ..TestSetup: precision, MinimalVec, 
+using ..TestSetup: precision, ≊, MinimalVec
 
 const n = 10
 const N = 100
