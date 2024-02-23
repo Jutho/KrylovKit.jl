@@ -62,7 +62,7 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
                     HHA[K + 1, i] = conj(HHA[i, K + 1])
                 end
                 K += 1
-                HHA[K, K] = checkhermitian(dot(v, av))
+                HHA[K, K] = checkhermitian(inner(v, av))
                 push!(V, v)
                 push!(BV, bv)
             end
@@ -73,11 +73,11 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
                 numops += 1
                 av = axpy!(-ρ, bv, av)
                 for j in 1:K
-                    HHA[j, K + 1] = dot(V[j], av)
+                    HHA[j, K + 1] = inner(V[j], av)
                     HHA[K + 1, j] = conj(HHA[j, K + 1])
                 end
                 K += 1
-                HHA[K, K] = checkhermitian(dot(v, av))
+                HHA[K, K] = checkhermitian(inner(v, av))
                 push!(V, v)
                 push!(BV, bv)
             end
@@ -127,7 +127,7 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
                     v = mul!(similar(vold), V, z)
                     av, bv = genapply(f, v)
                     numops += 1
-                    ρ = checkhermitian(dot(v, av)) / checkposdef(dot(v, bv))
+                    ρ = checkhermitian(inner(v, av)) / checkposdef(inner(v, bv))
                     r = axpy!(-ρ, bv, av)
                     β = norm(r)
 
