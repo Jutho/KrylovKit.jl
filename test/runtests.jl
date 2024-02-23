@@ -72,9 +72,9 @@ const mgsr = ModifiedGramSchmidtIR(η₀)
 const inplace = true
 
 wrapvec(v) = MinimalVec(v; inplace)
-unwrapvec(v::MinimalVec) = getindex(v)
+unwrapvec(v::MinimalVec) = v.vec
 wrapvec2(v) = MinimalVec(v; inplace)
-unwrapvec2(v::MinimalVec) = getindex(v)
+unwrapvec2(v::MinimalVec) = v.vec
 wrapop(A::AbstractMatrix) = function (v, flag=Val(false))
     if flag === Val(true)
         return wrapvec(A' * unwrapvec2(v))
@@ -120,9 +120,9 @@ const mgsr = ModifiedGramSchmidtIR(η₀)
 const inplace = false
 
 wrapvec(v) = MinimalVec(v; inplace)
-unwrapvec(v::MinimalVec) = getindex(v)
+unwrapvec(v::MinimalVec) = v.vec
 wrapvec2(v) = MinimalVec(v; inplace)
-unwrapvec2(v::MinimalVec) = getindex(v)
+unwrapvec2(v::MinimalVec) = v.vec
 wrapop(A::AbstractMatrix) = function (v, flag=Val(false))
     if flag === Val(true)
         return wrapvec(A' * unwrapvec2(v))
