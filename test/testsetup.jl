@@ -74,7 +74,8 @@ end
 function VI.add(y::MinimalVec, x::MinimalVec, α::Number, β::Number)
     return MinimalVec(add(y.vec, x.vec, α, β); inplace=isinplace(y))
 end
-function VI.add!(y::MinimalVec{W,true}, x::MinimalVec{V,true}, α::Number, β::Number) where {W,V}
+function VI.add!(y::MinimalVec{W,true}, x::MinimalVec{V,true}, α::Number,
+                 β::Number) where {W,V}
     add!(y.vec, x.vec, α, β)
     return y
 end
