@@ -66,7 +66,8 @@ function ChainRulesCore.rrule(config::RuleConfig{>:HasReverseMode},
         ∂self = NoTangent()
         ∂x₀ = ZeroTangent()
         ∂algorithm = NoTangent()
-        T = promote_scale(promote_scale(x̄, scalartype(a₀)), scalartype(a₁))
+        T = VectorInterface.promote_scale(VectorInterface.promote_scale(x̄, a₀),
+                                          scalartype(a₁))
         ∂b, reverse_info = linsolve(fᴴ, x̄, zerovector(x̄, T), algorithm, conj(a₀),
                                     conj(a₁))
         if reverse_info.converged == 0
@@ -92,17 +93,17 @@ function ChainRulesCore.frule((_, ΔA, Δb, Δx₀, _, Δa₀, Δa₁)::Tuple, :
     (x, info) = linsolve(A, b, x₀, algorithm, a₀, a₁)
 
     if Δb isa ChainRulesCore.AbstractZero
-        rhs = zero(b)
+        rhs = zerovector(b)
     else
-        rhs = (1 - Δa₁) * Δb
+        rhs = scale(Δb, (1 - Δa₁))
     end
     if !iszero(Δa₀)
-        rhs = axpy!(-Δa₀, x, rhs)
+        rhs = add!!(rhs, x, -Δa₀)
     end
     if !iszero(ΔA)
         rhs = mul!(rhs, ΔA, x, -a₁, true)
     end
-    (Δx, forward_info) = linsolve(A, rhs, zero(rhs), algorithm, a₀, a₁)
+    (Δx, forward_info) = linsolve(A, rhs, zerovector(rhs), algorithm, a₀, a₁)
     if info.converged > 0 && forward_info.converged == 0
         @warn "The tangent linear problem did not converge, whereas the primal linear problem did."
     end
@@ -122,17 +123,17 @@ function ChainRulesCore.frule(config::RuleConfig{>:HasForwardsMode},
     (x, info) = linsolve(f, b, x₀, algorithm, a₀, a₁)
 
     if Δb isa AbstractZero
-        rhs = false * b
+        rhs = zerovector(b)
     else
-        rhs = (1 - Δa₁) * Δb
+        rhs = scale(Δb, (1 - Δa₁))
     end
     if !iszero(Δa₀)
-        rhs = axpy!(-Δa₀, x, rhs)
+        rhs = add!!(rhs, x, -Δa₀)
     end
     if !(Δf isa AbstractZero)
-        rhs = axpy!(-a₁, frule_via_ad(config, (Δf, ZeroTangent()), f, x), rhs)
+        rhs = add!!(rhs, frule_via_ad(config, (Δf, ZeroTangent()), f, x), -a₀)
     end
-    (Δx, forward_info) = linsolve(f, rhs, false * rhs, algorithm, a₀, a₁)
+    (Δx, forward_info) = linsolve(f, rhs, zerovector(rhs), algorithm, a₀, a₁)
     if info.converged > 0 && forward_info.converged == 0
         @warn "The tangent linear problem did not converge, whereas the primal linear problem did."
     end
