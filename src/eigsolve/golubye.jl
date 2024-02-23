@@ -71,7 +71,7 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
                 v, = orthonormalize(vectors[i], V, alg.orth)
                 av, bv = genapply(f, v)
                 numops += 1
-                av = axpy!(-ρ, bv, av)
+                av = add!!(av, bv, -ρ)
                 for j in 1:K
                     HHA[j, K + 1] = inner(V[j], av)
                     HHA[K + 1, j] = conj(HHA[j, K + 1])
@@ -124,11 +124,11 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
             elseif numiter == maxiter
                 for k in (converged + 1):howmany
                     z = view(Z, :, p[k])
-                    v = mul!(similar(vold), V, z)
+                    v = mul!(zerovector(vold), V, z)
                     av, bv = genapply(f, v)
                     numops += 1
                     ρ = checkhermitian(inner(v, av)) / checkposdef(inner(v, bv))
-                    r = axpy!(-ρ, bv, av)
+                    r = add!!(av, bv, -ρ)
                     β = norm(r)
 
                     push!(values, ρ)
