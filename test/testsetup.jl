@@ -1,5 +1,7 @@
 module TestSetup
 
+export precision, ≊, MinimalVec, unwrap, isinplace
+
 import VectorInterface as VI
 using VectorInterface
 using LinearAlgebra: LinearAlgebra
@@ -31,51 +33,54 @@ end
 Minimal interface for a vector. Can support either in-place assignments or not, depending on
 `IP=true` or `IP=false`.
 """
-struct MinimalVec{V<:AbstractVector,IP}
+struct MinimalVec{IP,V<:AbstractVector}
     vec::V
-    function MinimalVec(v::AbstractVector; inplace::Bool=false)
-        return new{typeof(v),inplace}(v)
+    function MinimalVec{IP}(vec::V) where {IP,V}
+        return new{IP,V}(vec)
     end
 end
+const InplaceVec{V} = MinimalVec{true,V}
+const OutplaceVec{V} = MinimalVec{false,V}
 
-isinplace(::Type{MinimalVec{V,IP}}) where {V,IP} = IP
+isinplace(::Type{MinimalVec{IP,V}}) where {V,IP} = IP
 isinplace(v::MinimalVec) = isinplace(typeof(v))
 
-VI.scalartype(::Type{<:MinimalVec{V}}) where {V} = scalartype(V)
+unwrap(v::MinimalVec) = v.vec
+
+VI.scalartype(::Type{<:MinimalVec{IP,V}}) where {IP,V} = scalartype(V)
 
 function VI.zerovector(v::MinimalVec, S::Type{<:Number})
-    return MinimalVec(zerovector(v.vec, S); inplace=isinplace(v))
+    return MinimalVec{isinplace(v)}(zerovector(v.vec, S))
 end
-function VI.zerovector!(v::MinimalVec{V,true}) where {V}
+function VI.zerovector!(v::InplaceVec{V}) where {V}
     zerovector!(v.vec)
     return v
 end
 VI.zerovector!!(v::MinimalVec) = isinplace(v) ? zerovector!(v) : zerovector(v)
 
 function VI.scale(v::MinimalVec, α::Number)
-    return MinimalVec(scale(v.vec, α); inplace=isinplace(v))
+    return MinimalVec{isinplace(v)}(scale(v.vec, α))
 end
-function VI.scale!(v::MinimalVec{V,true}, α::Number) where {V}
+function VI.scale!(v::InplaceVec{V}, α::Number) where {V}
     scale!(v.vec, α)
     return v
 end
 function VI.scale!!(v::MinimalVec, α::Number)
     return isinplace(v) ? scale!(v, α) : scale(v, α)
 end
-function VI.scale!(w::MinimalVec{V,true}, v::MinimalVec{W,true}, α::Number) where {V,W}
+function VI.scale!(w::InplaceVec{V}, v::InplaceVec{W}, α::Number) where {V,W}
     scale!(w.vec, v.vec, α)
     return w
 end
 function VI.scale!!(w::MinimalVec, v::MinimalVec, α::Number)
     isinplace(w) && return scale!(w, v, α)
-    return MinimalVec(scale!!(copy(w.vec), v.vec, α); inplace=false)
+    return MinimalVec{false}(scale!!(copy(w.vec), v.vec, α))
 end
 
 function VI.add(y::MinimalVec, x::MinimalVec, α::Number, β::Number)
-    return MinimalVec(add(y.vec, x.vec, α, β); inplace=isinplace(y))
+    return MinimalVec{isinplace(y)}(add(y.vec, x.vec, α, β))
 end
-function VI.add!(y::MinimalVec{W,true}, x::MinimalVec{V,true}, α::Number,
-                 β::Number) where {W,V}
+function VI.add!(y::InplaceVec{W}, x::InplaceVec{V}, α::Number, β::Number) where {W,V}
     add!(y.vec, x.vec, α, β)
     return y
 end
