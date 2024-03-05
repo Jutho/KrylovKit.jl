@@ -1,6 +1,6 @@
 module TestSetup
 
-export precision, ≊, MinimalVec, unwrap, isinplace
+export precision, ≊, MinimalVec, unwrap, isinplace, stack
 
 import VectorInterface as VI
 using VectorInterface
@@ -90,5 +90,10 @@ end
 
 VI.inner(x::MinimalVec, y::MinimalVec) = inner(x.vec, y.vec)
 VI.norm(x::MinimalVec) = LinearAlgebra.norm(x.vec)
+
+if VERSION < v"1.9"
+    stack(itr) = reduce(hcat, itr)
+    stack(f, itr) = mapreduce(f, hcat, itr)
+end
 
 end
