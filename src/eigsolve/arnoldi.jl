@@ -271,7 +271,7 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
             B = basis(fact)
             basistransform!(B, view(U, :, 1:keep))
             r = residual(fact)
-            B[keep + 1] = scale!!(B[keep + 1], r, 1 / normres(fact))
+            B[keep + 1] = scale!!(r, 1 / normres(fact))
 
             # Shrink Arnoldi factorization
             fact = shrink!(fact, keep)

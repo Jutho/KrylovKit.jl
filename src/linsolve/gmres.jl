@@ -5,7 +5,7 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number=0, a₁::Number=1)
     α₀ = convert(T, a₀)::T
     α₁ = convert(T, a₁)::T
     # Continue computing r = b - a₀ * x₀ - a₁ * operator(x₀)
-    r = scale(b, one(T)) # mul!(similar(b, T), b, 1)
+    r = scale(b, one(T))
     r = iszero(α₀) ? r : add!!(r, x₀, -α₀)
     r = add!!(r, y₀, -α₁)
     x = scale!!(zerovector(r), x₀, 1)

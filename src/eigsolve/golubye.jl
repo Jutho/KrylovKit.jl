@@ -14,7 +14,7 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
     xbx = inner(x₀, bx₀) / β₀^2
     T = promote_type(typeof(xax), typeof(xbx))
     invβ₀ = one(T) / β₀
-    v = scale(x₀, invβ₀) # v = mul!(similar(x₀, T), x₀, invβ₀)
+    v = scale(x₀, invβ₀)
     av = scale!!(zerovector(v), ax₀, invβ₀)
     bv = scale!!(zerovector(v), bx₀, invβ₀)
     ρ = checkhermitian(xax) / checkposdef(xbx)

@@ -143,11 +143,10 @@ function initialize(iter::ArnoldiIterator; verbosity::Int=0)
     T = typeof(α)
     # this line determines the vector type that we will henceforth use
     v = add!!(zerovector(Ax₀, T), x₀, 1 / β₀)
-    # v = mul!(zero(T)*Ax₀, x₀, 1 / β₀) # (one(T) / β₀) * x₀ # mul!(similar(x₀, T), x₀, 1/β₀)
     if typeof(Ax₀) != typeof(v)
         r = add!!(zerovector(v), Ax₀, 1 / β₀)
     else
-        r = scale!!(Ax₀, Ax₀, 1 / β₀)
+        r = scale!!(Ax₀, 1 / β₀)
     end
     βold = norm(r)
     r = add!!(r, v, -α)
@@ -222,7 +221,7 @@ function shrink!(state::ArnoldiFactorization, k)
     r = pop!(V)
     resize!(H, (k * k + 3 * k) >> 1)
     state.k = k
-    state.r = scale!!(state.r, r, normres(state))
+    state.r = scale!!(r, normres(state))
     return state
 end
 

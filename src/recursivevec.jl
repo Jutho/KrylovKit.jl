@@ -64,7 +64,7 @@ function LinearAlgebra.dot(v::RecursiveVec{T}, w::RecursiveVec{T}) where {T}
     return sum(dot.(v.vecs, w.vecs))
 end
 
-VectorInterface.scalartype(::Type{RecursiveVec{T}}) where {T} = scalartype(eltype(T))
+VectorInterface.scalartype(::Type{RecursiveVec{T}}) where {T} = scalartype(T)
 
 function VectorInterface.zerovector(v::RecursiveVec, T::Type{<:Number})
     return RecursiveVec(zerovector(v.vecs, T))
