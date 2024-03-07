@@ -1,6 +1,7 @@
 module TestSetup
 
-export tolerance, ≊, MinimalVec, unwrap, isinplace, stack
+export tolerance, ≊, MinimalVec, isinplace, stack
+export wrapop, wrapvec, unwrapvec
 
 import VectorInterface as VI
 using VectorInterface
@@ -44,8 +45,6 @@ const OutplaceVec{V} = MinimalVec{false,V}
 
 isinplace(::Type{MinimalVec{IP,V}}) where {V,IP} = IP
 isinplace(v::MinimalVec) = isinplace(typeof(v))
-
-unwrap(v::MinimalVec) = v.vec
 
 VI.scalartype(::Type{<:MinimalVec{IP,V}}) where {IP,V} = scalartype(V)
 
@@ -91,8 +90,44 @@ end
 VI.inner(x::MinimalVec, y::MinimalVec) = inner(x.vec, y.vec)
 VI.norm(x::MinimalVec) = LinearAlgebra.norm(x.vec)
 
+# Wrappers
+# --------
+# dispatch on val is necessary for type stability
+
+function wrapvec(v, ::Val{mode}) where {mode}
+    return mode === :vector ? v :
+           mode === :inplace ? MinimalVec{true}(v) :
+           mode === :outplace ? MinimalVec{false}(v) :
+           mode === :mixed ? MinimalVec{false}(v) :
+           throw(ArgumentError("invalid mode ($mode)"))
+end
+function wrapvec2(v, ::Val{mode}) where {mode}
+    return mode === :mixed ? MinimalVec{true}(v) : wrapvec(v, mode)
+end
+
+unwrapvec(v::MinimalVec) = v.vec
+unwrapvec(v) = v
+
+function wrapop(A, ::Val{mode}) where {mode}
+    if mode === :vector
+        return A
+    elseif mode === :inplace || mode === :outplace
+        return function (v, flag=Val(false))
+            if flag === Val(true)
+                return wrapvec(A' * unwrapvec(v), Val(mode))
+            else
+                return wrapvec(A * unwrapvec(v), Val(mode))
+            end
+        end
+    elseif mode === :mixed
+        return (x -> wrapvec(A * unwrapvec(x), Val(mode)),
+                y -> wrapvec2(A' * unwrapvec(y), Val(mode)))
+    else
+        throw(ArgumentError("invalid mode ($mode)"))
+    end
+end
+
 if VERSION < v"1.9"
-    stack(itr) = reduce(hcat, itr)
     stack(f, itr) = mapreduce(f, hcat, itr)
 end
 
