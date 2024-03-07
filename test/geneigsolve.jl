@@ -7,16 +7,16 @@
             B = rand(T, (n, n)) .- one(T) / 2
             B = sqrt(B * B')
             v = rand(T, (n,))
-            alg = GolubYe(; orth=orth, krylovdim=n, maxiter=1, tol=precision(T),
+            alg = GolubYe(; orth=orth, krylovdim=n, maxiter=1, tol=tolerance(T),
                           verbosity=1)
             n1 = div(n, 2)
             D1, V1, info = @constinferred geneigsolve((A, B), v,
                                                       n1, :SR; orth=orth, krylovdim=n,
-                                                      maxiter=1, tol=precision(T),
+                                                      maxiter=1, tol=tolerance(T),
                                                       ishermitian=true, isposdef=true,
                                                       verbosity=2)
             @test KrylovKit.geneigselector((A, B), scalartype(v); orth=orth, krylovdim=n,
-                                           maxiter=1, tol=precision(T), ishermitian=true,
+                                           maxiter=1, tol=tolerance(T), ishermitian=true,
                                            isposdef=true) isa GolubYe
             n2 = n - n1
             D2, V2, info = @constinferred geneigsolve((A, B), v,
@@ -40,7 +40,7 @@
         B = rand(T, (n, n)) .- one(T) / 2
         B = sqrt(B * B')
         v = MinimalVec{IP}(rand(T, (n,)))
-        alg = GolubYe(; krylovdim=n, maxiter=1, tol=precision(T), verbosity=1)
+        alg = GolubYe(; krylovdim=n, maxiter=1, tol=tolerance(T), verbosity=1)
         n1 = div(n, 2)
         D1, V1, info = @constinferred geneigsolve((wrapop(A), wrapop(B)), v,
                                                   n1, :SR, alg)
@@ -67,7 +67,7 @@ end
             B = sqrt(B * B')
             v = rand(T, (N,))
             alg = GolubYe(; orth=orth, krylovdim=3 * n, maxiter=100,
-                          tol=cond(B) * precision(T))
+                          tol=cond(B) * tolerance(T))
             D1, V1, info1 = @constinferred geneigsolve((A, B), v,
                                                        n, :SR, alg)
             D2, V2, info2 = geneigsolve((A, B), v, n, :LR, alg)
@@ -99,7 +99,7 @@ end
         B = sqrt(B * B')
         v = MinimalVec{IP}(rand(T, (N,)))
         alg = GolubYe(; krylovdim=3 * n, maxiter=100,
-                      tol=cond(B) * precision(T))
+                      tol=cond(B) * tolerance(T))
         D1, V1, info1 = geneigsolve((wrapop(A), wrapop(B)), v, n, :SR, alg)
         D2, V2, info2 = geneigsolve((wrapop(A), wrapop(B)), v, n, :LR, alg)
 

@@ -4,11 +4,11 @@ using Random, Test
 using ChainRulesCore, ChainRulesTestUtils, Zygote, FiniteDifferences
 
 fdm = ChainRulesTestUtils._fdm
-precision(T::Type{<:Number}) = eps(real(T))^(2 / 3)
+tolerance(T::Type{<:Number}) = eps(real(T))^(2 / 3)
 n = 10
 N = 30
 
-function build_mat_example(A, b; tol=precision(eltype(A)), kwargs...)
+function build_mat_example(A, b; tol=tolerance(eltype(A)), kwargs...)
     Avec, A_fromvec = to_vec(A)
     bvec, b_fromvec = to_vec(b)
     T = eltype(A)
@@ -24,7 +24,7 @@ function build_mat_example(A, b; tol=precision(eltype(A)), kwargs...)
     return mat_example, Avec, bvec
 end
 
-function build_fun_example(A, b, c, d, e, f; tol=precision(eltype(A)), kwargs...)
+function build_fun_example(A, b, c, d, e, f; tol=tolerance(eltype(A)), kwargs...)
     Avec, matfromvec = to_vec(A)
     bvec, vecfromvec = to_vec(b)
     cvec, = to_vec(c)
@@ -61,8 +61,8 @@ end
 
         (JA, Jb) = FiniteDifferences.jacobian(fdm, mat_example, Avec, bvec)
         (JA′, Jb′) = Zygote.jacobian(mat_example, Avec, bvec)
-        @test JA ≈ JA′ rtol = cond(A) * precision(T)
-        @test Jb ≈ Jb′ rtol = cond(A) * precision(T)
+        @test JA ≈ JA′ rtol = cond(A) * tolerance(T)
+        @test Jb ≈ Jb′ rtol = cond(A) * tolerance(T)
     end
 end
 
@@ -78,7 +78,7 @@ end
 
         fun_example, Avec, bvec, cvec, dvec, evec, fvec = build_fun_example(A, b, c, d, e,
                                                                             f;
-                                                                            tol=precision(T),
+                                                                            tol=tolerance(T),
                                                                             krylovdim=20)
 
         (JA, Jb, Jc, Jd, Je, Jf) = FiniteDifferences.jacobian(fdm, fun_example,

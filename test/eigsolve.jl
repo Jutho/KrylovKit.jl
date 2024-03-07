@@ -6,11 +6,11 @@
             v = rand(T, (n,))
             n1 = div(n, 2)
             D1, V1, info = eigsolve(A, v, n1, :SR; orth=orth, krylovdim=n,
-                                    maxiter=1, tol=precision(T), verbosity=2)
+                                    maxiter=1, tol=tolerance(T), verbosity=2)
             @test KrylovKit.eigselector(A, scalartype(v); orth=orth, krylovdim=n, maxiter=1,
-                                        tol=precision(T)) isa Lanczos
+                                        tol=tolerance(T)) isa Lanczos
             n2 = n - n1
-            alg = Lanczos(; orth=orth, krylovdim=2 * n, maxiter=1, tol=precision(T),
+            alg = Lanczos(; orth=orth, krylovdim=2 * n, maxiter=1, tol=tolerance(T),
                           verbosity=1)
             D2, V2, info = @constinferred eigsolve(A, v, n2, :LR, alg)
             @test vcat(D1[1:n1], reverse(D2[1:n2])) ≊ eigvals(A)
@@ -24,7 +24,7 @@
             @test A * U2 ≈ U2 * Diagonal(D2)
 
             _ = eigsolve(A, v, n + 1, :LM; orth=orth, krylovdim=2n,
-                         maxiter=1, tol=precision(T), verbosity=0)
+                         maxiter=1, tol=tolerance(T), verbosity=0)
         end
     end
 
@@ -35,11 +35,11 @@
         v = MinimalVec{IP}(rand(T, (n,)))
         n1 = div(n, 2)
         D1, V1, info = eigsolve(wrapop(A), v, n1, :SR; krylovdim=n,
-                                maxiter=1, tol=precision(T), verbosity=2)
+                                maxiter=1, tol=tolerance(T), verbosity=2)
         @test KrylovKit.eigselector(wrapop(A), scalartype(v); krylovdim=n, maxiter=1,
-                                    tol=precision(T), ishermitian=true) isa Lanczos
+                                    tol=tolerance(T), ishermitian=true) isa Lanczos
         n2 = n - n1
-        alg = Lanczos(; krylovdim=2 * n, maxiter=1, tol=precision(T),
+        alg = Lanczos(; krylovdim=2 * n, maxiter=1, tol=tolerance(T),
                       verbosity=1)
         D2, V2, info = @constinferred eigsolve(wrapop(A), v, n2, :LR, alg)
         @test vcat(D1[1:n1], reverse(D2[1:n2])) ≊ eigvals(A)
@@ -53,7 +53,7 @@
         @test A * U2 ≈ U2 * Diagonal(D2)
 
         _ = eigsolve(wrapop(A), v, n + 1, :LM; krylovdim=2n,
-                     maxiter=1, tol=precision(T), verbosity=0)
+                     maxiter=1, tol=tolerance(T), verbosity=0)
     end
 end
 
@@ -64,7 +64,7 @@ end
             A = (A + A') / 2
             v = rand(T, (N,))
             alg = Lanczos(; orth=orth, krylovdim=2 * n, maxiter=10,
-                          tol=precision(T), eager=true)
+                          tol=tolerance(T), eager=true)
             D1, V1, info1 = @constinferred eigsolve(A, v, n, :SR, alg)
             D2, V2, info2 = eigsolve(A, v, n, :LR, alg)
 
@@ -93,7 +93,7 @@ end
         A = (A + A') / 2
         v = MinimalVec{IP}(rand(T, (N,)))
         alg = Lanczos(; krylovdim=2 * n, maxiter=10,
-                      tol=precision(T), eager=true)
+                      tol=tolerance(T), eager=true)
         D1, V1, info1 = @constinferred eigsolve(wrapop(A), v, n, :SR, alg)
         D2, V2, info2 = eigsolve(wrapop(A), v, n, :LR, alg)
 
@@ -123,11 +123,11 @@ end
             v = rand(T, (n,))
             n1 = div(n, 2)
             D1, V1, info1 = eigsolve(A, v, n1, :SR; orth=orth, krylovdim=n,
-                                     maxiter=1, tol=precision(T), verbosity=2)
+                                     maxiter=1, tol=tolerance(T), verbosity=2)
             @test KrylovKit.eigselector(A, eltype(v); orth=orth, krylovdim=n, maxiter=1,
-                                        tol=precision(T)) isa Arnoldi
+                                        tol=tolerance(T)) isa Arnoldi
             n2 = n - n1
-            alg = Arnoldi(; orth=orth, krylovdim=2 * n, maxiter=1, tol=precision(T),
+            alg = Arnoldi(; orth=orth, krylovdim=2 * n, maxiter=1, tol=tolerance(T),
                           verbosity=1)
             D2, V2, info2 = @constinferred eigsolve(A, v, n2, :LR, alg)
             D = sort(sort(eigvals(A); by=imag, rev=true); alg=MergeSort, by=real)
@@ -155,7 +155,7 @@ end
             end
 
             _ = eigsolve(A, v, n + 1, :LM; orth=orth, krylovdim=2n,
-                         maxiter=1, tol=precision(T), verbosity=0)
+                         maxiter=1, tol=tolerance(T), verbosity=0)
         end
     end
 
@@ -165,11 +165,11 @@ end
         v = MinimalVec{IP}(rand(T, (n,)))
         n1 = div(n, 2)
         D1, V1, info1 = eigsolve(wrapop(A), v, n1, :SR; krylovdim=n,
-                                 maxiter=1, tol=precision(T), verbosity=2)
+                                 maxiter=1, tol=tolerance(T), verbosity=2)
         @test KrylovKit.eigselector(wrapop(A), scalartype(v); krylovdim=n, maxiter=1,
-                                    tol=precision(T), ishermitian=false) isa Arnoldi
+                                    tol=tolerance(T), ishermitian=false) isa Arnoldi
         n2 = n - n1
-        alg = Arnoldi(; krylovdim=2 * n, maxiter=1, tol=precision(T),
+        alg = Arnoldi(; krylovdim=2 * n, maxiter=1, tol=tolerance(T),
                       verbosity=1)
         D2, V2, info2 = @constinferred eigsolve(wrapop(A), v, n2, :LR, alg)
         D = sort(sort(eigvals(A); by=imag, rev=true); alg=MergeSort, by=real)
@@ -195,7 +195,7 @@ end
         @test A * U2 ≈ U2 * Diagonal(D2)
 
         _ = eigsolve(wrapop(A), v, n + 1, :LM; krylovdim=2n,
-                     maxiter=1, tol=precision(T), verbosity=0)
+                     maxiter=1, tol=tolerance(T), verbosity=0)
     end
 end
 
@@ -205,7 +205,7 @@ end
             A = rand(T, (N, N)) .- one(T) / 2
             v = rand(T, (N,))
             alg = Arnoldi(; orth=orth, krylovdim=3 * n, maxiter=20,
-                          tol=precision(T), eager=true)
+                          tol=tolerance(T), eager=true)
             D1, V1, info1 = @constinferred eigsolve(A, v, n, :SR, alg)
             D2, V2, info2 = eigsolve(A, v, n, :LR, alg)
             D3, V3, info3 = eigsolve(A, v, n, :LM, alg)
@@ -260,7 +260,7 @@ end
         A = rand(T, (N, N)) .- one(T) / 2
         v = MinimalVec{IP}(rand(T, (N,)))
         alg = Arnoldi(; krylovdim=3 * n, maxiter=20,
-                      tol=precision(T), eager=true)
+                      tol=tolerance(T), eager=true)
         D1, V1, info1 = @constinferred eigsolve(wrapop(A), v, n, :SR, alg)
         D2, V2, info2 = eigsolve(wrapop(A), v, n, :LR, alg)
         D3, V3, info3 = eigsolve(wrapop(A), v, n, :LM, alg)

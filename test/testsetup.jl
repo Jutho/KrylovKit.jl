@@ -1,6 +1,6 @@
 module TestSetup
 
-export precision, ≊, MinimalVec, unwrap, isinplace, stack
+export tolerance, ≊, MinimalVec, unwrap, isinplace, stack
 
 import VectorInterface as VI
 using VectorInterface
@@ -9,7 +9,7 @@ using LinearAlgebra: LinearAlgebra
 # Utility functions
 # -----------------
 "function for determining the precision of a type"
-precision(T::Type{<:Number}) = eps(real(T))^(2 / 3)
+tolerance(T::Type{<:Number}) = eps(real(T))^(2 / 3)
 
 "function for comparing sets of eigenvalues"
 function ≊(list1::AbstractVector, list2::AbstractVector)

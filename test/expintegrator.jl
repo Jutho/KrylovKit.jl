@@ -19,7 +19,7 @@ end
             A = (A + A') / 2
             V = one(A)
             W = zero(A)
-            alg = Lanczos(; orth=orth, krylovdim=n, maxiter=2, tol=precision(T),
+            alg = Lanczos(; orth=orth, krylovdim=n, maxiter=2, tol=tolerance(T),
                           verbosity=2)
             for k in 1:n
                 W[:, k] = first(@constinferred exponentiate(A, 1, view(V, :, k), alg))
@@ -27,7 +27,7 @@ end
             @test W ≈ exp(A)
 
             pmax = 5
-            alg = Lanczos(; orth=orth, krylovdim=n, maxiter=2, tol=precision(T),
+            alg = Lanczos(; orth=orth, krylovdim=n, maxiter=2, tol=tolerance(T),
                           verbosity=1)
             for t in (rand(real(T)), -rand(real(T)), im * randn(real(T)),
                       randn(real(T)) + im * randn(real(T)))
@@ -51,7 +51,7 @@ end
         A = (A + A') / 2
         V = one(A)
         W = zero(A)
-        alg = Lanczos(; krylovdim=n, maxiter=2, tol=precision(T), verbosity=2)
+        alg = Lanczos(; krylovdim=n, maxiter=2, tol=tolerance(T), verbosity=2)
         for k in 1:n
             W[:, k] = unwrap(first(@constinferred exponentiate(wrapop(A), 1,
                                                                MinimalVec{IP}(view(V, :, k)),
@@ -60,7 +60,7 @@ end
         @test W ≈ exp(A)
 
         pmax = 5
-        alg = Lanczos(; krylovdim=n, maxiter=2, tol=precision(T), verbosity=1)
+        alg = Lanczos(; krylovdim=n, maxiter=2, tol=tolerance(T), verbosity=1)
         for t in (rand(real(T)), -rand(real(T)), im * randn(real(T)),
                   randn(real(T)) + im * randn(real(T)))
             for p in 1:pmax
@@ -83,7 +83,7 @@ end
             A = rand(T, (n, n)) .- one(T) / 2
             V = one(A)
             W = zero(A)
-            alg = Arnoldi(; orth=orth, krylovdim=n, maxiter=2, tol=precision(T),
+            alg = Arnoldi(; orth=orth, krylovdim=n, maxiter=2, tol=tolerance(T),
                           verbosity=2)
             for k in 1:n
                 W[:, k] = first(@constinferred exponentiate(A, 1, view(V, :, k), alg))
@@ -91,7 +91,7 @@ end
             @test W ≈ exp(A)
 
             pmax = 5
-            alg = Arnoldi(; orth=orth, krylovdim=n, maxiter=2, tol=precision(T),
+            alg = Arnoldi(; orth=orth, krylovdim=n, maxiter=2, tol=tolerance(T),
                           verbosity=1)
             for t in (rand(real(T)), -rand(real(T)), im * randn(real(T)),
                       randn(real(T)) + im * randn(real(T)))
@@ -114,7 +114,7 @@ end
         A = rand(T, (n, n)) .- one(T) / 2
         V = one(A)
         W = zero(A)
-        alg = Arnoldi(; krylovdim=n, maxiter=2, tol=precision(T), verbosity=2)
+        alg = Arnoldi(; krylovdim=n, maxiter=2, tol=tolerance(T), verbosity=2)
         for k in 1:n
             W[:, k] = unwrap(first(@constinferred exponentiate(wrapop(A), 1,
                                                                MinimalVec{IP}(view(V, :, k)),
@@ -123,7 +123,7 @@ end
         @test W ≈ exp(A)
 
         pmax = 5
-        alg = Arnoldi(; krylovdim=n, maxiter=2, tol=precision(T), verbosity=1)
+        alg = Arnoldi(; krylovdim=n, maxiter=2, tol=tolerance(T), verbosity=1)
         for t in (rand(real(T)), -rand(real(T)), im * randn(real(T)),
                   randn(real(T)) + im * randn(real(T)))
             for p in 1:pmax

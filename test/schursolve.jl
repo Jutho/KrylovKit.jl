@@ -3,7 +3,7 @@
         @testset for orth in (cgs2, mgs2, cgsr, mgsr)
             A = rand(T, (n, n)) .- one(T) / 2
             v = rand(T, (n,))
-            alg = Arnoldi(; orth=orth, krylovdim=n, maxiter=1, tol=precision(T))
+            alg = Arnoldi(; orth=orth, krylovdim=n, maxiter=1, tol=tolerance(T))
             n1 = div(n, 2)
             T1, V1, D1, info1 = @constinferred schursolve(A, v, n1, :SR, alg)
             n2 = n - n1
@@ -43,7 +43,7 @@
         T = ComplexF64
         A = rand(T, (n, n)) .- one(T) / 2
         v = MinimalVec{IP}(rand(T, (n,)))
-        alg = Arnoldi(; orth=cgs2, krylovdim=n, maxiter=1, tol=precision(T))
+        alg = Arnoldi(; orth=cgs2, krylovdim=n, maxiter=1, tol=tolerance(T))
         n1 = div(n, 2)
         T1, V1, D1, info1 = @constinferred schursolve(wrapop(A), v, n1, :SR, alg)
         n2 = n - n1
@@ -82,7 +82,7 @@ end
         @testset for orth in (cgs2, mgs2, cgsr, mgsr)
             A = rand(T, (N, N)) .- one(T) / 2
             v = rand(T, (N,))
-            alg = Arnoldi(; orth=orth, krylovdim=3 * n, maxiter=10, tol=precision(T))
+            alg = Arnoldi(; orth=orth, krylovdim=3 * n, maxiter=10, tol=tolerance(T))
             T1, V1, D1, info1 = @constinferred schursolve(A, v, n, :SR, alg)
             T2, V2, D2, info2 = schursolve(A, v, n, :LR, alg)
             T3, V3, D3, info3 = schursolve(A, v, n, :LM, alg)
@@ -136,7 +136,7 @@ end
         T = ComplexF64
         A = rand(T, (N, N)) .- one(T) / 2
         v = MinimalVec{IP}(rand(T, (N,)))
-        alg = Arnoldi(; orth=cgs2, krylovdim=3 * n, maxiter=10, tol=precision(T))
+        alg = Arnoldi(; orth=cgs2, krylovdim=3 * n, maxiter=10, tol=tolerance(T))
         T1, V1, D1, info1 = @constinferred schursolve(wrapop(A), v, n, :SR, alg)
         T2, V2, D2, info2 = schursolve(wrapop(A), v, n, :LR, alg)
         T3, V3, D3, info3 = schursolve(wrapop(A), v, n, :LM, alg)

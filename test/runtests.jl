@@ -8,7 +8,6 @@ using VectorInterface
 
 include("testsetup.jl")
 using ..TestSetup
-using ..TestSetup: precision # conflicts with Base
 
 # Parameters
 # ----------

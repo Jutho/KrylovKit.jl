@@ -2,7 +2,7 @@
     @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
         @testset for orth in (cgs2, mgs2, cgsr, mgsr)
             A = rand(T, (n, n))
-            alg = GKL(; orth=orth, krylovdim=2 * n, maxiter=1, tol=precision(T))
+            alg = GKL(; orth=orth, krylovdim=2 * n, maxiter=1, tol=tolerance(T))
             S, lvecs, rvecs, info = @constinferred svdsolve(A, A[:, 1], n, :LR, alg)
 
             @test S ≈ svdvals(A)
@@ -19,7 +19,7 @@
         T = ComplexF64
         A = rand(T, (n, n))
         v = MinimalVec{IP}(rand(T, (n,)))
-        alg = GKL(; krylovdim=2 * n, maxiter=1, tol=precision(T))
+        alg = GKL(; krylovdim=2 * n, maxiter=1, tol=tolerance(T))
         S, lvecs, rvecs, info = @constinferred svdsolve(wrapop(A), v, n, :LR, alg)
 
         @test S ≈ svdvals(A)
@@ -35,7 +35,7 @@
         T = ComplexF64
         A = rand(T, (n, n))
         v = MinimalVec{false}(rand(T, (n,)))
-        alg = GKL(; krylovdim=2 * n, maxiter=1, tol=precision(T))
+        alg = GKL(; krylovdim=2 * n, maxiter=1, tol=tolerance(T))
         S, lvecs, rvecs, info = @constinferred svdsolve(wrapop2(A), v, n, :LR, alg)
 
         @test S ≈ svdvals(A)
@@ -54,7 +54,7 @@ end
             A = rand(T, (2 * N, N))
             v = rand(T, (2 * N,))
             n₁ = div(n, 2)
-            alg = GKL(; orth=orth, krylovdim=n, maxiter=10, tol=precision(T), eager=true)
+            alg = GKL(; orth=orth, krylovdim=n, maxiter=10, tol=tolerance(T), eager=true)
             S, lvecs, rvecs, info = @constinferred svdsolve(A, v, n₁, :LR,
                                                             alg)
 
@@ -77,7 +77,7 @@ end
         A = rand(T, (2 * N, N))
         v = MinimalVec{IP}(rand(T, (2 * N,)))
         n₁ = div(n, 2)
-        alg = GKL(; krylovdim=n, maxiter=10, tol=precision(T), eager=true)
+        alg = GKL(; krylovdim=n, maxiter=10, tol=tolerance(T), eager=true)
         S, lvecs, rvecs, info = @constinferred svdsolve(wrapop(A), v, n₁, :LR,
                                                         alg)
 
@@ -99,7 +99,7 @@ end
         A = rand(T, (2 * N, N))
         v = MinimalVec{false}(rand(T, (2 * N,)))
         n₁ = div(n, 2)
-        alg = GKL(; krylovdim=n, maxiter=10, tol=precision(T), eager=true)
+        alg = GKL(; krylovdim=n, maxiter=10, tol=tolerance(T), eager=true)
         S, lvecs, rvecs, info = @constinferred svdsolve(wrapop2(A), v, n₁, :LR,
                                                         alg)
 
