@@ -58,7 +58,7 @@ function ChainRulesCore.rrule(config::RuleConfig{>:HasReverseMode},
 
     # f defines a linear map => pullback defines action of the adjoint
     (y, f_pullback) = rrule_via_ad(config, f, x)
-    fᴴ(xᴴ) = add(zerovector(x), f_pullback(xᴴ)[2])
+    fᴴ(xᴴ) = f_pullback(xᴴ)[2]
     # TODO can we avoid computing f_pullback if algorithm isa Union{CG,MINRES}?
 
     function linsolve_pullback(X̄)
