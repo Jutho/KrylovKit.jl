@@ -41,7 +41,7 @@ latter set of methods can use in-place mutation if your type supports this behav
 
 In particular, tuples are now supported:
 
-```julia-repl
+```julia
 julia> values, vectors, info = eigsolve(t -> cumsum(t) .+ 0.5 .* reverse(t), (1,0,0,0));
 
 julia> values
