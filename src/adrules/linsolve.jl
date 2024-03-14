@@ -66,18 +66,20 @@ function ChainRulesCore.rrule(config::RuleConfig{>:HasReverseMode},
         ∂self = NoTangent()
         ∂x₀ = ZeroTangent()
         ∂algorithm = NoTangent()
-        (∂b, reverse_info) = linsolve(fᴴ, x̄, (zero(a₀) * zero(a₁)) * x̄, algorithm,
-                                      conj(a₀), conj(a₁))
+        T = VectorInterface.promote_scale(VectorInterface.promote_scale(x̄, a₀),
+                                          scalartype(a₁))
+        ∂b, reverse_info = linsolve(fᴴ, x̄, zerovector(x̄, T), algorithm, conj(a₀),
+                                    conj(a₁))
         if reverse_info.converged == 0
             @warn "Linear problem for reverse rule did not converge." reverse_info
         end
-        ∂f = @thunk(f_pullback(-conj(a₁) * ∂b)[1])
-        ∂a₀ = @thunk(-dot(x, ∂b))
+        ∂f = @thunk(f_pullback(scale(∂b, -conj(a₁)))[1])
+        ∂a₀ = @thunk(-inner(x, ∂b))
         # ∂a₁ = @thunk(-dot(f(x), ∂b))
         if a₀ == zero(a₀) && a₁ == one(a₁)
-            ∂a₁ = @thunk(-dot(b, ∂b))
+            ∂a₁ = @thunk(-inner(b, ∂b))
         else
-            ∂a₁ = @thunk(-dot((b - a₀ * x) / a₁, ∂b))
+            ∂a₁ = @thunk(-inner(scale!!(add(b, x, -a₀), inv(a₁)), ∂b))
         end
         return ∂self, ∂f, ∂b, ∂x₀, ∂algorithm, ∂a₀, ∂a₁
     end
@@ -91,17 +93,17 @@ function ChainRulesCore.frule((_, ΔA, Δb, Δx₀, _, Δa₀, Δa₁)::Tuple, :
     (x, info) = linsolve(A, b, x₀, algorithm, a₀, a₁)
 
     if Δb isa ChainRulesCore.AbstractZero
-        rhs = zero(b)
+        rhs = zerovector(b)
     else
-        rhs = (1 - Δa₁) * Δb
+        rhs = scale(Δb, (1 - Δa₁))
     end
     if !iszero(Δa₀)
-        rhs = axpy!(-Δa₀, x, rhs)
+        rhs = add!!(rhs, x, -Δa₀)
     end
     if !iszero(ΔA)
         rhs = mul!(rhs, ΔA, x, -a₁, true)
     end
-    (Δx, forward_info) = linsolve(A, rhs, zero(rhs), algorithm, a₀, a₁)
+    (Δx, forward_info) = linsolve(A, rhs, zerovector(rhs), algorithm, a₀, a₁)
     if info.converged > 0 && forward_info.converged == 0
         @warn "The tangent linear problem did not converge, whereas the primal linear problem did."
     end
@@ -121,17 +123,17 @@ function ChainRulesCore.frule(config::RuleConfig{>:HasForwardsMode},
     (x, info) = linsolve(f, b, x₀, algorithm, a₀, a₁)
 
     if Δb isa AbstractZero
-        rhs = false * b
+        rhs = zerovector(b)
     else
-        rhs = (1 - Δa₁) * Δb
+        rhs = scale(Δb, (1 - Δa₁))
     end
     if !iszero(Δa₀)
-        rhs = axpy!(-Δa₀, x, rhs)
+        rhs = add!!(rhs, x, -Δa₀)
     end
     if !(Δf isa AbstractZero)
-        rhs = axpy!(-a₁, frule_via_ad(config, (Δf, ZeroTangent()), f, x), rhs)
+        rhs = add!!(rhs, frule_via_ad(config, (Δf, ZeroTangent()), f, x), -a₀)
     end
-    (Δx, forward_info) = linsolve(f, rhs, false * rhs, algorithm, a₀, a₁)
+    (Δx, forward_info) = linsolve(f, rhs, zerovector(rhs), algorithm, a₀, a₁)
     if info.converged > 0 && forward_info.converged == 0
         @warn "The tangent linear problem did not converge, whereas the primal linear problem did."
     end

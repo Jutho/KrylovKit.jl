@@ -61,20 +61,8 @@ However, KrylovKit.jl distinguishes itself from the previous packages in the fol
 2.  KrylovKit does not assume that the vectors involved in the problem are actual subtypes
     of `AbstractVector`. Any Julia object that behaves as a vector is supported, so in
     particular higher-dimensional arrays or any custom user type that supports the
-    following functions (with `v` and `w` two instances of this type and `α, β` scalars
-    (i.e. `Number`)):
-    *   `Base.:*(α, v)`: multiply `v` with a scalar `α`, which can be of a different scalar
-        type; in particular this method is used to create vectors similar to `v` but with a
-        different type of underlying scalars.
-    *   `Base.similar(v)`: a way to construct vectors which are exactly similar to `v`
-    *   `LinearAlgebra.mul!(w, v, α)`: out of place scalar multiplication; multiply
-        vector `v` with scalar `α` and store the result in `w`
-    *   `LinearAlgebra.rmul!(v, α)`: in-place scalar multiplication of `v` with `α`; in
-        particular with `α = false`, `v` is the corresponding zero vector
-    *   `LinearAlgebra.axpy!(α, v, w)`: store in `w` the result of `α*v + w`
-    *   `LinearAlgebra.axpby!(α, v, β, w)`: store in `w` the result of `α*v + β*w`
-    *   `LinearAlgebra.dot(v,w)`: compute the inner product of two vectors
-    *   `LinearAlgebra.norm(v)`: compute the 2-norm of a vector
+    interface as defined in 
+    [`VectorInterface.jl`](https://github.com/Jutho/VectorInterface.jl)
 
     Algorithms in KrylovKit.jl are tested against such a minimal implementation (named
     `MinimalVec`) in the test suite. This type is only defined in the tests. However,
@@ -84,14 +72,14 @@ However, KrylovKit.jl distinguishes itself from the previous packages in the fol
     *   [`RecursiveVec`](@ref) can be used for grouping a set of vectors into a single
         vector like structure (can be used recursively). This is more robust than trying to
         use nested `Vector{<:Vector}` types.
-    *   [`InnerProductVec`](@ref) can be used to redefine the inner product (i.e. `dot`)
+    *   [`InnerProductVec`](@ref) can be used to redefine the inner product (i.e. `inner`)
         and corresponding norm (`norm`) of an already existing vector like object. The
         latter should help with implementing certain type of preconditioners.
 
 ## Current functionality
 
 The following algorithms are currently implemented
-*   `linsolve`: [`CG`](@ref), [`GMRES`](@ref)
+*   `linsolve`: [`CG`](@ref), [`GMRES`](@ref), [`BiCGStab`](@ref)
 *   `eigsolve`: a Krylov-Schur algorithm (i.e. with tick restarts) for extremal eigenvalues
     of normal (i.e. not generalized) eigenvalue problems, corresponding to
     [`Lanczos`](@ref) for real symmetric or complex hermitian linear maps, and to

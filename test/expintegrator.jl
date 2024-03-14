@@ -12,30 +12,36 @@ function ϕ(A, v, p)
     return exp(A′)[1:m, end]
 end
 
-@testset "Lanczos - expintegrator full" begin
-    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
-        @testset for orth in (cgs2, mgs2, cgsr, mgsr)
+@testset "Lanczos - expintegrator full ($mode)" for mode in (:vector, :inplace, :outplace)
+    scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
+                  (ComplexF64,)
+    orths = mode === :vector ? (cgs2, mgs2, cgsr, mgsr) : (mgsr,)
+    @testset for T in scalartypes
+        @testset for orth in orths
             A = rand(T, (n, n)) .- one(T) / 2
             A = (A + A') / 2
             V = one(A)
             W = zero(A)
-            alg = Lanczos(; orth=orth, krylovdim=n, maxiter=2, tol=precision(T),
+            alg = Lanczos(; orth=orth, krylovdim=n, maxiter=2, tol=tolerance(T),
                           verbosity=2)
             for k in 1:n
-                W[:, k] = unwrapvec(first(@constinferred exponentiate(wrapop(A), 1,
-                                                                      wrapvec(view(V, :, k)),
+                W[:, k] = unwrapvec(first(@constinferred exponentiate(wrapop(A, Val(mode)),
+                                                                      1,
+                                                                      wrapvec(view(V, :, k),
+                                                                              Val(mode)),
                                                                       alg)))
             end
             @test W ≈ exp(A)
 
             pmax = 5
-            alg = Lanczos(; orth=orth, krylovdim=n, maxiter=2, tol=precision(T),
+            alg = Lanczos(; orth=orth, krylovdim=n, maxiter=2, tol=tolerance(T),
                           verbosity=1)
             for t in (rand(real(T)), -rand(real(T)), im * randn(real(T)),
                       randn(real(T)) + im * randn(real(T)))
                 for p in 1:pmax
                     u = ntuple(i -> rand(T, n), p + 1)
-                    w, info = @constinferred expintegrator(wrapop(A), t, wrapvec.(u), alg)
+                    w, info = @constinferred expintegrator(wrapop(A, Val(mode)), t,
+                                                           wrapvec.(u, Ref(Val(mode))), alg)
                     w2 = exp(t * A) * u[1]
                     for j in 1:p
                         w2 .+= t^j * ϕ(t * A, u[j + 1], j)
@@ -48,29 +54,35 @@ end
     end
 end
 
-@testset "Arnoldi - expintegrator full" begin
-    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
-        @testset for orth in (cgs2, mgs2, cgsr, mgsr)
+@testset "Arnoldi - expintegrator full ($mode)" for mode in (:vector, :inplace, :outplace)
+    scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
+                  (ComplexF64,)
+    orths = mode === :vector ? (cgs2, mgs2, cgsr, mgsr) : (mgsr,)
+    @testset for T in scalartypes
+        @testset for orth in orths
             A = rand(T, (n, n)) .- one(T) / 2
             V = one(A)
             W = zero(A)
-            alg = Arnoldi(; orth=orth, krylovdim=n, maxiter=2, tol=precision(T),
+            alg = Arnoldi(; orth=orth, krylovdim=n, maxiter=2, tol=tolerance(T),
                           verbosity=2)
             for k in 1:n
-                W[:, k] = unwrapvec(first(@constinferred exponentiate(wrapop(A), 1,
-                                                                      wrapvec(view(V, :, k)),
+                W[:, k] = unwrapvec(first(@constinferred exponentiate(wrapop(A, Val(mode)),
+                                                                      1,
+                                                                      wrapvec(view(V, :, k),
+                                                                              Val(mode)),
                                                                       alg)))
             end
             @test W ≈ exp(A)
 
             pmax = 5
-            alg = Arnoldi(; orth=orth, krylovdim=n, maxiter=2, tol=precision(T),
+            alg = Arnoldi(; orth=orth, krylovdim=n, maxiter=2, tol=tolerance(T),
                           verbosity=1)
             for t in (rand(real(T)), -rand(real(T)), im * randn(real(T)),
                       randn(real(T)) + im * randn(real(T)))
                 for p in 1:pmax
                     u = ntuple(i -> rand(T, n), p + 1)
-                    w, info = @constinferred expintegrator(wrapop(A), t, wrapvec.(u), alg)
+                    w, info = @constinferred expintegrator(wrapop(A, Val(mode)), t,
+                                                           wrapvec.(u, Ref(Val(mode))), alg)
                     w2 = exp(t * A) * u[1]
                     for j in 1:p
                         w2 .+= t^j * ϕ(t * A, u[j + 1], j)
@@ -83,9 +95,13 @@ end
     end
 end
 
-@testset "Lanczos - expintegrator iteratively" begin
-    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
-        @testset for orth in (cgs2, mgs2, cgsr, mgsr)
+@testset "Lanczos - expintegrator iteratively ($mode)" for mode in
+                                                           (:vector, :inplace, :outplace)
+    scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
+                  (ComplexF64,)
+    orths = mode === :vector ? (cgs2, mgs2, cgsr, mgsr) : (mgsr,)
+    @testset for T in scalartypes
+        @testset for orth in orths
             A = rand(T, (N, N)) .- one(T) / 2
             A = (A + A') / 2
             s = norm(eigvals(A), 1)
@@ -95,7 +111,8 @@ end
                       randn(real(T)) + im * randn(real(T)))
                 for p in 1:pmax
                     u = ntuple(i -> rand(T, N), p + 1)
-                    w1, info = @constinferred expintegrator(wrapop(A), t, wrapvec.(u)...;
+                    w1, info = @constinferred expintegrator(wrapop(A, Val(mode)), t,
+                                                            wrapvec.(u, Ref(Val(mode)))...;
                                                             maxiter=100, krylovdim=n,
                                                             eager=true)
                     @assert info.converged > 0
@@ -104,19 +121,24 @@ end
                         w2 .+= t^j * ϕ(t * A, u[j + 1], j)
                     end
                     @test w2 ≈ unwrapvec(w1)
-                    w1, info = @constinferred expintegrator(wrapop(A), t, wrapvec.(u)...;
+                    w1, info = @constinferred expintegrator(wrapop(A, Val(mode)), t,
+                                                            wrapvec.(u, Ref(Val(mode)))...;
                                                             maxiter=100, krylovdim=n,
                                                             tol=1e-3, eager=true)
-                    @test norm(unwrapvec(w1) - w2) < 1e-2 * abs(t)
+                    @test unwrapvec(w1) ≈ w2 atol = 1e-2 * abs(t)
                 end
             end
         end
     end
 end
 
-@testset "Arnoldi - expintegrator iteratively" begin
-    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
-        @testset for orth in (cgs2, mgs2, cgsr, mgsr)
+@testset "Arnoldi - expintegrator iteratively ($mode)" for mode in
+                                                           (:vector, :inplace, :outplace)
+    scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
+                  (ComplexF64,)
+    orths = mode === :vector ? (cgs2, mgs2, cgsr, mgsr) : (mgsr,)
+    @testset for T in scalartypes
+        @testset for orth in orths
             A = rand(T, (N, N)) .- one(T) / 2
             s = norm(eigvals(A), 1)
             rmul!(A, 1 / (10 * s))
@@ -125,7 +147,8 @@ end
                       randn(real(T)) + im * randn(real(T)))
                 for p in 1:pmax
                     u = ntuple(i -> rand(T, N), p + 1)
-                    w1, info = @constinferred expintegrator(wrapop(A), t, wrapvec.(u)...;
+                    w1, info = @constinferred expintegrator(wrapop(A, Val(mode)), t,
+                                                            wrapvec.(u, Ref(Val(mode)))...;
                                                             maxiter=100, krylovdim=n,
                                                             eager=true)
                     @test info.converged > 0
@@ -134,10 +157,11 @@ end
                         w2 .+= t^j * ϕ(t * A, u[j + 1], j)
                     end
                     @test w2 ≈ unwrapvec(w1)
-                    w1, info = @constinferred expintegrator(wrapop(A), t, wrapvec.(u)...;
+                    w1, info = @constinferred expintegrator(wrapop(A, Val(mode)), t,
+                                                            wrapvec.(u, Ref(Val(mode)))...;
                                                             maxiter=100, krylovdim=n,
                                                             tol=1e-3, eager=true)
-                    @test norm(unwrapvec(w1) - w2) < 1e-2 * abs(t)
+                    @test unwrapvec(w1) ≈ w2 atol = 1e-2 * abs(t)
                 end
             end
         end

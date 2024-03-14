@@ -106,7 +106,7 @@ function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
         [B * u for u in cols(U, 1:howmany)]
     end
     residuals = let r = residual(fact)
-        [last(u) * r for u in cols(U, 1:howmany)]
+        [scale(r, last(u)) for u in cols(U, 1:howmany)]
     end
     normresiduals = [normres(fact) * abs(last(u)) for u in cols(U, 1:howmany)]
 
@@ -145,7 +145,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
         [B * v for v in cols(V)]
     end
     residuals = let r = residual(fact)
-        [last(v) * r for v in cols(V)]
+        [scale(r, last(v)) for v in cols(V)]
     end
     normresiduals = [normres(fact) * abs(last(v)) for v in cols(V)]
 
@@ -271,7 +271,7 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
             B = basis(fact)
             basistransform!(B, view(U, :, 1:keep))
             r = residual(fact)
-            B[keep + 1] = rmul!(r, 1 / normres(fact))
+            B[keep + 1] = scale!!(r, 1 / normres(fact))
 
             # Shrink Arnoldi factorization
             fact = shrink!(fact, keep)

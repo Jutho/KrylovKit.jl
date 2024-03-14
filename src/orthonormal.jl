@@ -7,7 +7,7 @@ one, representing an orthonormal basis for some subspace (typically a Krylov sub
 also [`Basis`](@ref)
 
 Orthonormality of the vectors contained in an instance `b` of `OrthonormalBasis`
-(i.e. `all(dot(b[i],b[j]) == I[i,j] for i=1:length(b), j=1:length(b))`) is not checked when
+(i.e. `all(inner(b[i],b[j]) == I[i,j] for i=1:length(b), j=1:length(b))`) is not checked when
 elements are added; it is up to the algorithm that constructs `b` to guarantee
 orthonormality.
 
@@ -55,32 +55,32 @@ Base.resize!(b::OrthonormalBasis, k::Int) = (resize!(b.basis, k); return b)
 
 # Multiplication methods with OrthonormalBasis
 function Base.:*(b::OrthonormalBasis, x::AbstractVector)
-    y = zero(eltype(x)) * first(b)
+    y = zerovector(first(b), promote_type(scalartype(x), scalartype(first(b))))
     return mul!(y, b, x)
 end
-LinearAlgebra.mul!(y, b::OrthonormalBasis, x::AbstractVector) = unproject!(y, b, x, 1, 0)
+LinearAlgebra.mul!(y, b::OrthonormalBasis, x::AbstractVector) = unproject!!(y, b, x, 1, 0)
 
 const BLOCKSIZE = 4096
 
 """
-    project!(y::AbstractVector, b::OrthonormalBasis, x,
+    project!!(y::AbstractVector, b::OrthonormalBasis, x,
         [α::Number = 1, β::Number = 0, r = Base.OneTo(length(b))])
 
 For a given orthonormal basis `b`, compute the expansion coefficients `y` resulting from
 projecting the vector `x` onto the subspace spanned by `b`; more specifically this computes
 
 ```
-    y[j] = β*y[j] + α * dot(b[r[j]], x)
+    y[j] = β*y[j] + α * inner(b[r[j]], x)
 ```
 
 for all ``j ∈ r``.
 """
-function project!(y::AbstractVector,
-                  b::OrthonormalBasis,
-                  x,
-                  α::Number=true,
-                  β::Number=false,
-                  r=Base.OneTo(length(b)))
+function project!!(y::AbstractVector,
+                   b::OrthonormalBasis,
+                   x,
+                   α::Number=true,
+                   β::Number=false,
+                   r=Base.OneTo(length(b)))
     # no specialized routine for IndexLinear x because reduction dimension is large dimension
     length(y) == length(r) || throw(DimensionMismatch())
     if get_num_threads() > 1
@@ -88,9 +88,9 @@ function project!(y::AbstractVector,
             Threads.@spawn for j in $J
                 @inbounds begin
                     if β == 0
-                        y[j] = α * dot(b[r[j]], x)
+                        y[j] = α * inner(b[r[j]], x)
                     else
-                        y[j] = β * y[j] + α * dot(b[r[j]], x)
+                        y[j] = β * y[j] + α * inner(b[r[j]], x)
                     end
                 end
             end
@@ -99,9 +99,9 @@ function project!(y::AbstractVector,
         for j in 1:length(r)
             @inbounds begin
                 if β == 0
-                    y[j] = α * dot(b[r[j]], x)
+                    y[j] = α * inner(b[r[j]], x)
                 else
-                    y[j] = β * y[j] + α * dot(b[r[j]], x)
+                    y[j] = β * y[j] + α * inner(b[r[j]], x)
                 end
             end
         end
@@ -110,7 +110,7 @@ function project!(y::AbstractVector,
 end
 
 """
-    unproject!(y, b::OrthonormalBasis, x::AbstractVector,
+    unproject!!(y, b::OrthonormalBasis, x::AbstractVector,
         [α::Number = 1, β::Number = 0, r = Base.OneTo(length(b))])
 
 For a given orthonormal basis `b`, reconstruct the vector-like object `y` that is defined by
@@ -121,12 +121,12 @@ this computes
     y = β*y + α * sum(b[r[i]]*x[i] for i = 1:length(r))
 ```
 """
-function unproject!(y,
-                    b::OrthonormalBasis,
-                    x::AbstractVector,
-                    α::Number=true,
-                    β::Number=false,
-                    r=Base.OneTo(length(b)))
+function unproject!!(y,
+                     b::OrthonormalBasis,
+                     x::AbstractVector,
+                     α::Number=true,
+                     β::Number=false,
+                     r=Base.OneTo(length(b)))
     if y isa AbstractArray && !(y isa AbstractGPUArray) && IndexStyle(y) isa IndexLinear &&
        get_num_threads() > 1
         return unproject_linear_multithreaded!(y, b, x, α, β, r)
@@ -134,12 +134,12 @@ function unproject!(y,
     # general case: using only vector operations, i.e. axpy! (similar to BLAS level 1)
     length(x) == length(r) || throw(DimensionMismatch())
     if β == 0
-        rmul!(y, false) # should be hard zero
+        y = scale!!(y, false) # should be hard zero
     elseif β != 1
-        rmul!(y, β)
+        y = scale!!(y, β)
     end
     @inbounds for (i, ri) in enumerate(r)
-        y = axpy!(α * x[i], b[ri], y)
+        y = add!!(y, b[ri], α * x[i])
     end
     return y
 end
@@ -221,11 +221,11 @@ It is the user's responsibility to make sure that the result is still an orthono
     length(x) == length(r) || throw(DimensionMismatch())
     @inbounds for (i, ri) in enumerate(r)
         if β == 1
-            b[ri] = axpy!(α * conj(x[i]), y, b[ri])
+            b[ri] = add!!(b[ri], y, α * conj(x[i]))
         elseif β == 0
-            b[ri] = mul!(b[ri], α * x[i], y)
+            b[ri] = scale!!(b[ri], y, α * conj(x[i]))
         else
-            b[ri] = axpby!(α * x[i], y, β, b[ri])
+            b[ri] = add!!(b[ri], y, α * conj(x[i]), β)
         end
     end
     return b
@@ -301,21 +301,21 @@ function basistransform!(b::OrthonormalBasis{T}, U::AbstractMatrix) where {T} # 
     m, n = size(U)
     m == length(b) || throw(DimensionMismatch())
 
-    let b2 = [similar(b[1]) for j in 1:n]
+    let b2 = [zerovector(b[1]) for j in 1:n]
         if get_num_threads() > 1
             @sync for J in splitrange(1:n, get_num_threads())
                 Threads.@spawn for j in $J
-                    mul!(b2[j], b[1], U[1, j])
+                    b2[j] = scale!!(b2[j], b[1], U[1, j])
                     for i in 2:m
-                        axpy!(U[i, j], b[i], b2[j])
+                        b2[j] = add!!(b2[j], b[i], U[i, j])
                     end
                 end
             end
         else
             for j in 1:n
-                mul!(b2[j], b[1], U[1, j])
+                b2[j] = scale!!(b2[j], b[1], U[1, j])
                 for i in 2:m
-                    axpy!(U[i, j], b[i], b2[j])
+                    b2[j] = add!!(b2[j], b[i], U[i, j])
                 end
             end
         end
@@ -374,127 +374,127 @@ end
 # Orthogonalization of a vector against a given OrthonormalBasis
 orthogonalize(v, args...) = orthogonalize!(true * v, args...)
 
-function orthogonalize!(v::T, b::OrthonormalBasis{T}, alg::Orthogonalizer) where {T}
+function orthogonalize!!(v::T, b::OrthonormalBasis{T}, alg::Orthogonalizer) where {T}
     S = promote_type(eltype(v), eltype(T))
     c = Vector{S}(undef, length(b))
-    return orthogonalize!(v, b, c, alg)
+    return orthogonalize!!(v, b, c, alg)
 end
 
-function orthogonalize!(v::T,
-                        b::OrthonormalBasis{T},
-                        x::AbstractVector,
-                        ::ClassicalGramSchmidt) where {T}
-    x = project!(x, b, v)
-    v = unproject!(v, b, x, -1, 1)
+function orthogonalize!!(v::T,
+                         b::OrthonormalBasis{T},
+                         x::AbstractVector,
+                         ::ClassicalGramSchmidt) where {T}
+    x = project!!(x, b, v)
+    v = unproject!!(v, b, x, -1, 1)
     return (v, x)
 end
-function reorthogonalize!(v::T,
-                          b::OrthonormalBasis{T},
-                          x::AbstractVector,
-                          ::ClassicalGramSchmidt) where {T}
+function reorthogonalize!!(v::T,
+                           b::OrthonormalBasis{T},
+                           x::AbstractVector,
+                           ::ClassicalGramSchmidt) where {T}
     s = similar(x) ## EXTRA ALLOCATION
-    s = project!(s, b, v)
-    v = unproject!(v, b, s, -1, 1)
+    s = project!!(s, b, v)
+    v = unproject!!(v, b, s, -1, 1)
     x .+= s
     return (v, x)
 end
-function orthogonalize!(v::T,
-                        b::OrthonormalBasis{T},
-                        x::AbstractVector,
-                        ::ClassicalGramSchmidt2) where {T}
-    (v, x) = orthogonalize!(v, b, x, ClassicalGramSchmidt())
-    return reorthogonalize!(v, b, x, ClassicalGramSchmidt())
+function orthogonalize!!(v::T,
+                         b::OrthonormalBasis{T},
+                         x::AbstractVector,
+                         ::ClassicalGramSchmidt2) where {T}
+    (v, x) = orthogonalize!!(v, b, x, ClassicalGramSchmidt())
+    return reorthogonalize!!(v, b, x, ClassicalGramSchmidt())
 end
-function orthogonalize!(v::T,
-                        b::OrthonormalBasis{T},
-                        x::AbstractVector,
-                        alg::ClassicalGramSchmidtIR) where {T}
+function orthogonalize!!(v::T,
+                         b::OrthonormalBasis{T},
+                         x::AbstractVector,
+                         alg::ClassicalGramSchmidtIR) where {T}
     nold = norm(v)
-    orthogonalize!(v, b, x, ClassicalGramSchmidt())
+    (v, x) = orthogonalize!!(v, b, x, ClassicalGramSchmidt())
     nnew = norm(v)
     while eps(one(nnew)) < nnew < alg.η * nold
         nold = nnew
-        (v, x) = reorthogonalize!(v, b, x, ClassicalGramSchmidt())
+        (v, x) = reorthogonalize!!(v, b, x, ClassicalGramSchmidt())
         nnew = norm(v)
     end
     return (v, x)
 end
 
-function orthogonalize!(v::T,
-                        b::OrthonormalBasis{T},
-                        x::AbstractVector,
-                        ::ModifiedGramSchmidt) where {T}
+function orthogonalize!!(v::T,
+                         b::OrthonormalBasis{T},
+                         x::AbstractVector,
+                         ::ModifiedGramSchmidt) where {T}
     for (i, q) in enumerate(b)
-        s = dot(q, v)
-        v = axpy!(-s, q, v)
+        s = inner(q, v)
+        v = add!!(v, q, -s)
         x[i] = s
     end
     return (v, x)
 end
-function reorthogonalize!(v::T,
-                          b::OrthonormalBasis{T},
-                          x::AbstractVector,
-                          ::ModifiedGramSchmidt) where {T}
+function reorthogonalize!!(v::T,
+                           b::OrthonormalBasis{T},
+                           x::AbstractVector,
+                           ::ModifiedGramSchmidt) where {T}
     for (i, q) in enumerate(b)
-        s = dot(q, v)
-        v = axpy!(-s, q, v)
+        s = inner(q, v)
+        v = add!!(v, q, -s)
         x[i] += s
     end
     return (v, x)
 end
-function orthogonalize!(v::T,
-                        b::OrthonormalBasis{T},
-                        x::AbstractVector,
-                        ::ModifiedGramSchmidt2) where {T}
-    (v, x) = orthogonalize!(v, b, x, ModifiedGramSchmidt())
-    return reorthogonalize!(v, b, x, ModifiedGramSchmidt())
+function orthogonalize!!(v::T,
+                         b::OrthonormalBasis{T},
+                         x::AbstractVector,
+                         ::ModifiedGramSchmidt2) where {T}
+    (v, x) = orthogonalize!!(v, b, x, ModifiedGramSchmidt())
+    return reorthogonalize!!(v, b, x, ModifiedGramSchmidt())
 end
-function orthogonalize!(v::T,
-                        b::OrthonormalBasis{T},
-                        x::AbstractVector,
-                        alg::ModifiedGramSchmidtIR) where {T}
+function orthogonalize!!(v::T,
+                         b::OrthonormalBasis{T},
+                         x::AbstractVector,
+                         alg::ModifiedGramSchmidtIR) where {T}
     nold = norm(v)
-    (v, x) = orthogonalize!(v, b, x, ModifiedGramSchmidt())
+    (v, x) = orthogonalize!!(v, b, x, ModifiedGramSchmidt())
     nnew = norm(v)
     while eps(one(nnew)) < nnew < alg.η * nold
         nold = nnew
-        (v, x) = reorthogonalize!(v, b, x, ModifiedGramSchmidt())
+        (v, x) = reorthogonalize!!(v, b, x, ModifiedGramSchmidt())
         nnew = norm(v)
     end
     return (v, x)
 end
 
 # Orthogonalization of a vector against a given normalized vector
-orthogonalize!(v::T, q::T, alg::Orthogonalizer) where {T} = _orthogonalize!(v, q, alg)
+orthogonalize!!(v::T, q::T, alg::Orthogonalizer) where {T} = _orthogonalize!!(v, q, alg)
 # avoid method ambiguity on Julia 1.0 according to Aqua.jl
 
-function _orthogonalize!(v::T,
-                         q::T,
-                         alg::Union{ClassicalGramSchmidt,ModifiedGramSchmidt}) where {T}
-    s = dot(q, v)
-    v = axpy!(-s, q, v)
+function _orthogonalize!!(v::T,
+                          q::T,
+                          alg::Union{ClassicalGramSchmidt,ModifiedGramSchmidt}) where {T}
+    s = inner(q, v)
+    v = add!!(v, q, -s)
     return (v, s)
 end
-function _orthogonalize!(v::T,
-                         q::T,
-                         alg::Union{ClassicalGramSchmidt2,ModifiedGramSchmidt2}) where {T}
-    s = dot(q, v)
-    v = axpy!(-s, q, v)
-    ds = dot(q, v)
-    v = axpy!(-ds, q, v)
+function _orthogonalize!!(v::T,
+                          q::T,
+                          alg::Union{ClassicalGramSchmidt2,ModifiedGramSchmidt2}) where {T}
+    s = inner(q, v)
+    v = add!!(v, q, -s)
+    ds = inner(q, v)
+    v = add!!(v, q, -ds)
     return (v, s + ds)
 end
-function _orthogonalize!(v::T,
-                         q::T,
-                         alg::Union{ClassicalGramSchmidtIR,ModifiedGramSchmidtIR}) where {T}
+function _orthogonalize!!(v::T,
+                          q::T,
+                          alg::Union{ClassicalGramSchmidtIR,ModifiedGramSchmidtIR}) where {T}
     nold = norm(v)
-    s = dot(q, v)
-    v = axpy!(-s, q, v)
+    s = inner(q, v)
+    v = add!!(v, q, -s)
     nnew = norm(v)
     while eps(one(nnew)) < nnew < alg.η * nold
         nold = nnew
-        ds = dot(q, v)
-        v = axpy!(-ds, q, v)
+        ds = inner(q, v)
+        v = add!!(v, q, -ds)
         s += ds
         nnew = norm(v)
     end
@@ -503,10 +503,10 @@ end
 
 """
     orthogonalize(v, b::OrthonormalBasis, [x::AbstractVector,] alg::Orthogonalizer]) -> w, x
-    orthogonalize!(v, b::OrthonormalBasis, [x::AbstractVector,] alg::Orthogonalizer]) -> w, x
+    orthogonalize!!(v, b::OrthonormalBasis, [x::AbstractVector,] alg::Orthogonalizer]) -> w, x
 
     orthogonalize(v, q, algorithm::Orthogonalizer]) -> w, s
-    orthogonalize!(v, q, algorithm::Orthogonalizer]) -> w, s
+    orthogonalize!!(v, q, algorithm::Orthogonalizer]) -> w, s
 
 Orthogonalize vector `v` against all the vectors in the orthonormal basis `b` using the
 orthogonalization algorithm `alg` of type [`Orthogonalizer`](@ref), and return the resulting
@@ -527,24 +527,24 @@ and its concrete subtypes [`ClassicalGramSchmidt`](@ref), [`ModifiedGramSchmidt`
 [`ClassicalGramSchmidt2`](@ref), [`ModifiedGramSchmidt2`](@ref),
 [`ClassicalGramSchmidtIR`](@ref) and [`ModifiedGramSchmidtIR`](@ref).
 """
-orthogonalize, orthogonalize!
+orthogonalize, orthogonalize!!
 
 # Orthonormalization: orthogonalization and normalization
-orthonormalize(v, args...) = orthonormalize!(true * v, args...)
+orthonormalize(v, args...) = orthonormalize!!(scale(v, VectorInterface.One()), args...)
 
-function orthonormalize!(v, args...)
-    out = orthogonalize!(v, args...) # out[1] === v
+function orthonormalize!!(v, args...)
+    out = orthogonalize!!(v, args...) # out[1] === v
     β = norm(v)
-    v = rmul!(v, inv(β))
+    v = scale!!(v, inv(β))
     return tuple(v, β, Base.tail(out)...)
 end
 
 """
     orthonormalize(v, b::OrthonormalBasis, [x::AbstractVector,] alg::Orthogonalizer]) -> w, β, x
-    orthonormalize!(v, b::OrthonormalBasis, [x::AbstractVector,] alg::Orthogonalizer]) -> w, β, x
+    orthonormalize!!(v, b::OrthonormalBasis, [x::AbstractVector,] alg::Orthogonalizer]) -> w, β, x
 
     orthonormalize(v, q, algorithm::Orthogonalizer]) -> w, β, s
-    orthonormalize!(v, q, algorithm::Orthogonalizer]) -> w, β, s
+    orthonormalize!!(v, q, algorithm::Orthogonalizer]) -> w, β, s
 
 Orthonormalize vector `v` against all the vectors in the orthonormal basis `b` using the
 orthogonalization algorithm `alg` of type [`Orthogonalizer`](@ref), and return the resulting
@@ -566,4 +566,4 @@ and its concrete subtypes [`ClassicalGramSchmidt`](@ref), [`ModifiedGramSchmidt`
 [`ClassicalGramSchmidt2`](@ref), [`ModifiedGramSchmidt2`](@ref),
 [`ClassicalGramSchmidtIR`](@ref) and [`ModifiedGramSchmidtIR`](@ref).
 """
-orthonormalize, orthonormalize!
+orthonormalize, orthonormalize!!

@@ -1,14 +1,14 @@
 function linsolve(operator, b, x₀, alg::GMRES, a₀::Number=0, a₁::Number=1)
     # Initial function operation and division defines number type
     y₀ = apply(operator, x₀)
-    T = typeof(dot(b, y₀) / norm(b) * one(a₀) * one(a₁))
+    T = typeof(inner(b, y₀) / norm(b) * one(a₀) * one(a₁))
     α₀ = convert(T, a₀)::T
     α₁ = convert(T, a₁)::T
     # Continue computing r = b - a₀ * x₀ - a₁ * operator(x₀)
-    r = one(T) * b # mul!(similar(b, T), b, 1)
-    r = iszero(α₀) ? r : axpy!(-α₀, x₀, r)
-    r = axpy!(-α₁, y₀, r)
-    x = mul!(similar(r), x₀, 1)
+    r = scale(b, one(T))
+    r = iszero(α₀) ? r : add!!(r, x₀, -α₀)
+    r = add!!(r, y₀, -α₁)
+    x = scale!!(zerovector(r), x₀, 1)
     β = norm(r)
     S = typeof(β)
 
@@ -103,22 +103,22 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number=0, a₁::Number=1)
         # Update x
         V = basis(fact)
         @inbounds for i in 1:k
-            x = axpy!(y[i], V[i], x)
+            x = add!!(x, V[i], y[i])
         end
 
         if β > tol
             # Recompute residual without reevaluating operator
             w = residual(fact)
-            push!(V, rmul!(w, 1 / normres(fact)))
+            push!(V, scale!!(w, 1 / normres(fact)))
             for i in 1:k
                 rmul!(V, gs[i]')
             end
-            r = mul!(r, V[k + 1], y[k + 1])
+            r = scale!!(r, V[k + 1], y[k + 1])
         else
             # Recompute residual and its norm explicitly, to ensure that no
             # numerical errors have accumulated
-            r = mul!(r, b, 1)
-            r = axpy!(-1, apply(operator, x, α₀, α₁), r)
+            r = scale!!(r, b, 1)
+            r = add!!(r, apply(operator, x, α₀, α₁), -1)
             numops += 1
             β = norm(r)
             if β < tol

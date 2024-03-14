@@ -22,11 +22,11 @@ KrylovKit.orthonormalize
 
 The expansion coefficients of a general vector in terms of a given orthonormal basis can be obtained as
 ```@docs
-KrylovKit.project!
+KrylovKit.project!!
 ```
 whereas the inverse calculation is obtained as
 ```@docs
-KrylovKit.unproject!
+KrylovKit.unproject!!
 ```
 
 An orthonormal basis can be transformed using a rank-1 update using

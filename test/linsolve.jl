@@ -1,107 +1,123 @@
 # Test CG complete
-@testset "CG small problem" begin
-    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
+@testset "CG small problem ($mode)" for mode in (:vector, :inplace, :outplace)
+    scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
+                  (ComplexF64,)
+    @testset for T in scalartypes
         A = rand(T, (n, n))
         A = sqrt(A * A')
         b = rand(T, n)
-        alg = CG(; maxiter=2n, tol=precision(T) * norm(b), verbosity=2) # because of loss of orthogonality, we choose maxiter = 2n
-        x, info = @constinferred linsolve(wrapop(A), wrapvec(b);
+        alg = CG(; maxiter=2n, tol=tolerance(T) * norm(b), verbosity=2) # because of loss of orthogonality, we choose maxiter = 2n
+        x, info = @constinferred linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode));
                                           ishermitian=true, isposdef=true, maxiter=2n,
-                                          krylovdim=1, rtol=precision(T),
+                                          krylovdim=1, rtol=tolerance(T),
                                           verbosity=1)
         @test info.converged > 0
-        @test b ≈ A * unwrapvec(x)
-        x, info = @constinferred linsolve(wrapop(A), wrapvec(b), x;
+        @test unwrapvec(b) ≈ A * unwrapvec(x)
+        x, info = @constinferred linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), x;
                                           ishermitian=true, isposdef=true, maxiter=2n,
-                                          krylovdim=1, rtol=precision(T))
+                                          krylovdim=1, rtol=tolerance(T))
         @test info.numops == 1
 
         A = rand(T, (n, n))
         A = sqrt(A * A')
         α₀ = rand(real(T)) + 1
         α₁ = rand(real(T))
-        x, info = @constinferred linsolve(wrapop(A), wrapvec(b), wrapvec(zero(b)), alg, α₀,
-                                          α₁)
-        @test b ≈ (α₀ * I + α₁ * A) * unwrapvec(x)
+        x, info = @constinferred linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)),
+                                          wrapvec(zerovector(b), Val(mode)), alg, α₀, α₁)
+        @test unwrapvec(b) ≈ (α₀ * I + α₁ * A) * unwrapvec(x)
         @test info.converged > 0
     end
 end
 
 # Test CG complete
-@testset "CG large problem" begin
-    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
+@testset "CG large problem ($mode)" for mode in (:vector, :inplace, :outplace)
+    scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
+                  (ComplexF64,)
+    @testset for T in scalartypes
         A = rand(T, (N, N))
         A = sqrt(sqrt(A * A')) / N
         b = rand(T, N)
-        x, info = @constinferred linsolve(wrapop(A), wrapvec(b);
+        x, info = @constinferred linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode));
                                           isposdef=true, maxiter=1, krylovdim=N,
-                                          rtol=precision(T))
-        @test b ≈ A * unwrapvec(x) + unwrapvec(info.residual)
+                                          rtol=tolerance(T))
+        @test unwrapvec(b) ≈ A * unwrapvec(x) + unwrapvec(info.residual)
 
         α₀ = rand(real(T)) + 1
         α₁ = rand(real(T))
-        x, info = @constinferred linsolve(wrapop(A), wrapvec(b), α₀, α₁;
+        x, info = @constinferred linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)),
+                                          α₀, α₁;
                                           isposdef=true, maxiter=1, krylovdim=N,
-                                          rtol=precision(T))
-        @test b ≈ (α₀ * I + α₁ * A) * unwrapvec(x) + unwrapvec(info.residual)
+                                          rtol=tolerance(T))
+        @test unwrapvec(b) ≈ (α₀ * I + α₁ * A) * unwrapvec(x) + unwrapvec(info.residual)
     end
 end
 
 # Test GMRES complete
-@testset "GMRES full factorization" begin
-    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
+@testset "GMRES full factorization ($mode)" for mode in (:vector, :inplace, :outplace)
+    scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
+                  (ComplexF64,)
+    @testset for T in scalartypes
         A = rand(T, (n, n)) .- one(T) / 2
         b = rand(T, n)
-        alg = GMRES(; krylovdim=n, maxiter=2, tol=precision(T) * norm(b), verbosity=2)
-        x, info = @constinferred linsolve(wrapop(A), wrapvec(b); krylovdim=n, maxiter=2,
-                                          rtol=precision(T), verbosity=1)
+        alg = GMRES(; krylovdim=n, maxiter=2, tol=tolerance(T) * norm(b), verbosity=2)
+        x, info = @constinferred linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode));
+                                          krylovdim=n, maxiter=2,
+                                          rtol=tolerance(T), verbosity=1)
         @test info.converged > 0
-        @test b ≈ A * unwrapvec(x)
-        x, info = @constinferred linsolve(wrapop(A), wrapvec(b), x; krylovdim=n, maxiter=2,
-                                          rtol=precision(T))
+        @test unwrapvec(b) ≈ A * unwrapvec(x)
+        x, info = @constinferred linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), x;
+                                          krylovdim=n, maxiter=2,
+                                          rtol=tolerance(T))
         @test info.numops == 1
 
         A = rand(T, (n, n))
         α₀ = rand(T)
         α₁ = -rand(T)
-        x, info = @constinferred(linsolve(wrapop(A), wrapvec(b), wrapvec(zero(b)), alg, α₀,
-                                          α₁))
-        @test b ≈ (α₀ * I + α₁ * A) * unwrapvec(x)
+        x, info = @constinferred(linsolve(A, b, zerovector(b), alg, α₀, α₁))
+        @test unwrapvec(b) ≈ (α₀ * I + α₁ * A) * unwrapvec(x)
         @test info.converged > 0
     end
 end
 
 # Test GMRES with restart
-@testset "GMRES with restarts" begin
-    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
+@testset "GMRES with restarts ($mode)" for mode in (:vector, :inplace, :outplace)
+    scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
+                  (ComplexF64,)
+    @testset for T in scalartypes
         A = rand(T, (N, N)) .- one(T) / 2
         A = I - T(9 / 10) * A / maximum(abs, eigvals(A))
         b = rand(T, N)
-        x, info = @constinferred linsolve(wrapop(A), wrapvec(b); krylovdim=3 * n,
-                                          maxiter=50, rtol=precision(T))
-        @test b ≈ A * unwrapvec(x) + unwrapvec(info.residual)
+        x, info = @constinferred linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode));
+                                          krylovdim=3 * n,
+                                          maxiter=50, rtol=tolerance(T))
+        @test unwrapvec(b) ≈ A * unwrapvec(x) + unwrapvec(info.residual)
 
         A = rand(T, (N, N)) .- one(T) / 2
         α₀ = maximum(abs, eigvals(A))
         α₁ = -rand(T)
         α₁ *= T(9) / T(10) / abs(α₁)
-        x, info = @constinferred linsolve(wrapop(A), wrapvec(b), α₀, α₁; krylovdim=3 * n,
-                                          maxiter=50, rtol=precision(T))
-        @test b ≈ (α₀ * I + α₁ * A) * unwrapvec(x) + unwrapvec(info.residual)
+        x, info = @constinferred linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), α₀,
+                                          α₁; krylovdim=3 * n,
+                                          maxiter=50, rtol=tolerance(T))
+        @test unwrapvec(b) ≈ (α₀ * I + α₁ * A) * unwrapvec(x) + unwrapvec(info.residual)
     end
 end
 
 # Test BICGStab
-@testset "BiCGStab" begin
-    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
+@testset "BiCGStab ($mode)" for mode in (:vector, :inplace, :outplace)
+    scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
+                  (ComplexF64,)
+    @testset for T in scalartypes
         A = rand(T, (n, n)) .- one(T) / 2
         A = I - T(9 / 10) * A / maximum(abs, eigvals(A))
         b = rand(T, n)
-        alg = BiCGStab(; maxiter=4n, tol=precision(T) * norm(b), verbosity=2)
-        x, info = @constinferred linsolve(wrapop(A), wrapvec(b), wrapvec(zero(b)), alg)
+        alg = BiCGStab(; maxiter=4n, tol=tolerance(T) * norm(b), verbosity=2)
+        x, info = @constinferred linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)),
+                                          wrapvec(zerovector(b), Val(mode)), alg)
         @test info.converged > 0
-        @test b ≈ A * unwrapvec(x)
-        x, info = @constinferred linsolve(wrapop(A), wrapvec(b), x, alg)
+        @test unwrapvec(b) ≈ A * unwrapvec(x)
+        x, info = @constinferred linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), x,
+                                          alg)
         @test info.numops == 1
 
         A = rand(T, (N, N)) .- one(T) / 2
@@ -109,13 +125,15 @@ end
         α₀ = maximum(abs, eigvals(A))
         α₁ = -rand(T)
         α₁ *= T(9) / T(10) / abs(α₁)
-        alg = BiCGStab(; maxiter=2, tol=precision(T) * norm(b), verbosity=1)
-        x, info = @constinferred linsolve(wrapop(A), wrapvec(b), wrapvec(zero(b)), alg, α₀,
+        alg = BiCGStab(; maxiter=2, tol=tolerance(T) * norm(b), verbosity=1)
+        x, info = @constinferred linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)),
+                                          wrapvec(zerovector(b), Val(mode)), alg, α₀,
                                           α₁)
-        @test b ≈ (α₀ * I + α₁ * A) * unwrapvec(x) + unwrapvec(info.residual)
-        alg = BiCGStab(; maxiter=10 * N, tol=precision(T) * norm(b), verbosity=0)
-        x, info = @constinferred linsolve(wrapop(A), wrapvec(b), x, alg, α₀, α₁)
+        @test unwrapvec(b) ≈ (α₀ * I + α₁ * A) * unwrapvec(x) + unwrapvec(info.residual)
+        alg = BiCGStab(; maxiter=10 * N, tol=tolerance(T) * norm(b), verbosity=0)
+        x, info = @constinferred linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), x,
+                                          alg, α₀, α₁)
         @test info.converged > 0
-        @test b ≈ (α₀ * I + α₁ * A) * unwrapvec(x)
+        @test unwrapvec(b) ≈ (α₀ * I + α₁ * A) * unwrapvec(x)
     end
 end
