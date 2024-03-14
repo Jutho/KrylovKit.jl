@@ -28,12 +28,36 @@ to vectors.
 
 ## Release notes for the latest version
 
-### v0.6
-This version requires at least Julia 1.6 because of new dependencies, namely on
-[GPUArraysCore.jl](https://github.com/JuliaGPU/GPUArrays.jl) to fix the GPU support, and on
-[ChainRulesCore.jl](https://github.com/JuliaDiff/ChainRulesCore.jl) to have AD support. In
-particular, this version comes with (experimental) AD support for `linsolve`. Future
-versions will extend this to `eigsolve` and potentially more.
+### v0.7
+This version now depends on and uses [VectorInterface.jl](https://github.com/Jutho/VectorInterface.jl)
+to define the vector-like behavior of the input vectors, rather than some minimal set of
+methods from `Base` and `LinearAlgebra`. The advantage is that many more types from standard
+Julia are now supported out of the box, such as nested vectors or immutable objects such as
+tuples. For custom user types for which the old set of required methods was implemented, there
+are fallback definitions of the methods in VectorInferace.jl such that these types should still
+be supported, but this might result in warnings being printed. It is recommend to implement full
+support for at least the methods in VectorInterface without bang or with double bang, where the
+latter set of methods can use in-place mutation if your type supports this behavior.
+
+In particular, tuples are now supported:
+
+```julia-repl
+julia> values, vectors, info = eigsolve(t -> cumsum(t) .+ 0.5 .* reverse(t), (1,0,0,0));
+
+julia> values
+4-element Vector{ComplexF64}:
+  2.5298897746721303 + 0.0im
+  0.7181879189193713 + 0.4653321688070444im
+  0.7181879189193713 - 0.4653321688070444im
+ 0.03373438748912972 + 0.0im
+
+julia> vectors
+4-element Vector{NTuple{4, ComplexF64}}:
+ (0.25302539267845964 + 0.0im, 0.322913174072047 + 0.0im, 0.48199234088257203 + 0.0im, 0.774201921982351 + 0.0im)
+ (0.08084058845575778 + 0.46550907490257704im, 0.16361072959559492 - 0.20526827902633993im, -0.06286027036719286 - 0.6630573167350086im, -0.47879640378455346 - 0.18713670961291684im)
+ (0.08084058845575778 - 0.46550907490257704im, 0.16361072959559492 + 0.20526827902633993im, -0.06286027036719286 + 0.6630573167350086im, -0.47879640378455346 + 0.18713670961291684im)
+ (0.22573986355213632 + 0.0im, -0.5730667760748933 + 0.0im, 0.655989711683001 + 0.0im, -0.4362493350466509 + 0.0im)
+```
 
 ## Overview
 KrylovKit.jl accepts general functions or callable objects as linear maps, and general Julia

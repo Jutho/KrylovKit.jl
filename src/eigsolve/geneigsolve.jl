@@ -6,31 +6,30 @@
     # expert version:
     geneigsolve(f, x₀, howmany, which, algorithm)
 
-Compute at least `howmany` generalized eigenvalues ``λ`` and generalized eigenvectors ``x``
-of the form ``(A - λB)x = 0``, where `A` and `B` are either instances of `AbstractMatrix`,
-or some function that implements the matrix vector product. In case functions are used, one
-could either specify the action of `A` and `B` via a tuple of two functions (or a function
-and an `AbstractMatrix`), or one could use a single function that takes a single argument
-`x` and returns two results, corresponding to `A*x` and `B*x`. Return the computed
-eigenvalues, eigenvectors and a `ConvergenceInfo` structure.
+Compute at least `howmany` generalized eigenvalues ``λ`` and generalized eigenvectors
+``x`` of the form ``(A - λB)x = 0``, where `A` and `B` are either instances of
+`AbstractMatrix`, or some function that implements the matrix vector product. In case
+functions are used, one could either specify the action of `A` and `B` via a tuple of two
+functions (or a function and an `AbstractMatrix`), or one could use a single function that
+takes a single argument `x` and returns two results, corresponding to `A*x` and `B*x`.
+Return the computed eigenvalues, eigenvectors and a `ConvergenceInfo` structure.
 
 ### Arguments:
 
-The first argument is either a tuple of two linear maps, so a function or an
-`AbstractMatrix` for either of them, representing the action of `A` and `B`. Alternatively,
-a single function can be used that takes a single argument `x` and returns the equivalent of
-`(A*x, B*x)` as result. This latter form is compatible with the `do` block syntax of Julia.
-If an `AbstractMatrix` is used for either `A` or `B`, a starting vector `x₀` does not need
-to be provided, it is then chosen as `rand(T, size(A,1))` if `A` is an `AbstractMatrix` (or
-similarly if only `B` is an `AbstractMatrix`). Here
-`T = promote_type(eltype(A), eltype(B))` if both `A` and `B` are instances of
-`AbstractMatrix`, or just the `eltype` of whichever is an `AbstractMatrix`. If both `A` and
-`B` are encoded more generally as a callable function or method, the best approach is to
-provide an explicit starting guess `x₀`. Note that `x₀` does not need to be of type
-`AbstractVector`, any type that behaves as a vector and supports the required methods (see
-KrylovKit docs) is accepted. If instead of `x₀` an integer `n` is specified, it is assumed
-that `x₀` is a regular vector and it is initialized to `rand(T,n)`, where the default value
-of `T` is `Float64`, unless specified differently.
+The first argument is either a tuple of two linear maps, so a function or an `AbstractMatrix`
+for either of them, representing the action of `A` and `B`. Alternatively, a single function
+can be used that takes a single argument `x` and returns the equivalent of `(A*x, B*x)` as
+result. This latter form is compatible with the `do` block syntax of Julia. If an
+`AbstractMatrix` is used for either `A` or `B`, a starting vector `x₀` does not need to be
+provided, it is then chosen as `rand(T, size(A,1))` if `A` is an `AbstractMatrix` (or
+similarly if only `B` is an `AbstractMatrix`). Here `T = promote_type(eltype(A), eltype(B))`
+if both `A` and `B` are instances of `AbstractMatrix`, or just the `eltype` of whichever is
+an `AbstractMatrix`. If both `A` and `B` are encoded more generally as a callable function
+or method, the best approach is to provide an explicit starting guess `x₀`. Note that `x₀`
+does not need to be of type `AbstractVector`, any type that behaves as a vector and supports
+the required methods (see KrylovKit docs) is accepted. If instead of `x₀` an integer `n` is
+specified, it is assumed that `x₀` is a regular vector and it is initialized to `rand(T,n)`,
+where the default value of `T` is `Float64`, unless specified differently.
 
 The next arguments are optional, but should typically be specified. `howmany` specifies how
 many eigenvalues should be computed; `which` specifies which eigenvalues should be
@@ -91,9 +90,11 @@ Keyword arguments and their default values are given by:
 
   - `verbosity::Int = 0`: verbosity level, i.e. 0 (no messages), 1 (single message
     at the end), 2 (information after every iteration), 3 (information per Krylov step)
-  - `tol::Real`: the requested accuracy (corresponding to the 2-norm of the residual for
-    Schur vectors, not the eigenvectors). If you work in e.g. single precision (`Float32`),
-    you should definitely change the default value.
+  - `tol::Real`: the requested accuracy, relative to the 2-norm of the corresponding
+    eigenvectors, i.e. convergence is achieved if `norm((A - λB)x) < tol * norm(x)`. Because
+    eigenvectors are now normalised such that `dot(x, B*x) = 1`, `norm(x)` is not
+    automatically one. If you work in e.g. single precision (`Float32`), you should
+    definitely change the default value.
   - `krylovdim::Integer`: the maximum dimension of the Krylov subspace that will be
     constructed. Note that the dimension of the vector space is not known or checked, e.g.
     `x₀` should not necessarily support the `Base.length` function. If you know the actual
@@ -107,12 +108,16 @@ Keyword arguments and their default values are given by:
     `T<:Real`
   - `ishermitian::Bool`: if both linear maps `A` and `B` are hermitian
   - `isposdef::Bool`: if the linear map `B` is positive definite
-    The default values are given by `tol = KrylovDefaults.tol`, `krylovdim = KrylovDefaults.krylovdim`, `maxiter = KrylovDefaults.maxiter`, `orth = KrylovDefaults.orth`; see [`KrylovDefaults`](@ref) for details.
+    
+The default values are given by `tol = KrylovDefaults.tol`,
+`krylovdim = KrylovDefaults.krylovdim`, `maxiter = KrylovDefaults.maxiter`,
+`orth = KrylovDefaults.orth`; see [`KrylovDefaults`](@ref) for details.
 
 The default value for the last three parameters depends on the method. If an
 `AbstractMatrix` is used, `issymmetric`, `ishermitian` and `isposdef` are checked for that
-matrix, otherwise the default values are `issymmetric = false` and `ishermitian = T <: Real && issymmetric`. When values are provided, no checks will be performed even in the
-matrix case.
+matrix, otherwise the default values are `issymmetric = false` and
+`ishermitian = T <: Real && issymmetric`. When values are provided, no checks will be
+performed even in the matrix case.
 
 ### Algorithm
 
@@ -121,11 +126,12 @@ called, and can also be used directly. Here the algorithm is specified, though c
 only [`GolubYe`](@ref) is available. The Golub-Ye algorithm is an algorithm for solving
 hermitian (symmetric) generalized eigenvalue problems `A x = λ B x` with positive definite
 `B`, without the need for inverting `B`. It builds a Krylov subspace of size `krylovdim`
-starting from an estimate `x` by acting with `(A - ρ(x) B)`, where `ρ(x) = dot(x, A*x)/ dot(x, B*x)`, and employing the Lanczos algorithm. This process is repeated at most
-`maxiter` times. In every iteration `k>1`, the subspace will also be expanded to size
-`krylovdim+1` by adding ``x_k - x_{k-1}``, which is known as the LOPCG correction and was
-suggested by Money and Ye. With `krylovdim = 2`, this algorithm becomes equivalent to
-`LOPCG`.
+starting from an estimate `x` by acting with `(A - ρ(x) B)`, where 
+`ρ(x) = dot(x, A*x)/ dot(x, B*x)`, and employing the Lanczos algorithm. This process is
+repeated at most `maxiter` times. In every iteration `k>1`, the subspace will also be
+expanded to size `krylovdim+1` by adding ``x_k - x_{k-1}``, which is known as the LOPCG
+correction and was suggested by Money and Ye. With `krylovdim = 2`, this algorithm becomes
+equivalent to `LOPCG`.
 
 !!! warning "Restriction to symmetric definite generalized eigenvalue problems"
 
