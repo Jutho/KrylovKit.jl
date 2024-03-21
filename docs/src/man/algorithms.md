@@ -23,7 +23,7 @@ CG
 KrylovKit.MINRES
 GMRES
 KrylovKit.BiCG
-KrylovKit.BiCGStab
+BiCGStab
 ```
 ## Specific algorithms for generalized eigenvalue problems
 ```@docs
