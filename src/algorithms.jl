@@ -340,8 +340,6 @@ end
 """
     BiCGStab(; maxiter = KrylovDefaults.maxiter, tol = KrylovDefaults.tol)
 
-    !!! warning "Not implemented yet"
-
     Construct an instance of the Biconjugate gradient algorithm with specified parameters,
     which can be passed to `linsolve` in order to iteratively solve a linear system general
     linear map. The `BiCGStab` method will search for the optimal `x` in a Krylov subspace

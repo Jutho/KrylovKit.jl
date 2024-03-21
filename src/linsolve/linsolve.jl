@@ -76,13 +76,13 @@ matrix, ortherwise the default values are `issymmetric = false`,
 
 The final (expert) method, without default values and keyword arguments, is the one that is
 finally called, and can also be used directly. Here, one specifies the algorithm explicitly.
-Currently, only [`CG`](@ref) and [`GMRES`](@ref) are implemented, where `CG` is chosen if
-`isposdef == true`. Note that in standard `GMRES` terminology, our parameter `krylovdim` is
-referred to as the *restart* parameter, and our `maxiter` parameter counts the number of
-outer iterations, i.e. restart cycles. In `CG`, the Krylov subspace is only implicit
-because short recurrence relations are being used, and therefore no restarts are required.
-Therefore, we pass `krylovdim*maxiter` as the maximal number of CG iterations that can be
-used by the `CG` algorithm.
+Currently, only [`CG`](@ref), [`GMRES`](@ref) and [`BiCGStab`](@ref) are implemented, where
+`CG` is chosen if `isposdef == true` and `GMRES` is chosen otherwise. Note that in standard
+`GMRES` terminology, our parameter `krylovdim` is referred to as the *restart* parameter,
+and our `maxiter` parameter counts the number of outer iterations, i.e. restart cycles. In
+`CG`, the Krylov subspace is only implicit because short recurrence relations are being
+used, and therefore no restarts are required. Therefore, we pass `krylovdim*maxiter` as the
+maximal number of CG iterations that can be used by the `CG` algorithm.
 """
 function linsolve end
 
