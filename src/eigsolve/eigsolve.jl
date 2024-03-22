@@ -35,7 +35,7 @@ targeted. Valid specifications of `which` are given by
 !!! note "Note about selecting `which` eigenvalues"
 
     Krylov methods work well for extremal eigenvalues, i.e. eigenvalues on the periphery of
-    the spectrum of the linear map. All of they valid `Symbol`s for `which` have this
+    the spectrum of the linear map. All of the valid `Symbol`s for `which` have this
     property, but could also be specified using `EigSorter`, e.g. `:LM` is equivalent to
     `Eigsorter(abs; rev = true)`. Note that smallest magnitude sorting is obtained using
     e.g. `EigSorter(abs; rev = false)`, but since no (shift-and)-invert is used, this will
