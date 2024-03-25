@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Haegeman"
+  given-names: "Jutho"
+  orcid: "https://orcid.org/0000-0002-0858-291X"
+
+title: "KrylovKit"
+version: 0.7.0
+doi: 10.5281/zenodo.10622234
+date-released: 2024-03-14
+url: "https://github.com/Jutho/KrylovKit.jl"
