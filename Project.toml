@@ -1,7 +1,7 @@
 name = "KrylovKit"
 uuid = "0b1a1467-8014-51b9-945f-bf0ae24f4b77"
 authors = ["Jutho Haegeman"]
-version = "0.7.0"
+version = "0.7.1"
 
 [deps]
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
