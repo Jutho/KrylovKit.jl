@@ -4,9 +4,9 @@ A Julia package collecting a number of Krylov-based algorithms for linear proble
 value and eigenvalue problems and the application of functions of linear maps or operators
 to vectors.
 
-| **Documentation** | **Build Status** | **License** |
-|:-----------------:|:----------------:|:-----------:|
-| [![][docs-stable-img]][docs-stable-url] [![][docs-dev-img]][docs-dev-url] | [![][aqua-img]][aqua-url] [![CI][github-img]][github-url] [![][codecov-img]][codecov-url] | [![license][license-img]][license-url] |
+| **Documentation** | **Build Status** | **Digital Object Idenitifier** | **License** |
+|:-----------------:|:----------------:|:---------------:|:-----------:|
+| [![][docs-stable-img]][docs-stable-url] [![][docs-dev-img]][docs-dev-url] | [![][aqua-img]][aqua-url] [![CI][github-img]][github-url] [![][codecov-img]][codecov-url] | [![DOI][doi-img]][doi-url] | [![license][license-img]][license-url] |
 
 [docs-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
 [docs-dev-url]: https://jutho.github.io/KrylovKit.jl/latest
@@ -25,6 +25,9 @@ to vectors.
 
 [license-img]: http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat
 [license-url]: LICENSE.md
+
+[doi-img]: https://zenodo.org/badge/DOI/10.5281/zenodo.10622234.svg
+[doi-url]: https://doi.org/10.5281/zenodo.10622234
 
 ## Release notes for the latest version
 
