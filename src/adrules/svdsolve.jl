@@ -9,8 +9,8 @@ function ChainRulesCore.rrule(::typeof(svdsolve), A, x₀, howmany::Int, which::
         S = diagm(val)
         V = copy(hcat(rvec...)')
         ΔU = Δlvec isa ZeroTangent ? Δlvec : hcat(Δlvec...)
-        ΔS = Δval isa ZeroTangent ? Δval : diagm(ΔV)
-        ΔV = Δrvec isa ZeroTangent ? Δrvec : hcat(Δrvec)
+        ΔS = Δval isa ZeroTangent ? Δval : diagm(Δval)
+        ΔV = Δrvec isa ZeroTangent ? Δrvec : hcat(Δrvec...)
 
         ∂A = truncsvd_rrule(A, U, S, V, ΔU, ΔS, ΔV)
         return NoTangent(), ∂A, ZeroTangent(), NoTangent(), NoTangent(), NoTangent()
@@ -40,7 +40,7 @@ function truncsvd_rrule(A,
         F[i, j] = if i == j
             zero(T)
         else
-            sᵢ, sⱼ = S[i, i], S[j j]
+            sᵢ, sⱼ = S[i, i], S[j, j]
             Δs = abs(sⱼ - sᵢ) < tol ? tol : sⱼ^2 - sᵢ^2
             1 / Δs
         end
