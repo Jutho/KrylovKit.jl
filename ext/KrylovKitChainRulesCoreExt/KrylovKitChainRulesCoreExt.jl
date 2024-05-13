@@ -8,5 +8,6 @@ using VectorInterface
 include("utilities.jl")
 include("linsolve.jl")
 include("eigsolve.jl")
+include("svdsolve.jl")
 
 end # module
