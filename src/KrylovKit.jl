@@ -24,8 +24,8 @@ using VectorInterface
 using VectorInterface: add!!
 using LinearAlgebra
 using Printf
-using ChainRulesCore
 using GPUArraysCore
+using PackageExtensionCompat
 const IndexRange = AbstractRange{Int}
 
 export linsolve, eigsolve, geneigsolve, svdsolve, schursolve, exponentiate, expintegrator
@@ -60,7 +60,9 @@ enable_threads() = set_num_threads(Base.Threads.nthreads())
 disable_threads() = set_num_threads(1)
 
 function __init__()
-    return set_num_threads(Base.Threads.nthreads())
+    @require_extensions
+    set_num_threads(Base.Threads.nthreads())
+    return nothing
 end
 
 struct SplitRange
@@ -233,9 +235,6 @@ include("linsolve/bicgstab.jl")
 # exponentiate
 include("matrixfun/exponentiate.jl")
 include("matrixfun/expintegrator.jl")
-
-# rules for automatic differentation
-include("adrules/linsolve.jl")
 
 # custom vector types
 include("recursivevec.jl")
