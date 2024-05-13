@@ -119,22 +119,18 @@ function linselector(f,
                      orth=KrylovDefaults.orth,
                      verbosity::Int=0)
     if (T <: Real && issymmetric) || ishermitian
-        isposdef &&
+        if isposdef
             return CG(; maxiter=krylovdim * maxiter, tol=tol, verbosity=verbosity)
-        # TODO: implement MINRES for symmetric but not posdef; for now use GRMES
-        # return MINRES(krylovdim*maxiter, tol=tol)
-        return GMRES(; krylovdim=krylovdim,
-                     maxiter=maxiter,
-                     tol=tol,
-                     orth=orth,
-                     verbosity=verbosity)
-    else
-        return GMRES(; krylovdim=krylovdim,
-                     maxiter=maxiter,
-                     tol=tol,
-                     orth=orth,
-                     verbosity=verbosity)
+        else
+            # TODO: implement MINRES for symmetric but not posdef; for now use GRMES
+            # return MINRES(krylovdim*maxiter, tol=tol)
+        end
     end
+    return GMRES(; krylovdim=krylovdim,
+                 maxiter=maxiter,
+                 tol=tol,
+                 orth=orth,
+                 verbosity=verbosity)
 end
 function linselector(A::AbstractMatrix,
                      b,
@@ -150,20 +146,16 @@ function linselector(A::AbstractMatrix,
                      orth=KrylovDefaults.orth,
                      verbosity::Int=0)
     if (T <: Real && issymmetric) || ishermitian
-        isposdef &&
+        if isposdef
             return CG(; maxiter=krylovdim * maxiter, tol=tol, verbosity=verbosity)
-        # TODO: implement MINRES for symmetric but not posdef; for now use GRMES
-        # return MINRES(krylovdim*maxiter, tol=tol, verbosity = verbosity)
-        return GMRES(; krylovdim=krylovdim,
-                     maxiter=maxiter,
-                     tol=tol,
-                     orth=orth,
-                     verbosity=verbosity)
-    else
-        return GMRES(; krylovdim=krylovdim,
-                     maxiter=maxiter,
-                     tol=tol,
-                     orth=orth,
-                     verbosity=verbosity)
+        else
+            # TODO: implement MINRES for symmetric but not posdef; for now use GRMES
+            # return MINRES(krylovdim*maxiter, tol=tol)
+        end
     end
+    return GMRES(; krylovdim=krylovdim,
+                 maxiter=maxiter,
+                 tol=tol,
+                 orth=orth,
+                 verbosity=verbosity)
 end

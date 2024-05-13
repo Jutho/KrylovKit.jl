@@ -1,90 +1,106 @@
-function ChainRulesCore.rrule(::typeof(linsolve),
-                              A::AbstractMatrix,
-                              b::AbstractVector,
-                              x₀,
-                              algorithm,
-                              a₀,
-                              a₁)
-    (x, info) = linsolve(A, b, x₀, algorithm, a₀, a₁)
-    project_A = ProjectTo(A)
-
-    function linsolve_pullback(X̄)
-        x̄ = unthunk(X̄[1])
-        ∂self = NoTangent()
-        ∂x₀ = ZeroTangent()
-        ∂algorithm = NoTangent()
-        ∂b, reverse_info = linsolve(A', x̄, (zero(a₀) * zero(a₁)) * x̄, algorithm, conj(a₀),
-                                    conj(a₁))
-        if info.converged > 0 && reverse_info.converged == 0
-            @warn "The cotangent linear problem did not converge, whereas the primal linear problem did."
-        end
-        if A isa StridedMatrix
-            ∂A = InplaceableThunk(Ā -> mul!(Ā, ∂b, x', -conj(a₁), true),
-                                  @thunk(-conj(a₁) * ∂b * x'))
-        else
-            ∂A = @thunk(project_A(-conj(a₁) * ∂b * x'))
-        end
-        ∂a₀ = @thunk(-dot(x, ∂b))
-        if a₀ == zero(a₀) && a₁ == one(a₁)
-            ∂a₁ = @thunk(-dot(b, ∂b))
-        else
-            ∂a₁ = @thunk(-dot((b - a₀ * x) / a₁, ∂b))
-        end
-        return ∂self, ∂A, ∂b, ∂x₀, ∂algorithm, ∂a₀, ∂a₁
-    end
-    return (x, info), linsolve_pullback
-end
-
-function ChainRulesCore.rrule(config::RuleConfig{>:HasReverseMode},
-                              ::typeof(linsolve),
-                              A::AbstractMatrix,
-                              b::AbstractVector,
-                              x₀,
-                              algorithm,
-                              a₀,
-                              a₁)
-    return rrule(linsolve, A, b, x₀, algorithm, a₀, a₁)
-end
-
-function ChainRulesCore.rrule(config::RuleConfig{>:HasReverseMode},
+function ChainRulesCore.rrule(config::RuleConfig,
                               ::typeof(linsolve),
                               f,
                               b,
                               x₀,
-                              algorithm,
+                              alg_primal,
                               a₀,
-                              a₁)
-    x, info = linsolve(f, b, x₀, algorithm, a₀, a₁)
-
-    # f defines a linear map => pullback defines action of the adjoint
-    (y, f_pullback) = rrule_via_ad(config, f, x)
-    fᴴ(xᴴ) = f_pullback(xᴴ)[2]
-    # TODO can we avoid computing f_pullback if algorithm isa Union{CG,MINRES}?
+                              a₁; alg_rrule=alg_primal)
+    (x, info) = linsolve(f, b, x₀, alg_primal, a₀, a₁)
+    T, fᴴ, construct∂f = _prepare_inputs(config, f, (x,), alg_primal)
 
     function linsolve_pullback(X̄)
         x̄ = unthunk(X̄[1])
         ∂self = NoTangent()
         ∂x₀ = ZeroTangent()
         ∂algorithm = NoTangent()
-        T = VectorInterface.promote_scale(VectorInterface.promote_scale(x̄, a₀),
-                                          scalartype(a₁))
-        ∂b, reverse_info = linsolve(fᴴ, x̄, zerovector(x̄, T), algorithm, conj(a₀),
+        ∂b, reverse_info = linsolve(fᴴ, x̄, (zero(a₀) * zero(a₁)) * x̄, alg_rrule, conj(a₀),
                                     conj(a₁))
-        if reverse_info.converged == 0
-            @warn "Linear problem for reverse rule did not converge." reverse_info
-        end
-        ∂f = @thunk(f_pullback(scale(∂b, -conj(a₁)))[1])
+        info.converged > 0 && reverse_info.converged == 0 &&
+            @warn "`linsolve` cotangent problem did not converge, whereas the primal linear problem did"
+
+        ∂f = construct∂f((scale(∂b, -conj(a₁)),))
         ∂a₀ = @thunk(-inner(x, ∂b))
-        # ∂a₁ = @thunk(-dot(f(x), ∂b))
         if a₀ == zero(a₀) && a₁ == one(a₁)
             ∂a₁ = @thunk(-inner(b, ∂b))
         else
-            ∂a₁ = @thunk(-inner(scale!!(add(b, x, -a₀), inv(a₁)), ∂b))
+            ∂a₁ = @thunk(-inner(add(b, x, -a₀ / a₁, +1 / a₁), ∂b))
         end
         return ∂self, ∂f, ∂b, ∂x₀, ∂algorithm, ∂a₀, ∂a₁
     end
     return (x, info), linsolve_pullback
 end
+
+# function generate_linsolve_pullback(alg_rrule, A::AbstractMatrix, b::AbstractVector, a₀, a₁,
+#                                     x, info, alg_primal)
+#     project_A = ProjectTo(A)
+
+#     function linsolve_pullback(X̄)
+#         x̄ = unthunk(X̄[1])
+#         ∂self = NoTangent()
+#         ∂x₀ = ZeroTangent()
+#         ∂algorithm = NoTangent()
+#         ∂b, reverse_info = linsolve(A', x̄, (zero(a₀) * zero(a₁)) * x̄, alg_rrule, conj(a₀),
+#                                     conj(a₁))
+#         if info.converged > 0 && reverse_info.converged == 0
+#             @warn "The cotangent linear problem did not converge, whereas the primal linear problem did."
+#         end
+#         if A isa StridedMatrix
+#             ∂A = InplaceableThunk(Ā -> mul!(Ā, ∂b, x', -conj(a₁), true),
+#                                   @thunk(-conj(a₁) * ∂b * x'))
+#         else
+#             ∂A = @thunk(project_A(-conj(a₁) * ∂b * x'))
+#         end
+#         ∂a₀ = @thunk(-dot(x, ∂b))
+#         if a₀ == zero(a₀) && a₁ == one(a₁)
+#             ∂a₁ = @thunk(-dot(b, ∂b))
+#         else
+#             ∂a₁ = @thunk(-dot((b - a₀ * x) / a₁, ∂b))
+#         end
+#         return ∂self, ∂A, ∂b, ∂x₀, ∂algorithm, ∂a₀, ∂a₁
+#     end
+#     return linsolve_pullback
+# end
+
+# function generate_linsolve_pullback(config::RuleConfig{>:HasReverseMode},
+#                                     alg_rrule,
+#                                     f,
+#                                     b,
+#                                     a₀,
+#                                     a₁,
+#                                     x,
+#                                     info,
+#                                     alg_primal)
+
+#     # f defines a linear map => pullback defines action of the adjoint
+#     (y, f_pullback) = rrule_via_ad(config, f, x)
+#     fᴴ(xᴴ) = f_pullback(xᴴ)[2]
+#     # TODO can we avoid computing f_pullback if algorithm isa Union{CG,MINRES}?
+
+#     function linsolve_pullback(X̄)
+#         x̄ = unthunk(X̄[1])
+#         ∂self = NoTangent()
+#         ∂x₀ = ZeroTangent()
+#         ∂algorithm = NoTangent()
+#         T = VectorInterface.promote_scale(VectorInterface.promote_scale(x̄, a₀),
+#                                           scalartype(a₁))
+#         ∂b, reverse_info = linsolve(fᴴ, x̄, zerovector(x̄, T), alg_rrule, conj(a₀),
+#                                     conj(a₁))
+#         if reverse_info.converged == 0
+#             @warn "Linear problem for reverse rule did not converge." reverse_info
+#         end
+#         ∂f = @thunk(f_pullback(scale(∂b, -conj(a₁)))[1])
+#         ∂a₀ = @thunk(-inner(x, ∂b))
+#         # ∂a₁ = @thunk(-dot(f(x), ∂b))
+#         if a₀ == zero(a₀) && a₁ == one(a₁)
+#             ∂a₁ = @thunk(-inner(b, ∂b))
+#         else
+#             ∂a₁ = @thunk(-inner(scale!!(add(b, x, -a₀), inv(a₁)), ∂b))
+#         end
+#         return ∂self, ∂f, ∂b, ∂x₀, ∂algorithm, ∂a₀, ∂a₁
+#     end
+#     return linsolve_pullback
+# end
 
 # frule - currently untested
 
