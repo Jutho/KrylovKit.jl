@@ -4,11 +4,17 @@ authors = ["Jutho Haegeman"]
 version = "0.7.1"
 
 [deps]
-ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 GPUArraysCore = "46192b85-c4d5-4398-a991-12ede77f4527"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+PackageExtensionCompat = "65ce6f38-6b18-4e1d-a461-8949797d7930"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 VectorInterface = "409d34a3-91d5-4945-b6ec-7529ddf182d8"
+
+[weakdeps]
+ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+
+[extensions]
+KrylovKitChainRulesCoreExt = "ChainRulesCore"
 
 [compat]
 Aqua = "0.6, 0.7, 0.8"
@@ -16,17 +22,19 @@ ChainRulesCore = "1"
 ChainRulesTestUtils = "1"
 FiniteDifferences = "0.12"
 GPUArraysCore = "0.1"
-VectorInterface = "0.4"
 LinearAlgebra = "1"
-Random = "1"
+PackageExtensionCompat = "1"
 Printf = "1"
+Random = "1"
 Test = "1"
 TestExtras = "0.2"
+VectorInterface = "0.4"
 Zygote = "0.6"
 julia = "1.6"
 
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
+ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 ChainRulesTestUtils = "cdddcdb0-9152-4a09-a978-84456f9df70a"
 FiniteDifferences = "26cc04aa-876d-5657-8c51-4c34ba976000"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
@@ -35,4 +43,4 @@ TestExtras = "5ed8adda-3752-4e41-b88a-e8b09835ee3a"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [targets]
-test = ["Test", "Aqua", "Random", "TestExtras", "ChainRulesTestUtils", "FiniteDifferences", "Zygote"]
+test = ["Test", "Aqua", "Random", "TestExtras", "ChainRulesTestUtils", "ChainRulesCore", "FiniteDifferences", "Zygote"]
