@@ -190,9 +190,8 @@ function eigsolve(f, x₀, howmany::Int=1, which::Selector=:LM; kwargs...)
             error("Eigenvalue selector which = $which invalid: real eigenvalues expected with Lanczos algorithm")
         end
     elseif T <: Real
-        if which == :LI ||
-           which == :SI ||
-           (which isa EigSorter && which.by(+im) != which.by(-im))
+        by, rev = eigsort(which)
+        if by(+im) != by(-im)
             error("Eigenvalue selector which = $which invalid because it does not treat
             `λ` and `conj(λ)` equally: work in complex arithmetic by providing a complex starting vector `x₀`")
         end
@@ -203,14 +202,14 @@ end
 function eigselector(f,
                      T::Type;
                      issymmetric::Bool=false,
-                     ishermitian::Bool=issymmetric && !(T <: Complex),
+                     ishermitian::Bool=issymmetric && (T <: Real),
                      krylovdim::Int=KrylovDefaults.krylovdim,
                      maxiter::Int=KrylovDefaults.maxiter,
                      tol::Real=KrylovDefaults.tol,
                      orth::Orthogonalizer=KrylovDefaults.orth,
                      eager::Bool=false,
                      verbosity::Int=0)
-    if (issymmetric && !(T <: Complex)) || ishermitian
+    if (T <: Real && issymmetric) || ishermitian
         return Lanczos(; krylovdim=krylovdim,
                        maxiter=maxiter,
                        tol=tol,
@@ -235,7 +234,8 @@ function eigselector(A::AbstractMatrix,
                      tol::Real=KrylovDefaults.tol,
                      orth::Orthogonalizer=KrylovDefaults.orth,
                      eager::Bool=false,
-                     verbosity::Int=0)
+                     verbosity::Int=0,
+                     alg_rrule=nothing)
     if (T <: Real && issymmetric) || ishermitian
         return Lanczos(; krylovdim=krylovdim,
                        maxiter=maxiter,

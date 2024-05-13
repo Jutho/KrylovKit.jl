@@ -1,249 +1,300 @@
-function ChainRulesCore.rrule(::typeof(eigsolve),
-                              A::AbstractMatrix,
-                              x₀,
-                              howmany,
-                              which,
-                              alg)
-    (vals, vecs, info) = eigsolve(A, x₀, howmany, which, alg)
-    project_A = ProjectTo(A)
-    T = eltype(vecs[1]) # will be real for real symmetric problems and complex otherwise
-
-    function eigsolve_pullback(ΔX)
-        _Δvals = unthunk(ΔX[1])
-        _Δvecs = unthunk(ΔX[2])
-
-        ∂self = NoTangent()
-        ∂x₀ = ZeroTangent()
-        ∂howmany = NoTangent()
-        ∂which = NoTangent()
-        ∂alg = NoTangent()
-        if _Δvals isa AbstractZero && _Δvecs isa AbstractZero
-            ∂A = ZeroTangent()
-            return ∂self, ∂A, ∂x₀, ∂howmany, ∂which, ∂alg
-        end
-
-        if _Δvals isa AbstractZero
-            Δvals = fill(NoTangent(), length(Δvecs))
-        else
-            Δvals = _Δvals
-        end
-        if _Δvecs isa AbstractZero
-            Δvecs = fill(NoTangent(), length(Δvals))
-        else
-            Δvecs = _Δvecs
-        end
-
-        @assert length(Δvals) == length(Δvecs)
-        @assert length(Δvals) <= length(vals)
-
-        # Determine algorithm to solve linear problem
-        # TODO: Is there a better choice? Should we make this user configurable?
-        linalg = GMRES(;
-                       tol=alg.tol,
-                       krylovdim=alg.krylovdim,
-                       maxiter=alg.maxiter,
-                       orth=alg.orth)
-
-        ws = similar(vecs, length(Δvecs))
-        for i in 1:length(Δvecs)
-            Δλ = Δvals[i]
-            Δv = Δvecs[i]
-            λ = vals[i]
-            v = vecs[i]
-
-            # First threat special cases
-            if isa(Δv, AbstractZero) && isa(Δλ, AbstractZero) # no contribution
-                ws[i] = Δv # some kind of zero
-                continue
-            end
-            if isa(Δv, AbstractZero) && isa(alg, Lanczos) # simple contribution
-                ws[i] = Δλ * v
-                continue
-            end
-
-            # General case :
-            if isa(Δv, AbstractZero)
-                b = RecursiveVec(zero(T) * v, T[Δλ])
-            else
-                @assert isa(Δv, typeof(v))
-                b = RecursiveVec(Δv, T[Δλ])
-            end
-
-            if i > 1 && eltype(A) <: Real &&
-               vals[i] == conj(vals[i - 1]) && Δvals[i] == conj(Δvals[i - 1]) &&
-               vecs[i] == conj(vecs[i - 1]) && Δvecs[i] == conj(Δvecs[i - 1])
-                ws[i] = conj(ws[i - 1])
-                continue
-            end
-
-            w, reverse_info = let λ = λ, v = v, Aᴴ = A'
-                linsolve(b, zero(T) * b, linalg) do x
-                    x1, x2 = x
-                    γ = 1
-                    # γ can be chosen freely and does not affect the solution theoretically
-                    # The current choice guarantees that the extended matrix is Hermitian if A is
-                    # TODO: is this the best choice in all cases?
-                    y1 = axpy!(-γ * x2[], v, axpy!(-conj(λ), x1, A' * x1))
-                    y2 = T[-dot(v, x1)]
-                    return RecursiveVec(y1, y2)
-                end
-            end
-            if info.converged >= i && reverse_info.converged == 0
-                @warn "The cotangent linear problem did not converge, whereas the primal eigenvalue problem did."
-            end
-            ws[i] = w[1]
-        end
-
-        if A isa StridedMatrix
-            ∂A = InplaceableThunk(Ā -> _buildĀ!(Ā, ws, vecs),
-                                  @thunk(_buildĀ!(zero(A), ws, vecs)))
-        else
-            ∂A = @thunk(project_A(_buildĀ!(zero(A), ws, vecs)))
-        end
-        return ∂self, ∂A, ∂x₀, ∂howmany, ∂which, ∂alg
-    end
-    return (vals, vecs, info), eigsolve_pullback
-end
-
-function _buildĀ!(Ā, ws, vs)
-    for i in 1:length(ws)
-        w = ws[i]
-        v = vs[i]
-        if !(w isa AbstractZero)
-            if eltype(Ā) <: Real && eltype(w) <: Complex
-                mul!(Ā, _realview(w), _realview(v)', -1, 1)
-                mul!(Ā, _imagview(w), _imagview(v)', -1, 1)
-            else
-                mul!(Ā, w, v', -1, 1)
-            end
-        end
-    end
-    return Ā
-end
-function _realview(v::AbstractVector{Complex{T}}) where {T}
-    return view(reinterpret(T, v), 2 * (1:length(v)) .- 1)
-end
-function _imagview(v::AbstractVector{Complex{T}}) where {T}
-    return view(reinterpret(T, v), 2 * (1:length(v)))
-end
-
-function ChainRulesCore.rrule(config::RuleConfig{>:HasReverseMode},
-                              ::typeof(eigsolve),
-                              A::AbstractMatrix,
-                              x₀,
-                              howmany,
-                              which,
-                              alg)
-    return ChainRulesCore.rrule(eigsolve, A, x₀, howmany, which, alg)
-end
-
-function ChainRulesCore.rrule(config::RuleConfig{>:HasReverseMode},
+function ChainRulesCore.rrule(config::RuleConfig,
                               ::typeof(eigsolve),
                               f,
                               x₀,
                               howmany,
                               which,
-                              alg)
-    (vals, vecs, info) = eigsolve(f, x₀, howmany, which, alg)
-    T = typeof(dot(vecs[1], vecs[1]))
-    f_pullbacks = map(x -> rrule_via_ad(config, f, x)[2], vecs)
+                              alg_primal;
+                              alg_rrule=Arnoldi(; tol=alg_primal.tol,
+                                                krylovdim=alg_primal.krylovdim,
+                                                maxiter=alg_primal.maxiter,
+                                                eager=alg_primal.eager,
+                                                orth=alg_primal.orth))
+    (vals, vecs, info) = eigsolve(f, x₀, howmany, which, alg_primal)
+    T, fᴴ, construct∂f = _prepare_inputs(config, f, vecs, alg_primal)
 
     function eigsolve_pullback(ΔX)
-        _Δvals = unthunk(ΔX[1])
-        _Δvecs = unthunk(ΔX[2])
-
         ∂self = NoTangent()
         ∂x₀ = ZeroTangent()
         ∂howmany = NoTangent()
         ∂which = NoTangent()
         ∂alg = NoTangent()
-        if _Δvals isa AbstractZero && _Δvecs isa AbstractZero
-            ∂A = ZeroTangent()
-            return (∂self, ∂A, ∂x₀, ∂howmany, ∂which, ∂alg)
-        end
 
+        _Δvals = unthunk(ΔX[1])
+        _Δvecs = unthunk(ΔX[2])
+
+        n = 0
+        while true
+            if !(_Δvals isa AbstractZero) &&
+               any(!iszero, view(_Δvals, (n + 1):length(_Δvals)))
+                n = n + 1
+                continue
+            end
+            if !(_Δvecs isa AbstractZero) &&
+               any(!Base.Fix2(isa, AbstractZero), view(_Δvecs, (n + 1):length(_Δvecs)))
+                n = n + 1
+                continue
+            end
+            break
+        end
+        @assert n <= length(vals)
+        if n == 0
+            ∂f = ZeroTangent()
+            return ∂self, ∂f, ∂x₀, ∂howmany, ∂which, ∂alg
+        end
         if _Δvals isa AbstractZero
-            Δvals = fill(NoTangent(), howmany)
+            Δvals = fill(zero(vals[1]), n)
         else
-            Δvals = _Δvals
+            @assert length(_Δvals) >= n
+            Δvals = view(_Δvals, 1:n)
         end
         if _Δvecs isa AbstractZero
-            Δvecs = fill(NoTangent(), howmany)
+            Δvecs = fill(ZeroTangent(), n)
         else
-            Δvecs = _Δvecs
+            @assert length(_Δvecs) >= n
+            Δvecs = view(_Δvecs, 1:n)
         end
 
-        @assert length(Δvals) == length(Δvecs)
+        ws = compute_eigsolve_pullback_data(Δvals, Δvecs, view(vals, 1:n), view(vecs, 1:n),
+                                            info, which, fᴴ, T, alg_primal, alg_rrule)
+        # alg_rrule2 = Arnoldi(; tol=alg_rrule.tol, krylovdim=alg_rrule.krylovdim, maxiter=alg_rrule.maxiter, orth=alg_rrule.orth)
+        # ws2 = compute_eigsolve_pullback_data(Δvals, Δvecs, view(vals, 1:n), view(vecs, 1:n), info, which, fᴴ, T, alg_primal, alg_rrule2)
+        # for i = 1:n
+        #     @show ws[i]
+        #     @show ws2[i]
+        # end
 
-        # Determine algorithm to solve linear problem
-        # TODO: Is there a better choice? Should we make this user configurable?
-        linalg = GMRES(;
-                       tol=alg.tol,
-                       krylovdim=alg.krylovdim,
-                       maxiter=alg.maxiter,
-                       orth=alg.orth)
-        # linalg = BiCGStab(;
-        #     tol = alg.tol,
-        #     maxiter = alg.maxiter*alg.krylovdim,
-        # )
-
-        ws = similar(Δvecs)
-        for i in 1:length(Δvecs)
-            Δλ = Δvals[i]
-            Δv = Δvecs[i]
-            λ = vals[i]
-            v = vecs[i]
-
-            # First threat special cases
-            if isa(Δv, AbstractZero) && isa(Δλ, AbstractZero) # no contribution
-                ws[i] = Δv # some kind of zero
-                continue
-            end
-            if isa(Δv, AbstractZero) && isa(alg, Lanczos) # simple contribution
-                ws[i] = Δλ * v
-                continue
-            end
-
-            # General case :
-            if isa(Δv, AbstractZero)
-                b = RecursiveVec(zero(T) * v, T[-Δλ])
-            else
-                @assert isa(Δv, typeof(v))
-                b = RecursiveVec(-Δv, T[-Δλ])
-            end
-
-            # TODO: is there any analogy to this for general vector-like user types
-            # if i > 1 && eltype(A) <: Real &&
-            #     vals[i] == conj(vals[i-1]) && Δvals[i] == conj(Δvals[i-1]) &&
-            #     vecs[i] == conj(vecs[i-1]) && Δvecs[i] == conj(Δvecs[i-1])
-            #
-            #     ws[i] = conj(ws[i-1])
-            #     continue
-            # end
-
-            w, reverse_info = let λ = λ, v = v, fᴴ = x -> f_pullbacks[i](x)[2]
-                linsolve(b, zero(T) * b, linalg) do x
-                    x1, x2 = x
-                    γ = 1
-                    # γ can be chosen freely and does not affect the solution theoretically
-                    # The current choice guarantees that the extended matrix is Hermitian if A is
-                    # TODO: is this the best choice in all cases?
-                    y1 = axpy!(-γ * x2[], v, axpy!(-conj(λ), x1, fᴴ(x1)))
-                    y2 = T[-dot(v, x1)]
-                    return RecursiveVec(y1, y2)
-                end
-            end
-            if info.converged >= i && reverse_info.converged == 0
-                @warn "The cotangent linear problem ($i) did not converge, whereas the primal eigenvalue problem did."
-            end
-            ws[i] = w[1]
-        end
-
-        ∂f = f_pullbacks[1](ws[1])[1]
-        for i in 2:length(ws)
-            ∂f = ChainRulesCore.add!!(∂f, f_pullbacks[i](ws[i])[1])
-        end
+        ∂f = construct∂f(ws)
         return ∂self, ∂f, ∂x₀, ∂howmany, ∂which, ∂alg
     end
     return (vals, vecs, info), eigsolve_pullback
+end
+
+function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which, fᴴ, T,
+                                        alg_primal, alg_rrule::Union{GMRES,BiCGStab})
+    ws = similar(vecs, length(Δvecs))
+    @inbounds for i in 1:length(Δvecs)
+        Δλ = Δvals[i]
+        Δv = Δvecs[i]
+        λ = vals[i]
+        v = vecs[i]
+
+        # First threat special cases
+        if isa(Δv, AbstractZero) && isa(Δλ, AbstractZero) # no contribution
+            ws[i] = zerovector(v)
+            continue
+        end
+        if isa(Δv, AbstractZero) && isa(alg_primal, Lanczos) # simple contribution
+            ws[i] = scale(v, Δλ)
+            continue
+        end
+
+        # General case :
+
+        # for the case where `f` is a real matrix, we can expect the following simplication
+        # TODO: can we implement this within our general approach, or generalise this to also
+        # cover the case where `f` is a function?
+        # if i > 1 && eltype(A) <: Real &&
+        #    vals[i] == conj(vals[i - 1]) && Δvals[i] == conj(Δvals[i - 1]) &&
+        #    vecs[i] == conj(vecs[i - 1]) && Δvecs[i] == conj(Δvecs[i - 1])
+        #     ws[i] = conj(ws[i - 1])
+        #     continue
+        # end
+
+        if isa(Δv, AbstractZero)
+            b = (zerovector(v), convert(T, Δλ))
+        else
+            vdΔv = inner(v, Δv)
+            gaugeᵢ = abs(imag(vdΔv))
+            gaugeᵢ < alg_primal.tol ||
+                @warn "`eigsolve` cotangent for eigenvector $i is sensitive to gauge choice: (|gaugeᵢ| = $gaugeᵢ)"
+            Δv = add(Δv, v, -vdΔv)
+            b = (Δv, convert(T, Δλ))
+        end
+        w, reverse_info = let λ = λ, v = v
+            linsolve(b, zerovector(b), alg_rrule) do x
+                x1, x2 = x
+                y1 = add!(add!(fᴴ(x1), x1, conj(λ), -1), v, x2)
+                y2 = inner(v, x1)
+                return (y1, y2)
+            end
+        end
+        if info.converged >= i && reverse_info.converged == 0
+            @warn "`eigsolve` cotangent linear problem ($i) did not converge, whereas the primal eigenvalue problem did"
+        elseif abs(w[2]) > alg_rrule.tol
+            @warn "`eigsolve` cotangent linear problem ($i) returns unexpected result: error = $(w[2])"
+        end
+        ws[i] = w[1]
+    end
+    return ws
+end
+
+function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which, fᴴ, T,
+                                        alg_primal::Arnoldi, alg_rrule::Arnoldi)
+    n = length(Δvecs)
+    G = zeros(T, n, n)
+    VdΔV = zeros(T, n, n)
+    for j in 1:n
+        for i in 1:n
+            if i < j
+                G[i, j] = conj(G[j, i])
+            elseif i == j
+                G[i, i] = norm(vecs[i])^2
+            else
+                G[i, j] = inner(vecs[i], vecs[j])
+            end
+            if !(Δvecs[j] isa AbstractZero)
+                VdΔV[i, j] = inner(vecs[i], Δvecs[j])
+            end
+        end
+    end
+
+    # components along subspace spanned by current eigenvectors
+    tol = alg_primal.tol
+    mask = abs.(transpose(vals) .- vals) .< tol
+    gaugepart = VdΔV[mask] - Diagonal(real(diag(VdΔV)))[mask]
+    Δgauge = norm(gaugepart, Inf)
+    Δgauge < tol ||
+        @warn "`eigsolve` cotangents sensitive to gauge choice: (|Δgauge| = $Δgauge)"
+    VdΔV′ = VdΔV - G * Diagonal(diag(VdΔV) ./ diag(G))
+    aVdΔV = VdΔV′ .* conj.(safe_inv.(transpose(vals) .- vals, tol))
+    for i in 1:n
+        aVdΔV[i, i] += Δvals[i]
+    end
+    Gc = cholesky!(G)
+    iGaVdΔV = Gc \ aVdΔV
+    iGVdΔV = Gc \ VdΔV
+
+    zs = similar(Δvecs)
+    for i in 1:n
+        z = scale(vecs[1], iGaVdΔV[1, i])
+        for j in 2:n
+            z = VectorInterface.add!!(z, vecs[j], iGaVdΔV[j, i])
+        end
+        zs[i] = z
+    end
+
+    # components in orthogonal subspace
+    sylvesterarg = similar(Δvecs)
+    for i in 1:n
+        y = fᴴ(zs[i])
+        if !(Δvecs[i] isa AbstractZero)
+            y = VectorInterface.add!!(y, Δvecs[i], +1)
+            for j in 1:n
+                y = VectorInterface.add!!(y, vecs[j], -iGVdΔV[j, i])
+            end
+        end
+        sylvesterarg[i] = y
+    end
+
+    W₀ = (zerovector(vecs[1]), one.(vals))
+    P = orthogonalcomplementprojector(vecs, n, Gc)
+    rvals, Ws, reverse_info = let P = P, ΔV = sylvesterarg
+        eigsolve(W₀, n, reverse_wich(which), alg_rrule) do W
+            w, x = W
+            w′ = fᴴ(P(w))
+            @inbounds for i in 1:length(x) # length(x) = n but let us not use outer variables
+                w′ = VectorInterface.add!!(w′, ΔV[i], -x[i])
+            end
+            return (w′, conj.(vals) .* x)
+        end
+    end
+    if info.converged >= n && reverse_info.converged < n
+        @warn "`eigsolve` cotangent problem did not converge, whereas the primal eigenvalue problem did"
+    end
+
+    # cleanup and construct final result
+    ws = zs
+    tol = alg_rrule.tol
+    for i in 1:n
+        w, x = Ws[i]
+        _, ic = findmax(abs, x)
+        factor = 1 / x[ic]
+        x[ic] = zero(x[ic])
+        error = max(norm(x, Inf), abs(rvals[i] - conj(vals[ic])))
+        error < tol ||
+            @warn "`eigsolve` cotangent linear problem ($ic) returns unexpected result: error = $error"
+        ws[ic] = VectorInterface.add!!(zs[ic], P(w), -factor)
+    end
+    return ws
+end
+
+# several simplications happen in the case of a Hermitian eigenvalue problem
+function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which, fᴴ, T,
+                                        alg_primal::Lanczos, alg_rrule::Arnoldi)
+    n = length(Δvecs)
+    VdΔV = zeros(T, n, n)
+    for j in 1:n
+        for i in 1:n
+            if !(Δvecs[j] isa AbstractZero)
+                VdΔV[i, j] = inner(vecs[i], Δvecs[j])
+            end
+        end
+    end
+
+    # components along subspace spanned by current eigenvectors
+    tol = alg_primal.tol
+    aVdΔV = rmul!(VdΔV - VdΔV', 1 / 2)
+    mask = abs.(transpose(vals) .- vals) .< tol
+    gaugepart = view(aVdΔV, mask)
+    Δgauge = norm(gaugepart, Inf)
+    Δgauge < tol ||
+        @warn "`eigsolve` cotangents sensitive to gauge choice: (|Δgauge| = $Δgauge)"
+    aVdΔV .= aVdΔV .* safe_inv.(transpose(vals) .- vals, tol)
+    for i in 1:n
+        aVdΔV[i, i] += real(Δvals[i])
+    end
+
+    zs = similar(Δvecs)
+    for i in 1:n
+        z = scale(vecs[1], aVdΔV[1, i])
+        for j in 2:n
+            z = VectorInterface.add!!(z, vecs[j], aVdΔV[j, i])
+        end
+        zs[i] = z
+    end
+
+    # components in orthogonal subspace
+    sylvesterarg = similar(Δvecs)
+    for i in 1:n
+        y = zerovector(vecs[1])
+        if !(Δvecs[i] isa AbstractZero)
+            y = VectorInterface.add!!(y, Δvecs[i], +1)
+            for j in 1:n
+                y = VectorInterface.add!!(y, vecs[j], -VdΔV[j, i])
+            end
+        end
+        sylvesterarg[i] = y
+    end
+
+    W₀ = (zerovector(vecs[1]), one.(vals))
+    P = orthogonalcomplementprojector(vecs, n)
+    rvals, Ws, reverse_info = let P = P, ΔV = sylvesterarg
+        eigsolve(W₀, n, reverse_wich(which), alg_rrule) do W
+            w, x = W
+            w′ = fᴴ(P(w))
+            @inbounds for i in 1:length(x) # length(x) = n but let us not use outer variables
+                w′ = VectorInterface.add!!(w′, ΔV[i], -x[i])
+            end
+            return (w′, vals .* x)
+        end
+    end
+    if info.converged >= n && reverse_info.converged < n
+        @warn "`eigsolve` cotangent problem did not converge, whereas the primal eigenvalue problem did"
+    end
+
+    # cleanup and construct final result
+    ws = zs
+    tol = alg_rrule.tol
+    for i in 1:n
+        w, x = Ws[i]
+        _, ic = findmax(abs, x)
+        factor = 1 / x[ic]
+        x[ic] = zero(x[ic])
+        error = max(norm(x, Inf), abs(rvals[i] - conj(vals[ic])))
+        error < tol ||
+            @warn "`eigsolve` cotangent linear problem ($ic) returns unexpected result: error = $error"
+        ws[ic] = VectorInterface.add!!(zs[ic], P(w), -factor)
+    end
+    return ws
 end

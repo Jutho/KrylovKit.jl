@@ -127,7 +127,7 @@ function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
            ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end
 
-function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
+function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi; alg_rrule=alg)
     T, U, fact, converged, numiter, numops = _schursolve(A, x₀, howmany, which, alg)
     if eltype(T) <: Real && howmany < length(fact) && T[howmany + 1, howmany] != 0
         howmany += 1

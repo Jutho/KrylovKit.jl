@@ -103,7 +103,7 @@ using ChainRulesCore, ChainRulesTestUtils, Zygote, FiniteDifferences
 Random.seed!(123456789)
 
 fdm = ChainRulesTestUtils._fdm
-precision(T::Type{<:Number}) = eps(real(T))^(2 / 3)
+tolerance(T::Type{<:Number}) = eps(real(T))^(2 / 3)
 n = 10
 N = 30
 
@@ -138,7 +138,7 @@ function build_mat_example(A, x, howmany::Int, which, alg)
         info′.converged < howmany && @warn "eigsolve did not converge"
         for i in 1:howmany
             d = dot(vecs[i], vecs′[i])
-            @assert abs(d) > precision(eltype(A))
+            @assert abs(d) > tolerance(eltype(A))
             vecs′[i] = vecs′[i] / d
         end
         catresults = vcat(vals′[1:howmany], vecs′[1:howmany]...)
@@ -200,7 +200,7 @@ function build_fun_example(A, x, c, d, howmany::Int, which, alg)
             info′.converged < howmany′ && @warn "eigsolve did not converge"
             for i in 1:howmany′
                 normfix = dot(vecs[i], vecs′[i])
-                @assert abs(normfix) > precision(eltype(A))
+                @assert abs(normfix) > tolerance(eltype(A))
                 vecs′[i] = vecs′[i] / normfix
             end
             catresults = vcat(vals′[1:howmany′], vecs′[1:howmany′]...)
@@ -228,7 +228,7 @@ end
             x /= norm(x)
 
             howmany = 3
-            alg = Arnoldi(; tol=cond(A) * eps(real(T)), krylovdim=n)
+            alg = Arnoldi(; tol=2 * cond(A) * eps(real(T)), krylovdim=n)
             mat_example_ad, mat_example_fd, Avec, xvec, vals, vecs, howmany = build_mat_example(A,
                                                                                                 x,
                                                                                                 howmany,
@@ -239,8 +239,8 @@ end
             (JA′, Jx′) = Zygote.jacobian(mat_example_ad, Avec, xvec)
 
             # finite difference comparison using some kind of tolerance heuristic
-            @test JA ≈ JA′ rtol = (T <: Complex ? 4n : n) * cond(A) * precision(T)
-            @test Jx ≈ zero(Jx) atol = (T <: Complex ? 4n : n) * cond(A) * precision(T)
+            @test JA ≈ JA′ rtol = (T <: Complex ? 4n : n) * cond(A) * tolerance(T)
+            @test norm(Jx, Inf) < (T <: Complex ? 4n : n) * cond(A) * tolerance(T)
             @test Jx′ == zero(Jx)
 
             # some analysis
@@ -261,7 +261,7 @@ end
             end
             # test orthogonality of vecs and ∂vecs
             for i in 1:howmany
-                @test all(<(precision(T)), abs.(vecs[i]' * ∂vecs[i]))
+                @test all(<(tolerance(T)), abs.(vecs[i]' * ∂vecs[i]))
             end
         end
     end

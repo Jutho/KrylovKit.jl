@@ -5,8 +5,9 @@ using ChainRulesCore
 using LinearAlgebra
 using VectorInterface
 
-include("svdsolve.jl")
+include("utilities.jl")
 include("linsolve.jl")
 include("eigsolve.jl")
+include("svdsolve.jl")
 
 end # module
