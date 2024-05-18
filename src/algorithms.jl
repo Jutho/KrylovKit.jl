@@ -154,7 +154,7 @@ end
 
 """
     Arnoldi(; krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter,
-        tol = KrylovDefaults.tol, orth = KrylovDefaults.orth, verbosity = 0)
+        tol = KrylovDefaults.tol, orth = KrylovDefaults.orth, eager = false, verbosity = 0)
 
 Represents the Arnoldi algorithm for building the Krylov subspace for a general matrix or
 linear operator. Can be used in `eigsolve` and `exponentiate`. The corresponding algorithms
