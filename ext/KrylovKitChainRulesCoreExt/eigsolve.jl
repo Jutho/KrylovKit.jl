@@ -57,13 +57,6 @@ function ChainRulesCore.rrule(config::RuleConfig,
 
         ws = compute_eigsolve_pullback_data(Δvals, Δvecs, view(vals, 1:n), view(vecs, 1:n),
                                             info, which, fᴴ, T, alg_primal, alg_rrule)
-        # alg_rrule2 = Arnoldi(; tol=alg_rrule.tol, krylovdim=alg_rrule.krylovdim, maxiter=alg_rrule.maxiter, orth=alg_rrule.orth)
-        # ws2 = compute_eigsolve_pullback_data(Δvals, Δvecs, view(vals, 1:n), view(vecs, 1:n), info, which, fᴴ, T, alg_primal, alg_rrule2)
-        # for i = 1:n
-        #     @show ws[i]
-        #     @show ws2[i]
-        # end
-
         ∂f = construct∂f(ws)
         return ∂self, ∂f, ∂x₀, ∂howmany, ∂which, ∂alg
     end
@@ -106,22 +99,23 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
         else
             vdΔv = inner(v, Δv)
             gaugeᵢ = abs(imag(vdΔv))
-            gaugeᵢ < alg_primal.tol ||
+            if gaugeᵢ > alg_primal.tol && alg_rrule.verbosity >= 1
                 @warn "`eigsolve` cotangent for eigenvector $i is sensitive to gauge choice: (|gaugeᵢ| = $gaugeᵢ)"
+            end
             Δv = add(Δv, v, -vdΔv)
             b = (Δv, convert(T, Δλ))
         end
         w, reverse_info = let λ = λ, v = v
             linsolve(b, zerovector(b), alg_rrule) do x
                 x1, x2 = x
-                y1 = add!(add!(fᴴ(x1), x1, conj(λ), -1), v, x2)
+                y1 = VectorInterface.add!!(VectorInterface.add!!(fᴴ(x1), x1, conj(λ), -1), v, x2)
                 y2 = inner(v, x1)
                 return (y1, y2)
             end
         end
-        if info.converged >= i && reverse_info.converged == 0
-            @warn "`eigsolve` cotangent linear problem ($i) did not converge, whereas the primal eigenvalue problem did"
-        elseif abs(w[2]) > alg_rrule.tol
+        if info.converged >= i && reverse_info.converged == 0 && alg_rrule.verbosity >= 0
+            @warn "`eigsolve` cotangent linear problem ($i) did not converge, whereas the primal eigenvalue problem did: normres = $(reverse_info.normres)"
+        elseif abs(w[2]) > alg_rrule.tol && alg_rrule.verbosity >= 0
             @warn "`eigsolve` cotangent linear problem ($i) returns unexpected result: error = $(w[2])"
         end
         ws[i] = w[1]
@@ -154,8 +148,9 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
     mask = abs.(transpose(vals) .- vals) .< tol
     gaugepart = VdΔV[mask] - Diagonal(real(diag(VdΔV)))[mask]
     Δgauge = norm(gaugepart, Inf)
-    Δgauge < tol ||
+    if Δgauge > tol && alg_rrule.verbosity >= 1
         @warn "`eigsolve` cotangents sensitive to gauge choice: (|Δgauge| = $Δgauge)"
+    end
     VdΔV′ = VdΔV - G * Diagonal(diag(VdΔV) ./ diag(G))
     aVdΔV = VdΔV′ .* conj.(safe_inv.(transpose(vals) .- vals, tol))
     for i in 1:n
@@ -188,33 +183,45 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
     end
 
     W₀ = (zerovector(vecs[1]), one.(vals))
-    P = orthogonalcomplementprojector(vecs, n, Gc)
-    rvals, Ws, reverse_info = let P = P, ΔV = sylvesterarg
+    P = orthogonalprojector(vecs, n, Gc)
+    by, rev = KrylovKit.eigsort(which)
+    if (rev ? (by(vals[n]) < by(zero(vals[n]))) : (by(vals[n]) > by(zero(vals[n]))))
+        shift = 2*conj(vals[n])
+    else
+        shift = zero(vals[n])
+    end
+    rvals, Ws, reverse_info = let P = P, ΔV = sylvesterarg, shift = shift
         eigsolve(W₀, n, reverse_wich(which), alg_rrule) do W
             w, x = W
-            w′ = fᴴ(P(w))
+            w₀ = P(w)
+            w′ = fᴴ(add(w, w₀, -1))
+            if !iszero(shift)
+                w′ = VectorInterface.add!!(w′, w₀, shift)
+            end
             @inbounds for i in 1:length(x) # length(x) = n but let us not use outer variables
                 w′ = VectorInterface.add!!(w′, ΔV[i], -x[i])
             end
             return (w′, conj.(vals) .* x)
         end
     end
-    if info.converged >= n && reverse_info.converged < n
+    if info.converged >= n && reverse_info.converged < n && alg_rrule.verbosity >= 0
         @warn "`eigsolve` cotangent problem did not converge, whereas the primal eigenvalue problem did"
     end
 
     # cleanup and construct final result
     ws = zs
     tol = alg_rrule.tol
+    Q = orthogonalcomplementprojector(vecs, n, Gc)
     for i in 1:n
         w, x = Ws[i]
         _, ic = findmax(abs, x)
         factor = 1 / x[ic]
         x[ic] = zero(x[ic])
         error = max(norm(x, Inf), abs(rvals[i] - conj(vals[ic])))
-        error < tol ||
+        if error > 5*tol && alg_rrule.verbosity >= 0
             @warn "`eigsolve` cotangent linear problem ($ic) returns unexpected result: error = $error"
-        ws[ic] = VectorInterface.add!!(zs[ic], P(w), -factor)
+        end
+        ws[ic] = VectorInterface.add!!(zs[ic], Q(w), -factor)
     end
     return ws
 end
@@ -238,8 +245,9 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
     mask = abs.(transpose(vals) .- vals) .< tol
     gaugepart = view(aVdΔV, mask)
     Δgauge = norm(gaugepart, Inf)
-    Δgauge < tol ||
+    if Δgauge > tol && alg_rrule.verbosity >= 1
         @warn "`eigsolve` cotangents sensitive to gauge choice: (|Δgauge| = $Δgauge)"
+    end
     aVdΔV .= aVdΔV .* safe_inv.(transpose(vals) .- vals, tol)
     for i in 1:n
         aVdΔV[i, i] += real(Δvals[i])
@@ -267,34 +275,47 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
         sylvesterarg[i] = y
     end
 
+
     W₀ = (zerovector(vecs[1]), one.(vals))
-    P = orthogonalcomplementprojector(vecs, n)
-    rvals, Ws, reverse_info = let P = P, ΔV = sylvesterarg
+    P = orthogonalprojector(vecs, n)
+    by, rev = KrylovKit.eigsort(which)
+    if (rev ? (by(vals[n]) < by(zero(vals[n]))) : (by(vals[n]) > by(zero(vals[n]))))
+        shift = 2*conj(vals[n])
+    else
+        shift = zero(vals[n])
+    end
+    rvals, Ws, reverse_info = let P = P, ΔV = sylvesterarg, shift = shift
         eigsolve(W₀, n, reverse_wich(which), alg_rrule) do W
             w, x = W
-            w′ = fᴴ(P(w))
+            w₀ = P(w)
+            w′ = fᴴ(add(w, w₀, -1))
+            if !iszero(shift)
+                w′ = VectorInterface.add!!(w′, w₀, shift)
+            end
             @inbounds for i in 1:length(x) # length(x) = n but let us not use outer variables
                 w′ = VectorInterface.add!!(w′, ΔV[i], -x[i])
             end
             return (w′, vals .* x)
         end
     end
-    if info.converged >= n && reverse_info.converged < n
+    if info.converged >= n && reverse_info.converged < n && alg_rrule.verbosity >= 0
         @warn "`eigsolve` cotangent problem did not converge, whereas the primal eigenvalue problem did"
     end
 
     # cleanup and construct final result
     ws = zs
     tol = alg_rrule.tol
+    Q = orthogonalcomplementprojector(vecs, n)
     for i in 1:n
         w, x = Ws[i]
         _, ic = findmax(abs, x)
         factor = 1 / x[ic]
         x[ic] = zero(x[ic])
         error = max(norm(x, Inf), abs(rvals[i] - conj(vals[ic])))
-        error < tol ||
+        if error > 5*tol && alg_rrule.verbosity >= 0
             @warn "`eigsolve` cotangent linear problem ($ic) returns unexpected result: error = $error"
-        ws[ic] = VectorInterface.add!!(zs[ic], P(w), -factor)
+        end
+        ws[ic] = VectorInterface.add!!(zs[ic], Q(w), -factor)
     end
     return ws
 end
