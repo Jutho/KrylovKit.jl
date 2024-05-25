@@ -9,7 +9,8 @@ function ChainRulesCore.rrule(config::RuleConfig,
                                                 krylovdim=alg_primal.krylovdim,
                                                 maxiter=alg_primal.maxiter,
                                                 eager=alg_primal.eager,
-                                                orth=alg_primal.orth))
+                                                orth=alg_primal.orth,
+                                                verbosity=alg_primal.verbosity))
     (vals, vecs, info) = eigsolve(f, x₀, howmany, which, alg_primal)
     T, fᴴ, construct∂f = _prepare_inputs(config, f, vecs, alg_primal)
 
@@ -108,7 +109,8 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
         w, reverse_info = let λ = λ, v = v
             linsolve(b, zerovector(b), alg_rrule) do x
                 x1, x2 = x
-                y1 = VectorInterface.add!!(VectorInterface.add!!(fᴴ(x1), x1, conj(λ), -1), v, x2)
+                y1 = VectorInterface.add!!(VectorInterface.add!!(fᴴ(x1), x1, conj(λ), -1),
+                                           v, x2)
                 y2 = inner(v, x1)
                 return (y1, y2)
             end
@@ -186,7 +188,7 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
     P = orthogonalprojector(vecs, n, Gc)
     by, rev = KrylovKit.eigsort(which)
     if (rev ? (by(vals[n]) < by(zero(vals[n]))) : (by(vals[n]) > by(zero(vals[n]))))
-        shift = 2*conj(vals[n])
+        shift = 2 * conj(vals[n])
     else
         shift = zero(vals[n])
     end
@@ -218,7 +220,7 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
         factor = 1 / x[ic]
         x[ic] = zero(x[ic])
         error = max(norm(x, Inf), abs(rvals[i] - conj(vals[ic])))
-        if error > 5*tol && alg_rrule.verbosity >= 0
+        if error > 5 * tol && alg_rrule.verbosity >= 0
             @warn "`eigsolve` cotangent linear problem ($ic) returns unexpected result: error = $error"
         end
         ws[ic] = VectorInterface.add!!(zs[ic], Q(w), -factor)
@@ -275,12 +277,11 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
         sylvesterarg[i] = y
     end
 
-
     W₀ = (zerovector(vecs[1]), one.(vals))
     P = orthogonalprojector(vecs, n)
     by, rev = KrylovKit.eigsort(which)
     if (rev ? (by(vals[n]) < by(zero(vals[n]))) : (by(vals[n]) > by(zero(vals[n]))))
-        shift = 2*conj(vals[n])
+        shift = 2 * conj(vals[n])
     else
         shift = zero(vals[n])
     end
@@ -312,7 +313,7 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
         factor = 1 / x[ic]
         x[ic] = zero(x[ic])
         error = max(norm(x, Inf), abs(rvals[i] - conj(vals[ic])))
-        if error > 5*tol && alg_rrule.verbosity >= 0
+        if error > 5 * tol && alg_rrule.verbosity >= 0
             @warn "`eigsolve` cotangent linear problem ($ic) returns unexpected result: error = $error"
         end
         ws[ic] = VectorInterface.add!!(zs[ic], Q(w), -factor)

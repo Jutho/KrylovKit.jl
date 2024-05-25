@@ -6,7 +6,6 @@ function ChainRulesCore.rrule(config::RuleConfig,
                               alg_primal,
                               a₀,
                               a₁; alg_rrule=alg_primal)
-
     (x, info) = linsolve(f, b, x₀, alg_primal, a₀, a₁)
     T, fᴴ, construct∂f = _prepare_inputs(config, f, (x,), alg_primal)
 
