@@ -24,21 +24,10 @@ function ChainRulesCore.rrule(config::RuleConfig,
         _Δvals = unthunk(ΔX[1])
         _Δvecs = unthunk(ΔX[2])
 
-        n = 0
-        while true
-            if !(_Δvals isa AbstractZero) &&
-               any(!iszero, view(_Δvals, (n + 1):length(_Δvals)))
-                n = n + 1
-                continue
-            end
-            if !(_Δvecs isa AbstractZero) &&
-               any(!Base.Fix2(isa, AbstractZero), view(_Δvecs, (n + 1):length(_Δvecs)))
-                n = n + 1
-                continue
-            end
-            break
-        end
-        @assert n <= length(vals)
+    # discard vals/vecs from n + 1 onwards if contribution is zero
+    n_vals = _Δvals isa AbstractZero ? nothing : findlast(!iszero,  _Δvals)
+    n_vecs = _Δvals isa AbstractZero ? nothing : findlast(!Base.Fix2(isa, AbstractZero),  _Δvecs)
+    n = max(isnothing(n_vals) ? 0 : n_vals, isnothing(n_vecs) ? 0 : n_vecs)
         if n == 0
             ∂f = ZeroTangent()
             return ∂self, ∂f, ∂x₀, ∂howmany, ∂which, ∂alg
@@ -73,7 +62,7 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
         λ = vals[i]
         v = vecs[i]
 
-        # First threat special cases
+        # First treat special cases
         if isa(Δv, AbstractZero) && isa(Δλ, AbstractZero) # no contribution
             ws[i] = zerovector(v)
             continue
@@ -107,8 +96,7 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
             b = (Δv, convert(T, Δλ))
         end
         w, reverse_info = let λ = λ, v = v
-            linsolve(b, zerovector(b), alg_rrule) do x
-                x1, x2 = x
+            linsolve(b, zerovector(b), alg_rrule) do (x1, x2)
                 y1 = VectorInterface.add!!(VectorInterface.add!!(fᴴ(x1), x1, conj(λ), -1),
                                            v, x2)
                 y2 = inner(v, x1)
@@ -147,10 +135,11 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
 
     # components along subspace spanned by current eigenvectors
     tol = alg_primal.tol
+if alg_rrule.verbosity >= 1
     mask = abs.(transpose(vals) .- vals) .< tol
     gaugepart = VdΔV[mask] - Diagonal(real(diag(VdΔV)))[mask]
     Δgauge = norm(gaugepart, Inf)
-    if Δgauge > tol && alg_rrule.verbosity >= 1
+    Δgauge > tol &&
         @warn "`eigsolve` cotangents sensitive to gauge choice: (|Δgauge| = $Δgauge)"
     end
     VdΔV′ = VdΔV - G * Diagonal(diag(VdΔV) ./ diag(G))
@@ -176,7 +165,7 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
     for i in 1:n
         y = fᴴ(zs[i])
         if !(Δvecs[i] isa AbstractZero)
-            y = VectorInterface.add!!(y, Δvecs[i], +1)
+            y = VectorInterface.add!!(y, Δvecs[i])
             for j in 1:n
                 y = VectorInterface.add!!(y, vecs[j], -iGVdΔV[j, i])
             end
@@ -193,14 +182,13 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
         shift = zero(vals[n])
     end
     rvals, Ws, reverse_info = let P = P, ΔV = sylvesterarg, shift = shift
-        eigsolve(W₀, n, reverse_wich(which), alg_rrule) do W
-            w, x = W
+        eigsolve(W₀, n, reverse_which(which), alg_rrule) do (w, x)
             w₀ = P(w)
             w′ = fᴴ(add(w, w₀, -1))
             if !iszero(shift)
                 w′ = VectorInterface.add!!(w′, w₀, shift)
             end
-            @inbounds for i in 1:length(x) # length(x) = n but let us not use outer variables
+            @inbounds for i in eachindex(x) # length(x) = n but let us not use outer variables
                 w′ = VectorInterface.add!!(w′, ΔV[i], -x[i])
             end
             return (w′, conj.(vals) .* x)
@@ -219,9 +207,10 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
         _, ic = findmax(abs, x)
         factor = 1 / x[ic]
         x[ic] = zero(x[ic])
-        error = max(norm(x, Inf), abs(rvals[i] - conj(vals[ic])))
-        if error > 5 * tol && alg_rrule.verbosity >= 0
-            @warn "`eigsolve` cotangent linear problem ($ic) returns unexpected result: error = $error"
+        if alg_rrule.verbosity >= 0
+            error = max(norm(x, Inf), abs(rvals[i] - conj(vals[ic])))
+            error > 5 * tol &&
+                @warn "`eigsolve` cotangent linear problem ($ic) returns unexpected result: error = $error"
         end
         ws[ic] = VectorInterface.add!!(zs[ic], Q(w), -factor)
     end
@@ -286,8 +275,7 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
         shift = zero(vals[n])
     end
     rvals, Ws, reverse_info = let P = P, ΔV = sylvesterarg, shift = shift
-        eigsolve(W₀, n, reverse_wich(which), alg_rrule) do W
-            w, x = W
+        eigsolve(W₀, n, reverse_which(which), alg_rrule) do (w, x)
             w₀ = P(w)
             w′ = fᴴ(add(w, w₀, -1))
             if !iszero(shift)

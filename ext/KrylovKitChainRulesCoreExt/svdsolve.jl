@@ -89,7 +89,7 @@ function compute_svdsolve_pullback_data(Δvals, Δlvecs, Δrvecs, vals, lvecs, r
         u = lvecs[i]
         v = rvecs[i]
 
-        # First threat special cases
+        # First treat special cases
         if isa(Δv, AbstractZero) && isa(Δu, AbstractZero) # no contribution
             xs[i] = scale(u, real(Δσ) / 2)
             ys[i] = scale(v, real(Δσ) / 2)
@@ -106,12 +106,9 @@ function compute_svdsolve_pullback_data(Δvals, Δlvecs, Δrvecs, vals, lvecs, r
         else
             Δs = real(Δσ)
         end
-        Δu = add(Δu, u, -udΔu)
-        Δv = add(Δv, v, -vdΔv)
-        b = (Δu, Δv)
+        b = (add(Δu, u, -udΔu), add(Δv, v, -vdΔv))
         (x, y), reverse_info = let σ = σ, u = u, v = v
-            linsolve(b, zerovector(b), alg_rrule) do z
-                x, y = z
+            linsolve(b, zerovector(b), alg_rrule) do (x, y)
                 x′ = VectorInterface.add!!(apply_normal(f, y), x, σ, -1)
                 y′ = VectorInterface.add!!(apply_adjoint(f, x), y, σ, -1)
                 x′ = VectorInterface.add!!(x′, u, -inner(u, x′))
@@ -131,8 +128,8 @@ function compute_svdsolve_pullback_data(Δvals, Δlvecs, Δrvecs, vals, lvecs, r
 end
 function compute_svdsolve_pullback_data(Δvals, Δlvecs, Δrvecs, vals, lvecs, rvecs, info, f,
                                         which, alg_primal, alg_rrule::Arnoldi)
-    @assert which == :LR
-    T = scalartype(lvecs[1])
+    @assert which == :LR "pullback currently only implemented for `which == :LR`
+    T = scalartype(lvecs)
     n = length(Δvals)
     UdΔU = zeros(T, n, n)
     VdΔV = zeros(T, n, n)
@@ -181,7 +178,7 @@ function compute_svdsolve_pullback_data(Δvals, Δlvecs, Δrvecs, vals, lvecs, r
         if !(Δlvecs[i] isa AbstractZero)
             x = VectorInterface.add!!(x, Δlvecs[i], +1)
             for j in 1:n
-                y = VectorInterface.add!!(x, lvecs[j], -UdΔU[j, i])
+                x = VectorInterface.add!!(x, lvecs[j], -UdΔU[j, i])
             end
         end
         sylvesterargx[i] = x
@@ -237,7 +234,7 @@ function compute_svdsolve_pullback_data(Δvals, Δlvecs, Δrvecs, vals, lvecs, r
     return xs, ys
 end
 
-function construct∂f_svd(config, f::Any, lvecs, rvecs, xs, ys)
+function construct∂f_svd(config, f, lvecs, rvecs, xs, ys)
     config isa RuleConfig{>:HasReverseMode} ||
         throw(ArgumentError("`svdsolve` reverse-mode AD requires AD engine that supports calling back into AD"))
 

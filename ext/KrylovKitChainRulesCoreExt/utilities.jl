@@ -53,7 +53,7 @@ function orthogonalcomplementprojector(vecs, n, G::Cholesky)
     return projector
 end
 
-function reverse_wich(which)
+function reverse_which(which)
     by, rev = KrylovKit.eigsort(which)
     return EigSorter(by ∘ conj, rev)
 end
@@ -81,7 +81,7 @@ function _prepare_inputs(config, f, vecs, alg_primal)
 end
 
 function _prepare_inputs(config, A::AbstractMatrix, vecs, alg_primal)
-    T = eltype(vecs[1]) # will be real for real symmetric problems and complex otherwise
+    T = scalartype(vecs) # will be real for real symmetric problems and complex otherwise
     fᴴ = v -> A' * v
     if A isa StridedMatrix
         construct∂A = ws -> InplaceableThunk(Ā -> _buildĀ!(Ā, ws, vecs),
@@ -111,9 +111,11 @@ function _buildĀ!(Ā, ws, vs)
 end
 
 function _realview(v::AbstractVector{Complex{T}}) where {T}
-    return view(reinterpret(T, v), 2 * (1:length(v)) .- 1)
+    v_real = reinterpret(T, v)
+    return view(v_real, axes(v_real, 1)[begin:2:end])
 end
 
 function _imagview(v::AbstractVector{Complex{T}}) where {T}
-    return view(reinterpret(T, v), 2 * (1:length(v)))
+    v_real = reinterpret(T, v)
+    return view(v_real, axes(v_real, 1)[(begin+1):2:end])
 end

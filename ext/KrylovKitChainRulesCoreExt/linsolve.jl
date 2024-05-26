@@ -14,10 +14,11 @@ function ChainRulesCore.rrule(config::RuleConfig,
         ∂self = NoTangent()
         ∂x₀ = ZeroTangent()
         ∂algorithm = NoTangent()
-        ∂b, reverse_info = linsolve(fᴴ, x̄, (zero(a₀) * zero(a₁)) * x̄, alg_rrule, conj(a₀),
+        x̄₀ = zerovector(x̄, promote_scale(scalartype(x̄), promote_scale(a₀, a₁)))
+        ∂b, reverse_info = linsolve(fᴴ, x̄, x̄₀, alg_rrule, conj(a₀),
                                     conj(a₁))
         if info.converged > 0 && reverse_info.converged == 0 && alg_rrule.verbosity >= 0
-            @warn "`linsolve` cotangent problem did not converge, whereas the primal linear problem di: normres = $(reverse_info.normres)"
+            @warn "`linsolve` cotangent problem did not converge, whereas the primal linear problem did: normres = $(reverse_info.normres)"
         end
 
         ∂f = construct∂f((scale(∂b, -conj(a₁)),))
