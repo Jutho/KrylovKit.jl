@@ -1,27 +1,44 @@
 module LinsolveAD
 using KrylovKit, LinearAlgebra
-using Random, Test
+using Random, Test, TestExtras
 using ChainRulesCore, ChainRulesTestUtils, Zygote, FiniteDifferences
 
 fdm = ChainRulesTestUtils._fdm
-tolerance(T::Type{<:Number}) = eps(real(T))^(2 / 3)
 n = 10
 N = 30
 
-function build_mat_example(A, b, alg, alg_rrule)
+function build_mat_example(A, b, x, alg, alg_rrule)
     Avec, A_fromvec = to_vec(A)
     bvec, b_fromvec = to_vec(b)
+    xvec, x_fromvec = to_vec(x)
     T = eltype(A)
 
-    function mat_example(Av, bv)
-        A′ = A_fromvec(Av)
-        b′ = b_fromvec(bv)
-        x, info = linsolve(A′, b′, zero(b′), alg; alg_rrule=alg_rrule)
-        info.converged == 0 && @warn "linsolve did not converge"
+    function mat_example(Av, bv, xv)
+        Ã = A_fromvec(Av)
+        b̃ = b_fromvec(bv)
+        x̃ = x_fromvec(xv)
+        x, info = linsolve(Ã, b̃, x̃, alg; alg_rrule=alg_rrule)
+        if info.converged == 0
+            @warn "linsolve did not converge:"
+            println("normres = ", info.normres)
+        end
         xv, = to_vec(x)
         return xv
     end
-    return mat_example, Avec, bvec
+    function mat_example_fun(Av, bv, xv)
+        Ã = A_fromvec(Av)
+        b̃ = b_fromvec(bv)
+        x̃ = x_fromvec(xv)
+        f = x -> Ã * x
+        x, info = linsolve(f, b̃, x̃, alg; alg_rrule=alg_rrule)
+        if info.converged == 0
+            @warn "linsolve did not converge:"
+            println("normres = ", info.normres)
+        end
+        xv, = to_vec(x)
+        return xv
+    end
+    return mat_example, mat_example_fun, Avec, bvec, xvec
 end
 
 function build_fun_example(A, b, c, d, e, f, alg, alg_rrule)
@@ -33,15 +50,15 @@ function build_fun_example(A, b, c, d, e, f, alg, alg_rrule)
     fvec, = to_vec(f)
 
     function fun_example(Av, bv, cv, dv, ev, fv)
-        A′ = matfromvec(Av)
-        b′ = vecfromvec(bv)
-        c′ = vecfromvec(cv)
-        d′ = vecfromvec(dv)
-        e′ = scalarfromvec(ev)
-        f′ = scalarfromvec(fv)
+        Ã = matfromvec(Av)
+        b̃ = vecfromvec(bv)
+        c̃ = vecfromvec(cv)
+        d̃ = vecfromvec(dv)
+        ẽ = scalarfromvec(ev)
+        f̃ = scalarfromvec(fv)
 
-        x, info = linsolve(b′, zero(b′), alg, e′, f′; alg_rrule=alg_rrule) do y
-            return A′ * y + c′ * dot(d′, y)
+        x, info = linsolve(b̃, zero(b̃), alg, ẽ, f̃; alg_rrule=alg_rrule) do y
+            return Ã * y + c̃ * dot(d̃, y)
         end
         # info.converged > 0 || @warn "not converged"
         xv, = to_vec(x)
@@ -55,13 +72,27 @@ end
     A = 2 * (rand(T, (n, n)) .- one(T) / 2)
     b = 2 * (rand(T, n) .- one(T) / 2)
     b /= norm(b)
+    x = 2 * (rand(T, n) .- one(T) / 2)
 
-    alg = GMRES(; tol=cond(A) * eps(real(T)), krylovdim=n, maxiter=1)
-    mat_example, Avec, bvec = build_mat_example(A, b, alg, alg)
-    (JA, Jb) = FiniteDifferences.jacobian(fdm, mat_example, Avec, bvec)
-    (JA′, Jb′) = Zygote.jacobian(mat_example, Avec, bvec)
-    @test JA ≈ JA′ rtol = cond(A) * tolerance(T)
-    @test Jb ≈ Jb′ rtol = cond(A) * tolerance(T)
+    condA = cond(A)
+    tol = condA * (T <: Real ? eps(T) : 4 * eps(real(T)))
+    alg = GMRES(; tol=tol, krylovdim=n, maxiter=1)
+
+    config = Zygote.ZygoteRuleConfig()
+    _, pb = ChainRulesCore.rrule(config, linsolve, A, b, x, alg, 0, 1; alg_rrule=alg)
+    @constinferred pb((ZeroTangent(), NoTangent()))
+    @constinferred pb((rand(T, n), NoTangent()))
+
+    mat_example, mat_example_fun, Avec, bvec, xvec = build_mat_example(A, b, x, alg, alg)
+    (JA, Jb, Jx) = FiniteDifferences.jacobian(fdm, mat_example, Avec, bvec, xvec)
+    (JA1, Jb1, Jx1) = Zygote.jacobian(mat_example, Avec, bvec, xvec)
+    (JA2, Jb2, Jx2) = Zygote.jacobian(mat_example_fun, Avec, bvec, xvec)
+
+    @test isapprox(JA, JA1; rtol=condA * sqrt(eps(real(T))))
+    @test all(isapprox.(JA1, JA2; atol=3 * eps(real(T))))
+    # factor 2 is minimally necessary for complex case, but 3 is more robust
+    @test norm(Jx, Inf) < condA * sqrt(eps(real(T)))
+    @test all(iszero, Jx1)
 end
 
 @testset "Large linsolve AD test with eltype=$T" for T in (Float64, ComplexF64)
@@ -74,9 +105,9 @@ end
     f = rand(T)
 
     # mix algorithms]
-    tol = tolerance(T)
+    tol = N^2 * eps(real(T))
     alg1 = GMRES(; tol=tol, krylovdim=20)
-    alg2 = BiCGStab(; tol=tol / 10, maxiter=100) # BiCGStab seems to require slightly smaller tolerance for tests to work
+    alg2 = BiCGStab(; tol=tol, maxiter=100) # BiCGStab seems to require slightly smaller tolerance for tests to work
     for (alg, alg_rrule) in ((alg1, alg2), (alg2, alg1))
         fun_example, Avec, bvec, cvec, dvec, evec, fvec = build_fun_example(A, b, c, d, e,
                                                                             f, alg,
@@ -104,7 +135,6 @@ using ChainRulesCore, ChainRulesTestUtils, Zygote, FiniteDifferences
 Random.seed!(123456789)
 
 fdm = ChainRulesTestUtils._fdm
-tolerance(T::Type{<:Number}) = eps(real(T))^(2 / 3)
 n = 10
 N = 30
 
@@ -119,10 +149,24 @@ function build_mat_example(A, x, howmany::Int, which, alg, alg_rrule)
         howmany += 1
     end
 
-    function mat_example_ad(Av, xv)
-        A′ = A_fromvec(Av)
-        x′ = x_fromvec(xv)
-        vals′, vecs′, info′ = eigsolve(A′, x′, howmany, which, alg; alg_rrule=alg_rrule)
+    function mat_example(Av, xv)
+        Ã = A_fromvec(Av)
+        x̃ = x_fromvec(xv)
+        vals′, vecs′, info′ = eigsolve(Ã, x̃, howmany, which, alg; alg_rrule=alg_rrule)
+        info′.converged < howmany && @warn "eigsolve did not converge"
+        catresults = vcat(vals′[1:howmany], vecs′[1:howmany]...)
+        if eltype(catresults) <: Complex
+            return vcat(real(catresults), imag(catresults))
+        else
+            return catresults
+        end
+    end
+
+    function mat_example_fun(Av, xv)
+        Ã = A_fromvec(Av)
+        x̃ = x_fromvec(xv)
+        f = x -> Ã * x
+        vals′, vecs′, info′ = eigsolve(f, x̃, howmany, which, alg; alg_rrule=alg_rrule)
         info′.converged < howmany && @warn "eigsolve did not converge"
         catresults = vcat(vals′[1:howmany], vecs′[1:howmany]...)
         if eltype(catresults) <: Complex
@@ -133,13 +177,13 @@ function build_mat_example(A, x, howmany::Int, which, alg, alg_rrule)
     end
 
     function mat_example_fd(Av, xv)
-        A′ = A_fromvec(Av)
-        x′ = x_fromvec(xv)
-        vals′, vecs′, info′ = eigsolve(A′, x′, howmany, which, alg)
+        Ã = A_fromvec(Av)
+        x̃ = x_fromvec(xv)
+        vals′, vecs′, info′ = eigsolve(Ã, x̃, howmany, which, alg)
         info′.converged < howmany && @warn "eigsolve did not converge"
         for i in 1:howmany
             d = dot(vecs[i], vecs′[i])
-            @assert abs(d) > tolerance(eltype(A))
+            @assert abs(d) > sqrt(eps(real(eltype(A))))
             phasefix = abs(d) / d
             vecs′[i] = vecs′[i] * phasefix
         end
@@ -151,7 +195,7 @@ function build_mat_example(A, x, howmany::Int, which, alg, alg_rrule)
         end
     end
 
-    return mat_example_ad, mat_example_fd, Avec, xvec, vals, vecs, howmany
+    return mat_example, mat_example_fun, mat_example_fd, Avec, xvec, vals, vecs, howmany
 end
 
 function build_fun_example(A, x, c, d, howmany::Int, which, alg, alg_rrule)
@@ -171,14 +215,14 @@ function build_fun_example(A, x, c, d, howmany::Int, which, alg, alg_rrule)
 
     fun_example_ad = let howmany′ = howmany
         function (Av, xv, cv, dv)
-            A′ = matfromvec(Av)
-            x′ = vecfromvec(xv)
-            c′ = vecfromvec(cv)
-            d′ = vecfromvec(dv)
+            Ã = matfromvec(Av)
+            x̃ = vecfromvec(xv)
+            c̃ = vecfromvec(cv)
+            d̃ = vecfromvec(dv)
 
-            vals′, vecs′, info′ = eigsolve(x′, howmany′, which, alg;
+            vals′, vecs′, info′ = eigsolve(x̃, howmany′, which, alg;
                                            alg_rrule=alg_rrule) do y
-                return A′ * y + c′ * dot(d′, y)
+                return Ã * y + c̃ * dot(d̃, y)
             end
             info′.converged < howmany′ && @warn "eigsolve did not converge"
             catresults = vcat(vals′[1:howmany′], vecs′[1:howmany′]...)
@@ -192,18 +236,18 @@ function build_fun_example(A, x, c, d, howmany::Int, which, alg, alg_rrule)
 
     fun_example_fd = let howmany′ = howmany
         function (Av, xv, cv, dv)
-            A′ = matfromvec(Av)
-            x′ = vecfromvec(xv)
-            c′ = vecfromvec(cv)
-            d′ = vecfromvec(dv)
+            Ã = matfromvec(Av)
+            x̃ = vecfromvec(xv)
+            c̃ = vecfromvec(cv)
+            d̃ = vecfromvec(dv)
 
-            vals′, vecs′, info′ = eigsolve(x′, howmany′, which, alg) do y
-                return A′ * y + c′ * dot(d′, y)
+            vals′, vecs′, info′ = eigsolve(x̃, howmany′, which, alg) do y
+                return Ã * y + c̃ * dot(d̃, y)
             end
             info′.converged < howmany′ && @warn "eigsolve did not converge"
             for i in 1:howmany′
                 d = dot(vecs[i], vecs′[i])
-                @assert abs(d) > tolerance(eltype(A))
+                @assert abs(d) > sqrt(eps(real(eltype(A))))
                 phasefix = abs(d) / d
                 vecs′[i] = vecs′[i] * phasefix
             end
@@ -227,37 +271,58 @@ end
     else
         whichlist = (:LM, :SR, :LR)
     end
-    @testset for which in whichlist
-        A = 2 * (rand(T, (n, n)) .- one(T) / 2)
-        x = 2 * (rand(T, n) .- one(T) / 2)
-        x /= norm(x)
+    A = 2 * (rand(T, (n, n)) .- one(T) / 2)
+    x = 2 * (rand(T, n) .- one(T) / 2)
+    x /= norm(x)
 
-        howmany = 3
-        tol = tolerance(T)
-        alg = Arnoldi(; tol=tol, krylovdim=n)
-        alg_rrule1 = alg
-        alg_rrule2 = GMRES(; tol=tol, krylovdim=n)
+    howmany = 3
+    condA = cond(A)
+    tol = n * condA * (T <: Real ? eps(T) : 4 * eps(real(T)))
+    alg = Arnoldi(; tol=tol, krylovdim=n)
+    alg_rrule1 = alg
+    alg_rrule2 = GMRES(; tol=tol, krylovdim=n)
+    config = Zygote.ZygoteRuleConfig()
+    @testset for which in whichlist
         for alg_rrule in (alg_rrule1, alg_rrule2)
-            mat_example_ad, mat_example_fd, Avec, xvec, vals, vecs, howmany = build_mat_example(A,
-                                                                                                x,
-                                                                                                howmany,
-                                                                                                which,
-                                                                                                alg,
-                                                                                                alg_rrule)
+            # unfortunately, rrule does not seem type stable for function arguments, because the
+            # `rrule_via_ad` call does not produce type stable `rrule`s for the function
+            (vals, vecs, info), pb = ChainRulesCore.rrule(config, eigsolve, A, x, howmany,
+                                                          which, alg; alg_rrule=alg_rrule)
+            # NOTE: the following is not necessary here, as it is corrected for in the `eigsolve` rrule
+            # if length(vals) > howmany && vals[howmany] == conj(vals[howmany + 1])
+            #     howmany += 1
+            # end
+            @constinferred pb((ZeroTangent(), ZeroTangent(), NoTangent()))
+            @constinferred pb((randn(T, howmany), ZeroTangent(), NoTangent()))
+            @constinferred pb((randn(T, howmany), [randn(T, n)], NoTangent()))
+            @constinferred pb((randn(T, howmany), [randn(T, n) for _ in 1:howmany],
+                               NoTangent()))
+        end
+
+        for alg_rrule in (alg_rrule1, alg_rrule2)
+            mat_example, mat_example_fun, mat_example_fd, Avec, xvec, vals, vecs, howmany = build_mat_example(A,
+                                                                                                              x,
+                                                                                                              howmany,
+                                                                                                              which,
+                                                                                                              alg,
+                                                                                                              alg_rrule)
 
             (JA, Jx) = FiniteDifferences.jacobian(fdm, mat_example_fd, Avec, xvec)
-            (JA′, Jx′) = Zygote.jacobian(mat_example_ad, Avec, xvec)
+            (JA1, Jx1) = Zygote.jacobian(mat_example, Avec, xvec)
+            (JA2, Jx2) = Zygote.jacobian(mat_example_fun, Avec, xvec)
 
             # finite difference comparison using some kind of tolerance heuristic
-            @test JA ≈ JA′ rtol = (T <: Complex ? 4n : n) * cond(A) * tolerance(T)
-            @test norm(Jx, Inf) < (T <: Complex ? 4n : n) * cond(A) * tolerance(T)
-            @test Jx′ == zero(Jx)
+            @test isapprox(JA, JA1; rtol=condA * sqrt(eps(real(T))))
+            @test all(isapprox.(JA1, JA2; atol=3 * eps(real(T))))
+            @test norm(Jx, Inf) < condA * sqrt(eps(real(T)))
+            @test all(iszero, Jx1)
+            @test all(iszero, Jx2)
 
             # some analysis
-            ∂vals = complex.(JA′[1:howmany, :], JA′[howmany * (n + 1) .+ (1:howmany), :])
+            ∂vals = complex.(JA1[1:howmany, :], JA1[howmany * (n + 1) .+ (1:howmany), :])
             ∂vecs = map(1:howmany) do i
-                return complex.(JA′[(howmany + (i - 1) * n) .+ (1:n), :],
-                                JA′[(howmany * (n + 2) + (i - 1) * n) .+ (1:n), :])
+                return complex.(JA1[(howmany + (i - 1) * n) .+ (1:n), :],
+                                JA1[(howmany * (n + 2) + (i - 1) * n) .+ (1:n), :])
             end
             if eltype(A) <: Complex # test holomorphicity / Cauchy-Riemann equations
                 # for eigenvalues
@@ -271,7 +336,7 @@ end
             end
             # test orthogonality of vecs and ∂vecs
             for i in 1:howmany
-                @test all(<(n * tolerance(T)), abs.(vecs[i]' * ∂vecs[i]))
+                @test all(isapprox.(abs.(vecs[i]' * ∂vecs[i]), 0; atol=sqrt(eps(real(T)))))
             end
         end
     end
@@ -291,9 +356,10 @@ end
         d = 2 * (rand(T, N) .- one(T) / 2)
 
         howmany = 2
-        alg = Arnoldi(; tol=tolerance(T), krylovdim=2n)
-        alg_rrule1 = Arnoldi(; tol=tolerance(T), krylovdim=2n)
-        alg_rrule2 = GMRES(; tol=tolerance(T), krylovdim=2n)
+        tol = 2 * N^2 * eps(real(T))
+        alg = Arnoldi(; tol=tol, krylovdim=2n)
+        alg_rrule1 = Arnoldi(; tol=tol, krylovdim=2n)
+        alg_rrule2 = GMRES(; tol=tol, krylovdim=2n)
         @testset for alg_rrule in (alg_rrule1, alg_rrule2)
             fun_example_ad, fun_example_fd, Avec, xvec, cvec, dvec, vals, vecs, howmany = build_fun_example(A,
                                                                                                             x,
@@ -322,7 +388,6 @@ using ChainRulesCore, ChainRulesTestUtils, Zygote, FiniteDifferences
 Random.seed!(123456789)
 
 fdm = ChainRulesTestUtils._fdm
-tolerance(T::Type{<:Number}) = eps(real(T))^(2 / 3)
 n = 10
 N = 30
 
@@ -333,10 +398,10 @@ function build_mat_example(A, x, howmany::Int, alg, alg_rrule)
     vals, lvecs, rvecs, info = svdsolve(A, x, howmany, :LR, alg)
     info.converged < howmany && @warn "svdsolve did not converge"
 
-    function mat_example_ad(Av, xv)
-        A′ = A_fromvec(Av)
-        x′ = x_fromvec(xv)
-        vals′, lvecs′, rvecs′, info′ = svdsolve(A′, x′, howmany, :LR, alg;
+    function mat_example_mat(Av, xv)
+        Ã = A_fromvec(Av)
+        x̃ = x_fromvec(xv)
+        vals′, lvecs′, rvecs′, info′ = svdsolve(Ã, x̃, howmany, :LR, alg;
                                                 alg_rrule=alg_rrule)
         info′.converged < howmany && @warn "svdsolve did not converge"
         catresults = vcat(vals′[1:howmany], lvecs′[1:howmany]..., rvecs′[1:howmany]...)
@@ -347,16 +412,10 @@ function build_mat_example(A, x, howmany::Int, alg, alg_rrule)
         end
     end
     function mat_example_fval(Av, xv)
-        A′ = A_fromvec(Av)
-        x′ = x_fromvec(xv)
-        f = function (x, adj::Val)
-            if adj isa Val{true}
-                return adjoint(A′) * x
-            else
-                return A′ * x
-            end
-        end
-        vals′, lvecs′, rvecs′, info′ = svdsolve(f, x′, howmany, :LR, alg;
+        Ã = A_fromvec(Av)
+        x̃ = x_fromvec(xv)
+        f = (x, adj::Val) -> (adj isa Val{true}) ? adjoint(Ã) * x : Ã * x
+        vals′, lvecs′, rvecs′, info′ = svdsolve(f, x̃, howmany, :LR, alg;
                                                 alg_rrule=alg_rrule)
         info′.converged < howmany && @warn "svdsolve did not converge"
         catresults = vcat(vals′[1:howmany], lvecs′[1:howmany]..., rvecs′[1:howmany]...)
@@ -367,15 +426,10 @@ function build_mat_example(A, x, howmany::Int, alg, alg_rrule)
         end
     end
     function mat_example_ftuple(Av, xv)
-        A′ = A_fromvec(Av)
-        x′ = x_fromvec(xv)
-        f = function (x)
-            return A′ * x
-        end
-        fᴴ = function (x)
-            return adjoint(A′) * x
-        end
-        vals′, lvecs′, rvecs′, info′ = svdsolve((f, fᴴ), x′, howmany, :LR, alg;
+        Ã = A_fromvec(Av)
+        x̃ = x_fromvec(xv)
+        (f, fᴴ) = (x -> Ã * x, x -> adjoint(Ã) * x)
+        vals′, lvecs′, rvecs′, info′ = svdsolve((f, fᴴ), x̃, howmany, :LR, alg;
                                                 alg_rrule=alg_rrule)
         info′.converged < howmany && @warn "svdsolve did not converge"
         catresults = vcat(vals′[1:howmany], lvecs′[1:howmany]..., rvecs′[1:howmany]...)
@@ -387,15 +441,15 @@ function build_mat_example(A, x, howmany::Int, alg, alg_rrule)
     end
 
     function mat_example_fd(Av, xv)
-        A′ = A_fromvec(Av)
-        x′ = x_fromvec(xv)
-        vals′, lvecs′, rvecs′, info′ = svdsolve(A′, x′, howmany, :LR, alg)
+        Ã = A_fromvec(Av)
+        x̃ = x_fromvec(xv)
+        vals′, lvecs′, rvecs′, info′ = svdsolve(Ã, x̃, howmany, :LR, alg)
         info′.converged < howmany && @warn "svdsolve did not converge"
         for i in 1:howmany
             dl = dot(lvecs[i], lvecs′[i])
             dr = dot(rvecs[i], rvecs′[i])
-            @assert abs(dl) > tolerance(eltype(A))
-            @assert abs(dr) > tolerance(eltype(A))
+            @assert abs(dl) > sqrt(eps(real(eltype(A))))
+            @assert abs(dr) > sqrt(eps(real(eltype(A))))
             phasefix = sqrt(abs(dl * dr) / (dl * dr))
             lvecs′[i] = lvecs′[i] * phasefix
             rvecs′[i] = rvecs′[i] * phasefix
@@ -408,7 +462,8 @@ function build_mat_example(A, x, howmany::Int, alg, alg_rrule)
         end
     end
 
-    return mat_example_ad, mat_example_ftuple, mat_example_fval, mat_example_fd, Avec, xvec,
+    return mat_example_mat, mat_example_ftuple, mat_example_fval, mat_example_fd, Avec,
+           xvec,
            vals, lvecs, rvecs
 end
 
@@ -424,14 +479,14 @@ function build_fun_example(A, x, c, d, howmany::Int, alg, alg_rrule)
     info.converged < howmany && @warn "svdsolve did not converge"
 
     function fun_example_ad(Av, xv, cv, dv)
-        A′ = matfromvec(Av)
-        x′ = xvecfromvec(xv)
-        c′ = cvecfromvec(cv)
-        d′ = dvecfromvec(dv)
+        Ã = matfromvec(Av)
+        x̃ = xvecfromvec(xv)
+        c̃ = cvecfromvec(cv)
+        d̃ = dvecfromvec(dv)
 
-        f = y -> A′ * y + c′ * dot(d′, y)
-        fᴴ = y -> adjoint(A′) * y + d′ * dot(c′, y)
-        vals′, lvecs′, rvecs′, info′ = svdsolve((f, fᴴ), x′, howmany, :LR, alg;
+        f = y -> Ã * y + c̃ * dot(d̃, y)
+        fᴴ = y -> adjoint(Ã) * y + d̃ * dot(c̃, y)
+        vals′, lvecs′, rvecs′, info′ = svdsolve((f, fᴴ), x̃, howmany, :LR, alg;
                                                 alg_rrule=alg_rrule)
         info′.converged < howmany && @warn "svdsolve did not converge"
         catresults = vcat(vals′[1:howmany], lvecs′[1:howmany]..., rvecs′[1:howmany]...)
@@ -442,24 +497,20 @@ function build_fun_example(A, x, c, d, howmany::Int, alg, alg_rrule)
         end
     end
     function fun_example_fd(Av, xv, cv, dv)
-        A′ = matfromvec(Av)
-        x′ = xvecfromvec(xv)
-        c′ = cvecfromvec(cv)
-        d′ = dvecfromvec(dv)
+        Ã = matfromvec(Av)
+        x̃ = xvecfromvec(xv)
+        c̃ = cvecfromvec(cv)
+        d̃ = dvecfromvec(dv)
 
-        f = let A′ = A′, c′ = c′, d′ = d′
-            y -> A′ * y + c′ * dot(d′, y)
-        end
-        fᴴ = let A′ = A′, c′ = c′, d′ = d′
-            y -> adjoint(A′) * y + d′ * dot(c′, y)
-        end
-        vals′, lvecs′, rvecs′, info′ = svdsolve((f, fᴴ), x′, howmany, :LR, alg)
+        f = y -> Ã * y + c̃ * dot(d̃, y)
+        fᴴ = y -> adjoint(Ã) * y + d̃ * dot(c̃, y)
+        vals′, lvecs′, rvecs′, info′ = svdsolve((f, fᴴ), x̃, howmany, :LR, alg)
         info′.converged < howmany && @warn "svdsolve did not converge"
         for i in 1:howmany
             dl = dot(lvecs[i], lvecs′[i])
             dr = dot(rvecs[i], rvecs′[i])
-            @assert abs(dl) > tolerance(eltype(A))
-            @assert abs(dr) > tolerance(eltype(A))
+            @assert abs(dl) > sqrt(eps(real(eltype(A))))
+            @assert abs(dr) > sqrt(eps(real(eltype(A))))
             phasefix = sqrt(abs(dl * dr) / (dl * dr))
             lvecs′[i] = lvecs′[i] * phasefix
             rvecs′[i] = rvecs′[i] * phasefix
@@ -481,30 +532,44 @@ end
     A = 2 * (rand(T, (n, 2 * n)) .- one(T) / 2)
     x = 2 * (rand(T, n) .- one(T) / 2)
     x /= norm(x)
+    condA = cond(A)
 
     howmany = 3
-    tol = tolerance(T)
+    tol = 3 * n * condA * (T <: Real ? eps(T) : 4 * eps(real(T)))
     alg = GKL(; krylovdim=2n, tol=tol)
-    alg_rrule1 = Arnoldi(; tol=tol, krylovdim=(3n + howmany))
-    alg_rrule2 = GMRES(; tol=tol, krylovdim=(3n + 1))
+    alg_rrule1 = Arnoldi(; tol=tol, krylovdim=4n)
+    alg_rrule2 = GMRES(; tol=tol, krylovdim=4n)
+    config = Zygote.ZygoteRuleConfig()
     for alg_rrule in (alg_rrule1, alg_rrule2)
-        (mat_example_ad, mat_example_ftuple, mat_example_fval, mat_example_fd,
+        # unfortunately, rrule does not seem type stable for function arguments, because the
+        # `rrule_via_ad` call does not produce type stable `rrule`s for the function
+        _, pb = ChainRulesCore.rrule(config, svdsolve, A, x, howmany, :LR, alg;
+                                     alg_rrule=alg_rrule)
+        @constinferred pb((ZeroTangent(), ZeroTangent(), ZeroTangent(), NoTangent()))
+        @constinferred pb((randn(real(T), howmany), ZeroTangent(), ZeroTangent(),
+                           NoTangent()))
+        @constinferred pb((randn(real(T), howmany), [randn(T, n)], ZeroTangent(),
+                           NoTangent()))
+        @constinferred pb((randn(real(T), howmany), [randn(T, n) for _ in 1:howmany],
+                           [randn(T, 2 * n) for _ in 1:howmany], NoTangent()))
+    end
+    for alg_rrule in (alg_rrule1, alg_rrule2)
+        (mat_example_mat, mat_example_ftuple, mat_example_fval, mat_example_fd,
         Avec, xvec, vals, lvecs, rvecs) = build_mat_example(A, x, howmany, alg, alg_rrule)
 
         (JA, Jx) = FiniteDifferences.jacobian(fdm, mat_example_fd, Avec, xvec)
-        (JA1, Jx1) = Zygote.jacobian(mat_example_ad, Avec, xvec)
+        (JA1, Jx1) = Zygote.jacobian(mat_example_mat, Avec, xvec)
         (JA2, Jx2) = Zygote.jacobian(mat_example_fval, Avec, xvec)
         (JA3, Jx3) = Zygote.jacobian(mat_example_ftuple, Avec, xvec)
 
-        condA = vals[1] / vals[n]
-
         # finite difference comparison using some kind of tolerance heuristic
-        @test all(isapprox.(JA, JA1;
-                            atol=(T <: Complex ? 4 : 2) * n * n * condA * tolerance(T)))
-        @test all(isapprox.(JA1, JA2; atol=eps(real(T))))
-        @test all(isapprox.(JA1, JA3; atol=eps(real(T))))
-        @test norm(Jx, Inf) < (T <: Complex ? 4 : 2) * n * n * condA * tolerance(T)
-        @test Jx1 == zero(Jx)
+        @test isapprox(JA, JA1; rtol=3 * n * n * condA * sqrt(eps(real(T))))
+        @test all(isapprox.(JA1, JA2; atol=3 * eps(real(T))))
+        @test all(isapprox.(JA1, JA3; atol=3 * eps(real(T))))
+        @test norm(Jx, Inf) < 4 * condA * sqrt(eps(real(T)))
+        @test all(iszero, Jx1)
+        @test all(iszero, Jx2)
+        @test all(iszero, Jx3)
 
         # some analysis
         if eltype(A) <: Complex # test holomorphicity / Cauchy-Riemann equations
@@ -529,10 +594,10 @@ end
         end
         # test orthogonality of vecs and ∂vecs
         for i in 1:howmany
-            # @show norm(lvecs[i]' * ∂lvecs[i] + rvecs[i]' * ∂rvecs[i])
-            @test all(<(tolerance(T)), real.(lvecs[i]' * ∂lvecs[i]))
-            @test all(<(tolerance(T)), real.(rvecs[i]' * ∂rvecs[i]))
-            @test all(<(tolerance(T)), abs.(lvecs[i]' * ∂lvecs[i] + rvecs[i]' * ∂rvecs[i]))
+            prec = 4 * cond(A) * sqrt(eps(real(T)))
+            @test all(<(prec), real.(lvecs[i]' * ∂lvecs[i]))
+            @test all(<(prec), real.(rvecs[i]' * ∂rvecs[i]))
+            @test all(<(prec), abs.(lvecs[i]' * ∂lvecs[i] + rvecs[i]' * ∂rvecs[i]))
         end
     end
 end
@@ -546,7 +611,7 @@ end
     d = 2 * (rand(T, N + n) .- one(T) / 2)
 
     howmany = 2
-    tol = tolerance(T)
+    tol = 2 * N^2 * eps(real(T))
     alg = GKL(; tol=tol, krylovdim=2n)
     alg_rrule1 = Arnoldi(; tol=tol, krylovdim=2n)
     alg_rrule2 = GMRES(; tol=tol, krylovdim=2n)
@@ -565,7 +630,7 @@ end
         @test JA ≈ JA′
         @test Jc ≈ Jc′
         @test Jd ≈ Jd′
-        @test norm(Jx, Inf) < (T <: Complex ? 4n : n) * tolerance(T)
+        @test norm(Jx, Inf) < (T <: Complex ? 4n : n) * sqrt(eps(real(T)))
     end
 end
 end

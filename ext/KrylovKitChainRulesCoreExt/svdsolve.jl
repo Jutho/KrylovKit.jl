@@ -8,6 +8,13 @@ function ChainRulesCore.rrule(config::RuleConfig, ::typeof(svdsolve), f, x₀, h
                                                 orth=alg_primal.orth,
                                                 verbosity=alg_primal.verbosity))
     vals, lvecs, rvecs, info = svdsolve(f, x₀, howmany, which, alg_primal)
+    svdsolve_pullback = make_svdsolve_pullback(config, f, x₀, howmany, which, alg_primal,
+                                               alg_rrule, vals, lvecs, rvecs, info)
+    return (vals, lvecs, rvecs, info), svdsolve_pullback
+end
+
+function make_svdsolve_pullback(config, f, x₀, howmany, which, alg_primal, alg_rrule, vals,
+                                lvecs, rvecs, info)
     function svdsolve_pullback(ΔX)
         ∂self = NoTangent()
         ∂x₀ = ZeroTangent()
@@ -15,66 +22,73 @@ function ChainRulesCore.rrule(config::RuleConfig, ::typeof(svdsolve), f, x₀, h
         ∂which = NoTangent()
         ∂alg = NoTangent()
 
+        # Prepare inputs:
+        #----------------
         _Δvals = unthunk(ΔX[1])
         _Δlvecs = unthunk(ΔX[2])
         _Δrvecs = unthunk(ΔX[3])
-
-        n = 0
-        while true
-            if !(_Δvals isa AbstractZero) &&
-               any(!iszero, view(_Δvals, (n + 1):length(_Δvals)))
-                n = n + 1
-                continue
-            end
-            if !(_Δlvecs isa AbstractZero) &&
-               any(!Base.Fix2(isa, AbstractZero), view(_Δlvecs, (n + 1):length(_Δlvecs)))
-                n = n + 1
-                continue
-            end
-            if !(_Δrvecs isa AbstractZero) &&
-               any(!Base.Fix2(isa, AbstractZero), view(_Δrvecs, (n + 1):length(_Δrvecs)))
-                n = n + 1
-                continue
-            end
-            break
-        end
-        @assert n <= length(vals)
-        if n == 0
+        # special case: propagate zero tangent
+        if _Δvals isa AbstractZero && _Δlvecs isa AbstractZero && _Δrvecs isa AbstractZero
             ∂f = ZeroTangent()
             return ∂self, ∂f, ∂x₀, ∂howmany, ∂which, ∂alg
         end
-        if _Δvals isa AbstractZero
-            Δvals = fill(zero(vals[1]), n)
-        else
-            @assert length(_Δvals) >= n
-            Δvals = view(_Δvals, 1:n)
+        # discard vals/vecs from n + 1 onwards if contribution is zero
+        _n_vals = _Δvals isa AbstractZero ? nothing : findlast(!iszero, _Δvals)
+        _n_lvecs = _Δlvecs isa AbstractZero ? nothing :
+                   findlast(!Base.Fix2(isa, AbstractZero), _Δlvecs)
+        _n_rvecs = _Δrvecs isa AbstractZero ? nothing :
+                   findlast(!Base.Fix2(isa, AbstractZero), _Δrvecs)
+        n_vals = isnothing(_n_vals) ? 0 : _n_vals
+        n_lvecs = isnothing(_n_lvecs) ? 0 : _n_lvecs
+        n_rvecs = isnothing(_n_rvecs) ? 0 : _n_rvecs
+        n = max(n_vals, n_lvecs, n_rvecs)
+        # special case (can this happen?): try to maintain type stability
+        if n == 0
+            if howmany == 0
+                _lvecs = [zerovector(x₀)]
+                _rvecs = [apply_adjoint(f, x₀)]
+                xs = [_lvecs[1]]
+                ys = [_rvecs[1]]
+                ∂f = construct∂f_svd(config, f, _lvecs, _rvecs, xs, ys)
+                return ∂self, ∂f, ∂x₀, ∂howmany, ∂which, ∂alg
+            else
+                xs = [zerovector(lvecs[1])]
+                ys = [zerovector(rvecs[1])]
+                ∂f = construct∂f_svd(config, f, lvecs, rvecs, xs, ys)
+                return ∂self, ∂f, ∂x₀, ∂howmany, ∂which, ∂alg
+            end
+        end
+        Δvals = fill(zero(vals[1]), n)
+        if n_vals > 0
+            Δvals[1:n_vals] .= view(_Δvals, 1:n_vals)
         end
         if _Δlvecs isa AbstractZero && _Δrvecs isa AbstractZero
+            # case of no contribution of singular vectors
             Δlvecs = fill(ZeroTangent(), n)
             Δrvecs = fill(ZeroTangent(), n)
-        end
-        if _Δlvecs isa AbstractZero
+        else
             Δlvecs = fill(zerovector(lvecs[1]), n)
-        else
-            @assert length(_Δlvecs) >= n
-            Δlvecs = view(_Δlvecs, 1:n)
-        end
-        if _Δrvecs isa AbstractZero
             Δrvecs = fill(zerovector(rvecs[1]), n)
-        else
-            @assert length(_Δrvecs) >= n
-            Δrvecs = view(_Δrvecs, 1:n)
+            if n_lvecs > 0
+                Δlvecs[1:n_lvecs] .= view(_Δlvecs, 1:n_lvecs)
+            end
+            if n_rvecs > 0
+                Δrvecs[1:n_rvecs] .= view(_Δrvecs, 1:n_rvecs)
+            end
         end
 
+        # Compute actual pullback data:
+        #------------------------------
         xs, ys = compute_svdsolve_pullback_data(Δvals, Δlvecs, Δrvecs, view(vals, 1:n),
                                                 view(lvecs, 1:n), view(rvecs, 1:n),
                                                 info, f, which, alg_primal, alg_rrule)
 
+        # Return pullback in correct form:
+        #---------------------------------
         ∂f = construct∂f_svd(config, f, lvecs, rvecs, xs, ys)
-
         return ∂self, ∂f, ∂x₀, ∂howmany, ∂which, ∂alg
     end
-    return (vals, lvecs, rvecs, info), svdsolve_pullback
+    return svdsolve_pullback
 end
 
 function compute_svdsolve_pullback_data(Δvals, Δlvecs, Δrvecs, vals, lvecs, rvecs, info, f,
@@ -98,9 +112,10 @@ function compute_svdsolve_pullback_data(Δvals, Δlvecs, Δrvecs, vals, lvecs, r
         udΔu = inner(u, Δu)
         vdΔv = inner(v, Δv)
         if (udΔu isa Complex) || (vdΔv isa Complex)
-            gaugeᵢ = abs(imag(udΔu + vdΔv))
-            if gaugeᵢ > alg_primal.tol && alg_rrule.verbosity >= 1
-                @warn "`svdsolve` cotangents for singular vectors $i are sensitive to gauge choice: (|gaugeᵢ| = $gaugeᵢ)"
+            if alg_rrule.verbosity >= 1
+                gauge = abs(imag(udΔu + vdΔv))
+                gauge > alg_primal.tol &&
+                    @warn "`svdsolve` cotangents for singular vectors $i are sensitive to gauge choice: (|gauge| = $gauge)"
             end
             Δs = real(Δσ) + im * imag(udΔu - vdΔv) / (2 * σ)
         else
@@ -128,7 +143,7 @@ function compute_svdsolve_pullback_data(Δvals, Δlvecs, Δrvecs, vals, lvecs, r
 end
 function compute_svdsolve_pullback_data(Δvals, Δlvecs, Δrvecs, vals, lvecs, rvecs, info, f,
                                         which, alg_primal, alg_rrule::Arnoldi)
-    @assert which == :LR "pullback currently only implemented for `which == :LR`
+    @assert which == :LR "pullback currently only implemented for `which == :LR`"
     T = scalartype(lvecs)
     n = length(Δvals)
     UdΔU = zeros(T, n, n)
@@ -147,11 +162,12 @@ function compute_svdsolve_pullback_data(Δvals, Δlvecs, Δrvecs, vals, lvecs, r
     aVdΔV = rmul!(VdΔV - VdΔV', 1 / 2)
 
     tol = alg_primal.tol
-    mask = abs.(vals' .- vals) .< tol
-    gaugepart = view(aUdΔU, mask) + view(aVdΔV, mask)
-    gaugeerr = norm(gaugepart, Inf)
-    if gaugeerr > alg_primal.tol && alg_rrule.verbosity >= 1
-        @warn "`svdsolve` cotangents for singular vectors are sensitive to gauge choice: (|gauge| = $gaugeerr)"
+    if alg_rrule.verbosity >= 1
+        mask = abs.(vals' .- vals) .< tol
+        gaugepart = view(aUdΔU, mask) + view(aVdΔV, mask)
+        gauge = norm(gaugepart, Inf)
+        gauge > alg_primal.tol &&
+            @warn "`svdsolve` cotangents for singular vectors are sensitive to gauge choice: (|gauge| = $gauge)"
     end
     UdΔAV = (aUdΔU .+ aVdΔV) .* safe_inv.(vals' .- vals, tol) .+
             (aUdΔU .- aVdΔV) .* safe_inv.(vals' .+ vals, tol)
@@ -226,7 +242,7 @@ function compute_svdsolve_pullback_data(Δvals, Δlvecs, Δrvecs, vals, lvecs, r
         z[ic] = zero(z[ic])
         error = max(norm(z, Inf), abs(rvals[i] - vals[ic]))
         if error > 5 * tol && alg_rrule.verbosity >= 0
-            @warn "`svdsolve` cotangent linear problem ($ic) returns unexpected result: error = $error"
+            @warn "`svdsolve` cotangent linear problem ($ic) returns unexpected result: error = $error vs tol = $tol"
         end
         xs[ic] = VectorInterface.add!!(xs[ic], x, -factor)
         ys[ic] = VectorInterface.add!!(ys[ic], y, -factor)
@@ -250,7 +266,6 @@ function construct∂f_svd(config, f, lvecs, rvecs, xs, ys)
     end
     return ∂f
 end
-
 function construct∂f_svd(config, (f, fᴴ)::Tuple{Any,Any}, lvecs, rvecs, xs, ys)
     config isa RuleConfig{>:HasReverseMode} ||
         throw(ArgumentError("`svdsolve` reverse-mode AD requires AD engine that supports calling back into AD"))

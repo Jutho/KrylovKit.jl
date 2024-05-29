@@ -12,8 +12,22 @@ function ChainRulesCore.rrule(config::RuleConfig,
                                                 orth=alg_primal.orth,
                                                 verbosity=alg_primal.verbosity))
     (vals, vecs, info) = eigsolve(f, x₀, howmany, which, alg_primal)
-    T, fᴴ, construct∂f = _prepare_inputs(config, f, vecs, alg_primal)
+    if alg_primal isa Lanczos
+        fᴴ = f
+    elseif f isa AbstractMatrix
+        fᴴ = adjoint(f)
+    else
+        fᴴ = let pb = rrule_via_ad(config, f, zerovector(x₀, complex(scalartype(x₀))))[2]
+            v -> pb(v)[2]
+        end
+    end
+    eigsolve_pullback = make_eigsolve_pullback(config, f, fᴴ, x₀, howmany, which,
+                                               alg_primal, alg_rrule, vals, vecs, info)
+    return (vals, vecs, info), eigsolve_pullback
+end
 
+function make_eigsolve_pullback(config, f, fᴴ, x₀, howmany, which, alg_primal, alg_rrule,
+                                vals, vecs, info)
     function eigsolve_pullback(ΔX)
         ∂self = NoTangent()
         ∂x₀ = ZeroTangent()
@@ -21,41 +35,72 @@ function ChainRulesCore.rrule(config::RuleConfig,
         ∂which = NoTangent()
         ∂alg = NoTangent()
 
+        # Prepare inputs:
+        #----------------
         _Δvals = unthunk(ΔX[1])
         _Δvecs = unthunk(ΔX[2])
-
-    # discard vals/vecs from n + 1 onwards if contribution is zero
-    n_vals = _Δvals isa AbstractZero ? nothing : findlast(!iszero,  _Δvals)
-    n_vecs = _Δvals isa AbstractZero ? nothing : findlast(!Base.Fix2(isa, AbstractZero),  _Δvecs)
-    n = max(isnothing(n_vals) ? 0 : n_vals, isnothing(n_vecs) ? 0 : n_vecs)
-        if n == 0
+        # special case: propagate zero tangent
+        if _Δvals isa AbstractZero && _Δvecs isa AbstractZero
             ∂f = ZeroTangent()
             return ∂self, ∂f, ∂x₀, ∂howmany, ∂which, ∂alg
         end
-        if _Δvals isa AbstractZero
-            Δvals = fill(zero(vals[1]), n)
-        else
-            @assert length(_Δvals) >= n
-            Δvals = view(_Δvals, 1:n)
+        # discard vals/vecs from n + 1 onwards if contribution is zero
+        _n_vals = _Δvals isa AbstractZero ? nothing : findlast(!iszero, _Δvals)
+        _n_vecs = _Δvecs isa AbstractZero ? nothing :
+                  findlast(!Base.Fix2(isa, AbstractZero), _Δvecs)
+        n_vals = isnothing(_n_vals) ? 0 : _n_vals
+        n_vecs = isnothing(_n_vecs) ? 0 : _n_vecs
+        n = max(n_vals, n_vecs)
+        if n < length(vals) && vals[n + 1] == conj(vals[n])
+            # this can probably only happen for real problems, where it would be problematic
+            # to split complex conjugate pairs in solving the tangent problem
+            n += 1
+        end
+        # special case (can this happen?): try to maintain type stability
+        if n == 0
+            if howmany == 0
+                T = (alg_primal isa Lanczos) ? scalartype(x₀) : complex(scalartype(x₀))
+                _vecs = [zerovector(x₀, T)]
+                ws = [_vecs[1]]
+                ∂f = construct∂f_eig(config, f, _vecs, ws)
+                return ∂self, ∂f, ∂x₀, ∂howmany, ∂which, ∂alg
+            else
+                ws = [vecs[1]]
+                ∂f = construct∂f_eig(config, f, vecs, ws)
+                return ∂self, ∂f, ∂x₀, ∂howmany, ∂which, ∂alg
+            end
+        end
+        Δvals = fill(zero(vals[1]), n)
+        if n_vals > 0
+            Δvals[1:n_vals] .= view(_Δvals, 1:n_vals)
         end
         if _Δvecs isa AbstractZero
+            # case of no contribution of singular vectors
             Δvecs = fill(ZeroTangent(), n)
         else
-            @assert length(_Δvecs) >= n
-            Δvecs = view(_Δvecs, 1:n)
+            Δvecs = fill(zerovector(vecs[1]), n)
+            if n_vecs > 0
+                Δvecs[1:n_vecs] .= view(_Δvecs, 1:n_vecs)
+            end
         end
 
+        # Compute actual pullback data:
+        #------------------------------
         ws = compute_eigsolve_pullback_data(Δvals, Δvecs, view(vals, 1:n), view(vecs, 1:n),
-                                            info, which, fᴴ, T, alg_primal, alg_rrule)
-        ∂f = construct∂f(ws)
+                                            info, which, fᴴ, alg_primal, alg_rrule)
+
+        # Return pullback in correct form:
+        #---------------------------------
+        ∂f = construct∂f_eig(config, f, vecs, ws)
         return ∂self, ∂f, ∂x₀, ∂howmany, ∂which, ∂alg
     end
-    return (vals, vecs, info), eigsolve_pullback
+    return eigsolve_pullback
 end
 
-function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which, fᴴ, T,
+function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which, fᴴ,
                                         alg_primal, alg_rrule::Union{GMRES,BiCGStab})
     ws = similar(vecs, length(Δvecs))
+    T = scalartype(vecs[1])
     @inbounds for i in 1:length(Δvecs)
         Δλ = Δvals[i]
         Δv = Δvecs[i]
@@ -63,7 +108,7 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
         v = vecs[i]
 
         # First treat special cases
-        if isa(Δv, AbstractZero) && isa(Δλ, AbstractZero) # no contribution
+        if isa(Δv, AbstractZero) && iszero(Δλ) # no contribution
             ws[i] = zerovector(v)
             continue
         end
@@ -88,16 +133,18 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
             b = (zerovector(v), convert(T, Δλ))
         else
             vdΔv = inner(v, Δv)
-            gaugeᵢ = abs(imag(vdΔv))
-            if gaugeᵢ > alg_primal.tol && alg_rrule.verbosity >= 1
-                @warn "`eigsolve` cotangent for eigenvector $i is sensitive to gauge choice: (|gaugeᵢ| = $gaugeᵢ)"
+            if alg_rrule.verbosity >= 1
+                gauge = abs(imag(vdΔv))
+                gauge > alg_primal.tol &&
+                    @warn "`eigsolve` cotangent for eigenvector $i is sensitive to gauge choice: (|gauge| = $gauge)"
             end
             Δv = add(Δv, v, -vdΔv)
             b = (Δv, convert(T, Δλ))
         end
         w, reverse_info = let λ = λ, v = v
             linsolve(b, zerovector(b), alg_rrule) do (x1, x2)
-                y1 = VectorInterface.add!!(VectorInterface.add!!(fᴴ(x1), x1, conj(λ), -1),
+                y1 = VectorInterface.add!!(VectorInterface.add!!(KrylovKit.apply(fᴴ, x1),
+                                                                 x1, conj(λ), -1),
                                            v, x2)
                 y2 = inner(v, x1)
                 return (y1, y2)
@@ -113,9 +160,10 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
     return ws
 end
 
-function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which, fᴴ, T,
+function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which, fᴴ,
                                         alg_primal::Arnoldi, alg_rrule::Arnoldi)
     n = length(Δvecs)
+    T = scalartype(vecs[1])
     G = zeros(T, n, n)
     VdΔV = zeros(T, n, n)
     for j in 1:n
@@ -135,12 +183,12 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
 
     # components along subspace spanned by current eigenvectors
     tol = alg_primal.tol
-if alg_rrule.verbosity >= 1
-    mask = abs.(transpose(vals) .- vals) .< tol
-    gaugepart = VdΔV[mask] - Diagonal(real(diag(VdΔV)))[mask]
-    Δgauge = norm(gaugepart, Inf)
-    Δgauge > tol &&
-        @warn "`eigsolve` cotangents sensitive to gauge choice: (|Δgauge| = $Δgauge)"
+    if alg_rrule.verbosity >= 1
+        mask = abs.(transpose(vals) .- vals) .< tol
+        gaugepart = VdΔV[mask] - Diagonal(real(diag(VdΔV)))[mask]
+        Δgauge = norm(gaugepart, Inf)
+        Δgauge > tol &&
+            @warn "`eigsolve` cotangents sensitive to gauge choice: (|Δgauge| = $Δgauge)"
     end
     VdΔV′ = VdΔV - G * Diagonal(diag(VdΔV) ./ diag(G))
     aVdΔV = VdΔV′ .* conj.(safe_inv.(transpose(vals) .- vals, tol))
@@ -151,7 +199,7 @@ if alg_rrule.verbosity >= 1
     iGaVdΔV = Gc \ aVdΔV
     iGVdΔV = Gc \ VdΔV
 
-    zs = similar(Δvecs)
+    zs = similar(vecs)
     for i in 1:n
         z = scale(vecs[1], iGaVdΔV[1, i])
         for j in 2:n
@@ -160,10 +208,13 @@ if alg_rrule.verbosity >= 1
         zs[i] = z
     end
 
-    # components in orthogonal subspace
-    sylvesterarg = similar(Δvecs)
+    # components in orthogonal subspace:
+    # solve Sylvester problem (A * (1-P) + shift * P) * W - W * Λ  = ΔV as eigenvalue problem
+    # with ΔVᵢ = fᴴ(zᵢ) + (1 - P) * Δvᵢ
+    # where we can recylce information in the computation of P * Δvᵢ
+    sylvesterarg = similar(vecs)
     for i in 1:n
-        y = fᴴ(zs[i])
+        y = KrylovKit.apply(fᴴ, zs[i])
         if !(Δvecs[i] isa AbstractZero)
             y = VectorInterface.add!!(y, Δvecs[i])
             for j in 1:n
@@ -173,18 +224,29 @@ if alg_rrule.verbosity >= 1
         sylvesterarg[i] = y
     end
 
-    W₀ = (zerovector(vecs[1]), one.(vals))
-    P = orthogonalprojector(vecs, n, Gc)
+    # To solve Sylvester problem as eigenvalue problem, we potentially need to shift the
+    # eigenvalues zero that originate from the projection onto the orthognal complement of
+    # original subspace, namely whenever zero is more extremal than the actual eigenvalues.
+    # Hereto, we shift the zero eigenvalues in the original subspace to the value 2 * vals[n],
+    # where we expect that if `by(vals[n]) > by(0)`, then `by(2*vals[n]) > by(vals[n])`
+    # (whenever `rev = false`, and with opposite inequality whenever `rev = true`)
     by, rev = KrylovKit.eigsort(which)
     if (rev ? (by(vals[n]) < by(zero(vals[n]))) : (by(vals[n]) > by(zero(vals[n]))))
         shift = 2 * conj(vals[n])
     else
         shift = zero(vals[n])
     end
+    # The ith column wᵢ of the solution to the Sylvester equation is contained in the
+    # the eigenvector (wᵢ, eᵢ) corresponding to eigenvalue λᵢ of the block matrix
+    # [(A * (1-P) + shift * P)  -ΔV; 0 Λ], where eᵢ is the ith unit vector. We will need
+    # to renormalise the eigenvectors to have exactly eᵢ as second component. We use 
+    # (0, e₁ + e₂ + ... + eₙ) as the initial guess for the eigenvalue problem.
+    W₀ = (zerovector(vecs[1]), one.(vals))
+    P = orthogonalprojector(vecs, n, Gc)
     rvals, Ws, reverse_info = let P = P, ΔV = sylvesterarg, shift = shift
         eigsolve(W₀, n, reverse_which(which), alg_rrule) do (w, x)
             w₀ = P(w)
-            w′ = fᴴ(add(w, w₀, -1))
+            w′ = KrylovKit.apply(fᴴ, add(w, w₀, -1))
             if !iszero(shift)
                 w′ = VectorInterface.add!!(w′, w₀, shift)
             end
@@ -197,8 +259,8 @@ if alg_rrule.verbosity >= 1
     if info.converged >= n && reverse_info.converged < n && alg_rrule.verbosity >= 0
         @warn "`eigsolve` cotangent problem did not converge, whereas the primal eigenvalue problem did"
     end
-
-    # cleanup and construct final result
+    # cleanup and construct final result by renormalising the eigenvectors and explicitly
+    # checking that they have the expected form and reproduce the expected eigenvalue
     ws = zs
     tol = alg_rrule.tol
     Q = orthogonalcomplementprojector(vecs, n, Gc)
@@ -233,18 +295,19 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
     # components along subspace spanned by current eigenvectors
     tol = alg_primal.tol
     aVdΔV = rmul!(VdΔV - VdΔV', 1 / 2)
-    mask = abs.(transpose(vals) .- vals) .< tol
-    gaugepart = view(aVdΔV, mask)
-    Δgauge = norm(gaugepart, Inf)
-    if Δgauge > tol && alg_rrule.verbosity >= 1
-        @warn "`eigsolve` cotangents sensitive to gauge choice: (|Δgauge| = $Δgauge)"
+    if alg_rrule.verbosity >= 1
+        mask = abs.(transpose(vals) .- vals) .< tol
+        gaugepart = view(aVdΔV, mask)
+        gauge = norm(gaugepart, Inf)
+        gauge > tol &&
+            @warn "`eigsolve` cotangents sensitive to gauge choice: (|gauge| = $gauge)"
     end
     aVdΔV .= aVdΔV .* safe_inv.(transpose(vals) .- vals, tol)
     for i in 1:n
         aVdΔV[i, i] += real(Δvals[i])
     end
 
-    zs = similar(Δvecs)
+    zs = similar(vecs)
     for i in 1:n
         z = scale(vecs[1], aVdΔV[1, i])
         for j in 2:n
@@ -254,7 +317,7 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
     end
 
     # components in orthogonal subspace
-    sylvesterarg = similar(Δvecs)
+    sylvesterarg = similar(vecs)
     for i in 1:n
         y = zerovector(vecs[1])
         if !(Δvecs[i] isa AbstractZero)
@@ -266,18 +329,18 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
         sylvesterarg[i] = y
     end
 
-    W₀ = (zerovector(vecs[1]), one.(vals))
-    P = orthogonalprojector(vecs, n)
     by, rev = KrylovKit.eigsort(which)
     if (rev ? (by(vals[n]) < by(zero(vals[n]))) : (by(vals[n]) > by(zero(vals[n]))))
         shift = 2 * conj(vals[n])
     else
         shift = zero(vals[n])
     end
+    W₀ = (zerovector(vecs[1]), one.(vals))
+    P = orthogonalprojector(vecs, n)
     rvals, Ws, reverse_info = let P = P, ΔV = sylvesterarg, shift = shift
         eigsolve(W₀, n, reverse_which(which), alg_rrule) do (w, x)
             w₀ = P(w)
-            w′ = fᴴ(add(w, w₀, -1))
+            w′ = KrylovKit.apply(fᴴ, add(w, w₀, -1))
             if !iszero(shift)
                 w′ = VectorInterface.add!!(w′, w₀, shift)
             end
@@ -307,4 +370,48 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
         ws[ic] = VectorInterface.add!!(zs[ic], Q(w), -factor)
     end
     return ws
+end
+
+function construct∂f_eig(config, f, vecs, ws)
+    config isa RuleConfig{>:HasReverseMode} ||
+        throw(ArgumentError("`eigsolve` reverse-mode AD requires AD engine that supports calling back into AD"))
+
+    v = vecs[1]
+    w = ws[1]
+    ∂f = rrule_via_ad(config, f, v)[2](w)[1]
+    for i in 2:length(ws)
+        v = vecs[i]
+        w = ws[i]
+        ∂f = ChainRulesCore.add!!(∂f, rrule_via_ad(config, f, v)[2](w)[1])
+    end
+    return ∂f
+end
+function construct∂f_eig(config, A::AbstractMatrix, vecs, ws)
+    if A isa StridedMatrix
+        return InplaceableThunk(Ā -> _buildĀ_eig!(Ā, vecs, ws),
+                                @thunk(_buildĀ_eig!(zero(A), vecs, ws)))
+    else
+        return @thunk(ProjectTo(A)(_buildĀ_eig!(zero(A), vecs, ws)))
+    end
+end
+
+function _buildĀ_eig!(Ā, vs, ws)
+    for i in 1:length(ws)
+        w = ws[i]
+        v = vs[i]
+        if !(w isa AbstractZero)
+            if eltype(Ā) <: Real && eltype(w) <: Complex
+                mul!(Ā, _realview(w), _realview(v)', +1, +1)
+                mul!(Ā, _imagview(w), _imagview(v)', +1, +1)
+            else
+                mul!(Ā, w, v', +1, 1)
+            end
+        end
+    end
+    return Ā
+end
+
+function reverse_which(which)
+    by, rev = KrylovKit.eigsort(which)
+    return EigSorter(by ∘ conj, rev)
 end
