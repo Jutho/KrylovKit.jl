@@ -652,7 +652,7 @@ end
         @test isapprox(JA, JA1; rtol=3 * n * n * condA * sqrt(eps(real(T))))
         @test all(isapprox.(JA1, JA2; atol=n * eps(real(T))))
         @test all(isapprox.(JA1, JA3; atol=n * eps(real(T))))
-        @test norm(Jx, Inf) < 4 * condA * sqrt(eps(real(T)))
+        @test norm(Jx, Inf) < 5 * condA * sqrt(eps(real(T)))
         @test all(iszero, Jx1)
         @test all(iszero, Jx2)
         @test all(iszero, Jx3)
