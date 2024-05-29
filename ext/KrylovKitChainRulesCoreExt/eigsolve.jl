@@ -280,9 +280,10 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
 end
 
 # several simplications happen in the case of a Hermitian eigenvalue problem
-function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which, fᴴ, T,
+function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which, fᴴ,
                                         alg_primal::Lanczos, alg_rrule::Arnoldi)
     n = length(Δvecs)
+    T = scalartype(vecs[1])
     VdΔV = zeros(T, n, n)
     for j in 1:n
         for i in 1:n
