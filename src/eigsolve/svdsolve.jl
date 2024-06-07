@@ -1,9 +1,9 @@
 """
     svdsolve(A::AbstractMatrix, [x₀, howmany = 1, which = :LR, T = eltype(A)]; kwargs...)
     svdsolve(f, m::Int, [howmany = 1, which = :LR, T = Float64]; kwargs...)
-    svdsolve(f, x₀, [howmany = 1, which = :LM]; kwargs...)
+    svdsolve(f, x₀, [howmany = 1, which = :LR]; kwargs...)
     # expert version:
-    svdsolve(f, x₀, howmany, which, algorithm)
+    svdsolve(f, x₀, howmany, which, algorithm; alg_rrule=...)
 
 Compute `howmany` singular values from the linear map encoded in the matrix `A` or by the
 function `f`. Return singular values, left and right singular vectors and a
@@ -98,6 +98,14 @@ Keyword arguments and their default values are given by:
     Krylov subspace to test for convergence, otherwise wait until the Krylov subspace has
     dimension `krylovdim`
 
+The final keyword argument `alg_rrule` is relevant only when `svdsolve` is used in a setting
+where reverse-mode automatic differentation will be used. A custom `ChainRulesCore.rrule` is
+defined for `svdsolve`, which can be evaluated using different algorithms that can be specified
+via `alg_rrule`. A suitable default is chosen, so this keyword argument should only be used
+when this default choice is failing or not performing efficiently. Check the documentation for
+more information on the possible values for `alg_rrule` and their implications on the algorithm
+being used.
+
 ### Algorithm
 
 The last method, without default values and keyword arguments, is the one that is finally
@@ -129,7 +137,13 @@ function svdsolve(f, x₀, howmany::Int=1, which::Selector=:LR; kwargs...)
     return svdsolve(f, x₀, howmany, which, alg)
 end
 
-function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL)
+function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL;
+                  alg_rrule=Arnoldi(; tol=alg.tol,
+                                    krylovdim=alg.krylovdim,
+                                    maxiter=alg.maxiter,
+                                    eager=alg.eager,
+                                    orth=alg.orth,
+                                    verbosity=alg.verbosity))
     krylovdim = alg.krylovdim
     maxiter = alg.maxiter
     howmany > krylovdim &&

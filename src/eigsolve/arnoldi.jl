@@ -36,9 +36,22 @@ should be targeted. Valid specifications of `which` are
     only be successful if you somehow know that eigenvalues close to zero are also close
     to the periphery of the spectrum.
 
-The final argument `algorithm` can currently only be an instance of [`Arnoldi`](@ref), but
-should nevertheless be specified. Since `schursolve` is less commonly used as `eigsolve`, no
-convenient keyword syntax is currently available.
+!!! warning "Degenerate eigenvalues"
+
+    From a theoretical point of view, Krylov methods can at most find a single eigenvector
+    associated with a targetted eigenvalue, even if the latter is degenerate. In the case of
+    a degenerate eigenvalue, the specific eigenvector that is returned is determined by the
+    starting vector `x₀`. For large problems, this turns out to be less of an issue in
+    practice, as often a second linearly independent eigenvector is generated out of the
+    numerical noise resulting from the orthogonalisation steps in the Lanczos or Arnoldi
+    iteration. Nonetheless, it is important to take this into account and to try not to
+    depend on this potentially fragile behaviour, especially for smaller problems.
+
+The `algorithm` argument currently only supports an instance of [`Arnoldi`](@ref), which
+is where the parameters of the Krylov method (such as Krylov dimension and maximum number
+of iterations) can be specified. Since `schursolve` is less commonly used as `eigsolve`,
+it only supports this expert mode call syntax and no convenient keyword interface is
+currently available.
 
 ### Return values:
 
@@ -157,6 +170,143 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi; alg_rrul
              *  number of operations = $numops"""
         else
             @info """Arnoldi eigsolve finished after $numiter iterations:
+             *  $converged eigenvalues converged
+             *  norm of residuals = $((normresiduals...,))
+             *  number of operations = $numops"""
+        end
+    end
+    return values,
+           vectors,
+           ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
+end
+
+"""
+    # expert version:
+    realeigsolve(f, x₀, howmany, which, algorithm; alg_rrule=algorithm)
+
+Compute the first `howmany` eigenvalues (according to the order specified by `which`)
+from the real linear map encoded in the matrix `A` or by the function `f`, with the guarantee
+that these eigenvalues (and thus their associated eigenvectors) are real.
+Return eigenvalues, eigenvectors and a `ConvergenceInfo` structure.
+
+### Arguments:
+
+The linear map can be an `AbstractMatrix` (dense or sparse) or a general function or
+callable object. A starting vector `x₀` needs to be provided. Note that `x₀` does not need
+to be of type `AbstractVector`; any type that behaves as a vector and supports the required
+interface (see KrylovKit docs) is accepted.
+
+The argument `howmany` specifies how many eigenvalues should be computed; `which` specifies
+which eigenvalues should be targeted. Valid specifications of `which` for real
+problems are given by
+
+    - `:LM`: eigenvalues of largest magnitude
+    - `:LR`: eigenvalues with largest (most positive) real part
+    - `:SR`: eigenvalues with smallest (most negative) real part
+    - [`EigSorter(f; rev = false)`](@ref): eigenvalues `λ` that appear first (or last if
+    `rev == true`) when sorted by `f(λ)`
+
+!!! note "Note about selecting `which` eigenvalues"
+
+    Krylov methods work well for extremal eigenvalues, i.e. eigenvalues on the periphery of
+    the spectrum of the linear map. All of the valid `Symbol`s for `which` have this
+    property, but could also be specified using `EigSorter`, e.g. `:LM` is equivalent to
+    `Eigsorter(abs; rev = true)`. Note that smallest magnitude sorting is obtained using
+    e.g. `EigSorter(abs; rev = false)`, but since no (shift-and)-invert is used, this will
+    only be successful if you somehow know that eigenvalues close to zero are also close
+    to the periphery of the spectrum.
+
+!!! warning "Degenerate eigenvalues"
+
+    From a theoretical point of view, Krylov methods can at most find a single eigenvector
+    associated with a targetted eigenvalue, even if the latter is degenerate. In the case of
+    a degenerate eigenvalue, the specific eigenvector that is returned is determined by the
+    starting vector `x₀`. For large problems, this turns out to be less of an issue in
+    practice, as often a second linearly independent eigenvector is generated out of the
+    numerical noise resulting from the orthogonalisation steps in the Lanczos or Arnoldi
+    iteration. Nonetheless, it is important to take this into account and to try not to
+    depend on this potentially fragile behaviour, especially for smaller problems.
+
+The `algorithm` argument currently only supports an instance of [`Arnoldi`](@ref), which
+is where the parameters of the Krylov method (such as Krylov dimension and maximum number
+of iterations) can be specified. Since `realeigsolve` is less commonly used as `eigsolve`,
+it only supports this expert mode call syntax and no convenient keyword interface is
+currently available.
+
+The keyword argument `alg_rrule` can be used to specify an algorithm to be used for computing
+the `pullback` of `realeigsolve` in the context of reverse-mode automatic differentation.
+    
+### Return values:
+
+The return value is always of the form `vals, vecs, info = eigsolve(...)` with
+
+    - `vals`: a `Vector` containing the eigenvalues, of length at least `howmany`, but could
+    be longer if more eigenvalues were converged at the same cost. Eigenvalues will be real,
+    an `ArgumentError` will be thrown if the first `howmany` eigenvalues ordered according
+    to `which` of the linear map are not all real.
+    - `vecs`: a `Vector` of corresponding eigenvectors, of the same length as `vals`. Note
+    that eigenvectors are not returned as a matrix, as the linear map could act on any
+    custom Julia type with vector like behavior, i.e. the elements of the list `vecs` are
+    objects that are typically similar to the starting guess `x₀`. For a real problem with
+    real eigenvalues, also the eigenvectors will be real and no complex arithmetic is used
+    anywhere. 
+    - `info`: an object of type [`ConvergenceInfo`], which has the following fields
+
+        + `info.converged::Int`: indicates how many eigenvalues and eigenvectors were actually
+        converged to the specified tolerance `tol` (see below under keyword arguments)
+        + `info.residual::Vector`: a list of the same length as `vals` containing the
+        residuals `info.residual[i] = f(vecs[i]) - vals[i] * vecs[i]`
+        + `info.normres::Vector{<:Real}`: list of the same length as `vals` containing the
+        norm of the residual `info.normres[i] = norm(info.residual[i])`
+        + `info.numops::Int`: number of times the linear map was applied, i.e. number of times
+        `f` was called, or a vector was multiplied with `A`
+        + `info.numiter::Int`: number of times the Krylov subspace was restarted (see below)
+
+!!! warning "Check for convergence"
+
+    No warning is printed if not all requested eigenvalues were converged, so always check
+    if `info.converged >= howmany`.
+"""
+function realeigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi; alg_rrule=alg)
+    T, U, fact, converged, numiter, numops = _schursolve(A, x₀, howmany, which, alg)
+    if !(eltype(T) <: Real)
+        throw(ArgumentError("realeigsolve can only be used for real eigenvalue problems"))
+    else
+        allreal = true
+        for i = 1:(howmany < length(fact) ? howmany : howmany - 1)
+            if T[i + 1, i] != 0
+                allreal = false
+                break
+            end
+        end
+        allreal || throw(ArgumentError("not all first `howmany` eigenvalues are real"))
+    end
+    if converged > howmany
+        while howmany < converged && T[howmany + 1, howmany] == 0
+            howmany += 1
+        end
+    end
+    TT = view(T, 1:howmany, 1:howmany)
+    values = diag(TT)
+
+    # Compute eigenvectors
+    V = view(U, :, 1:howmany) * schur2realeigvecs(TT)
+    vectors = let B = basis(fact)
+        [B * v for v in cols(V)]
+    end
+    residuals = let r = residual(fact)
+        [scale(r, last(v)) for v in cols(V)]
+    end
+    normresiduals = [normres(fact) * abs(last(v)) for v in cols(V)]
+
+    if alg.verbosity > 0
+        if converged < howmany
+            @warn """Arnoldi realeigsolve finished without convergence after $numiter iterations:
+             *  $converged eigenvalues converged
+             *  norm of residuals = $((normresiduals...,))
+             *  number of operations = $numops"""
+        else
+            @info """Arnoldi realeigsolve finished after $numiter iterations:
              *  $converged eigenvalues converged
              *  norm of residuals = $((normresiduals...,))
              *  number of operations = $numops"""

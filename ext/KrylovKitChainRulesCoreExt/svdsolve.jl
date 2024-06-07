@@ -214,8 +214,9 @@ function compute_svdsolve_pullback_data(Δvals, Δlvecs, Δrvecs, vals, lvecs, r
     W₀ = (zerovector(lvecs[1]), zerovector(rvecs[1]), fill(one(T), n))
     QU = orthogonalcomplementprojector(lvecs, n)
     QV = orthogonalcomplementprojector(rvecs, n)
+    solver = (T <: Real) ? KrylovKit.realeigsolve : KrylovKit.eigsolve
     rvals, Ws, reverse_info = let QU = QU, QV = QV, ΔU = sylvesterargx, ΔV = sylvesterargy
-        eigsolve(W₀, n, :LR, alg_rrule) do w
+        solver(W₀, n, :LR, alg_rrule) do w
             x, y, z = w
             x′ = QU(apply_normal(f, y))
             y′ = QV(apply_adjoint(f, x))

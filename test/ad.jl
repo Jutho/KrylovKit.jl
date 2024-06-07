@@ -179,7 +179,7 @@ function build_mat_example(A, x, howmany::Int, which, alg, alg_rrule)
     function mat_example_fd(Av, xv)
         Ã = A_fromvec(Av)
         x̃ = x_fromvec(xv)
-        vals′, vecs′, info′ = eigsolve(Ã, x̃, howmany, which, alg)
+        vals′, vecs′, info′ = eigsolve(Ã, x̃, howmany, which, alg; alg_rrule=alg_rrule)
         info′.converged < howmany && @warn "eigsolve did not converge"
         for i in 1:howmany
             d = dot(vecs[i], vecs′[i])
@@ -241,7 +241,8 @@ function build_fun_example(A, x, c, d, howmany::Int, which, alg, alg_rrule)
             c̃ = vecfromvec(cv)
             d̃ = vecfromvec(dv)
 
-            vals′, vecs′, info′ = eigsolve(x̃, howmany′, which, alg) do y
+            vals′, vecs′, info′ = eigsolve(x̃, howmany′, which, alg;
+                                           alg_rrule=alg_rrule) do y
                 return Ã * y + c̃ * dot(d̃, y)
             end
             info′.converged < howmany′ && @warn "eigsolve did not converge"
@@ -296,7 +297,8 @@ function build_hermitianfun_example(A, x, c, howmany::Int, which, alg, alg_rrule
         x̃ = xvecfromvec(xv)
         c̃ = cvecfromvec(cv)
 
-        vals′, vecs′, info′ = eigsolve(x̃, howmany, which, alg) do y
+        vals′, vecs′, info′ = eigsolve(x̃, howmany, which, alg;
+                                       alg_rrule=alg_rrule) do y
             return Hermitian(Ã) * y + c̃ * dot(c̃, y)
         end
         info′.converged < howmany && @warn "eigsolve did not converge"
@@ -333,7 +335,7 @@ end
     condA = cond(A)
     tol = n * condA * (T <: Real ? eps(T) : 4 * eps(real(T)))
     alg = Arnoldi(; tol=tol, krylovdim=n)
-    alg_rrule1 = alg
+    alg_rrule1 = Arnoldi(; tol=tol, krylovdim=2n)
     alg_rrule2 = GMRES(; tol=tol, krylovdim=n)
     config = Zygote.ZygoteRuleConfig()
     @testset for which in whichlist
@@ -392,6 +394,38 @@ end
             for i in 1:howmany
                 @test all(isapprox.(abs.(vecs[i]' * ∂vecs[i]), 0; atol=sqrt(eps(real(T)))))
             end
+        end
+    end
+
+    if T <: Complex
+        @testset "test warnings and info" begin
+            alg_rrule = Arnoldi(; tol=tol, krylovdim=n, verbosity=0)
+            (vals, vecs, info), pb = ChainRulesCore.rrule(config, eigsolve, A, x, howmany,
+                                                          :LR, alg; alg_rrule=alg_rrule)
+            @test_logs pb((ZeroTangent(), im .* vecs[1:2] .+ vecs[2:-1:1], NoTangent()))
+
+            alg_rrule = Arnoldi(; tol=tol, krylovdim=n, verbosity=1)
+            (vals, vecs, info), pb = ChainRulesCore.rrule(config, eigsolve, A, x, howmany,
+                                                          :LR, alg; alg_rrule=alg_rrule)
+            @test_logs (:warn,) (:info,) pb((ZeroTangent(), im .* vecs[1:2] .+ vecs[2:-1:1],
+                                             NoTangent()))
+            pbs = @test_logs (:info,) pb((ZeroTangent(), vecs[1:2], NoTangent()))
+            @test norm(unthunk(pbs[1]), Inf) < condA * sqrt(eps(real(T)))
+
+            alg_rrule = GMRES(; tol=tol, krylovdim=n)
+            (vals, vecs, info), pb = ChainRulesCore.rrule(config, eigsolve, A, x, howmany,
+                                                          :LR, alg; alg_rrule=alg_rrule)
+            @test_logs pb((ZeroTangent(), im .* vecs[1:2] .+ vecs[2:-1:1], NoTangent()))
+
+            alg_rrule = GMRES(; tol=tol, krylovdim=n, verbosity=1)
+            (vals, vecs, info), pb = ChainRulesCore.rrule(config, eigsolve, A, x, howmany,
+                                                          :LR, alg; alg_rrule=alg_rrule)
+            @test_logs (:warn,) (:info,) (:warn,) (:info,) pb((ZeroTangent(),
+                                                               im .* vecs[1:2] .+
+                                                               vecs[2:-1:1],
+                                                               NoTangent()))
+            pbs = @test_logs (:info,) (:info,) pb((ZeroTangent(), vecs[1:2], NoTangent()))
+            @test norm(unthunk(pbs[1]), Inf) < condA * sqrt(eps(real(T)))
         end
     end
 end
@@ -530,7 +564,8 @@ function build_mat_example(A, x, howmany::Int, alg, alg_rrule)
     function mat_example_fd(Av, xv)
         Ã = A_fromvec(Av)
         x̃ = x_fromvec(xv)
-        vals′, lvecs′, rvecs′, info′ = svdsolve(Ã, x̃, howmany, :LR, alg)
+        vals′, lvecs′, rvecs′, info′ = svdsolve(Ã, x̃, howmany, :LR, alg;
+                                                alg_rrule=alg_rrule)
         info′.converged < howmany && @warn "svdsolve did not converge"
         for i in 1:howmany
             dl = dot(lvecs[i], lvecs′[i])
@@ -550,8 +585,7 @@ function build_mat_example(A, x, howmany::Int, alg, alg_rrule)
     end
 
     return mat_example_mat, mat_example_ftuple, mat_example_fval, mat_example_fd, Avec,
-           xvec,
-           vals, lvecs, rvecs
+           xvec, vals, lvecs, rvecs
 end
 
 function build_fun_example(A, x, c, d, howmany::Int, alg, alg_rrule)
@@ -591,7 +625,8 @@ function build_fun_example(A, x, c, d, howmany::Int, alg, alg_rrule)
 
         f = y -> Ã * y + c̃ * dot(d̃, y)
         fᴴ = y -> adjoint(Ã) * y + d̃ * dot(c̃, y)
-        vals′, lvecs′, rvecs′, info′ = svdsolve((f, fᴴ), x̃, howmany, :LR, alg)
+        vals′, lvecs′, rvecs′, info′ = svdsolve((f, fᴴ), x̃, howmany, :LR, alg;
+                                                alg_rrule=alg_rrule)
         info′.converged < howmany && @warn "svdsolve did not converge"
         for i in 1:howmany
             dl = dot(lvecs[i], lvecs′[i])
@@ -624,7 +659,7 @@ end
     tol = 3 * n * condA * (T <: Real ? eps(T) : 4 * eps(real(T)))
     alg = GKL(; krylovdim=2n, tol=tol)
     alg_rrule1 = Arnoldi(; tol=tol, krylovdim=4n)
-    alg_rrule2 = GMRES(; tol=tol, krylovdim=4n)
+    alg_rrule2 = GMRES(; tol=tol, krylovdim=3n)
     config = Zygote.ZygoteRuleConfig()
     for alg_rrule in (alg_rrule1, alg_rrule2)
         # unfortunately, rrule does not seem type stable for function arguments, because the
@@ -684,6 +719,72 @@ end
             @test all(<(prec), real.(lvecs[i]' * ∂lvecs[i]))
             @test all(<(prec), real.(rvecs[i]' * ∂rvecs[i]))
             @test all(<(prec), abs.(lvecs[i]' * ∂lvecs[i] + rvecs[i]' * ∂rvecs[i]))
+        end
+    end
+    if T <: Complex
+        @testset "test warnings and info" begin
+            alg_rrule = Arnoldi(; tol=tol, krylovdim=4n, verbosity=0)
+            (vals, lvecs, rvecs, info), pb = ChainRulesCore.rrule(config, svdsolve, A, x,
+                                                                  howmany, :LR, alg;
+                                                                  alg_rrule=alg_rrule)
+            @test_logs pb((ZeroTangent(), im .* lvecs[1:2] .+ lvecs[2:-1:1], ZeroTangent(),
+                           NoTangent()))
+
+            alg_rrule = Arnoldi(; tol=tol, krylovdim=4n, verbosity=1)
+            (vals, lvecs, rvecs, info), pb = ChainRulesCore.rrule(config, svdsolve, A, x,
+                                                                  howmany, :LR, alg;
+                                                                  alg_rrule=alg_rrule)
+            @test_logs (:warn,) (:info,) pb((ZeroTangent(),
+                                             im .* lvecs[1:2] .+ lvecs[2:-1:1],
+                                             ZeroTangent(),
+                                             NoTangent()))
+            @test_logs (:warn,) (:info,) pb((ZeroTangent(), lvecs[2:-1:1],
+                                             im .* rvecs[1:2] .+ rvecs[2:-1:1],
+                                             ZeroTangent(),
+                                             NoTangent()))
+            @test_logs (:info,) pb((ZeroTangent(), lvecs[1:2] .+ lvecs[2:-1:1],
+                                    ZeroTangent(),
+                                    NoTangent()))
+            @test_logs (:warn,) (:info,) pb((ZeroTangent(),
+                                             im .* lvecs[1:2] .+ lvecs[2:-1:1],
+                                             +im .* rvecs[1:2] + rvecs[2:-1:1],
+                                             NoTangent()))
+            @test_logs (:info,) pb((ZeroTangent(), (1 + im) .* lvecs[1:2] .+ lvecs[2:-1:1],
+                                    (1 - im) .* rvecs[1:2] + rvecs[2:-1:1],
+                                    NoTangent()))
+
+            alg_rrule = GMRES(; tol=tol, krylovdim=3n, verbosity=0)
+            (vals, lvecs, rvecs, info), pb = ChainRulesCore.rrule(config, svdsolve, A, x,
+                                                                  howmany, :LR, alg;
+                                                                  alg_rrule=alg_rrule)
+            @test_logs pb((ZeroTangent(), im .* lvecs[1:2] .+ lvecs[2:-1:1], ZeroTangent(),
+                           NoTangent()))
+
+            alg_rrule = GMRES(; tol=tol, krylovdim=3n, verbosity=1)
+            (vals, lvecs, rvecs, info), pb = ChainRulesCore.rrule(config, svdsolve, A, x,
+                                                                  howmany, :LR, alg;
+                                                                  alg_rrule=alg_rrule)
+            @test_logs (:warn,) (:info,) (:warn,) (:info,) pb((ZeroTangent(),
+                                                               im .* lvecs[1:2] .+
+                                                               lvecs[2:-1:1], ZeroTangent(),
+                                                               NoTangent()))
+            @test_logs (:warn,) (:info,) (:warn,) (:info,) pb((ZeroTangent(), lvecs[2:-1:1],
+                                                               im .* rvecs[1:2] .+
+                                                               rvecs[2:-1:1], ZeroTangent(),
+                                                               NoTangent()))
+            @test_logs (:info,) (:info,) pb((ZeroTangent(), lvecs[1:2] .+ lvecs[2:-1:1],
+                                             ZeroTangent(),
+                                             NoTangent()))
+            @test_logs (:warn,) (:info,) (:warn,) (:info,) pb((ZeroTangent(),
+                                                               im .* lvecs[1:2] .+
+                                                               lvecs[2:-1:1],
+                                                               +im .* rvecs[1:2] +
+                                                               rvecs[2:-1:1],
+                                                               NoTangent()))
+            @test_logs (:info,) (:info,) pb((ZeroTangent(),
+                                             (1 + im) .* lvecs[1:2] .+ lvecs[2:-1:1],
+                                             (1 - im) .* rvecs[1:2] + rvecs[2:-1:1],
+                                             NoTangent()))
         end
     end
 end

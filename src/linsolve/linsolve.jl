@@ -2,7 +2,7 @@
     linsolve(A::AbstractMatrix, b::AbstractVector, [x₀, a₀::Number = 0, a₁::Number = 1]; kwargs...)
     linsolve(f, b, [x₀, a₀::Number = 0, a₁::Number = 1]; kwargs...)
     # expert version:
-    linsolve(f, b, x₀, algorithm, [a₀::Number = 0, a₁::Number = 1])
+    linsolve(f, b, x₀, algorithm, [a₀::Number = 0, a₁::Number = 1]; alg_rrule=algorithm)
 
 Compute a solution `x` to the linear system `(a₀ + a₁ * A)*x = b` or
 `a₀ * x + a₁ * f(x) = b`, possibly using a starting guess `x₀`. Return the approximate
@@ -72,6 +72,15 @@ The default value for the last three parameters depends on the method. If an
 matrix, ortherwise the default values are `issymmetric = false`,
 `ishermitian = T <: Real && issymmetric` and `isposdef = false`.
 
+The final keyword argument `alg_rrule` is relevant only when `linsolve` is used in a setting
+where reverse-mode automatic differentation will be used. A custom `ChainRulesCore.rrule` is
+defined for `linsolve`, which can be evaluated using different algorithms that can be specified
+via `alg_rrule`. As the pullback of `linsolve` involves solving a linear system with the
+(Hermitian) adjoint of the linear map, the default value is to use the same algorithm. This
+keyword argument should only be used when this default choice is failing or not performing
+efficiently. Check the documentation for more information on the possible values for
+`alg_rrule` and their implications on the algorithm being used.
+
 ### Algorithms
 
 The final (expert) method, without default values and keyword arguments, is the one that is
@@ -102,7 +111,12 @@ function linsolve(f, b, x₀, a₀::Number=0, a₁::Number=1; kwargs...)
     T = promote_type(Core.Compiler.return_type(inner, Tuple{Tb,Tfx}), typeof(a₀),
                      typeof(a₁))
     alg = linselector(f, b, T; kwargs...)
-    return linsolve(f, b, x₀, alg, a₀, a₁)
+    if haskey(kwargs, alg_rrule)
+        alg_rrule = kwargs[alg_rrule]
+    else
+        alg_rrule = alg
+    end
+    return linsolve(f, b, x₀, alg, a₀, a₁; alg_rrule=alg_rrule)
 end
 
 function linselector(f,

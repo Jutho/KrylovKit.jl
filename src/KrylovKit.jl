@@ -28,7 +28,8 @@ using GPUArraysCore
 using PackageExtensionCompat
 const IndexRange = AbstractRange{Int}
 
-export linsolve, eigsolve, geneigsolve, svdsolve, schursolve, exponentiate, expintegrator
+export linsolve, eigsolve, geneigsolve, realeigsolve, schursolve, svdsolve
+export exponentiate, expintegrator
 export orthogonalize, orthogonalize!!, orthonormalize, orthonormalize!!
 export basis, rayleighquotient, residual, normres, rayleighextension
 export initialize, initialize!, expand!, shrink!

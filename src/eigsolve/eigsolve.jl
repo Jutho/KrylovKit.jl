@@ -3,7 +3,7 @@
     eigsolve(f, n::Int, [howmany = 1, which = :LM, T = Float64]; kwargs...)
     eigsolve(f, x₀, [howmany = 1, which = :LM]; kwargs...)
     # expert version:
-    eigsolve(f, x₀, howmany, which, algorithm)
+    eigsolve(f, x₀, howmany, which, algorithm; alg_rrule=...)
 
 Compute at least `howmany` eigenvalues from the linear map encoded in the matrix `A` or by
 the function `f`. Return eigenvalues, eigenvectors and a `ConvergenceInfo` structure.
@@ -129,6 +129,14 @@ is used, `issymmetric` and `ishermitian` are checked for that matrix, otherwise 
 values are `issymmetric = false` and `ishermitian = T <: Real && issymmetric`. When values
 for the keyword arguments are provided, no checks will be performed even in the matrix case.
 
+The final keyword argument `alg_rrule` is relevant only when `eigsolve` is used in a setting
+where reverse-mode automatic differentation will be used. A custom `ChainRulesCore.rrule` is
+defined for `eigsolve`, which can be evaluated using different algorithms that can be specified
+via `alg_rrule`. A suitable default is chosen, so this keyword argument should only be used
+when this default choice is failing or not performing efficiently. Check the documentation for
+more information on the possible values for `alg_rrule` and their implications on the algorithm
+being used.
+
 ### Algorithm
 
 The final (expert) method, without default values and keyword arguments, is the one that is
@@ -149,6 +157,8 @@ restarts are so-called thick restarts where a part of the current Krylov subspac
     See also [`schursolve`](@ref) if you want to use the partial Schur decomposition
     directly, or if you are not interested in computing the eigenvectors, and want to work
     in real arithmetic all the way true (if the linear map and starting guess are real).
+    If you have knowledge that all requested eigenvalues of a real problem will be real,
+    and thus also their associated eigenvectors, you can also use [`realeigsolve`](@ref).
 """
 function eigsolve end
 

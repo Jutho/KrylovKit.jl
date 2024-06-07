@@ -243,8 +243,9 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
     # (0, e₁ + e₂ + ... + eₙ) as the initial guess for the eigenvalue problem.
     W₀ = (zerovector(vecs[1]), one.(vals))
     P = orthogonalprojector(vecs, n, Gc)
+    solver = (T <: Real) ? KrylovKit.realeigsolve : KrylovKit.eigsolve # for `eigsolve`, `T` will always be a Complex subtype`
     rvals, Ws, reverse_info = let P = P, ΔV = sylvesterarg, shift = shift
-        eigsolve(W₀, n, reverse_which(which), alg_rrule) do (w, x)
+        solver(W₀, n, reverse_which(which), alg_rrule) do (w, x)
             w₀ = P(w)
             w′ = KrylovKit.apply(fᴴ, add(w, w₀, -1))
             if !iszero(shift)
@@ -338,8 +339,9 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
     end
     W₀ = (zerovector(vecs[1]), one.(vals))
     P = orthogonalprojector(vecs, n)
+    solver = (T <: Real) ? KrylovKit.realeigsolve : KrylovKit.eigsolve
     rvals, Ws, reverse_info = let P = P, ΔV = sylvesterarg, shift = shift
-        eigsolve(W₀, n, reverse_which(which), alg_rrule) do (w, x)
+        solver(W₀, n, reverse_which(which), alg_rrule) do (w, x)
             w₀ = P(w)
             w′ = KrylovKit.apply(fᴴ, add(w, w₀, -1))
             if !iszero(shift)
