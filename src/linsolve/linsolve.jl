@@ -111,8 +111,8 @@ function linsolve(f, b, x₀, a₀::Number=0, a₁::Number=1; kwargs...)
     T = promote_type(Core.Compiler.return_type(inner, Tuple{Tb,Tfx}), typeof(a₀),
                      typeof(a₁))
     alg = linselector(f, b, T; kwargs...)
-    if haskey(kwargs, alg_rrule)
-        alg_rrule = kwargs[alg_rrule]
+    if haskey(kwargs, :alg_rrule)
+        alg_rrule = kwargs[:alg_rrule]
     else
         alg_rrule = alg
     end

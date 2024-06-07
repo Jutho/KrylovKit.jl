@@ -206,7 +206,16 @@ function eigsolve(f, x₀, howmany::Int=1, which::Selector=:LM; kwargs...)
             `λ` and `conj(λ)` equally: work in complex arithmetic by providing a complex starting vector `x₀`")
         end
     end
-    return eigsolve(f, x₀, howmany, which, alg)
+    if haskey(kwargs, :alg_rrule)
+        alg_rrule = kwargs[:alg_rrule]
+    else
+        alg_rrule = Arnoldi(; tol=alg.tol,
+                            krylovdim=alg.krylovdim,
+                            maxiter=alg.maxiter,
+                            eager=alg.eager,
+                            orth=alg.orth)
+    end
+    return eigsolve(f, x₀, howmany, which, alg; alg_rrule=alg_rrule)
 end
 
 function eigselector(f,
