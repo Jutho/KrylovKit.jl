@@ -164,6 +164,13 @@ function Base.iterate(iter::LanczosIterator, state::LanczosFactorization)
     end
 end
 
+function warn_nonhermitian(α, n)
+    if imag(α) > sqrt(max(eps(n), eps(one(n))))
+        @warn "ignoring imaginary component $(imag(α)) from total weight $n: operator might not be hermitian?"
+    end
+    return nothing
+end
+
 function initialize(iter::LanczosIterator; verbosity::Int=0)
     # initialize without using eltype
     x₀ = iter.x₀
@@ -172,8 +179,7 @@ function initialize(iter::LanczosIterator; verbosity::Int=0)
     Ax₀ = apply(iter.operator, x₀)
     α = inner(x₀, Ax₀) / (β₀ * β₀)
     n = abs(α)
-    imag(α) <= sqrt(max(eps(n), eps(one(n)))) ||
-        error("operator does not appear to be hermitian: $(imag(α)) vs $n")
+    warn_nonhermitian(α, n)
     T = typeof(α)
     # this line determines the vector type that we will henceforth use
     v = add!!(zerovector(Ax₀, T), x₀, 1 / β₀)
@@ -183,26 +189,24 @@ function initialize(iter::LanczosIterator; verbosity::Int=0)
         r = scale!!(Ax₀, 1 / β₀)
     end
     βold = norm(r)
-    r = add!!(r, v, -α)
+    r = add!!(r, v, -α) # should we use real(α) here?
     β = norm(r)
     # possibly reorthogonalize
     if iter.orth isa Union{ClassicalGramSchmidt2,ModifiedGramSchmidt2}
         dα = inner(v, r)
         n = hypot(dα, β)
-        imag(dα) <= sqrt(max(eps(n), eps(one(n)))) ||
-            error("operator does not appear to be hermitian: $(imag(dα)) vs $n")
+        warn_nonhermitian(dα, n)
         α += dα
-        r = add!!(r, v, -dα)
+        r = add!!(r, v, -dα) # should we use real(dα) here?
         β = norm(r)
     elseif iter.orth isa Union{ClassicalGramSchmidtIR,ModifiedGramSchmidtIR}
         while eps(one(β)) < β < iter.orth.η * βold
             βold = β
             dα = inner(v, r)
             n = hypot(dα, β)
-            imag(dα) <= sqrt(max(eps(n), eps(one(n)))) ||
-                error("operator does not appear to be hermitian: $(imag(dα)) vs $n")
+            warn_nonhermitian(dα, n)
             α += dα
-            r = add!!(r, v, -dα)
+            r = add!!(r, v, -dα) # should we use real(dα) here?
             β = norm(r)
         end
     end
@@ -228,8 +232,7 @@ function initialize!(iter::LanczosIterator, state::LanczosFactorization; verbosi
     r, α = orthogonalize!!(w, V[1], iter.orth)
     β = norm(r)
     n = hypot(α, β)
-    imag(α) <= sqrt(max(eps(n), eps(one(n)))) ||
-        error("operator does not appear to be hermitian: $(imag(α)) vs $n")
+    warn_nonhermitian(α, n)
 
     state.k = 1
     push!(αs, real(α))
@@ -247,8 +250,7 @@ function expand!(iter::LanczosIterator, state::LanczosFactorization; verbosity::
     V = push!(V, scale!!(r, 1 / βold))
     r, α, β = lanczosrecurrence(iter.operator, V, βold, iter.orth)
     n = hypot(α, β, βold)
-    imag(α) <= sqrt(max(eps(n), eps(one(n)))) ||
-        error("operator does not appear to be hermitian: $(imag(α)) vs $n")
+    warn_nonhermitian(α, n)
 
     αs = push!(state.αs, real(α))
     βs = push!(state.βs, β)
