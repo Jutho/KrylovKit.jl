@@ -8,9 +8,11 @@
             A = (A + A') / 2
             v = rand(T, (n,))
             n1 = div(n, 2)
-            D1, V1, info = @test_logs (:info,) eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n1, :SR;
-                                    krylovdim=n,
-                                    maxiter=1, tol=tolerance(T), verbosity=1)
+            D1, V1, info = @test_logs (:info,) eigsolve(wrapop(A, Val(mode)),
+                                                        wrapvec(v, Val(mode)), n1, :SR;
+                                                        krylovdim=n,
+                                                        maxiter=1, tol=tolerance(T),
+                                                        verbosity=1)
             @test KrylovKit.eigselector(wrapop(A, Val(mode)), scalartype(v); krylovdim=n,
                                         maxiter=1,
                                         tol=tolerance(T), ishermitian=true) isa Lanczos
@@ -29,9 +31,10 @@
             @test A * U1 ≈ U1 * Diagonal(D1)
             @test A * U2 ≈ U2 * Diagonal(D2)
 
-            @test_logs (:warn,) eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n + 1, :LM;
-                         krylovdim=2n,
-                         maxiter=1, tol=tolerance(T), verbosity=0)
+            @test_logs (:warn,) eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n + 1,
+                                         :LM;
+                                         krylovdim=2n,
+                                         maxiter=1, tol=tolerance(T), verbosity=0)
         end
     end
 end
@@ -81,9 +84,11 @@ end
             A = rand(T, (n, n)) .- one(T) / 2
             v = rand(T, (n,))
             n1 = div(n, 2)
-            D1, V1, info1 = @test_logs (:info,) eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n1, :SR;
-                                     orth=orth, krylovdim=n,
-                                     maxiter=1, tol=tolerance(T), verbosity=1)
+            D1, V1, info1 = @test_logs (:info,) eigsolve(wrapop(A, Val(mode)),
+                                                         wrapvec(v, Val(mode)), n1, :SR;
+                                                         orth=orth, krylovdim=n,
+                                                         maxiter=1, tol=tolerance(T),
+                                                         verbosity=1)
             @test KrylovKit.eigselector(wrapop(A, Val(mode)), eltype(v); orth=orth,
                                         krylovdim=n, maxiter=1,
                                         tol=tolerance(T)) isa Arnoldi
@@ -119,9 +124,10 @@ end
                 @test A * U2 ≈ U2 * Diagonal(D2)
             end
 
-            @test_logs (:warn,) eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n + 1, :LM; orth=orth,
-                         krylovdim=2n,
-                         maxiter=1, tol=tolerance(T), verbosity=0)
+            @test_logs (:warn,) eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n + 1,
+                                         :LM; orth=orth,
+                                         krylovdim=2n,
+                                         maxiter=1, tol=tolerance(T), verbosity=0)
         end
     end
 end
@@ -191,23 +197,26 @@ end
     end
 end
 
-@testset "Arnoldi - realeigsolve iteratively ($mode)" for mode in (:vector, :inplace, :outplace)
+@testset "Arnoldi - realeigsolve iteratively ($mode)" for mode in
+                                                          (:vector, :inplace, :outplace)
     scalartypes = mode === :vector ? (Float32, Float64) : (Float64,)
     orths = mode === :vector ? (cgs2, mgs2, cgsr, mgsr) : (mgsr,)
     @testset for T in scalartypes
         @testset for orth in orths
-            V = exp(randn(T, (N, N))/10)
+            V = exp(randn(T, (N, N)) / 10)
             D = randn(T, N)
             A = V * Diagonal(D) / V
             v = rand(T, (N,))
             alg = Arnoldi(; krylovdim=3 * n, maxiter=20,
                           tol=tolerance(T), eager=true)
             D1, V1, info1 = @constinferred realeigsolve(wrapop(A, Val(mode)),
-                                                    wrapvec(v, Val(mode)), n, :SR, alg)
-            D2, V2, info2 = realeigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n, :LR,
-                                     alg)
-            D3, V3, info3 = realeigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n, :LM,
-                                     alg)
+                                                        wrapvec(v, Val(mode)), n, :SR, alg)
+            D2, V2, info2 = realeigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n,
+                                         :LR,
+                                         alg)
+            D3, V3, info3 = realeigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n,
+                                         :LM,
+                                         alg)
             l1 = info1.converged
             l2 = info2.converged
             l3 = info3.converged

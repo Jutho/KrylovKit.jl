@@ -246,8 +246,8 @@ function schur2eigvecs(T::StridedMatrix{<:BlasReal})
 end
 function schur2realeigvecs(T::StridedMatrix{<:BlasReal})
     n = checksquare(T)
-    for i = 1:n-1
-        iszero(T[i+1, i]) || throw(ArgumentError("T must be upper triangular"))
+    for i in 1:(n - 1)
+        iszero(T[i + 1, i]) || throw(ArgumentError("T must be upper triangular"))
     end
     VR = similar(T, n, n)
     VL = similar(T, n, 0)

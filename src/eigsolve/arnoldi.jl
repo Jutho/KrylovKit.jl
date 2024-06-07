@@ -273,7 +273,7 @@ function realeigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi; alg_
         throw(ArgumentError("realeigsolve can only be used for real eigenvalue problems"))
     else
         allreal = true
-        for i = 1:(howmany < length(fact) ? howmany : howmany - 1)
+        for i in 1:(howmany < length(fact) ? howmany : howmany - 1)
             if T[i + 1, i] != 0
                 allreal = false
                 break
