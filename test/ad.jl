@@ -132,7 +132,7 @@ module EigsolveAD
 using KrylovKit, LinearAlgebra
 using Random, Test, TestExtras
 using ChainRulesCore, ChainRulesTestUtils, Zygote, FiniteDifferences
-Random.seed!(123456789)
+Random.seed!(987654321)
 
 fdm = ChainRulesTestUtils._fdm
 n = 10
@@ -335,8 +335,8 @@ end
     condA = cond(A)
     tol = n * condA * (T <: Real ? eps(T) : 4 * eps(real(T)))
     alg = Arnoldi(; tol=tol, krylovdim=n)
-    alg_rrule1 = Arnoldi(; tol=tol, krylovdim=2n)
-    alg_rrule2 = GMRES(; tol=tol, krylovdim=n)
+    alg_rrule1 = Arnoldi(; tol=tol, krylovdim=2n, verbosity=-1)
+    alg_rrule2 = GMRES(; tol=tol, krylovdim=n + 1, verbosity=-1)
     config = Zygote.ZygoteRuleConfig()
     @testset for which in whichlist
         for alg_rrule in (alg_rrule1, alg_rrule2)
@@ -399,10 +399,18 @@ end
 
     if T <: Complex
         @testset "test warnings and info" begin
-            alg_rrule = Arnoldi(; tol=tol, krylovdim=n, verbosity=0)
+            alg_rrule = Arnoldi(; tol=tol, krylovdim=n, verbosity=-1)
             (vals, vecs, info), pb = ChainRulesCore.rrule(config, eigsolve, A, x, howmany,
                                                           :LR, alg; alg_rrule=alg_rrule)
             @test_logs pb((ZeroTangent(), im .* vecs[1:2] .+ vecs[2:-1:1], NoTangent()))
+
+            alg_rrule = Arnoldi(; tol=tol, krylovdim=n, verbosity=0)
+            (vals, vecs, info), pb = ChainRulesCore.rrule(config, eigsolve, A, x, howmany,
+                                                          :LR, alg; alg_rrule=alg_rrule)
+            @test_logs (:warn,) pb((ZeroTangent(), im .* vecs[1:2] .+ vecs[2:-1:1],
+                                    NoTangent()))
+            pbs = @test_logs pb((ZeroTangent(), vecs[1:2], NoTangent()))
+            @test norm(unthunk(pbs[1]), Inf) < condA * sqrt(eps(real(T)))
 
             alg_rrule = Arnoldi(; tol=tol, krylovdim=n, verbosity=1)
             (vals, vecs, info), pb = ChainRulesCore.rrule(config, eigsolve, A, x, howmany,
@@ -412,10 +420,20 @@ end
             pbs = @test_logs (:info,) pb((ZeroTangent(), vecs[1:2], NoTangent()))
             @test norm(unthunk(pbs[1]), Inf) < condA * sqrt(eps(real(T)))
 
-            alg_rrule = GMRES(; tol=tol, krylovdim=n)
+            alg_rrule = GMRES(; tol=tol, krylovdim=n, verbosity=-1)
             (vals, vecs, info), pb = ChainRulesCore.rrule(config, eigsolve, A, x, howmany,
                                                           :LR, alg; alg_rrule=alg_rrule)
             @test_logs pb((ZeroTangent(), im .* vecs[1:2] .+ vecs[2:-1:1], NoTangent()))
+
+            alg_rrule = GMRES(; tol=tol, krylovdim=n, verbosity=0)
+            (vals, vecs, info), pb = ChainRulesCore.rrule(config, eigsolve, A, x, howmany,
+                                                          :LR, alg; alg_rrule=alg_rrule)
+            @test_logs (:warn,) (:warn,) pb((ZeroTangent(),
+                                             im .* vecs[1:2] .+
+                                             vecs[2:-1:1],
+                                             NoTangent()))
+            pbs = @test_logs pb((ZeroTangent(), vecs[1:2], NoTangent()))
+            @test norm(unthunk(pbs[1]), Inf) < condA * sqrt(eps(real(T)))
 
             alg_rrule = GMRES(; tol=tol, krylovdim=n, verbosity=1)
             (vals, vecs, info), pb = ChainRulesCore.rrule(config, eigsolve, A, x, howmany,
@@ -446,8 +464,8 @@ end
         howmany = 2
         tol = 2 * N^2 * eps(real(T))
         alg = Arnoldi(; tol=tol, krylovdim=2n)
-        alg_rrule1 = Arnoldi(; tol=tol, krylovdim=2n)
-        alg_rrule2 = GMRES(; tol=tol, krylovdim=2n)
+        alg_rrule1 = Arnoldi(; tol=tol, krylovdim=2n, verbosity=-1)
+        alg_rrule2 = GMRES(; tol=tol, krylovdim=2n, verbosity=-1)
         @testset for alg_rrule in (alg_rrule1, alg_rrule2)
             fun_example, fun_example_fd, Avec, xvec, cvec, dvec, vals, vecs, howmany = build_fun_example(A,
                                                                                                          x,
@@ -480,8 +498,8 @@ end
         howmany = 2
         tol = 2 * N^2 * eps(real(T))
         alg = Lanczos(; tol=tol, krylovdim=2n)
-        alg_rrule1 = Arnoldi(; tol=tol, krylovdim=2n)
-        alg_rrule2 = GMRES(; tol=tol, krylovdim=2n)
+        alg_rrule1 = Arnoldi(; tol=tol, krylovdim=2n, verbosity=-1)
+        alg_rrule2 = GMRES(; tol=tol, krylovdim=2n, verbosity=-1)
         @testset for alg_rrule in (alg_rrule1, alg_rrule2)
             fun_example, fun_example_fd, Avec, xvec, cvec, vals, vecs, howmany = build_hermitianfun_example(A,
                                                                                                             x,
@@ -658,8 +676,8 @@ end
     howmany = 3
     tol = 3 * n * condA * (T <: Real ? eps(T) : 4 * eps(real(T)))
     alg = GKL(; krylovdim=2n, tol=tol)
-    alg_rrule1 = Arnoldi(; tol=tol, krylovdim=4n)
-    alg_rrule2 = GMRES(; tol=tol, krylovdim=3n)
+    alg_rrule1 = Arnoldi(; tol=tol, krylovdim=4n, verbosity=-1)
+    alg_rrule2 = GMRES(; tol=tol, krylovdim=3n, verbosity=-1)
     config = Zygote.ZygoteRuleConfig()
     for alg_rrule in (alg_rrule1, alg_rrule2)
         # unfortunately, rrule does not seem type stable for function arguments, because the
@@ -723,11 +741,34 @@ end
     end
     if T <: Complex
         @testset "test warnings and info" begin
-            alg_rrule = Arnoldi(; tol=tol, krylovdim=4n, verbosity=0)
+            alg_rrule = Arnoldi(; tol=tol, krylovdim=4n, verbosity=-1)
             (vals, lvecs, rvecs, info), pb = ChainRulesCore.rrule(config, svdsolve, A, x,
                                                                   howmany, :LR, alg;
                                                                   alg_rrule=alg_rrule)
             @test_logs pb((ZeroTangent(), im .* lvecs[1:2] .+ lvecs[2:-1:1], ZeroTangent(),
+                           NoTangent()))
+
+            alg_rrule = Arnoldi(; tol=tol, krylovdim=4n, verbosity=0)
+            (vals, lvecs, rvecs, info), pb = ChainRulesCore.rrule(config, svdsolve, A, x,
+                                                                  howmany, :LR, alg;
+                                                                  alg_rrule=alg_rrule)
+            @test_logs (:warn,) pb((ZeroTangent(),
+                                    im .* lvecs[1:2] .+ lvecs[2:-1:1],
+                                    ZeroTangent(),
+                                    NoTangent()))
+            @test_logs (:warn,) pb((ZeroTangent(), lvecs[2:-1:1],
+                                    im .* rvecs[1:2] .+ rvecs[2:-1:1],
+                                    ZeroTangent(),
+                                    NoTangent()))
+            @test_logs pb((ZeroTangent(), lvecs[1:2] .+ lvecs[2:-1:1],
+                           ZeroTangent(),
+                           NoTangent()))
+            @test_logs (:warn,) pb((ZeroTangent(),
+                                    im .* lvecs[1:2] .+ lvecs[2:-1:1],
+                                    +im .* rvecs[1:2] + rvecs[2:-1:1],
+                                    NoTangent()))
+            @test_logs pb((ZeroTangent(), (1 + im) .* lvecs[1:2] .+ lvecs[2:-1:1],
+                           (1 - im) .* rvecs[1:2] + rvecs[2:-1:1],
                            NoTangent()))
 
             alg_rrule = Arnoldi(; tol=tol, krylovdim=4n, verbosity=1)
@@ -753,11 +794,37 @@ end
                                     (1 - im) .* rvecs[1:2] + rvecs[2:-1:1],
                                     NoTangent()))
 
-            alg_rrule = GMRES(; tol=tol, krylovdim=3n, verbosity=0)
+            alg_rrule = GMRES(; tol=tol, krylovdim=3n, verbosity=-1)
             (vals, lvecs, rvecs, info), pb = ChainRulesCore.rrule(config, svdsolve, A, x,
                                                                   howmany, :LR, alg;
                                                                   alg_rrule=alg_rrule)
             @test_logs pb((ZeroTangent(), im .* lvecs[1:2] .+ lvecs[2:-1:1], ZeroTangent(),
+                           NoTangent()))
+
+            alg_rrule = GMRES(; tol=tol, krylovdim=3n, verbosity=0)
+            (vals, lvecs, rvecs, info), pb = ChainRulesCore.rrule(config, svdsolve, A, x,
+                                                                  howmany, :LR, alg;
+                                                                  alg_rrule=alg_rrule)
+            @test_logs (:warn,) (:warn,) pb((ZeroTangent(),
+                                             im .* lvecs[1:2] .+
+                                             lvecs[2:-1:1], ZeroTangent(),
+                                             NoTangent()))
+            @test_logs (:warn,) (:warn,) pb((ZeroTangent(), lvecs[2:-1:1],
+                                             im .* rvecs[1:2] .+
+                                             rvecs[2:-1:1], ZeroTangent(),
+                                             NoTangent()))
+            @test_logs pb((ZeroTangent(), lvecs[1:2] .+ lvecs[2:-1:1],
+                           ZeroTangent(),
+                           NoTangent()))
+            @test_logs (:warn,) (:warn,) pb((ZeroTangent(),
+                                             im .* lvecs[1:2] .+
+                                             lvecs[2:-1:1],
+                                             +im .* rvecs[1:2] +
+                                             rvecs[2:-1:1],
+                                             NoTangent()))
+            @test_logs pb((ZeroTangent(),
+                           (1 + im) .* lvecs[1:2] .+ lvecs[2:-1:1],
+                           (1 - im) .* rvecs[1:2] + rvecs[2:-1:1],
                            NoTangent()))
 
             alg_rrule = GMRES(; tol=tol, krylovdim=3n, verbosity=1)
@@ -800,8 +867,8 @@ end
     howmany = 2
     tol = 2 * N^2 * eps(real(T))
     alg = GKL(; tol=tol, krylovdim=2n)
-    alg_rrule1 = Arnoldi(; tol=tol, krylovdim=2n)
-    alg_rrule2 = GMRES(; tol=tol, krylovdim=2n)
+    alg_rrule1 = Arnoldi(; tol=tol, krylovdim=2n, verbosity=-1)
+    alg_rrule2 = GMRES(; tol=tol, krylovdim=2n, verbosity=-1)
     for alg_rrule in (alg_rrule1, alg_rrule2)
         fun_example_ad, fun_example_fd, Avec, xvec, cvec, dvec, vals, lvecs, rvecs = build_fun_example(A,
                                                                                                        x,

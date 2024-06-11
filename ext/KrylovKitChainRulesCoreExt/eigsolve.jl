@@ -133,7 +133,7 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
             b = (zerovector(v), convert(T, Δλ))
         else
             vdΔv = inner(v, Δv)
-            if alg_rrule.verbosity >= 1
+            if alg_rrule.verbosity >= 0
                 gauge = abs(imag(vdΔv))
                 gauge > alg_primal.tol &&
                     @warn "`eigsolve` cotangent for eigenvector $i is sensitive to gauge choice: (|gauge| = $gauge)"
@@ -183,7 +183,7 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
 
     # components along subspace spanned by current eigenvectors
     tol = alg_primal.tol
-    if alg_rrule.verbosity >= 1
+    if alg_rrule.verbosity >= 0
         mask = abs.(transpose(vals) .- vals) .< tol
         gaugepart = VdΔV[mask] - Diagonal(real(diag(VdΔV)))[mask]
         Δgauge = norm(gaugepart, Inf)
@@ -297,7 +297,7 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
     # components along subspace spanned by current eigenvectors
     tol = alg_primal.tol
     aVdΔV = rmul!(VdΔV - VdΔV', 1 / 2)
-    if alg_rrule.verbosity >= 1
+    if alg_rrule.verbosity >= 0
         mask = abs.(transpose(vals) .- vals) .< tol
         gaugepart = view(aVdΔV, mask)
         gauge = norm(gaugepart, Inf)

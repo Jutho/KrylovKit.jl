@@ -112,7 +112,7 @@ function compute_svdsolve_pullback_data(Δvals, Δlvecs, Δrvecs, vals, lvecs, r
         udΔu = inner(u, Δu)
         vdΔv = inner(v, Δv)
         if (udΔu isa Complex) || (vdΔv isa Complex)
-            if alg_rrule.verbosity >= 1
+            if alg_rrule.verbosity >= 0
                 gauge = abs(imag(udΔu + vdΔv))
                 gauge > alg_primal.tol &&
                     @warn "`svdsolve` cotangents for singular vectors $i are sensitive to gauge choice: (|gauge| = $gauge)"
@@ -162,7 +162,7 @@ function compute_svdsolve_pullback_data(Δvals, Δlvecs, Δrvecs, vals, lvecs, r
     aVdΔV = rmul!(VdΔV - VdΔV', 1 / 2)
 
     tol = alg_primal.tol
-    if alg_rrule.verbosity >= 1
+    if alg_rrule.verbosity >= 0
         mask = abs.(vals' .- vals) .< tol
         gaugepart = view(aUdΔU, mask) + view(aVdΔV, mask)
         gauge = norm(gaugepart, Inf)
