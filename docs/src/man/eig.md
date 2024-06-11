@@ -55,11 +55,14 @@ ecosystem. The adjoint problem of an eigenvalue problem is a linear problem, alt
 be formulated as an eigenvalue problem. Details about this approach will be published in a
 forthcoming manuscript.
 
-In either case, the adjoint problem requiers the adjoint[^1] of the linear map. If the linear map is
+In either case, the adjoint problem requires the adjoint[^1] of the linear map. If the linear map is
 an `AbstractMatrix` instance, its `adjoint` will be used in the `rrule`. If the linear map is implemented 
 as a function `f`, then the AD engine itself is used to compute the corresponding adjoint via 
 `ChainRulesCore.rrule_via_ad(config, f, x)`. The specific base point `x` at which this adjoint is
-computed should not affect the result if `f` properly represents a linear map.
+computed should not affect the result if `f` properly represents a linear map. Furthermore, the linear
+map is the only argument that affects the `eigsolve` output (from a theoretical perspective, the
+starting vector and algorithm parameters should have no effect), so that this is where the adjoint 
+variables need to be propagated to and have a nonzero effect.
 
 The adjoint problem (also referred to as cotangent problem) can thus be solved as a linear problem
 or as an eigenvalue problem. Note that this eigenvalue problem is never symmetric or Hermitian,

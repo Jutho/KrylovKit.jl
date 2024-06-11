@@ -17,7 +17,10 @@ adjoint[^1] of the linear map. If the linear map is an `AbstractMatrix` instance
 will be used in the `rrule`. If the linear map is implemented as a function `f`, then the AD engine
 itself is used to compute the corresponding adjoint via `ChainRulesCore.rrule_via_ad(config, f, x)`.
 The specific base point `x` at which this adjoint is computed should not affect the result if `f`
-properly represents a linear map.
+properly represents a linear map. Furthermore, the `linsolve` output is only affected by the linear
+map argument and the right hand side argument `b` (from a theoretical perspective, the starting vector
+and algorithm parameters should have no effect), so that these two arguments are where the adjoint 
+variables need to be propagated to and have a nonzero effect.
 
 The adjoint linear problem (also referred to as cotangent problem) is by default solved using the
 same algorithms as the primal problem. However, the `rrule` can be customized to use a different
