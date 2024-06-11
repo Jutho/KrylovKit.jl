@@ -14,10 +14,15 @@ KrylovKit.OrthonormalBasis
 ```
 
 We can orthogonalize or orthonormalize a given vector to another vector (assumed normalized)
-or to a given [`KrylovKit.OrthonormalBasis`](@ref).
+or to a given [`KrylovKit.OrthonormalBasis`](@ref) using
 ```@docs
 KrylovKit.orthogonalize
 KrylovKit.orthonormalize
+```
+or using the possibly in-place versions
+```@docs
+KrylovKit.orthogonalize!!
+KrylovKit.orthonormalize!!
 ```
 
 The expansion coefficients of a general vector in terms of a given orthonormal basis can be obtained as

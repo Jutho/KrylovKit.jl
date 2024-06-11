@@ -200,10 +200,10 @@ The argument `howmany` specifies how many eigenvalues should be computed; `which
 which eigenvalues should be targeted. Valid specifications of `which` for real
 problems are given by
 
-    - `:LM`: eigenvalues of largest magnitude
-    - `:LR`: eigenvalues with largest (most positive) real part
-    - `:SR`: eigenvalues with smallest (most negative) real part
-    - [`EigSorter(f; rev = false)`](@ref): eigenvalues `λ` that appear first (or last if
+  - `:LM`: eigenvalues of largest magnitude
+  - `:LR`: eigenvalues with largest (most positive) real part
+  - `:SR`: eigenvalues with smallest (most negative) real part
+  - [`EigSorter(f; rev = false)`](@ref): eigenvalues `λ` that appear first (or last if
     `rev == true`) when sorted by `f(λ)`
 
 !!! note "Note about selecting `which` eigenvalues"
@@ -240,27 +240,27 @@ the `pullback` of `realeigsolve` in the context of reverse-mode automatic differ
 
 The return value is always of the form `vals, vecs, info = eigsolve(...)` with
 
-    - `vals`: a `Vector` containing the eigenvalues, of length at least `howmany`, but could
+  - `vals`: a `Vector` containing the eigenvalues, of length at least `howmany`, but could
     be longer if more eigenvalues were converged at the same cost. Eigenvalues will be real,
     an `ArgumentError` will be thrown if the first `howmany` eigenvalues ordered according
     to `which` of the linear map are not all real.
-    - `vecs`: a `Vector` of corresponding eigenvectors, of the same length as `vals`. Note
+  - `vecs`: a `Vector` of corresponding eigenvectors, of the same length as `vals`. Note
     that eigenvectors are not returned as a matrix, as the linear map could act on any
     custom Julia type with vector like behavior, i.e. the elements of the list `vecs` are
     objects that are typically similar to the starting guess `x₀`. For a real problem with
     real eigenvalues, also the eigenvectors will be real and no complex arithmetic is used
-    anywhere. 
-    - `info`: an object of type [`ConvergenceInfo`], which has the following fields
+    anywhere.
+  - `info`: an object of type [`ConvergenceInfo`], which has the following fields
 
-        + `info.converged::Int`: indicates how many eigenvalues and eigenvectors were actually
-        converged to the specified tolerance `tol` (see below under keyword arguments)
-        + `info.residual::Vector`: a list of the same length as `vals` containing the
-        residuals `info.residual[i] = f(vecs[i]) - vals[i] * vecs[i]`
-        + `info.normres::Vector{<:Real}`: list of the same length as `vals` containing the
-        norm of the residual `info.normres[i] = norm(info.residual[i])`
-        + `info.numops::Int`: number of times the linear map was applied, i.e. number of times
-        `f` was called, or a vector was multiplied with `A`
-        + `info.numiter::Int`: number of times the Krylov subspace was restarted (see below)
+    + `info.converged::Int`: indicates how many eigenvalues and eigenvectors were actually
+      converged to the specified tolerance `tol` (see below under keyword arguments)
+    + `info.residual::Vector`: a list of the same length as `vals` containing the
+      residuals `info.residual[i] = f(vecs[i]) - vals[i] * vecs[i]`
+    + `info.normres::Vector{<:Real}`: list of the same length as `vals` containing the
+      norm of the residual `info.normres[i] = norm(info.residual[i])`
+    + `info.numops::Int`: number of times the linear map was applied, i.e. number of times
+      `f` was called, or a vector was multiplied with `A`
+    + `info.numiter::Int`: number of times the Krylov subspace was restarted (see below)
 
 !!! warning "Check for convergence"
 

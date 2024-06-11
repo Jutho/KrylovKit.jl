@@ -3,7 +3,7 @@ using KrylovKit
 
 makedocs(; modules=[KrylovKit],
          sitename="KrylovKit.jl",
-         authors="Jutho Haegeman",
+         authors="Jutho Haegeman and collaborators",
          pages=["Home" => "index.md",
                 "Manual" => ["man/intro.md",
                              "man/linear.md",

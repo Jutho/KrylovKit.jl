@@ -7,3 +7,22 @@ side `b`. They can be solved using the function `linsolve`:
 ```@docs
 linsolve
 ```
+
+## Automatic differentation
+
+The `linsolve` routine can be used in conjunction with reverse-mode automatic differentiation,
+using AD engines that are compatible with the [ChainRules](https://juliadiff.org/ChainRulesCore.jl/dev/)
+ecosystem. The adjoint problem of a linear problem is again a linear problem, that requires the
+adjoint[^1] of the linear map. If the linear map is an `AbstractMatrix` instance, its `adjoint`
+will be used in the `rrule`. If the linear map is implemented as a function `f`, then the AD engine
+itself is used to compute the corresponding adjoint via `ChainRulesCore.rrule_via_ad(config, f, x)`.
+The specific base point `x` at which this adjoint is computed should not affect the result if `f`
+properly represents a linear map.
+
+The adjoint linear problem (also referred to as cotangent problem) is by default solved using the
+same algorithms as the primal problem. However, the `rrule` can be customized to use a different
+Krylov algorithm, by specifying the `alg_rrule` keyword argument. Its value can take any of the values
+as the `algorithm` argument in `linsolve`.
+
+[^1]: For a linear map, the adjoint or pullback required in the reverse-order chain rule coincides
+with its (conjugate) transpose, at least with respect to the standard Euclidean inner product.
