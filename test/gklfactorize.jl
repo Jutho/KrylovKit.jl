@@ -10,11 +10,17 @@
             A = rand(T, (n, n))
             v = A * rand(T, (n,)) # ensure v is in column space of A
             iter = GKLIterator(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), orth)
-            verbosity = 1
+            verbosity = 3
             fact = @constinferred initialize(iter; verbosity=verbosity)
+            @constinferred expand!(iter, fact; verbosity=verbosity)
+            verbosity = 1
             while length(fact) < n
-                @constinferred expand!(iter, fact; verbosity=verbosity)
-                verbosity = 0
+                if verbosity == 1
+                    @test_logs (:info,) expand!(iter, fact; verbosity=verbosity)
+                else
+                    @test_logs expand!(iter, fact; verbosity=verbosity)
+                end
+                verbosity = 1 - verbosity # flipflop
             end
 
             U = stack(unwrapvec, basis(fact, :U))

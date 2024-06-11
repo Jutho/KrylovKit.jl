@@ -25,17 +25,16 @@ end
             alg = Lanczos(; orth=orth, krylovdim=n, maxiter=2, tol=tolerance(T),
                           verbosity=2)
             for k in 1:n
-                W[:, k] = unwrapvec(first(@constinferred exponentiate(wrapop(A, Val(mode)),
-                                                                      1,
-                                                                      wrapvec(view(V, :, k),
-                                                                              Val(mode)),
-                                                                      alg)))
+                w, = @test_logs (:info,) (:info,) exponentiate(wrapop(A, Val(mode)), 1,
+                                                               wrapvec(view(V, :, k),
+                                                                       Val(mode)), alg)
+                W[:, k] = unwrapvec(w)
             end
             @test W ≈ exp(A)
 
             pmax = 5
             alg = Lanczos(; orth=orth, krylovdim=n, maxiter=2, tol=tolerance(T),
-                          verbosity=1)
+                          verbosity=0)
             for t in (rand(real(T)), -rand(real(T)), im * randn(real(T)),
                       randn(real(T)) + im * randn(real(T)))
                 for p in 1:pmax
@@ -66,17 +65,16 @@ end
             alg = Arnoldi(; orth=orth, krylovdim=n, maxiter=2, tol=tolerance(T),
                           verbosity=2)
             for k in 1:n
-                W[:, k] = unwrapvec(first(@constinferred exponentiate(wrapop(A, Val(mode)),
-                                                                      1,
-                                                                      wrapvec(view(V, :, k),
-                                                                              Val(mode)),
-                                                                      alg)))
+                w, = @test_logs (:info,) (:info,) exponentiate(wrapop(A, Val(mode)), 1,
+                                                               wrapvec(view(V, :, k),
+                                                                       Val(mode)), alg)
+                W[:, k] = unwrapvec(w)
             end
             @test W ≈ exp(A)
 
             pmax = 5
             alg = Arnoldi(; orth=orth, krylovdim=n, maxiter=2, tol=tolerance(T),
-                          verbosity=1)
+                          verbosity=0)
             for t in (rand(real(T)), -rand(real(T)), im * randn(real(T)),
                       randn(real(T)) + im * randn(real(T)))
                 for p in 1:pmax

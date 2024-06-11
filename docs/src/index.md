@@ -15,10 +15,10 @@ The high level interface of KrylovKit is provided by the following functions:
 *   [`geneigsolve`](@ref): find a few eigenvalues and corresponding vectors of a
     generalized eigenvalue problem `A*x = λ*B*x`
 *   [`svdsolve`](@ref): find a few singular values and corresponding left and right
-    singular vectors `A*x = σ * y` and `A'*y = σ*x`.
-*   [`exponentiate`](@ref): apply the exponential of a linear map to a vector
-*   [`expintegrator`](@ref): exponential integrator for a linear non-homogeneous ODE,
-    generalization of `exponentiate`
+    singular vectors `A*x = σ * y` and `A'*y = σ*x`
+*   [`exponentiate`](@ref): apply the exponential of a linear map to a vector `x=exp(t*A)*x₀`
+*   [`expintegrator`](@ref): exponential integrator for a linear non-homogeneous ODE
+    (generalization of `exponentiate`)
 
 ## Package features and alternatives
 This section could also be titled "Why did I create KrylovKit.jl"?
@@ -76,6 +76,15 @@ However, KrylovKit.jl distinguishes itself from the previous packages in the fol
         and corresponding norm (`norm`) of an already existing vector like object. The
         latter should help with implementing certain type of preconditioners.
 
+3.  Since version 0.8, KrylovKit.jl supports reverse-mode AD by defining `ChainRulesCore.rrule` 
+    definitions for the most common functionality (`linsolve`, `eigsolve`, `svdsolve`).
+    Hence, reverse mode AD engines that are compatible with the [ChainRules](https://juliadiff.org/ChainRulesCore.jl/dev/)
+    ecosystem will be able to benefit from an optimized implementation of the adjoint
+    of these functions. The `rrule` definitions for the remaining functionality 
+    (`geneigsolve` and `expintegrator`, of which `exponentiate` is a special case) will be
+    added at a later stage. There is a dedicated documentation page on how to configure these
+    `rrule`s, as they also require to solve large-scale linear or eigenvalue problems.
+
 ## Current functionality
 
 The following algorithms are currently implemented
@@ -94,8 +103,8 @@ The following algorithms are currently implemented
     2, it becomes equivalent to the latter.
 *   `svdsolve`: finding largest singular values based on Golub-Kahan-Lanczos
     bidiagonalization (see [`GKL`](@ref))
-*   `exponentiate`: a [`Lanczos`](@ref) based algorithm for the action of the exponential of
-    a real symmetric or complex hermitian linear map.
+*   `exponentiate`: a [`Lanczos`](@ref) or [`Arnoldi`](@ref) based algorithm for the action
+    of the exponential of linear map.
 *   `expintegrator`: [exponential integrator](https://en.wikipedia.org/wiki/Exponential_integrator)
     for a linear non-homogeneous ODE, computes a linear combination of the `ϕⱼ` functions which generalize `ϕ₀(z) = exp(z)`.
 
@@ -104,7 +113,7 @@ The following algorithms are currently implemented
 Here follows a wish list / to-do list for the future. Any help is welcomed and appreciated.
 
 *   More algorithms, including biorthogonal methods:
-    -   for `linsolve`: MINRES, BiCG, IDR(s), ...
+    -   for `linsolve`: L-GMRES, MINRES, BiCG, IDR(s), ...
     -   for `eigsolve`: BiLanczos, Jacobi-Davidson JDQR/JDQZ, subspace iteration (?), ...
     -   for `geneigsolve`: trace minimization, ...
 *   Support both in-place / mutating and out-of-place functions as linear maps

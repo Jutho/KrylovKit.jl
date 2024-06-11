@@ -244,6 +244,17 @@ function schur2eigvecs(T::StridedMatrix{<:BlasReal})
     end
     return _normalizevecs!(VR)
 end
+function schur2realeigvecs(T::StridedMatrix{<:BlasReal})
+    n = checksquare(T)
+    for i in 1:(n - 1)
+        iszero(T[i + 1, i]) || throw(ArgumentError("T must be upper triangular"))
+    end
+    VR = similar(T, n, n)
+    VL = similar(T, n, 0)
+    select = Vector{BlasInt}(undef, 0)
+    trevc!('R', 'A', select, T, VL, VR)
+    return _normalizevecs!(VR)
+end
 function schur2eigvecs(T::AbstractMatrix{<:BlasReal}, which::AbstractVector{Int})
     n = checksquare(T)
     which2 = unique(which)

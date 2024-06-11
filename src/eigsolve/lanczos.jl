@@ -1,4 +1,9 @@
-function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos)
+function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos;
+                  alg_rrule=Arnoldi(; tol=alg.tol,
+                                    krylovdim=alg.krylovdim,
+                                    maxiter=alg.maxiter,
+                                    eager=alg.eager,
+                                    orth=alg.orth))
     krylovdim = alg.krylovdim
     maxiter = alg.maxiter
     howmany > krylovdim &&
