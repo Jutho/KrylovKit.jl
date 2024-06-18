@@ -164,9 +164,10 @@ function Base.iterate(iter::LanczosIterator, state::LanczosFactorization)
     end
 end
 
-function warn_nonhermitian(α, n)
-    if imag(α) > sqrt(max(eps(n), eps(one(n))))
-        @warn "ignoring imaginary component $(imag(α)) from total weight $n: operator might not be hermitian?"
+function warn_nonhermitian(α, β₁, β₂)
+    n = hypot(α, β₁, β₂)
+    if abs(imag(α)) / n > eps(one(n))^(2 / 5)
+        @warn "ignoring imaginary component $(imag(α)) from total weight $n: operator might not be hermitian?" α β₁ β₂
     end
     return nothing
 end
@@ -178,8 +179,6 @@ function initialize(iter::LanczosIterator; verbosity::Int=0)
     iszero(β₀) && throw(ArgumentError("initial vector should not have norm zero"))
     Ax₀ = apply(iter.operator, x₀)
     α = inner(x₀, Ax₀) / (β₀ * β₀)
-    n = abs(α)
-    warn_nonhermitian(α, n)
     T = typeof(α)
     # this line determines the vector type that we will henceforth use
     v = add!!(zerovector(Ax₀, T), x₀, 1 / β₀)
@@ -191,23 +190,22 @@ function initialize(iter::LanczosIterator; verbosity::Int=0)
     βold = norm(r)
     r = add!!(r, v, -α) # should we use real(α) here?
     β = norm(r)
+    warn_nonhermitian(α, zero(β), β)
     # possibly reorthogonalize
     if iter.orth isa Union{ClassicalGramSchmidt2,ModifiedGramSchmidt2}
         dα = inner(v, r)
-        n = hypot(dα, β)
-        warn_nonhermitian(dα, n)
         α += dα
         r = add!!(r, v, -dα) # should we use real(dα) here?
         β = norm(r)
+        warn_nonhermitian(α, zero(β), β)
     elseif iter.orth isa Union{ClassicalGramSchmidtIR,ModifiedGramSchmidtIR}
         while eps(one(β)) < β < iter.orth.η * βold
             βold = β
             dα = inner(v, r)
-            n = hypot(dα, β)
-            warn_nonhermitian(dα, n)
             α += dα
             r = add!!(r, v, -dα) # should we use real(dα) here?
             β = norm(r)
+            warn_nonhermitian(α, zero(β), β)
         end
     end
     V = OrthonormalBasis([v])
@@ -231,8 +229,7 @@ function initialize!(iter::LanczosIterator, state::LanczosFactorization; verbosi
     w = apply(iter.operator, V[1])
     r, α = orthogonalize!!(w, V[1], iter.orth)
     β = norm(r)
-    n = hypot(α, β)
-    warn_nonhermitian(α, n)
+    warn_nonhermitian(α, zero(β), β)
 
     state.k = 1
     push!(αs, real(α))
@@ -249,8 +246,7 @@ function expand!(iter::LanczosIterator, state::LanczosFactorization; verbosity::
     r = state.r
     V = push!(V, scale!!(r, 1 / βold))
     r, α, β = lanczosrecurrence(iter.operator, V, βold, iter.orth)
-    n = hypot(α, β, βold)
-    warn_nonhermitian(α, n)
+    warn_nonhermitian(α, βold, β)
 
     αs = push!(state.αs, real(α))
     βs = push!(state.βs, β)
