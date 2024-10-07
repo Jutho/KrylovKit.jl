@@ -227,7 +227,8 @@ function eigselector(f,
                      tol::Real=KrylovDefaults.tol,
                      orth::Orthogonalizer=KrylovDefaults.orth,
                      eager::Bool=false,
-                     verbosity::Int=0)
+                     verbosity::Int=0,
+                     alg_rrule=nothing)
     if (T <: Real && issymmetric) || ishermitian
         return Lanczos(; krylovdim=krylovdim,
                        maxiter=maxiter,
