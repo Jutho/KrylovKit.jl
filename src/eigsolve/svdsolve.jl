@@ -21,7 +21,7 @@ the normal action of the linear map needs to be computed. The latter form still 
 well with the `do` block syntax of Julia, as in
 
 ```julia
-vals, lvecs, rvecs, info = svdsolve(x₀, y₀, howmany, which; kwargs...) do x, flag
+vals, lvecs, rvecs, info = svdsolve(x₀, howmany, which; kwargs...) do x, flag
     if flag === Val(true)
         # y = compute action of adjoint map on x
     else
@@ -36,7 +36,7 @@ approach is to provide a start vector `x₀` (in the codomain, i.e. column space
 linear map). Alternatively, one can specify the number `m` of rows of the linear map, in
 which case `x₀ = rand(T, m)` is used, where the default value of `T` is `Float64`, unless
 specified differently. If an `AbstractMatrix` is used, a starting vector `x₀` does not need
-to be provided; it is chosen as `rand(T, size(A,1))`.
+to be provided; it is chosen as `rand(T, size(A, 1))`.
 
 The next arguments are optional, but should typically be specified. `howmany` specifies how
 many singular values and vectors should be computed; `which` specifies which singular
@@ -57,8 +57,7 @@ The return value is always of the form `vals, lvecs, rvecs, info = svdsolve(...)
   - `rvecs`: a `Vector` of corresponding right singular vectors, of the same length as
     `vals`. Note that singular vectors are not returned as a matrix, as the linear map
     could act on any custom Julia type with vector like behavior, i.e. the elements of the
-    lists `lvecs`(`rvecs`) are objects that are typically similar to the starting guess `y₀`
-    (`x₀`), up to a possibly different `eltype`. When the linear map is a simple
+  lists `lvecs`(`rvecs`) are objects that are typically similar to the starting guess `x₀`(`A' * x₀`), up to a possibly different `eltype`. When the linear map is a simple
     `AbstractMatrix`, `lvecs` and `rvecs` will be `Vector{Vector{<:Number}}`.
   - `info`: an object of type [`ConvergenceInfo`], which has the following fields
 
