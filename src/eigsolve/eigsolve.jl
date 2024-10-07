@@ -12,12 +12,12 @@ the function `f`. Return eigenvalues, eigenvectors and a `ConvergenceInfo` struc
 
 The linear map can be an `AbstractMatrix` (dense or sparse) or a general function or
 callable object. If an `AbstractMatrix` is used, a starting vector `x₀` does not need to be
-provided, it is then chosen as `rand(T, size(A,1))`. If the linear map is encoded more
+provided, it is then chosen as `rand(T, size(A, 1))`. If the linear map is encoded more
 generally as a a callable function or method, the best approach is to provide an explicit
 starting guess `x₀`. Note that `x₀` does not need to be of type `AbstractVector`; any type
 that behaves as a vector and supports the required methods (see KrylovKit docs) is accepted.
 If instead of `x₀` an integer `n` is specified, it is assumed that `x₀` is a regular vector
-and it is initialized to `rand(T,n)`, where the default value of `T` is `Float64`, unless
+and it is initialized to `rand(T, n)`, where the default value of `T` is `Float64`, unless
 specified differently.
 
 The next arguments are optional, but should typically be specified. `howmany` specifies how
@@ -227,7 +227,8 @@ function eigselector(f,
                      tol::Real=KrylovDefaults.tol,
                      orth::Orthogonalizer=KrylovDefaults.orth,
                      eager::Bool=false,
-                     verbosity::Int=0)
+                     verbosity::Int=0,
+                     alg_rrule=nothing)
     if (T <: Real && issymmetric) || ishermitian
         return Lanczos(; krylovdim=krylovdim,
                        maxiter=maxiter,
