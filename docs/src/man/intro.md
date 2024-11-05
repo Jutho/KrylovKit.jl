@@ -76,9 +76,9 @@ results..., info = problemsolver(A, args..., algorithm(; kwargs...))
 Most `algorithm` constructions take the same keyword arguments (`tol`, `krylovdim`,
 `maxiter` and `verbosity`) discussed above.
 
-As mentioned before, there are two auxiliary structs that can be used to define new vectors,
-namely
+While KrylovKit.jl does currently not provide a general interface for including
+preconditioners, it is possible to e.g. use a modified inner product. KrylovKit.jl provides
+a specific type for this purpose:
 ```@docs
-RecursiveVec
 InnerProductVec
 ```

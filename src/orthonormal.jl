@@ -375,7 +375,7 @@ end
 orthogonalize(v, args...) = orthogonalize!(true * v, args...)
 
 function orthogonalize!!(v::T, b::OrthonormalBasis{T}, alg::Orthogonalizer) where {T}
-    S = promote_type(eltype(v), eltype(T))
+    S = promote_type(scalartype(v), scalartype(T))
     c = Vector{S}(undef, length(b))
     return orthogonalize!!(v, b, c, alg)
 end
