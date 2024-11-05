@@ -177,7 +177,6 @@ EigSorter(f::F; rev=false) where {F} = EigSorter{F}(f, rev)
 
 const Selector = Union{Symbol,EigSorter}
 
-# TODO: initialize with `Random.rand!(similar(A, size(A, 1)))` for GPU arrays
 function eigsolve(A::AbstractMatrix,
                   howmany::Int=1,
                   which::Selector=:LM,
