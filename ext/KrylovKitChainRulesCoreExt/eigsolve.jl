@@ -87,6 +87,7 @@ function make_eigsolve_pullback(config, f, fᴴ, x₀, howmany, which, alg_prima
                 end
             end
         end
+
         # Compute actual pullback data:
         #------------------------------
         ws = compute_eigsolve_pullback_data(Δvals, Δvecs, view(vals, 1:n), view(vecs, 1:n),

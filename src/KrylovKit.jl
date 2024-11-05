@@ -238,7 +238,7 @@ include("matrixfun/exponentiate.jl")
 include("matrixfun/expintegrator.jl")
 
 # custom vector types
-include("recursivevec.jl")
 include("innerproductvec.jl")
+Base.@deprecate(RecursiveVec(args...), tuple(args...))
 
 end
