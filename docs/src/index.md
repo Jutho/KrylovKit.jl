@@ -29,8 +29,10 @@ There are already a fair number of packages with Krylov-based or other iterative
     square problems, eigenvalue and singular value problems
 *   [Krylov.jl](https://github.com/JuliaSmoothOptimizers/Krylov.jl): part of the
     [JuliaSmoothOptimizers](https://github.com/JuliaSmoothOptimizers) organisation, solves
-    linear systems and least square problems, specific for linear operators from
-    [LinearOperators.jl](https://github.com/JuliaSmoothOptimizers/LinearOperators.jl).
+    linear systems and least square problems on CPU or GPU for any data type that supports `mul!()`,
+    including dense and sparse matrices, and abstract operators such as those defined from
+    [LinearOperators.jl](https://github.com/JuliaSmoothOptimizers/LinearOperators.jl) or
+    [LinearMaps.jl](https://github.com/JuliaLinearAlgebra/LinearMaps.jl).
 *   [KrylovMethods.jl](https://github.com/lruthotto/KrylovMethods.jl): specific for sparse
     matrices
 *   [Expokit.jl](https://github.com/acroy/Expokit.jl): application of the matrix
