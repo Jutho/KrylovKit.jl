@@ -11,5 +11,6 @@ include("utilities.jl")
 include("linsolve.jl")
 include("eigsolve.jl")
 include("svdsolve.jl")
+include("constructor.jl")
 
 end # module

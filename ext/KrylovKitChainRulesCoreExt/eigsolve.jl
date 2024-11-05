@@ -51,11 +51,6 @@ function make_eigsolve_pullback(config, f, fᴴ, x₀, howmany, which, alg_prima
         n_vals = isnothing(_n_vals) ? 0 : _n_vals
         n_vecs = isnothing(_n_vecs) ? 0 : _n_vecs
         n = max(n_vals, n_vecs)
-        if n < length(vals) && vals[n + 1] == conj(vals[n])
-            # this can probably only happen for real problems, where it would be problematic
-            # to split complex conjugate pairs in solving the tangent problem
-            n += 1
-        end
         # special case (can this happen?): try to maintain type stability
         if n == 0
             if howmany == 0
@@ -65,10 +60,15 @@ function make_eigsolve_pullback(config, f, fᴴ, x₀, howmany, which, alg_prima
                 ∂f = construct∂f_eig(config, f, _vecs, ws)
                 return ∂self, ∂f, ∂x₀, ∂howmany, ∂which, ∂alg
             else
-                ws = [vecs[1]]
+                ws = [zerovector(vecs[1])]
                 ∂f = construct∂f_eig(config, f, vecs, ws)
                 return ∂self, ∂f, ∂x₀, ∂howmany, ∂which, ∂alg
             end
+        end
+        if n < length(vals) && vals[n + 1] ≈ conj(vals[n])
+            # this can probably only happen for real problems, where it would be problematic
+            # to split complex conjugate pairs in solving the tangent problem
+            n += 1
         end
         Δvals = fill(zero(vals[1]), n)
         if n_vals > 0
@@ -80,10 +80,13 @@ function make_eigsolve_pullback(config, f, fᴴ, x₀, howmany, which, alg_prima
         else
             Δvecs = fill(zerovector(vecs[1]), n)
             if n_vecs > 0
-                Δvecs[1:n_vecs] .= view(_Δvecs, 1:n_vecs)
+                for i in 1:n_vecs
+                    if !(_Δvecs[i] isa AbstractZero)
+                        Δvecs[i] = _Δvecs[i]
+                    end
+                end
             end
         end
-
         # Compute actual pullback data:
         #------------------------------
         ws = compute_eigsolve_pullback_data(Δvals, Δvecs, view(vals, 1:n), view(vecs, 1:n),
