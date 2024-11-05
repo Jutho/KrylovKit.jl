@@ -24,6 +24,7 @@ using VectorInterface
 using VectorInterface: add!!
 using LinearAlgebra
 using Printf
+using Random
 using GPUArraysCore
 using PackageExtensionCompat
 const IndexRange = AbstractRange{Int}
