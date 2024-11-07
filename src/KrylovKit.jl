@@ -240,6 +240,8 @@ include("matrixfun/expintegrator.jl")
 
 # custom vector types
 include("innerproductvec.jl")
-Base.@deprecate(RecursiveVec(args...), tuple(args...))
+
+# deprecations
+include("deprecated.jl")
 
 end
