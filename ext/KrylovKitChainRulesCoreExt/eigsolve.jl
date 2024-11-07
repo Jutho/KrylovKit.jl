@@ -65,11 +65,6 @@ function make_eigsolve_pullback(config, f, fᴴ, x₀, howmany, which, alg_prima
                 return ∂self, ∂f, ∂x₀, ∂howmany, ∂which, ∂alg
             end
         end
-        if n < length(vals) && vals[n + 1] ≈ conj(vals[n])
-            # this can probably only happen for real problems, where it would be problematic
-            # to split complex conjugate pairs in solving the tangent problem
-            n += 1
-        end
         Δvals = fill(zero(vals[1]), n)
         if n_vals > 0
             Δvals[1:n_vals] .= view(_Δvals, 1:n_vals)
@@ -121,12 +116,15 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
             continue
         end
 
-        # General case :
-
-        # for the case where `f` is a real matrix, we can expect the following simplication
-        # TODO: can we implement this within our general approach, or generalise this to also
-        # cover the case where `f` is a function?
-        # if i > 1 && eltype(A) <: Real &&
+        # TODO: Is the following useful and correct?
+        # (given that Δvecs might contain weird tangent types)
+        # The following only holds if `f` represents a real linear operator, which we cannot
+        # check explicitly, unless `f isa AbstractMatrix`.`
+        # However, exact equality between conjugate pairs of eigenvalues and eigenvectors
+        # seems sufficient to guarantee this
+        # Also, we can only be sure to know how to apply complex conjugation when the
+        # vectors are of type `AbstractArray{T}` with `T` the scalar type
+        # if i > 1 && ws[i - 1] isa AbstractArray{T} &&
         #    vals[i] == conj(vals[i - 1]) && Δvals[i] == conj(Δvals[i - 1]) &&
         #    vecs[i] == conj(vecs[i - 1]) && Δvecs[i] == conj(Δvecs[i - 1])
         #     ws[i] = conj(ws[i - 1])
