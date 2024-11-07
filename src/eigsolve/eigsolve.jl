@@ -182,7 +182,8 @@ function eigsolve(A::AbstractMatrix,
                   which::Selector=:LM,
                   T::Type=eltype(A);
                   kwargs...)
-    return eigsolve(A, rand(T, size(A, 1)), howmany, which; kwargs...)
+    x₀ = Random.rand!(similar(A, T, size(A, 1)))
+    return eigsolve(A, x₀, howmany, which; kwargs...)
 end
 
 function eigsolve(f, n::Int, howmany::Int=1, which::Selector=:LM, T::Type=Float64;

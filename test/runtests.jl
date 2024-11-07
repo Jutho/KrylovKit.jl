@@ -36,7 +36,7 @@ include("svdsolve.jl")
 include("expintegrator.jl")
 
 include("linalg.jl")
-include("recursivevec.jl")
+include("nestedtuple.jl")
 
 include("ad.jl")
 

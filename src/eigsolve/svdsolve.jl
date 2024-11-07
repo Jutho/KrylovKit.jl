@@ -121,7 +121,8 @@ function svdsolve(A::AbstractMatrix,
                   which::Selector=:LR,
                   T::Type=eltype(A);
                   kwargs...)
-    return svdsolve(A, rand(T, size(A, 1)), howmany, which; kwargs...)
+    x₀ = Random.rand!(similar(A, T, size(A, 1)))
+    return svdsolve(A, x₀, howmany, which; kwargs...)
 end
 function svdsolve(f, n::Int, howmany::Int=1, which::Selector=:LR, T::Type=Float64;
                   kwargs...)

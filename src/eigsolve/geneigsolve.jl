@@ -150,21 +150,24 @@ function geneigsolve(AB::Tuple{AbstractMatrix,AbstractMatrix},
     if !(size(AB[1], 1) == size(AB[1], 2) == size(AB[2], 1) == size(AB[2], 2))
         throw(DimensionMismatch("Matrices `A` and `B` should be square and have matching size"))
     end
-    return geneigsolve(AB, rand(T, size(AB[1], 1)), howmany::Int, which; kwargs...)
+    x₀ = Random.rand!(similar(AB[1], T, size(AB[1], 1)))
+    return geneigsolve(AB, x₀, howmany::Int, which; kwargs...)
 end
 function geneigsolve(AB::Tuple{Any,AbstractMatrix},
                      howmany::Int=1,
                      which::Selector=:LM,
                      T=eltype(AB[2]);
                      kwargs...)
-    return geneigsolve(AB, rand(T, size(AB[2], 1)), howmany, which; kwargs...)
+    x₀ = Random.rand!(similar(AB[2], T, size(AB[2], 1)))
+    return geneigsolve(AB, x₀, howmany, which; kwargs...)
 end
 function geneigsolve(AB::Tuple{AbstractMatrix,Any},
                      howmany::Int=1,
                      which::Selector=:LM,
                      T=eltype(AB[1]);
                      kwargs...)
-    return geneigsolve(AB, rand(T, size(AB[1], 1)), howmany, which; kwargs...)
+    x₀ = Random.rand!(similar(AB[1], T, size(AB[1], 1)))
+    return geneigsolve(AB, x₀, howmany, which; kwargs...)
 end
 
 function geneigsolve(f,

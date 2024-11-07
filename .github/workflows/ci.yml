@@ -21,7 +21,8 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.6' # LTS version
+          - '1.6'
+          - 'lts'
           - '1' # automatically expands to the latest stable 1.x release of Julia
         os:
           - ubuntu-latest
@@ -31,11 +32,11 @@ jobs:
           - x64
     steps:
       - uses: actions/checkout@v4
-      - uses: julia-actions/setup-julia@v1
+      - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - uses: julia-actions/cache@v1
+      - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@latest
       - uses: julia-actions/julia-runtest@latest
       - uses: julia-actions/julia-processcoverage@v1
@@ -52,20 +53,19 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.6' # LTS version
+          - 'lts'
           - '1' # automatically expands to the latest stable 1.x release of Julia
         os:
           - ubuntu-latest
-          - macOS-latest
         arch:
           - x64
     steps:
       - uses: actions/checkout@v4
-      - uses: julia-actions/setup-julia@v1
+      - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - uses: julia-actions/cache@v1
+      - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@latest
       - uses: julia-actions/julia-runtest@latest
         env:

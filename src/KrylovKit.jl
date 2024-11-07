@@ -24,6 +24,7 @@ using VectorInterface
 using VectorInterface: add!!
 using LinearAlgebra
 using Printf
+using Random
 using GPUArraysCore
 using PackageExtensionCompat
 const IndexRange = AbstractRange{Int}
@@ -238,7 +239,9 @@ include("matrixfun/exponentiate.jl")
 include("matrixfun/expintegrator.jl")
 
 # custom vector types
-include("recursivevec.jl")
 include("innerproductvec.jl")
+
+# deprecations
+include("deprecated.jl")
 
 end
