@@ -255,35 +255,23 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
     W₀ = (zerovector(vecs[1]), one.(vals))
     P = orthogonalprojector(vecs, n, Gc)
     solver = (T <: Real) ? KrylovKit.realeigsolve : KrylovKit.eigsolve # for `eigsolve`, `T` will always be a Complex subtype`
-    converged = false
-    local rvals, Ws, reverse_info
-    while !converged
-        rvals, Ws, reverse_info = let P = P, ΔV = sylvesterarg, shift = shift
-            solver(W₀, howmany, reverse_which(which), alg_rrule) do (w, x)
-                w₀ = P(w)
-                w′ = KrylovKit.apply(fᴴ, add(w, w₀, -1))
-                if !iszero(shift)
-                    w′ = VectorInterface.add!!(w′, w₀, shift)
-                end
-                @inbounds for i in eachindex(x) # length(x) = n but let us not use outer variables
-                    w′ = VectorInterface.add!!(w′, ΔV[i], -x[i])
-                end
-                return (w′, conj.(vals) .* x)
+    rvals, Ws, reverse_info = let P = P, ΔV = sylvesterarg, shift = shift,
+        eigsort = EigSorter(v -> minimum(DistanceTo(conj(v)), vals))
+
+        solver(W₀, n, eigsort, alg_rrule) do (w, x)
+            w₀ = P(w)
+            w′ = KrylovKit.apply(fᴴ, add(w, w₀, -1))
+            if !iszero(shift)
+                w′ = VectorInterface.add!!(w′, w₀, shift)
             end
-        end
-        if info.converged >= n && reverse_info.converged < howmany &&
-           alg_rrule.verbosity >= 0
-            @warn "`eigsolve` cotangent problem did not converge, whereas the primal eigenvalue problem did"
-        end
-        converged = true
-        for i in 1:n
-            d, ic = findmin(DistanceTo(conj(vals[i])), rvals)
-            if d > 10 * tol
-                converged = false
-                howmany += 1
-                break
+            @inbounds for i in eachindex(x) # length(x) = n but let us not use outer variables
+                w′ = VectorInterface.add!!(w′, ΔV[i], -x[i])
             end
+            return (w′, conj.(vals) .* x)
         end
+    end
+    if info.converged >= n && reverse_info.converged < n && alg_rrule.verbosity >= 0
+        @warn "`eigsolve` cotangent problem did not converge, whereas the primal eigenvalue problem did"
     end
     # cleanup and construct final result by renormalising the eigenvectors and explicitly
     # checking that they have the expected form and reproduce the expected eigenvalue
