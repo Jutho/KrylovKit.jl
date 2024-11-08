@@ -61,7 +61,8 @@ function build_mat_example(A, B, C, x, alg, alg_rrule)
         C̃ = C_fromvec(Cv)
         x̃ = x_fromvec(xv)
         M̃ = [zero(Ã) zero(Ã) C̃; Ã zero(Ã) zero(Ã); zero(Ã) B̃ zero(Ã)]
-        vals′, vecs′, info′ = eigsolve(M̃, x̃, 3 * howmany, which, alg; alg_rrule=alg_rrule)
+        howmany′ = (eltype(Av) <: Complex ? 3 : 6) * howmany
+        vals′, vecs′, info′ = eigsolve(M̃, x̃, howmany′, which, alg; alg_rrule=alg_rrule)
         _, i = findmin(abs.(vals′ .- vals[1]))
         info′.converged < i && @warn "eigsolve did not converge"
         d = dot(vecs[1], vecs′[i])
