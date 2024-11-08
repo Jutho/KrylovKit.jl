@@ -38,7 +38,10 @@ include("expintegrator.jl")
 include("linalg.jl")
 include("nestedtuple.jl")
 
-include("ad.jl")
+include("ad/linsolve.jl")
+include("ad/eigsolve.jl")
+include("ad/degenerateeigsolve.jl")
+include("ad/svdsolve.jl")
 
 t = time() - t
 println("Tests finished in $t seconds")
