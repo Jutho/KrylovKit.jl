@@ -243,24 +243,47 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
     # [(A * (1-P) + shift * P)  -ΔV; 0 Λ], where eᵢ is the ith unit vector. We will need
     # to renormalise the eigenvectors to have exactly eᵢ as second component. We use 
     # (0, e₁ + e₂ + ... + eₙ) as the initial guess for the eigenvalue problem.
+    #
+    # To account for cases where there are other eigenvalues which are degenerate after
+    # applying `by`, we might need to compute more than `n` eigenvectors to make sure that
+    # the eigenvectors that we are looking for are actually computed.
+    howmany = let cutoff = by(vals[n])
+        findlast(vals) do λ
+            return rev ? (by(λ) >= cutoff - 10 * tol) : (by(λ) <= cutoff + 10 * tol)
+        end
+    end
     W₀ = (zerovector(vecs[1]), one.(vals))
     P = orthogonalprojector(vecs, n, Gc)
     solver = (T <: Real) ? KrylovKit.realeigsolve : KrylovKit.eigsolve # for `eigsolve`, `T` will always be a Complex subtype`
-    rvals, Ws, reverse_info = let P = P, ΔV = sylvesterarg, shift = shift
-        solver(W₀, n, reverse_which(which), alg_rrule) do (w, x)
-            w₀ = P(w)
-            w′ = KrylovKit.apply(fᴴ, add(w, w₀, -1))
-            if !iszero(shift)
-                w′ = VectorInterface.add!!(w′, w₀, shift)
+    converged = false
+    local rvals, Ws, reverse_info
+    while !converged
+        rvals, Ws, reverse_info = let P = P, ΔV = sylvesterarg, shift = shift
+            solver(W₀, howmany, reverse_which(which), alg_rrule) do (w, x)
+                w₀ = P(w)
+                w′ = KrylovKit.apply(fᴴ, add(w, w₀, -1))
+                if !iszero(shift)
+                    w′ = VectorInterface.add!!(w′, w₀, shift)
+                end
+                @inbounds for i in eachindex(x) # length(x) = n but let us not use outer variables
+                    w′ = VectorInterface.add!!(w′, ΔV[i], -x[i])
+                end
+                return (w′, conj.(vals) .* x)
             end
-            @inbounds for i in eachindex(x) # length(x) = n but let us not use outer variables
-                w′ = VectorInterface.add!!(w′, ΔV[i], -x[i])
-            end
-            return (w′, conj.(vals) .* x)
         end
-    end
-    if info.converged >= n && reverse_info.converged < n && alg_rrule.verbosity >= 0
-        @warn "`eigsolve` cotangent problem did not converge, whereas the primal eigenvalue problem did"
+        if info.converged >= n && reverse_info.converged < howmany &&
+           alg_rrule.verbosity >= 0
+            @warn "`eigsolve` cotangent problem did not converge, whereas the primal eigenvalue problem did"
+        end
+        converged = true
+        for i in 1:n
+            d, ic = findmin(DistanceTo(conj(vals[i])), rvals)
+            if d > 10 * tol
+                converged = false
+                howmany += 1
+                break
+            end
+        end
     end
     # cleanup and construct final result by renormalising the eigenvectors and explicitly
     # checking that they have the expected form and reproduce the expected eigenvalue
@@ -268,19 +291,24 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
     tol = alg_rrule.tol
     Q = orthogonalcomplementprojector(vecs, n, Gc)
     for i in 1:n
-        w, x = Ws[i]
-        _, ic = findmax(abs, x)
-        factor = 1 / x[ic]
-        x[ic] = zero(x[ic])
+        d, ic = findmin(DistanceTo(conj(vals[i])), rvals)
+        w, x = Ws[ic]
+        factor = 1 / x[i]
+        x[i] = zero(x[i])
         if alg_rrule.verbosity >= 0
-            error = max(norm(x, Inf), abs(rvals[i] - conj(vals[ic])))
-            error > 5 * tol &&
-                @warn "`eigsolve` cotangent linear problem ($ic) returns unexpected result: error = $error"
+            error = max(norm(x, Inf), abs(rvals[ic] - conj(vals[i])))
+            error > 10 * tol &&
+                @warn "`eigsolve` cotangent linear problem ($i) returns unexpected result: error = $error"
         end
-        ws[ic] = VectorInterface.add!!(zs[ic], Q(w), -factor)
+        ws[i] = VectorInterface.add!!(zs[i], Q(w), -factor)
     end
     return ws
 end
+
+struct DistanceTo{T}
+    x::T
+end
+(d::DistanceTo)(y) = norm(y - d.x)
 
 # several simplications happen in the case of a Hermitian eigenvalue problem
 function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which, fᴴ,
