@@ -243,17 +243,10 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
     # [(A * (1-P) + shift * P)  -ΔV; 0 Λ], where eᵢ is the ith unit vector. We will need
     # to renormalise the eigenvectors to have exactly eᵢ as second component. We use 
     # (0, e₁ + e₂ + ... + eₙ) as the initial guess for the eigenvalue problem.
-    #
-    # To account for cases where there are other eigenvalues which are degenerate after
-    # applying `by`, we might need to compute more than `n` eigenvectors to make sure that
-    # the eigenvectors that we are looking for are actually computed.
-    howmany = let cutoff = by(vals[n])
-        findlast(vals) do λ
-            return rev ? (by(λ) >= cutoff - 10 * tol) : (by(λ) <= cutoff + 10 * tol)
-        end
-    end
+
     W₀ = (zerovector(vecs[1]), one.(vals))
     P = orthogonalprojector(vecs, n, Gc)
+    # TODO: is `realeigsolve` every used here, as there is a separate `alg_primal::Lanczos` method below
     solver = (T <: Real) ? KrylovKit.realeigsolve : KrylovKit.eigsolve # for `eigsolve`, `T` will always be a Complex subtype`
     rvals, Ws, reverse_info = let P = P, ΔV = sylvesterarg, shift = shift,
         eigsort = EigSorter(v -> minimum(DistanceTo(conj(v)), vals))
@@ -358,8 +351,10 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
     W₀ = (zerovector(vecs[1]), one.(vals))
     P = orthogonalprojector(vecs, n)
     solver = (T <: Real) ? KrylovKit.realeigsolve : KrylovKit.eigsolve
-    rvals, Ws, reverse_info = let P = P, ΔV = sylvesterarg, shift = shift
-        solver(W₀, n, reverse_which(which), alg_rrule) do (w, x)
+    rvals, Ws, reverse_info = let P = P, ΔV = sylvesterarg, shift = shift,
+        eigsort = EigSorter(v -> minimum(DistanceTo(conj(v)), vals))
+
+        solver(W₀, n, eigsort, alg_rrule) do (w, x)
             w₀ = P(w)
             w′ = KrylovKit.apply(fᴴ, add(w, w₀, -1))
             if !iszero(shift)
