@@ -62,6 +62,19 @@ LinearAlgebra.mul!(y, b::OrthonormalBasis, x::AbstractVector) = unproject!!(y, b
 
 const BLOCKSIZE = 4096
 
+# helper function to determine if a multithreaded approach should be used
+# this uses functionality beyond VectorInterface, but can be faster
+_use_multithreaded_array_kernel(y) = false
+function _use_multithreaded_array_kernel(::Array{T}) where {T<:Number}
+    return isbitstype(T) && get_num_threads() > 1
+end
+function _use_multithreaded_array_kernel(::Type{<:Array{T}}) where {T<:Number}
+    return isbitstype(T) && get_num_threads() > 1
+end
+function _use_multithreaded_array_kernel(::OrthonormalBasis{T}) where {T}
+    return _use_multithreaded_array_kernel(T)
+end
+
 """
     project!!(y::AbstractVector, b::OrthonormalBasis, x,
         [α::Number = 1, β::Number = 0, r = Base.OneTo(length(b))])
@@ -127,8 +140,7 @@ function unproject!!(y,
                      α::Number=true,
                      β::Number=false,
                      r=Base.OneTo(length(b)))
-    if y isa AbstractArray && !(y isa AbstractGPUArray) && IndexStyle(y) isa IndexLinear &&
-       get_num_threads() > 1
+    if _use_multithreaded_array_kernel(y)
         return unproject_linear_multithreaded!(y, b, x, α, β, r)
     end
     # general case: using only vector operations, i.e. axpy! (similar to BLAS level 1)
@@ -157,7 +169,7 @@ function unproject_linear_multithreaded!(y::AbstractArray,
         length(b[rj]) == m || throw(DimensionMismatch())
     end
     if n == 0
-        return β == 1 ? y : β == 0 ? fill!(y, 0) : rmul!(y, β)
+        return β == 1 ? y : β == 0 ? zerovector!(y) : scale!(y, β)
     end
     let m = m, n = n, y = y, x = x, b = b, blocksize = prevpow(2, div(BLOCKSIZE, n))
         @sync for II in splitrange(1:blocksize:m, get_num_threads())
@@ -213,8 +225,7 @@ It is the user's responsibility to make sure that the result is still an orthono
                                 α::Number=true,
                                 β::Number=true,
                                 r=Base.OneTo(length(b)))
-    if y isa AbstractArray && !(y isa AbstractGPUArray) && IndexStyle(y) isa IndexLinear &&
-       Threads.nthreads() > 1
+    if _use_multithreaded_array_kernel(y)
         return rank1update_linear_multithreaded!(b, y, x, α, β, r)
     end
     # general case: using only vector operations, i.e. axpy! (similar to BLAS level 1)
@@ -294,8 +305,7 @@ and are stored in `b`, so the old basis vectors are thrown away. Note that, by d
 the subspace spanned by these basis vectors is exactly the same.
 """
 function basistransform!(b::OrthonormalBasis{T}, U::AbstractMatrix) where {T} # U should be unitary or isometric
-    if T <: AbstractArray && !(T <: AbstractGPUArray) && IndexStyle(T) isa IndexLinear &&
-       get_num_threads() > 1
+    if _use_multithreaded_array_kernel(b)
         return basistransform_linear_multithreaded!(b, U)
     end
     m, n = size(U)
