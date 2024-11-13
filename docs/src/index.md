@@ -20,6 +20,11 @@ The high level interface of KrylovKit is provided by the following functions:
 *   [`expintegrator`](@ref): exponential integrator for a linear non-homogeneous ODE
     (generalization of `exponentiate`)
 
+Furthermore, for specialised use cases, there are functions that can deal with so-called
+"real linear maps", which arise e.g. in the context of differentiable programming:
+*   [`reallinsolve`](@ref) and [`realeigsolve`](@ref)
+
+
 ## Package features and alternatives
 This section could also be titled "Why did I create KrylovKit.jl"?
 

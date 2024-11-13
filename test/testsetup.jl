@@ -133,6 +133,7 @@ end
 
 if VERSION < v"1.9"
     stack(f, itr) = mapreduce(f, hcat, itr)
+    stack(itr) = reduce(hcat, itr)
 end
 
 end
