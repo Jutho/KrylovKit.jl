@@ -227,7 +227,7 @@ include("innerproductvec.jl")
 # support for real
 _realinner(v, w) = real(inner(v, w))
 const RealVec{V} = InnerProductVec{typeof(_realinner),V}
-RealVec(v) = InnerProductVec(v, realinner)
+RealVec(v) = InnerProductVec(v, _realinner)
 
 apply(A, x::RealVec) = RealVec(apply(A, x[]))
 
