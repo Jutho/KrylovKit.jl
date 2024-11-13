@@ -25,8 +25,8 @@ const mgsr = ModifiedGramSchmidtIR(η₀)
 # Tests
 # -----
 t = time()
-# include("factorize.jl")
-# include("gklfactorize.jl")
+include("factorize.jl")
+include("gklfactorize.jl")
 
 include("linsolve.jl")
 include("eigsolve.jl")

@@ -1,6 +1,6 @@
 # Real linear maps
 
-A map $$f: V \to V$$ from some vector space $$V$$ to itself is said to be real linear map if
+A map $$f: V \to V$$ from some vector space $$V$$ to itself is said to be a real linear map if
 it satisfies $$f(\alpha x + \beta y) = \alpha f(x) + \beta f(y)$$ for all $$x, y \in V$$ and
 all $$\alpha, \beta \in \mathbb{R}$$. When $$V$$ is itself a real vector space, this is just
 the natural concept of a linear map. However, this definition can be used even if $$x$$ and
