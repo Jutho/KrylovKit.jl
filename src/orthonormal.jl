@@ -69,7 +69,7 @@ _use_multithreaded_array_kernel(::Type) = false
 function _use_multithreaded_array_kernel(::Type{<:Array{T}}) where {T<:Number}
     return isbitstype(T) && get_num_threads() > 1
 end
-function _use_multithreaded_array_kernel(::OrthonormalBasis{T}) where {T}
+function _use_multithreaded_array_kernel(::Type{<:OrthonormalBasis{T}}) where {T}
     return _use_multithreaded_array_kernel(T)
 end
 
