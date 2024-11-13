@@ -64,10 +64,8 @@ const BLOCKSIZE = 4096
 
 # helper function to determine if a multithreaded approach should be used
 # this uses functionality beyond VectorInterface, but can be faster
-_use_multithreaded_array_kernel(y) = false
-function _use_multithreaded_array_kernel(::Array{T}) where {T<:Number}
-    return isbitstype(T) && get_num_threads() > 1
-end
+_use_multithreaded_array_kernel(y) = _use_multithreaded_array_kernel(typeof(y))
+_use_multithreaded_array_kernel(::Type) = false
 function _use_multithreaded_array_kernel(::Type{<:Array{T}}) where {T<:Number}
     return isbitstype(T) && get_num_threads() > 1
 end
