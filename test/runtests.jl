@@ -46,6 +46,10 @@ include("ad/svdsolve.jl")
 t = time() - t
 println("Tests finished in $t seconds")
 
+# Issues
+# ------
+include("issues.jl")
+
 module AquaTests
 using KrylovKit
 using Aqua
