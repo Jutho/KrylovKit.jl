@@ -142,7 +142,7 @@ function initialize(iter::ArnoldiIterator; verbosity::Int=0)
     α = inner(x₀, Ax₀) / (β₀ * β₀)
     T = typeof(α)
     # this line determines the vector type that we will henceforth use
-    v = add!!(zerovector(Ax₀, T), x₀, 1 / β₀)
+    v = add!!(scale(Ax₀, zero(α)), x₀, 1 / β₀)
     if typeof(Ax₀) != typeof(v)
         r = add!!(zerovector(v), Ax₀, 1 / β₀)
     else

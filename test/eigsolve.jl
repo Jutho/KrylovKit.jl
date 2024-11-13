@@ -242,6 +242,51 @@ end
             @test A * U1 ≈ U1 * Diagonal(D1) + R1
             @test A * U2 ≈ U2 * Diagonal(D2) + R2
             @test A * U3 ≈ U3 * Diagonal(D3) + R3
+
+            if mode == :vector # solve eigenvalue problem as complex problem with real linear operator
+                V = exp(randn(T, (2N, 2N)) / 10)
+                D = randn(T, 2N)
+                Ar = V * Diagonal(D) / V
+                Z = zeros(T, N, N)
+                J = [Z -I; I Z]
+                Ar1 = (Ar - J * Ar * J) / 2
+                Ar2 = (Ar + J * Ar * J) / 2
+                A = complex.(Ar1[1:N, 1:N], -Ar1[1:N, (N + 1):end])
+                B = complex.(Ar2[1:N, 1:N], +Ar2[1:N, (N + 1):end])
+                f = buildrealmap(A, B)
+                v = rand(complex(T), (N,))
+                alg = Arnoldi(; krylovdim=3 * n, maxiter=20,
+                              tol=tolerance(T), eager=true)
+                D1, V1, info1 = @constinferred realeigsolve(f, v, n, :SR, alg)
+                D2, V2, info2 = realeigsolve(f, v, n, :LR, alg)
+                D3, V3, info3 = realeigsolve(f, v, n, :LM, alg)
+
+                l1 = info1.converged
+                l2 = info2.converged
+                l3 = info3.converged
+                @test l1 > 0
+                @test l2 > 0
+                @test l3 > 0
+                @test D1[1:l1] ≊ sort(D; alg=MergeSort)[1:l1]
+                @test D2[1:l2] ≊ sort(D; alg=MergeSort, rev=true)[1:l2]
+                # sorting by abs does not seem very reliable if two distinct eigenvalues are close
+                # in absolute value, so we perform a second sort afterwards using the real part
+                @test D3[1:l3] ≊ sort(D; by=abs, rev=true)[1:l3]
+
+                @test eltype(D1) == T
+                @test eltype(D2) == T
+                @test eltype(D3) == T
+
+                U1 = stack(V1)
+                U2 = stack(V2)
+                U3 = stack(V3)
+                R1 = stack(info1.residual)
+                R2 = stack(info2.residual)
+                R3 = stack(info3.residual)
+                @test A * U1 + B * conj(U1) ≈ U1 * Diagonal(D1) + R1
+                @test A * U2 + B * conj(U2) ≈ U2 * Diagonal(D2) + R2
+                @test A * U3 + B * conj(U3) ≈ U3 * Diagonal(D3) + R3
+            end
         end
     end
 end
