@@ -173,3 +173,15 @@ function linselector(A::AbstractMatrix,
                  orth=orth,
                  verbosity=verbosity)
 end
+
+function reallinsolve(f, b, x₀, alg, a₀::Real=0, a₁::Real=1)
+    realinner = real ∘ inner
+    v₀ = InnerProductVec(x₀, realinner)
+    w = InnerProductVec(b, realinner)
+    realf = v -> InnerProductVec(apply(f, v[]), realinner)
+    x, info = linsolve(realf, w, v₀, alg, a₀, a₁)
+
+    newinfo = ConvergenceInfo(info.converged, info.residual[], info.normres, info.numiter,
+                              info.numops)
+    return x[], newinfo
+end
