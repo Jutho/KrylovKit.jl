@@ -286,10 +286,8 @@ The return value is always of the form `vals, vecs, info = eigsolve(...)` with
     if `info.converged >= howmany`.
 """
 function realeigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi; alg_rrule=alg)
-    realinner = real ∘ inner
-    v₀ = InnerProductVec(x₀, realinner)
-    realA = v -> InnerProductVec(apply(A, v[]), realinner)
-    T, U, fact, converged, numiter, numops = _schursolve(realA, v₀, howmany, which, alg)
+    T, U, fact, converged, numiter, numops = _schursolve(A, RealVec(x₀), howmany, which,
+                                                         alg)
     i = 0
     while i < length(fact)
         i += 1

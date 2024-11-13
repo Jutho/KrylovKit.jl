@@ -179,9 +179,10 @@ function initialize(iter::LanczosIterator; verbosity::Int=0)
     iszero(β₀) && throw(ArgumentError("initial vector should not have norm zero"))
     Ax₀ = apply(iter.operator, x₀)
     α = inner(x₀, Ax₀) / (β₀ * β₀)
-    T = typeof(α)
+    T = typeof(α) # scalar type of the Rayleigh quotient
     # this line determines the vector type that we will henceforth use
-    v = add!!(zerovector(Ax₀, T), x₀, 1 / β₀)
+    # vector scalar type can be different from `T`, e.g. for real inner products
+    v = add!!(scale(Ax₀, zero(α)), x₀, 1 / β₀)
     if typeof(Ax₀) != typeof(v)
         r = add!!(zerovector(v), Ax₀, 1 / β₀)
     else

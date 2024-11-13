@@ -243,10 +243,7 @@ used, and therefore no restarts are required. Therefore, we pass `krylovdim*maxi
 maximal number of CG iterations that can be used by the `CG` algorithm.
 """
 function reallinsolve(f, b, x₀, alg, a₀::Real=0, a₁::Real=1)
-    v₀ = InnerProductVec(x₀, real ∘ inner)
-    w = InnerProductVec(b, real ∘ inner)
-    realf(v) = InnerProductVec(apply(f, v[]), real ∘ inner)
-    x, info = linsolve(realf, w, v₀, alg, a₀, a₁)
+    x, info = linsolve(f, RealVec(b), RealVec(x₀), alg, a₀, a₁)
 
     newinfo = ConvergenceInfo(info.converged, info.residual[], info.normres, info.numiter,
                               info.numops)
