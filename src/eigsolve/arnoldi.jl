@@ -185,9 +185,27 @@ end
     realeigsolve(f, x₀, howmany, which, algorithm; alg_rrule=algorithm)
 
 Compute the first `howmany` eigenvalues (according to the order specified by `which`)
-from the real linear map encoded in the matrix `A` or by the function `f`, with the guarantee
-that these eigenvalues (and thus their associated eigenvectors) are real.
+from the real linear map encoded in the matrix `A` or by the function `f`, if it can be
+guaranteed that these eigenvalues (and thus their associated eigenvectors) are real. An
+error will be thrown if there are complex eigenvalues within the first `howmany` eigenvalues.
+
 Return eigenvalues, eigenvectors and a `ConvergenceInfo` structure.
+
+!!! note "Note about real linear maps"
+
+    A function `f` is said to implement a real linear map if it satisfies 
+    `f(add(x,y)) = add(f(x), f(y)` and `f(scale(x, α)) = scale(f(x), α)` for vectors `x`
+    and `y` and scalars `α::Real`. Note that this is possible even when the vectors are
+    represented using complex arithmetic. For example, the map `f=x-> x + conj(x)`
+    represents a real linear map that is not (complex) linear, as it does not satisfy
+    `f(scale(x, α)) = scale(f(x), α)` for complex scalars `α`. Note that complex linear
+    maps are always real linear maps and thus can be used in this context, if looking
+    specifically for real eigenvalues that they may have.
+
+    To interpret the vectors `x` and `y` as elements from a real vector space, the standard
+    inner product defined on them will be replaced with `real(inner(x,y))`. This has no
+    effect if the vectors `x` and `y` were represented using real arithmetic to begin with,
+    and allows to seemlessly use complex vectors as well.
 
 ### Arguments:
 
@@ -268,33 +286,28 @@ The return value is always of the form `vals, vecs, info = eigsolve(...)` with
     if `info.converged >= howmany`.
 """
 function realeigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi; alg_rrule=alg)
-    T, U, fact, converged, numiter, numops = _schursolve(A, x₀, howmany, which, alg)
-    if !(eltype(T) <: Real)
-        throw(ArgumentError("realeigsolve can only be used for real eigenvalue problems"))
-    else
-        allreal = true
-        for i in 1:(howmany < length(fact) ? howmany : howmany - 1)
-            if T[i + 1, i] != 0
-                allreal = false
-                break
-            end
-        end
-        allreal || throw(ArgumentError("not all first `howmany` eigenvalues are real"))
-    end
-    if converged > howmany
-        while howmany < converged && T[howmany + 1, howmany] == 0
-            howmany += 1
+    T, U, fact, converged, numiter, numops = _schursolve(A, RealVec(x₀), howmany, which,
+                                                         alg)
+    i = 0
+    while i < length(fact)
+        i += 1
+        if i < length(fact) && T[i + 1, i] != 0
+            i -= 1
+            break
         end
     end
+    i < howmany &&
+        throw(ArgumentError("only the first $i eigenvalues are real, which is less then the requested `howmany = $howmany`"))
+    howmany = max(howmany, min(i, converged))
     TT = view(T, 1:howmany, 1:howmany)
     values = diag(TT)
 
     # Compute eigenvectors
     V = view(U, :, 1:howmany) * schur2realeigvecs(TT)
     vectors = let B = basis(fact)
-        [B * v for v in cols(V)]
+        [(B * v)[] for v in cols(V)]
     end
-    residuals = let r = residual(fact)
+    residuals = let r = residual(fact)[]
         [scale(r, last(v)) for v in cols(V)]
     end
     normresiduals = [normres(fact) * abs(last(v)) for v in cols(V)]

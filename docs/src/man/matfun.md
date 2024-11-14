@@ -1,5 +1,5 @@
-# Functions of matrices and linear maps
-Applying a function of a matrix or linear map to a given vector can in some cases also be
+# Functions of matrices and linear operators
+Applying a function of a matrix or linear operator to a given vector can in some cases also be
 computed using Krylov methods. One example is the inverse function, which exactly
 corresponds to what `linsolve` computes: ``A^{-1} * b``. There are other functions ``f``
 for which ``f(A) * b`` can be computed using Krylov techniques, i.e. where ``f(A) * b`` can

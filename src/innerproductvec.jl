@@ -89,10 +89,16 @@ end
 function VectorInterface.scale(v::InnerProductVec, a::Number)
     return InnerProductVec(scale(v.vec, a), v.dotf)
 end
-
+function VectorInterface.scale!!(v::InnerProductVec, a::Number)
+    return InnerProductVec(scale!!(v.vec, a), v.dotf)
+end
 function VectorInterface.scale!(v::InnerProductVec, a::Number)
     scale!(v.vec, a)
     return v
+end
+function VectorInterface.scale!!(w::InnerProductVec{F}, v::InnerProductVec{F},
+                                 a::Number) where {F}
+    return InnerProductVec(scale!!(w.vec, v.vec, a), w.dotf)
 end
 function VectorInterface.scale!(w::InnerProductVec{F}, v::InnerProductVec{F},
                                 a::Number) where {F}
@@ -100,6 +106,14 @@ function VectorInterface.scale!(w::InnerProductVec{F}, v::InnerProductVec{F},
     return w
 end
 
+function VectorInterface.add(v::InnerProductVec{F}, w::InnerProductVec{F}, a::Number,
+                             b::Number) where {F}
+    return InnerProductVec(add(v.vec, w.vec, a, b), v.dotf)
+end
+function VectorInterface.add!!(v::InnerProductVec{F}, w::InnerProductVec{F}, a::Number,
+                               b::Number) where {F}
+    return InnerProductVec(add!!(v.vec, w.vec, a, b), v.dotf)
+end
 function VectorInterface.add!(v::InnerProductVec{F}, w::InnerProductVec{F}, a::Number,
                               b::Number) where {F}
     add!(v.vec, w.vec, a, b)

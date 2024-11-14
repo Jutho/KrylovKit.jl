@@ -28,7 +28,8 @@ using Random
 using PackageExtensionCompat
 const IndexRange = AbstractRange{Int}
 
-export linsolve, eigsolve, geneigsolve, realeigsolve, schursolve, svdsolve
+export linsolve, reallinsolve
+export eigsolve, geneigsolve, realeigsolve, schursolve, svdsolve
 export exponentiate, expintegrator
 export orthogonalize, orthogonalize!!, orthonormalize, orthonormalize!!
 export basis, rayleighquotient, residual, normres, rayleighextension
@@ -219,13 +220,15 @@ function Base.show(io::IO, info::ConvergenceInfo)
     return println(io, "norms of residuals are given by $((info.normres...,)).")
 end
 
-# eigsolve en schursolve
-include("eigsolve/eigsolve.jl")
-include("eigsolve/lanczos.jl")
-include("eigsolve/arnoldi.jl")
-include("eigsolve/geneigsolve.jl")
-include("eigsolve/golubye.jl")
-include("eigsolve/svdsolve.jl")
+# vectors with modified inner product
+include("innerproductvec.jl")
+
+# support for real
+_realinner(v, w) = real(inner(v, w))
+const RealVec{V} = InnerProductVec{typeof(_realinner),V}
+RealVec(v) = InnerProductVec(v, _realinner)
+
+apply(A, x::RealVec) = RealVec(apply(A, x[]))
 
 # linsolve
 include("linsolve/linsolve.jl")
@@ -233,12 +236,17 @@ include("linsolve/cg.jl")
 include("linsolve/gmres.jl")
 include("linsolve/bicgstab.jl")
 
+# eigsolve and svdsolve
+include("eigsolve/eigsolve.jl")
+include("eigsolve/lanczos.jl")
+include("eigsolve/arnoldi.jl")
+include("eigsolve/geneigsolve.jl")
+include("eigsolve/golubye.jl")
+include("eigsolve/svdsolve.jl")
+
 # exponentiate
 include("matrixfun/exponentiate.jl")
 include("matrixfun/expintegrator.jl")
-
-# custom vector types
-include("innerproductvec.jl")
 
 # deprecations
 include("deprecated.jl")

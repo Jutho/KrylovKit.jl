@@ -1,7 +1,7 @@
 module TestSetup
 
 export tolerance, ≊, MinimalVec, isinplace, stack
-export wrapop, wrapvec, unwrapvec
+export wrapop, wrapvec, unwrapvec, buildrealmap
 
 import VectorInterface as VI
 using VectorInterface
@@ -24,6 +24,10 @@ function ≊(list1::AbstractVector, list2::AbstractVector)
         ind2 = deleteat!(ind2, j)
     end
     return list1 ≈ view(list2, p)
+end
+
+function buildrealmap(A, B)
+    return x -> A * x + B * conj(x)
 end
 
 # Minimal vector type
@@ -129,6 +133,7 @@ end
 
 if VERSION < v"1.9"
     stack(f, itr) = mapreduce(f, hcat, itr)
+    stack(itr) = reduce(hcat, itr)
 end
 
 end

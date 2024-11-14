@@ -10,6 +10,7 @@ makedocs(; modules=[KrylovKit],
                              "man/eig.md",
                              "man/svd.md",
                              "man/matfun.md",
+                             "man/reallinear.md",
                              "man/algorithms.md",
                              "man/implementation.md"]],
          format=Documenter.HTML(; prettyurls=get(ENV, "CI", nothing) == "true"))

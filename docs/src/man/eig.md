@@ -41,11 +41,7 @@ corresponding to the largest magnitude eigenvalue of `A`.
 
 More generally, if you want to compute several eigenvalues of a real linear map, and you know
 that all of them are real, so that also the associated eigenvectors will be real, then you
-can use the `realeigsolve` method, which is also restricted to the 'expert' method call and
-which will error if any of the requested eigenvalues turn out to be complex
-```@docs
-realeigsolve
-```
+can use the [`realeigsolve`](@ref) method.
 
 ## Automatic differentation
 
