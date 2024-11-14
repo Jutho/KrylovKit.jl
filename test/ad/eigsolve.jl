@@ -205,8 +205,8 @@ end
     condA = cond(A)
     tol = n * condA * (T <: Real ? eps(T) : 4 * eps(real(T)))
     alg = Arnoldi(; tol=tol, krylovdim=n)
-    alg_rrule1 = Arnoldi(; tol=tol, krylovdim=2n, verbosity=-1)
-    alg_rrule2 = GMRES(; tol=tol, krylovdim=n + 1, verbosity=-1)
+    alg_rrule1 = Arnoldi(; tol=tol, krylovdim=2n)
+    alg_rrule2 = GMRES(; tol=tol, krylovdim=n + 1)
     config = Zygote.ZygoteRuleConfig()
     @testset for which in whichlist
         for alg_rrule in (alg_rrule1, alg_rrule2)
@@ -269,11 +269,13 @@ end
 
     if T <: Complex
         @testset "test warnings and info" begin
-            alg_rrule = Arnoldi(; tol=tol, krylovdim=n, verbosity=-1)
+            alg = Arnoldi(; tol=tol, krylovdim=n, verbosity=0)
+            alg_rrule = Arnoldi(; tol=tol, krylovdim=n, verbosity=0)
             (vals, vecs, info), pb = ChainRulesCore.rrule(config, eigsolve, A, x, howmany,
                                                           :LR, alg; alg_rrule=alg_rrule)
             @test_logs pb((ZeroTangent(), im .* vecs[1:2] .+ vecs[2:-1:1], NoTangent()))
 
+            alg = Arnoldi(; tol=tol, krylovdim=n, verbosity=1)
             alg_rrule = Arnoldi(; tol=tol, krylovdim=n, verbosity=0)
             (vals, vecs, info), pb = ChainRulesCore.rrule(config, eigsolve, A, x, howmany,
                                                           :LR, alg; alg_rrule=alg_rrule)
@@ -282,6 +284,7 @@ end
             pbs = @test_logs pb((ZeroTangent(), vecs[1:2], NoTangent()))
             @test norm(unthunk(pbs[1]), Inf) < condA * sqrt(eps(real(T)))
 
+            alg = Arnoldi(; tol=tol, krylovdim=n, verbosity=1)
             alg_rrule = Arnoldi(; tol=tol, krylovdim=n, verbosity=1)
             (vals, vecs, info), pb = ChainRulesCore.rrule(config, eigsolve, A, x, howmany,
                                                           :LR, alg; alg_rrule=alg_rrule)
@@ -290,11 +293,13 @@ end
             pbs = @test_logs (:info,) pb((ZeroTangent(), vecs[1:2], NoTangent()))
             @test norm(unthunk(pbs[1]), Inf) < condA * sqrt(eps(real(T)))
 
-            alg_rrule = GMRES(; tol=tol, krylovdim=n, verbosity=-1)
+            alg = Arnoldi(; tol=tol, krylovdim=n, verbosity=0)
+            alg_rrule = GMRES(; tol=tol, krylovdim=n, verbosity=0)
             (vals, vecs, info), pb = ChainRulesCore.rrule(config, eigsolve, A, x, howmany,
                                                           :LR, alg; alg_rrule=alg_rrule)
             @test_logs pb((ZeroTangent(), im .* vecs[1:2] .+ vecs[2:-1:1], NoTangent()))
 
+            alg = Arnoldi(; tol=tol, krylovdim=n, verbosity=1)
             alg_rrule = GMRES(; tol=tol, krylovdim=n, verbosity=0)
             (vals, vecs, info), pb = ChainRulesCore.rrule(config, eigsolve, A, x, howmany,
                                                           :LR, alg; alg_rrule=alg_rrule)
@@ -305,6 +310,7 @@ end
             pbs = @test_logs pb((ZeroTangent(), vecs[1:2], NoTangent()))
             @test norm(unthunk(pbs[1]), Inf) < condA * sqrt(eps(real(T)))
 
+            alg = Arnoldi(; tol=tol, krylovdim=n, verbosity=1)
             alg_rrule = GMRES(; tol=tol, krylovdim=n, verbosity=1)
             (vals, vecs, info), pb = ChainRulesCore.rrule(config, eigsolve, A, x, howmany,
                                                           :LR, alg; alg_rrule=alg_rrule)
