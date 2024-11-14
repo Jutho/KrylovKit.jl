@@ -94,8 +94,8 @@ end
 
     tol = 2 * N^2 * eps(real(T))
     alg = Arnoldi(; tol=tol, krylovdim=2n)
-    alg_rrule1 = Arnoldi(; tol=tol, krylovdim=2n, verbosity=-1)
-    alg_rrule2 = GMRES(; tol=tol, krylovdim=2n, verbosity=-1)
+    alg_rrule1 = Arnoldi(; tol=tol, krylovdim=2n)
+    alg_rrule2 = GMRES(; tol=tol, krylovdim=2n)
     mat_example1, mat_example_fun1, mat_example_fd, Avec, Bvec, Cvec, xvec, vals, vecs = build_mat_example(A,
                                                                                                            B,
                                                                                                            C,
