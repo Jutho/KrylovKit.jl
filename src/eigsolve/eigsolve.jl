@@ -193,7 +193,7 @@ end
 function eigsolve(f, x₀, howmany::Int=1, which::Selector=:LM; kwargs...)
     Tx = typeof(x₀)
     Tfx = Core.Compiler.return_type(apply, Tuple{typeof(f),Tx})
-    T = Core.Compiler.return_type(dot, Tuple{Tx,Tfx})
+    T = Core.Compiler.return_type(inner, Tuple{Tx,Tfx})
     alg = eigselector(f, T; kwargs...)
     checkwhich(which) || error("Unknown eigenvalue selector: which = $which")
     if alg isa Lanczos

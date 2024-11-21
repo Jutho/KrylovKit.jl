@@ -92,7 +92,7 @@ Keyword arguments and their default values are given by:
     at the end), 2 (information after every iteration), 3 (information per Krylov step)
   - `tol::Real`: the requested accuracy, relative to the 2-norm of the corresponding
     eigenvectors, i.e. convergence is achieved if `norm((A - λB)x) < tol * norm(x)`. Because
-    eigenvectors are now normalised such that `dot(x, B*x) = 1`, `norm(x)` is not
+    eigenvectors are now normalised such that `inner(x, B*x) = 1`, `norm(x)` is not
     automatically one. If you work in e.g. single precision (`Float32`), you should
     definitely change the default value.
   - `krylovdim::Integer`: the maximum dimension of the Krylov subspace that will be
@@ -127,7 +127,7 @@ only [`GolubYe`](@ref) is available. The Golub-Ye algorithm is an algorithm for 
 hermitian (symmetric) generalized eigenvalue problems `A x = λ B x` with positive definite
 `B`, without the need for inverting `B`. It builds a Krylov subspace of size `krylovdim`
 starting from an estimate `x` by acting with `(A - ρ(x) B)`, where 
-`ρ(x) = dot(x, A*x)/ dot(x, B*x)`, and employing the Lanczos algorithm. This process is
+`ρ(x) = inner(x, A*x)/ inner(x, B*x)`, and employing the Lanczos algorithm. This process is
 repeated at most `maxiter` times. In every iteration `k>1`, the subspace will also be
 expanded to size `krylovdim+1` by adding ``x_k - x_{k-1}``, which is known as the LOPCG
 correction and was suggested by Money and Ye. With `krylovdim = 2`, this algorithm becomes
@@ -184,8 +184,8 @@ function geneigsolve(f, x₀, howmany::Int=1, which::Selector=:LM; kwargs...)
     Tfx = Core.Compiler.return_type(genapply, Tuple{typeof(f),Tx}) # should be a tuple type
     Tfx1 = Base.tuple_type_head(Tfx)
     Tfx2 = Base.tuple_type_head(Base.tuple_type_tail(Tfx))
-    T1 = Core.Compiler.return_type(dot, Tuple{Tx,Tfx1})
-    T2 = Core.Compiler.return_type(dot, Tuple{Tx,Tfx2})
+    T1 = Core.Compiler.return_type(inner, Tuple{Tx,Tfx1})
+    T2 = Core.Compiler.return_type(inner, Tuple{Tx,Tfx2})
     T = promote_type(T1, T2)
     alg = geneigselector(f, T; kwargs...)
     if alg isa GolubYe && (which == :LI || which == :SI)
