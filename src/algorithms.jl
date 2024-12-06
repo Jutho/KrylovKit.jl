@@ -314,16 +314,16 @@ struct LSMR{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     λ::S
     krylovdim::Int
 end
-LSMR(; orth = KrylovDefaults.orth,
-    atol = KrylovDefaults.tol,
-    btol = KrylovDefaults.tol,
-    conlim = 1/min(atol,btol),
-    maxiter = KrylovDefaults.maxiter,
-    krylovdim = KrylovDefaults.krylovdim,
-    λ = zero(atol),
-    verbosity = 0) = LSMR(orth,atol,btol,conlim,maxiter,verbosity,λ,krylovdim)
-
-
+function LSMR(; orth=KrylovDefaults.orth,
+              atol=KrylovDefaults.tol,
+              btol=KrylovDefaults.tol,
+              conlim=1 / min(atol, btol),
+              maxiter=KrylovDefaults.maxiter,
+              krylovdim=KrylovDefaults.krylovdim,
+              λ=zero(atol),
+              verbosity=0)
+    return LSMR(orth, atol, btol, conlim, maxiter, verbosity, λ, krylovdim)
+end
 
 # TODO
 """

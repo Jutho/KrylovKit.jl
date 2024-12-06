@@ -1,9 +1,9 @@
 # reference implementation https://github.com/JuliaLinearAlgebra/IterativeSolvers.jl/blob/master/src/lsmr.jl
 function linsolve(operator, b, alg::LSMR)
-    return linsolve(operator, b, 0 * apply_adjoint(operator, b), alg)
+    return linsolve(operator, b, zerovector(apply_adjoint(operator, b)), alg)
 end;
-function linsolve(operator, b, x, alg::LSMR)
-    u = axpby!(1, b, -1, apply_normal(operator, x))
+function linsolve(operator, b, x₀, alg::LSMR)
+    u = axpby!(1, b, -1, apply_normal(operator, x₀))
     β = norm(u)
 
     # initialize GKL factorization
@@ -16,6 +16,8 @@ function linsolve(operator, b, x, alg::LSMR)
     Tr = real(T)
     alg.conlim > 0 ? ctol = convert(Tr, inv(alg.conlim)) : ctol = zero(Tr)
     istop = 0
+
+    x = copy(x₀)
 
     for topit in 1:(alg.maxiter)# the outermost restart loop
         # Initialize variables for 1st iteration.
