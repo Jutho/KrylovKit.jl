@@ -3,7 +3,7 @@ function linsolve(operator, b, alg::LSMR)
     return linsolve(operator, b, zerovector(apply_adjoint(operator, b)), alg)
 end;
 function linsolve(operator, b, x₀, alg::LSMR)
-    u = axpby!(1, b, -1, apply_normal(operator, x₀))
+    u = add!!(apply_normal(operator, x₀), b, 1, -1)
     β = norm(u)
 
     # initialize GKL factorization
@@ -17,7 +17,8 @@ function linsolve(operator, b, x₀, alg::LSMR)
     alg.conlim > 0 ? ctol = convert(Tr, inv(alg.conlim)) : ctol = zero(Tr)
     istop = 0
 
-    x = copy(x₀)
+    # TODO: make this an explicit copy that works with the testing datatypes
+    x = x₀
 
     for topit in 1:(alg.maxiter)# the outermost restart loop
         # Initialize variables for 1st iteration.
@@ -49,8 +50,8 @@ function linsolve(operator, b, x₀, alg::LSMR)
         normr = β
         normAr = α * β
 
-        hbar = zero(T) * x
-        h = one(T) * fact.V[end]
+        hbar = scale(x, zero(T))
+        h = scale(fact.V[end], one(T))
 
         while length(fact) < alg.krylovdim
             β = normres(fact)
@@ -85,9 +86,9 @@ function linsolve(operator, b, x₀, alg::LSMR)
             ζbar = -sbar * ζbar
 
             # Update h, h_hat, x.
-            hbar = axpby!(1, h, -θbar * ρ / (ρold * ρbarold), hbar)
-            h = axpby!(1, v, -θnew / ρ, h)
-            x = axpy!(ζ / (ρ * ρbar), hbar, x)
+            hbar = add!!(hbar, h, 1, -θbar * ρ / (ρold * ρbarold))
+            h = add!!(h, v, 1, -θnew / ρ)
+            x = add!!(x, hbar, ζ / (ρ * ρbar), 1)
 
             ##############################################################################
             ##
@@ -187,7 +188,7 @@ function linsolve(operator, b, x₀, alg::LSMR)
             end
         end
 
-        u = axpby!(1, b, -1, apply_normal(operator, x))
+        u = add!!(apply_normal(operator, x), b, 1, -1)
 
         istop != 0 && break
 
