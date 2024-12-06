@@ -281,6 +281,50 @@ function GMRES(;
     return GMRES(orth, maxiter, krylovdim, tol, verbosity)
 end
 
+"""
+LSMR(; orth = KrylovDefaults.orth,atol = KrylovDefaults.tol,btol = KrylovDefaults.tol,conlim = 1/KrylovDefaults.tol,
+    maxiter = KrylovDefaults.maxiter,krylovdim = KrylovDefaults.krylovdim,λ = 0.0,verbosity = 0)
+
+Represents the LSMR algorithm, which minimizes ``\\|Ax - b\\|^2 + \\|λx\\|^2`` in the Euclidean norm.
+If multiple solutions exists the minimum norm solution is returned.
+The method is based on the Golub-Kahan bidiagonalization process. It is
+algebraically equivalent to applying MINRES to the normal equations
+``(A^*A + λ^2I)x = A^*b``, but has better numerical properties,
+especially if ``A`` is ill-conditioned.
+
+- `atol::Number = 1e-6`, `btol::Number = 1e-6`: stopping tolerances. If both are
+  1.0e-9 (say), the final residual norm should be accurate to about 9 digits.
+  (The final `x` will usually have fewer correct digits,
+  depending on `cond(A)` and the size of damp).
+- `conlim::Number = 1e8`: stopping tolerance. `lsmr` terminates if an estimate
+  of `cond(A)` exceeds conlim.  For compatible systems Ax = b,
+  conlim could be as large as 1.0e+12 (say).  For least-squares
+  problems, conlim should be less than 1.0e+8.
+  Maximum precision can be obtained by setting
+- `atol` = `btol` = `conlim` = zero, but the number of iterations
+  may then be excessive.
+"""
+struct LSMR{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
+    orth::O
+    atol::S
+    btol::S
+    conlim::S
+    maxiter::Int
+    verbosity::Int
+    λ::S
+    krylovdim::Int
+end
+LSMR(; orth = KrylovDefaults.orth,
+    atol = KrylovDefaults.tol,
+    btol = KrylovDefaults.tol,
+    conlim = 1/min(atol,btol),
+    maxiter = KrylovDefaults.maxiter,
+    krylovdim = KrylovDefaults.krylovdim,
+    λ = zero(atol),
+    verbosity = 0) = LSMR(orth,atol,btol,conlim,maxiter,verbosity,λ,krylovdim)
+
+
+
 # TODO
 """
     MINRES(; maxiter = KrylovDefaults.maxiter, tol = KrylovDefaults.tol)
