@@ -231,7 +231,7 @@ will search for the optimal `x` in a Krylov subspace of maximal size `maxiter`, 
 `norm(A*x - b) < tol`. Default verbosity level `verbosity` is zero, meaning that no output
 will be printed.
 
-See also: [`linsolve`](@ref), [`MINRES`](@ref), [`GMRES`](@ref), [`BiCG`](@ref),
+See also: [`linsolve`](@ref), [`MINRES`](@ref), [`GMRES`](@ref), [`BiCG`](@ref), [`LSMR`](@ref),
 [`BiCGStab`](@ref)
 """
 struct CG{S<:Real} <: LinearSolver
@@ -262,7 +262,7 @@ to as the restart parameter, and `maxiter` is the number of outer iterations, i.
 cycles. The total iteration count, i.e. the number of expansion steps, is roughly
 `krylovdim` times the number of iterations.
 
-See also: [`linsolve`](@ref), [`BiCG`](@ref), [`BiCGStab`](@ref), [`CG`](@ref),
+See also: [`linsolve`](@ref), [`BiCG`](@ref), [`BiCGStab`](@ref), [`CG`](@ref), [`LSMR`](@ref),
 [`MINRES`](@ref)
 """
 struct GMRES{O<:Orthogonalizer,S<:Real} <: LinearSolver
@@ -303,6 +303,10 @@ especially if ``A`` is ill-conditioned.
   Maximum precision can be obtained by setting
 - `atol` = `btol` = `conlim` = zero, but the number of iterations
   may then be excessive.
+
+See also: [`linsolve`](@ref), [`BiCG`](@ref), [`BiCGStab`](@ref), [`CG`](@ref),
+[`MINRES`](@ref), [`GMRES`](@ref)
+
 """
 struct LSMR{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     orth::O
@@ -339,7 +343,7 @@ end
     orthogonalizer `orth`. Default verbosity level `verbosity` is zero, meaning that no
     output will be printed.
 
-See also: [`linsolve`](@ref), [`CG`](@ref), [`GMRES`](@ref), [`BiCG`](@ref),
+See also: [`linsolve`](@ref), [`CG`](@ref), [`GMRES`](@ref), [`BiCG`](@ref), [`LSMR`](@ref),
 [`BiCGStab`](@ref)
 """
 struct MINRES{S<:Real} <: LinearSolver
@@ -366,7 +370,7 @@ end
     b) < tol`. Default verbosity level `verbosity` is zero, meaning that no output will be
     printed.
 
-See also: [`linsolve`](@ref), [`GMRES`](@ref), [`CG`](@ref), [`BiCGStab`](@ref),
+See also: [`linsolve`](@ref), [`GMRES`](@ref), [`CG`](@ref), [`BiCGStab`](@ref), [`LSMR`](@ref),
 [`MINRES`](@ref)
 """
 struct BiCG{S<:Real} <: LinearSolver
@@ -390,7 +394,7 @@ end
     of maximal size `maxiter`, or stop when `norm(A*x - b) < tol`. Default verbosity level
     `verbosity` is zero, meaning that no output will be printed.
 
-See also: [`linsolve`](@ref), [`GMRES`](@ref), [`CG`](@ref), [`BiCG`](@ref),
+See also: [`linsolve`](@ref), [`GMRES`](@ref), [`CG`](@ref), [`BiCG`](@ref), [`LSMR`](@ref),
 [`MINRES`](@ref)
 """
 struct BiCGStab{S<:Real} <: LinearSolver
