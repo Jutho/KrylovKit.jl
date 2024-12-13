@@ -315,7 +315,7 @@ struct LSMR{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     conlim::S
     maxiter::Int
     verbosity::Int
-    λ::S
+    lambda::S
     krylovdim::Int
 end
 function LSMR(; orth=KrylovDefaults.orth,
@@ -324,7 +324,7 @@ function LSMR(; orth=KrylovDefaults.orth,
               conlim=1 / min(atol, btol),
               maxiter=KrylovDefaults.maxiter,
               krylovdim=KrylovDefaults.krylovdim,
-              λ=zero(atol),
+              lambda=zero(atol),
               verbosity=0)
     return LSMR(orth, atol, btol, conlim, maxiter, verbosity, λ, krylovdim)
 end

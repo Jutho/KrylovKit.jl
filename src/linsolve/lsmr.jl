@@ -62,9 +62,9 @@ function linsolve(operator, b, x₀, alg::LSMR)
             α = fact.αs[end]
 
             # Construct rotation Qhat_{k,2k+1}.
-            αhat = hypot(αbar, alg.λ)
+            αhat = hypot(αbar, alg.lambda)
             chat = αbar / αhat
-            shat = alg.λ / αhat
+            shat = alg.lambda / αhat
 
             # Use a plane rotation (Q_i) to turn B_i to R_i.
             ρold = ρ
