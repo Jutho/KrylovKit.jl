@@ -161,7 +161,7 @@ function linsolve(operator, b, x₀, alg::LSMR)
                 @info msg
             end
 
-            if 1 + test3 <= 1
+            if test3 <= eps(one(test3))
                 istop = 6
                 break
             end
