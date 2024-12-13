@@ -85,7 +85,7 @@ efficiently. Check the documentation for more information on the possible values
 
 The final (expert) method, without default values and keyword arguments, is the one that is
 finally called, and can also be used directly. Here, one specifies the algorithm explicitly.
-Currently, only [`CG`](@ref), [`GMRES`](@ref) and [`BiCGStab`](@ref) are implemented, where
+Currently, only [`CG`](@ref), [`GMRES`](@ref), [`BiCGStab`](@ref) and [`LSMR`](@ref) are implemented, where
 `CG` is chosen if `isposdef == true` and `GMRES` is chosen otherwise. Note that in standard
 `GMRES` terminology, our parameter `krylovdim` is referred to as the *restart* parameter,
 and our `maxiter` parameter counts the number of outer iterations, i.e. restart cycles. In

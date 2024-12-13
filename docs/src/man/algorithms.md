@@ -24,6 +24,7 @@ KrylovKit.MINRES
 GMRES
 KrylovKit.BiCG
 BiCGStab
+LSMR
 ```
 ## Specific algorithms for generalized eigenvalue problems
 ```@docs
