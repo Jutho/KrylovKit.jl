@@ -58,9 +58,9 @@ end
                   (ComplexF64,)
     @testset for T in scalartypes
         @testset for orth in (cgs2, mgs2, cgsr, mgsr)
-            A = rand(T, (n, n))
+            A = rand(T, (n, n + n ÷ 2))
             v = rand(T, n)
-            w = rand(T, n)
+            w = rand(T, n + n ÷ 2)
             alg = LSMR(; orth=orth, krylovdim=2 * n, maxiter=1, atol=10 * n * eps(real(T)),
                        btol=10 * n * eps(real(T)))
             S, info = @inferred linsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)),
@@ -75,9 +75,9 @@ end
                   (ComplexF64,)
     @testset for T in scalartypes
         @testset for orth in (cgs2, mgs2, cgsr, mgsr)
-            A = rand(T, (N, N))
+            A = rand(T, (N, N + 2n))
             v = rand(T, N)
-            w = rand(T, N)
+            w = rand(T, N + 2n)
             alg = LSMR(; orth=orth, krylovdim=N, maxiter=50, atol=10 * N * eps(real(T)),
                        btol=10 * N * eps(real(T)))
             S, info = @inferred linsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)),
