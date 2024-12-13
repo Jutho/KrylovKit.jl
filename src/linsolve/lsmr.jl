@@ -165,11 +165,11 @@ function linsolve(operator, b, x₀, alg::LSMR)
                 istop = 6
                 break
             end
-            if 1 + test2 <= 1
+            if test2 <= eps(one(test2))
                 istop = 5
                 break
             end
-            if 1 + t1 <= 1
+            if t1 <= eps(one(t1))
                 istop = 4
                 break
             end
