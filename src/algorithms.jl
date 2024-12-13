@@ -326,7 +326,7 @@ function LSMR(; orth=KrylovDefaults.orth,
               krylovdim=KrylovDefaults.krylovdim,
               lambda=zero(atol),
               verbosity=0)
-    return LSMR(orth, atol, btol, conlim, maxiter, verbosity, λ, krylovdim)
+    return LSMR(orth, atol, btol, conlim, maxiter, verbosity, lambda, krylovdim)
 end
 
 # TODO
