@@ -308,7 +308,7 @@ See also: [`linsolve`](@ref), [`BiCG`](@ref), [`BiCGStab`](@ref), [`CG`](@ref),
 [`MINRES`](@ref), [`GMRES`](@ref)
 
 """
-struct LSMR{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
+struct LSMR{O<:Orthogonalizer,S<:Real} <: LinearSolver
     orth::O
     atol::S
     btol::S
