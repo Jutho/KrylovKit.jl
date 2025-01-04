@@ -19,7 +19,14 @@ function linsolve(operator, b, x₀, alg::CG, a₀::Real=0, a₁::Real=1; alg_rr
     numiter = 0
 
     # Check for early return
-    normr < tol && return (x, ConvergenceInfo(1, r, normr, numiter, numops))
+    if normr < tol
+        if alg.verbosity > 0
+            @info """CG linsolve converged without any iterations:
+             *  norm of residual = $normr
+             *  number of operations = 1"""
+        end
+        return (x, ConvergenceInfo(1, r, normr, numiter, numops))
+    end
 
     # First iteration
     ρ = normr^2
@@ -34,6 +41,14 @@ function linsolve(operator, b, x₀, alg::CG, a₀::Real=0, a₁::Real=1; alg_rr
     β = ρ / ρold
     numops += 1
     numiter += 1
+    if normr < tol
+        if alg.verbosity > 0
+            @info """CG linsolve converged at iteration $numiter:
+             *  norm of residual = $normr
+             *  number of operations = $numops"""
+        end
+        return (x, ConvergenceInfo(1, r, normr, numiter, numops))
+    end
     if alg.verbosity > 1
         msg = "CG linsolve in iter $numiter: "
         msg *= "normres = "
@@ -62,6 +77,8 @@ function linsolve(operator, b, x₀, alg::CG, a₀::Real=0, a₁::Real=1; alg_rr
             ρ = normr^2
             β = ρ / ρold
         end
+        numops += 1
+        numiter += 1
         if normr < tol
             if alg.verbosity > 0
                 @info """CG linsolve converged at iteration $numiter:
@@ -70,8 +87,6 @@ function linsolve(operator, b, x₀, alg::CG, a₀::Real=0, a₁::Real=1; alg_rr
             end
             return (x, ConvergenceInfo(1, r, normr, numiter, numops))
         end
-        numops += 1
-        numiter += 1
         if alg.verbosity > 1
             msg = "CG linsolve in iter $numiter: "
             msg *= "normres = "

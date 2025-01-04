@@ -28,7 +28,7 @@ using Random
 using PackageExtensionCompat
 const IndexRange = AbstractRange{Int}
 
-export linsolve, reallinsolve
+export linsolve, reallinsolve, lssolve
 export eigsolve, geneigsolve, realeigsolve, schursolve, svdsolve
 export exponentiate, expintegrator
 export orthogonalize, orthogonalize!!, orthonormalize, orthonormalize!!
@@ -235,7 +235,10 @@ include("linsolve/linsolve.jl")
 include("linsolve/cg.jl")
 include("linsolve/gmres.jl")
 include("linsolve/bicgstab.jl")
-include("linsolve/lsmr.jl")
+
+# lssolve
+include("lssolve/lssolve.jl")
+include("lssolve/lsmr.jl")
 
 # eigsolve and svdsolve
 include("eigsolve/eigsolve.jl")
