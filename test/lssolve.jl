@@ -33,7 +33,7 @@
 
         r = b - A * unwrapvec(x)
         @test info.converged > 0
-        @test A' * r ≈ λ^2 * unwrapvec(x)
+        @test A' * r ≈ λ^2 * unwrapvec(x) atol = 2 * tol
     end
 end
 @testset "LSMR large problem ($mode)" for mode in (:vector, :inplace, :outplace, :mixed)

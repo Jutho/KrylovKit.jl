@@ -10,6 +10,7 @@ objects with vector like behavior (see below) as vectors.
 
 The high level interface of KrylovKit is provided by the following functions:
 *   [`linsolve`](@ref): solve linear systems `A*x = b`
+*   [`lssolve`](@ref): solve least square problems `A*x ≈ b`
 *   [`eigsolve`](@ref): find a few eigenvalues and corresponding eigenvectors of an
     eigenvalue problem `A*x = λ x`
 *   [`geneigsolve`](@ref): find a few eigenvalues and corresponding vectors of a
@@ -113,12 +114,12 @@ Here follows a wish list / to-do list for the future. Any help is welcomed and a
 
 *   More algorithms, including biorthogonal methods:
     -   for `linsolve`: L-GMRES, MINRES, BiCG, IDR(s), ...
+    -   for `lssolve`: LSQR, ...
     -   for `eigsolve`: BiLanczos, Jacobi-Davidson JDQR/JDQZ, subspace iteration (?), ...
     -   for `geneigsolve`: trace minimization, ...
 *   Support both in-place / mutating and out-of-place functions as linear maps
 *   Reuse memory for storing vectors when restarting algorithms (related to previous)
 *   Support non-BLAS scalar types using GeneralLinearAlgebra.jl and GeneralSchur.jl
-*   Least square problems
 *   Nonlinear eigenvalue problems
 *   Preconditioners
 *   Refined Ritz vectors, Harmonic Ritz values and vectors
