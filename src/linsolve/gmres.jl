@@ -32,10 +32,11 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number=0, a₁::Number=1;
     gs = Vector{Givens{T}}(undef, krylovdim)
     R = fill(zero(T), (krylovdim, krylovdim))
     numiter = 0
-    numops = 1 # operator has been applied once to determine T
+    numops = 1 # operator has been applied once to determine T and r
 
     iter = ArnoldiIterator(operator, r, alg.orth)
-    fact = initialize(iter)
+    fact = initialize(iter; verbosity=alg.verbosity - 2)
+    sizehint!(fact, alg.krylovdim)
     numops += 1 # start applies operator once
 
     while numiter < maxiter # restart loop
@@ -56,7 +57,7 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number=0, a₁::Number=1;
         end
 
         while (β > tol && length(fact) < krylovdim) # inner arnoldi loop
-            fact = expand!(iter, fact)
+            fact = expand!(iter, fact; verbosity=alg.verbosity - 2)
             numops += 1 # expand! applies the operator once
             k = length(fact)
             H = rayleighquotient(fact)
@@ -133,7 +134,7 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number=0, a₁::Number=1;
 
         # Restart Arnoldi factorization with new r
         iter = ArnoldiIterator(operator, r, alg.orth)
-        fact = initialize!(iter, fact)
+        fact = initialize!(iter, fact; verbosity=alg.verbosity - 2)
     end
 
     if alg.verbosity > 0

@@ -58,7 +58,7 @@ currently available.
 The return value is always of the form `T, vecs, vals, info = schursolve(...)` with
 
   - `T`: a `Matrix` containing the partial Schur decomposition of the linear map, i.e. it's
-    elements are given by `T[i,j] = dot(vecs[i], f(vecs[j]))`. It is of Schur form, i.e.
+    elements are given by `T[i,j] = inner(vecs[i], f(vecs[j]))`. It is of Schur form, i.e.
     upper triangular in case of complex arithmetic, and block upper triangular (with at most
     2x2 blocks) in case of real arithmetic.
   - `vecs`: a `Vector` of corresponding Schur vectors, of the same length as `vals`. Note
@@ -67,7 +67,7 @@ The return value is always of the form `T, vecs, vals, info = schursolve(...)` w
     objects that are typically similar to the starting guess `x₀`, up to a possibly
     different `eltype`. When the linear map is a simple `AbstractMatrix`, `vecs` will be
     `Vector{Vector{<:Number}}`. Schur vectors are by definition orthogonal, i.e.
-    `dot(vecs[i],vecs[j]) = I[i,j]`. Note that Schur vectors are real if the problem (i.e.
+    `inner(vecs[i],vecs[j]) = I[i,j]`. Note that Schur vectors are real if the problem (i.e.
     the linear map and the initial guess) are real.
   - `vals`: a `Vector` of eigenvalues, i.e. the diagonal elements of `T` in case of complex
     arithmetic, or extracted from the diagonal blocks in case of real arithmetic. Note that

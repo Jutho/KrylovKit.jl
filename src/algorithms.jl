@@ -84,8 +84,8 @@ abstract type KrylovAlgorithm end
 
 # General purpose; good for linear systems, eigensystems and matrix functions
 """
-    Lanczos(; krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter,
-        tol = KrylovDefaults.tol, orth = KrylovDefaults.orth, eager = false, verbosity = 0)
+    Lanczos(; krylovdim=KrylovDefaults.krylovdim, maxiter=KrylovDefaults.maxiter,
+        tol=KrylovDefaults.tol, orth=KrylovDefaults.orth, eager=false, verbosity=0)
 
 Represents the Lanczos algorithm for building the Krylov subspace; assumes the linear
 operator is real symmetric or complex Hermitian. Can be used in `eigsolve` and
@@ -93,7 +93,7 @@ operator is real symmetric or complex Hermitian. Can be used in `eigsolve` and
 `krylovdim`, which will be repeated at most `maxiter` times and will stop when the norm of
 the residual of the Lanczos factorization is smaller than `tol`. The orthogonalizer `orth`
 will be used to orthogonalize the different Krylov vectors. Eager mode, as selected by
-`eager = true`, means that the algorithm that uses this Lanczos process (e.g. `eigsolve`)
+`eager=true`, means that the algorithm that uses this Lanczos process (e.g. `eigsolve`)
 can try to finish its computation before the total Krylov subspace of dimension `krylovdim`
 is constructed. Default verbosity level `verbosity` is zero, meaning that no output will be
 printed.
@@ -121,8 +121,8 @@ function Lanczos(;
 end
 
 """
-    GKL(; krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter,
-        tol = KrylovDefaults.tol, orth = KrylovDefaults.orth, verbosity = 0)
+    GKL(; krylovdim=KrylovDefaults.krylovdim, maxiter=KrylovDefaults.maxiter,
+        tol=KrylovDefaults.tol, orth=KrylovDefaults.orth, verbosity=0)
 
 Represents the Golub-Kahan-Lanczos bidiagonalization algorithm for sequentially building a
 Krylov-like factorization of a general matrix or linear operator with a bidiagonal reduced
@@ -153,15 +153,15 @@ function GKL(;
 end
 
 """
-    Arnoldi(; krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter,
-        tol = KrylovDefaults.tol, orth = KrylovDefaults.orth, eager = false, verbosity = 0)
+    Arnoldi(; krylovdim=KrylovDefaults.krylovdim, maxiter=KrylovDefaults.maxiter,
+        tol=KrylovDefaults.tol, orth=KrylovDefaults.orth, eager=false, verbosity=0)
 
 Represents the Arnoldi algorithm for building the Krylov subspace for a general matrix or
 linear operator. Can be used in `eigsolve` and `exponentiate`. The corresponding algorithms
 will build a Krylov subspace of size at most `krylovdim`, which will be repeated at most
 `maxiter` times and will stop when the norm of the residual of the Arnoldi factorization is
 smaller than `tol`. The orthogonalizer `orth` will be used to orthogonalize the different
-Krylov vectors. Eager mode, as selected by `eager = true`, means that the algorithm that
+Krylov vectors. Eager mode, as selected by `eager=true`, means that the algorithm that
 uses this Arnoldi process (e.g. `eigsolve`) can try to finish its computation before the
 total Krylov subspace of dimension `krylovdim` is constructed. Default verbosity level
 `verbosity` is zero, meaning that no output will be printed.
@@ -190,8 +190,8 @@ function Arnoldi(;
 end
 
 """
-    GolubYe(; krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter,
-        tol = KrylovDefaults.tol, orth = KrylovDefaults.orth, verbosity = 0)
+    GolubYe(; krylovdim=KrylovDefaults.krylovdim, maxiter=KrylovDefaults.maxiter,
+        tol=KrylovDefaults.tol, orth=KrylovDefaults.orth, verbosity=0)
 
 Represents the Golub-Ye algorithm for solving hermitian (symmetric) generalized eigenvalue
 problems `A x = λ B x` with positive definite `B`, without the need for inverting `B`.
@@ -199,7 +199,7 @@ Builds a Krylov subspace of size `krylovdim` starting from an estimate `x` by ac
 `(A - ρ(x) B)`, where `ρ(x) = dot(x, A*x)/dot(x, B*x)`, and employing the Lanczos
 algorithm. This process is repeated at most `maxiter` times. In every iteration `k>1`, the
 subspace will also be expanded to size `krylovdim+1` by adding ``x_k - x_{k-1}``, which is
-known as the LOPCG correction and was suggested by Money and Ye. With `krylovdim = 2`, this
+known as the LOPCG correction and was suggested by Money and Ye. With `krylovdim=2`, this
 algorithm becomes equivalent to `LOPCG`.
 """
 struct GolubYe{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
@@ -222,7 +222,7 @@ end
 abstract type LinearSolver <: KrylovAlgorithm end
 
 """
-    CG(; maxiter = KrylovDefaults.maxiter, tol = KrylovDefaults.tol)
+    CG(; maxiter=KrylovDefaults.maxiter, tol=KrylovDefaults.tol, verbosity=0)
 
 Construct an instance of the conjugate gradient algorithm with specified parameters, which
 can be passed to `linsolve` in order to iteratively solve a linear system with a positive
@@ -231,7 +231,7 @@ will search for the optimal `x` in a Krylov subspace of maximal size `maxiter`, 
 `norm(A*x - b) < tol`. Default verbosity level `verbosity` is zero, meaning that no output
 will be printed.
 
-See also: [`linsolve`](@ref), [`MINRES`](@ref), [`GMRES`](@ref), [`BiCG`](@ref),
+See also: [`linsolve`](@ref), [`MINRES`](@ref), [`GMRES`](@ref), [`BiCG`](@ref), [`LSMR`](@ref),
 [`BiCGStab`](@ref)
 """
 struct CG{S<:Real} <: LinearSolver
@@ -247,8 +247,8 @@ function CG(;
 end
 
 """
-    GMRES(; krylovdim = KrylovDefaults.krylovdim, maxiter = KrylovDefaults.maxiter,
-        tol = KrylovDefaults.tol, orth::Orthogonalizer = KrylovDefaults.orth)
+    GMRES(; krylovdim=KrylovDefaults.krylovdim, maxiter=KrylovDefaults.maxiter,
+        tol=KrylovDefaults.tol, orth::Orthogonalizer=KrylovDefaults.orth)
 
 Construct an instance of the GMRES algorithm with specified parameters, which can be passed
 to `linsolve` in order to iteratively solve a linear system. The `GMRES` method will search
@@ -262,7 +262,7 @@ to as the restart parameter, and `maxiter` is the number of outer iterations, i.
 cycles. The total iteration count, i.e. the number of expansion steps, is roughly
 `krylovdim` times the number of iterations.
 
-See also: [`linsolve`](@ref), [`BiCG`](@ref), [`BiCGStab`](@ref), [`CG`](@ref),
+See also: [`linsolve`](@ref), [`BiCG`](@ref), [`BiCGStab`](@ref), [`CG`](@ref), [`LSMR`](@ref),
 [`MINRES`](@ref)
 """
 struct GMRES{O<:Orthogonalizer,S<:Real} <: LinearSolver
@@ -283,7 +283,7 @@ end
 
 # TODO
 """
-    MINRES(; maxiter = KrylovDefaults.maxiter, tol = KrylovDefaults.tol)
+    MINRES(; maxiter=KrylovDefaults.maxiter, tol=KrylovDefaults.tol)
 
     !!! warning "Not implemented yet"
 
@@ -295,7 +295,7 @@ end
     orthogonalizer `orth`. Default verbosity level `verbosity` is zero, meaning that no
     output will be printed.
 
-See also: [`linsolve`](@ref), [`CG`](@ref), [`GMRES`](@ref), [`BiCG`](@ref),
+See also: [`linsolve`](@ref), [`CG`](@ref), [`GMRES`](@ref), [`BiCG`](@ref), [`LSMR`](@ref),
 [`BiCGStab`](@ref)
 """
 struct MINRES{S<:Real} <: LinearSolver
@@ -311,7 +311,7 @@ function MINRES(;
 end
 
 """
-    BiCG(; maxiter = KrylovDefaults.maxiter, tol = KrylovDefaults.tol)
+    BiCG(; maxiter=KrylovDefaults.maxiter, tol=KrylovDefaults.tol)
 
     !!! warning "Not implemented yet"
 
@@ -322,7 +322,7 @@ end
     b) < tol`. Default verbosity level `verbosity` is zero, meaning that no output will be
     printed.
 
-See also: [`linsolve`](@ref), [`GMRES`](@ref), [`CG`](@ref), [`BiCGStab`](@ref),
+See also: [`linsolve`](@ref), [`GMRES`](@ref), [`CG`](@ref), [`BiCGStab`](@ref), [`LSMR`](@ref),
 [`MINRES`](@ref)
 """
 struct BiCG{S<:Real} <: LinearSolver
@@ -338,7 +338,7 @@ function BiCG(;
 end
 
 """
-    BiCGStab(; maxiter = KrylovDefaults.maxiter, tol = KrylovDefaults.tol)
+    BiCGStab(; maxiter=KrylovDefaults.maxiter, tol=KrylovDefaults.tol)
 
     Construct an instance of the Biconjugate gradient algorithm with specified parameters,
     which can be passed to `linsolve` in order to iteratively solve a linear system general
@@ -346,7 +346,7 @@ end
     of maximal size `maxiter`, or stop when `norm(A*x - b) < tol`. Default verbosity level
     `verbosity` is zero, meaning that no output will be printed.
 
-See also: [`linsolve`](@ref), [`GMRES`](@ref), [`CG`](@ref), [`BiCG`](@ref),
+See also: [`linsolve`](@ref), [`GMRES`](@ref), [`CG`](@ref), [`BiCG`](@ref), [`LSMR`](@ref),
 [`MINRES`](@ref)
 """
 struct BiCGStab{S<:Real} <: LinearSolver
@@ -359,6 +359,36 @@ function BiCGStab(;
                   tol::Real=KrylovDefaults.tol,
                   verbosity::Int=0)
     return BiCGStab(maxiter, tol, verbosity)
+end
+
+# Solving least squares problems
+abstract type LeastSquaresSolver <: KrylovAlgorithm end
+"""
+LSMR(; maxiter=KrylovDefaults.maxiter, tol=KrylovDefaults.tol, verbosity=0)
+
+Represents the LSMR algorithm, which minimizes ``\\|Ax - b\\|^2 + \\|λx\\|^2`` in the Euclidean norm.
+If multiple solutions exists the minimum norm solution is returned.
+The method is based on the Golub-Kahan bidiagonalization process. It is
+algebraically equivalent to applying MINRES to the normal equations
+``(A^*A + λ^2I)x = A^*b``, but has better numerical properties,
+especially if ``A`` is ill-conditioned.
+
+The `LSMR` method will search for the optimal ``x`` in a Krylov subspace of maximal size 
+`maxiter`, or stop when ``norm(A'*(A*x - b) + λ^2 * x) < tol``. Default verbosity level
+`verbosity` is zero, meaning that no output will be printed.
+
+See also: [`lssolve`](@ref)
+"""
+struct LSMR{S<:Real} <: LeastSquaresSolver
+    maxiter::Int
+    tol::S
+    verbosity::Int
+end
+function LSMR(;
+              maxiter::Integer=KrylovDefaults.maxiter,
+              tol::Real=KrylovDefaults.tol,
+              verbosity::Int=0)
+    return LSMR(maxiter, tol, verbosity)
 end
 
 # Solving eigenvalue systems specifically

@@ -28,7 +28,7 @@ using Random
 using PackageExtensionCompat
 const IndexRange = AbstractRange{Int}
 
-export linsolve, reallinsolve
+export linsolve, reallinsolve, lssolve
 export eigsolve, geneigsolve, realeigsolve, schursolve, svdsolve
 export exponentiate, expintegrator
 export orthogonalize, orthogonalize!!, orthonormalize, orthonormalize!!
@@ -37,7 +37,7 @@ export initialize, initialize!, expand!, shrink!
 export ClassicalGramSchmidt, ClassicalGramSchmidt2, ClassicalGramSchmidtIR
 export ModifiedGramSchmidt, ModifiedGramSchmidt2, ModifiedGramSchmidtIR
 export LanczosIterator, ArnoldiIterator, GKLIterator
-export CG, GMRES, BiCGStab, Lanczos, Arnoldi, GKL, GolubYe
+export CG, GMRES, BiCGStab, Lanczos, Arnoldi, GKL, GolubYe, LSMR
 export KrylovDefaults, EigSorter
 export RecursiveVec, InnerProductVec
 
@@ -235,6 +235,10 @@ include("linsolve/linsolve.jl")
 include("linsolve/cg.jl")
 include("linsolve/gmres.jl")
 include("linsolve/bicgstab.jl")
+
+# lssolve
+include("lssolve/lssolve.jl")
+include("lssolve/lsmr.jl")
 
 # eigsolve and svdsolve
 include("eigsolve/eigsolve.jl")

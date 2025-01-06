@@ -29,6 +29,7 @@ include("factorize.jl")
 include("gklfactorize.jl")
 
 include("linsolve.jl")
+include("lssolve.jl")
 include("eigsolve.jl")
 include("schursolve.jl")
 include("geneigsolve.jl")
