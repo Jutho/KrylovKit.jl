@@ -31,36 +31,19 @@ to vectors.
 
 ## Release notes for the latest version
 
-### v0.7
-This version now depends on and uses [VectorInterface.jl](https://github.com/Jutho/VectorInterface.jl)
-to define the vector-like behavior of the input vectors, rather than some minimal set of
-methods from `Base` and `LinearAlgebra`. The advantage is that many more types from standard
-Julia are now supported out of the box, such as nested vectors or immutable objects such as
-tuples. For custom user types for which the old set of required methods was implemented, there
-are fallback definitions of the methods in VectorInferace.jl such that these types should still
-be supported, but this might result in warnings being printed. It is recommend to implement full
-support for at least the methods in VectorInterface without bang or with double bang, where the
-latter set of methods can use in-place mutation if your type supports this behavior.
-
-In particular, tuples are now supported:
-
-```julia
-julia> values, vectors, info = eigsolve(t -> cumsum(t) .+ 0.5 .* reverse(t), (1,0,0,0));
-
-julia> values
-4-element Vector{ComplexF64}:
-  2.5298897746721303 + 0.0im
-  0.7181879189193713 + 0.4653321688070444im
-  0.7181879189193713 - 0.4653321688070444im
-  0.03373438748912972 + 0.0im
-
-julia> vectors
-4-element Vector{NTuple{4, ComplexF64}}:
- (0.25302539267845964 + 0.0im, 0.322913174072047 + 0.0im, 0.48199234088257203 + 0.0im, 0.774201921982351 + 0.0im)
- (0.08084058845575778 + 0.46550907490257704im, 0.16361072959559492 - 0.20526827902633993im, -0.06286027036719286 - 0.6630573167350086im, -0.47879640378455346 - 0.18713670961291684im)
- (0.08084058845575778 - 0.46550907490257704im, 0.16361072959559492 + 0.20526827902633993im, -0.06286027036719286 + 0.6630573167350086im, -0.47879640378455346 + 0.18713670961291684im)
- (0.22573986355213632 + 0.0im, -0.5730667760748933 + 0.0im, 0.655989711683001 + 0.0im, -0.4362493350466509 + 0.0im)
-```
+### v0.9
+KrylovKit v0.9 adds to new sets of functionality:
+* The function `lssolve` can be used to solve linear least squares problems, i.e. problems of the form `x = argmin(norm(A*x - b))` 
+  for a given linear map `A` and vector `b`. Currently, only one algorithm is implemented, namely the LSMR algorithm
+  of Fong and Saunders.
+* There are now two new functions `reallinsolve` and `realeigsolve`, which are useful when using vectors with complex arithmetic,
+  but where the linear map (implemented as a function `f`) acts as a real linear map, meaning that it only satisfies
+  `f(α*x) = α*f(x)` when `α` is a real number. This occurs for example when computing the Jacobian of a complex function that is
+  not holomorphic, e.g. in the context of automatic differentation. This is implemented by simply wrapping the vector as `RealVec`,
+  which is a specific `InnerProductVec` type where the redefined inner product forgets about the imaginary part of the original
+  `inner` function, thereby effectively treating the vector as living in a real vector space. Furthermore, in this setting, only
+  real linear combinations of vectors are allowed, so that for the case of `eigsolve`, only real eigenvalues and eigenvectors are
+  computed. An error will be thrown if the requested list of eigenvalues contains complex eigenvalues. 
 
 ## Overview
 KrylovKit.jl accepts general functions or callable objects as linear maps, and general Julia
@@ -68,6 +51,7 @@ objects with vector like behavior (as defined in the docs) as vectors.
 
 The high level interface of KrylovKit is provided by the following functions:
 *   `linsolve`: solve linear systems
+*   `lssolve`: solve least squares problems
 *   `eigsolve`: find a few eigenvalues and corresponding eigenvectors
 *   `geneigsolve`: find a few generalized eigenvalues and corresponding vectors
 *   `svdsolve`: find a few singular values and corresponding left and right singular vectors
@@ -94,7 +78,8 @@ julia> import Pkg; Pkg.add("KrylovKit.jl")
 
 ## Project Status
 
-The package is tested against Julia `1.0`, the current stable and the nightly builds of the Julia `master` branch on Linux, macOS, and Windows, 32- and 64-bit architecture and with `1` and `4` threads.
+The package is tested against Julia `1.6`, the long-term stable release (1.10), the current stable release as well
+as nightly builds of the Julia `master` branch on Linux, macOS, and Windows 64-bit architecture and with `1` and `4` threads.
 
 ## Questions and Contributions
 
