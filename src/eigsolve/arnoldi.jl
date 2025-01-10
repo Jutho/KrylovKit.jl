@@ -107,32 +107,36 @@ restarts where a part of the current Krylov subspace is kept.
 """
 function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     T, U, fact, converged, numiter, numops = _schursolve(A, x₀, howmany, which, alg)
+    howmany′ = howmany
     if eltype(T) <: Real && howmany < length(fact) && T[howmany + 1, howmany] != 0
-        howmany += 1
+        howmany′ += 1
+    elseif size(T, 1) < howmany
+        howmany′ = size(T, 1)
     end
     if converged > howmany
-        howmany = converged
+        howmany′ = converged
     end
-    TT = view(T, 1:howmany, 1:howmany)
+    TT = view(T, 1:howmany′, 1:howmany′)
     values = schur2eigvals(TT)
+
     vectors = let B = basis(fact)
-        [B * u for u in cols(U, 1:howmany)]
+        [B * u for u in cols(U, 1:howmany′)]
     end
     residuals = let r = residual(fact)
-        [scale(r, last(u)) for u in cols(U, 1:howmany)]
+        [scale(r, last(u)) for u in cols(U, 1:howmany′)]
     end
-    normresiduals = [normres(fact) * abs(last(u)) for u in cols(U, 1:howmany)]
+    normresiduals = [normres(fact) * abs(last(u)) for u in cols(U, 1:howmany′)]
 
-    if alg.verbosity > 0
-        if converged < howmany
-            @warn """Arnoldi schursolve finished without convergence after $numiter iterations:
-             *  $converged eigenvalues converged
-             *  norm of residuals = $((normresiduals...,))"""
-        else
-            @info """Arnoldi schursolve finished after $numiter iterations:
-             *  $converged eigenvalues converged
-             *  norm of residuals = $((normresiduals...,))"""
-        end
+    if (converged < howmany) && alg.verbosity >= WARN_LEVEL
+        @warn """Arnoldi schursolve stopped without convergence after $numiter iterations:
+        * $converged eigenvalues converged
+        * norm of residuals = $(normres2string(normresiduals))
+        * number of operations = $numops"""
+    elseif alg.verbosity >= STARTSTOP_LEVEL
+        @info """Arnoldi schursolve finished after $numiter iterations:
+        * $converged eigenvalues converged
+        * norm of residuals = $(normres2string(normresiduals))
+        * number of operations = $numops"""
     end
     return TT,
            vectors,
@@ -142,18 +146,20 @@ end
 
 function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi; alg_rrule=alg)
     T, U, fact, converged, numiter, numops = _schursolve(A, x₀, howmany, which, alg)
+    howmany′ = howmany
     if eltype(T) <: Real && howmany < length(fact) && T[howmany + 1, howmany] != 0
-        howmany += 1
+        howmany′ += 1
+    elseif size(T, 1) < howmany
+        howmany′ = size(T, 1)
     end
     if converged > howmany
-        howmany = converged
+        howmany′ = converged
     end
-    d = min(howmany, size(T, 2))
-    TT = view(T, 1:d, 1:d)
+    TT = view(T, 1:howmany′, 1:howmany′)
     values = schur2eigvals(TT)
 
     # Compute eigenvectors
-    V = view(U, :, 1:d) * schur2eigvecs(TT)
+    V = view(U, :, 1:howmany′) * schur2eigvecs(TT)
     vectors = let B = basis(fact)
         [B * v for v in cols(V)]
     end
@@ -162,18 +168,16 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi; alg_rrul
     end
     normresiduals = [normres(fact) * abs(last(v)) for v in cols(V)]
 
-    if alg.verbosity > 0
-        if converged < howmany
-            @warn """Arnoldi eigsolve finished without convergence after $numiter iterations:
-             *  $converged eigenvalues converged
-             *  norm of residuals = $((normresiduals...,))
-             *  number of operations = $numops"""
-        else
-            @info """Arnoldi eigsolve finished after $numiter iterations:
-             *  $converged eigenvalues converged
-             *  norm of residuals = $((normresiduals...,))
-             *  number of operations = $numops"""
-        end
+    if (converged < howmany) && alg.verbosity >= WARN_LEVEL
+        @warn """Arnoldi eigsolve stopped without convergence after $numiter iterations:
+        * $converged eigenvalues converged
+        * norm of residuals = $(normres2string(normresiduals))
+        * number of operations = $numops"""
+    elseif alg.verbosity >= STARTSTOP_LEVEL
+        @info """Arnoldi eigsolve finished after $numiter iterations:
+        * $converged eigenvalues converged
+        * norm of residuals = $(normres2string(normresiduals))
+        * number of operations = $numops"""
     end
     return values,
            vectors,
@@ -298,12 +302,12 @@ function realeigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi; alg_
     end
     i < howmany &&
         throw(ArgumentError("only the first $i eigenvalues are real, which is less then the requested `howmany = $howmany`"))
-    howmany = max(howmany, min(i, converged))
-    TT = view(T, 1:howmany, 1:howmany)
+    howmany′ = max(howmany, min(i, converged))
+    TT = view(T, 1:howmany′, 1:howmany′)
     values = diag(TT)
 
     # Compute eigenvectors
-    V = view(U, :, 1:howmany) * schur2realeigvecs(TT)
+    V = view(U, :, 1:howmany′) * schur2realeigvecs(TT)
     vectors = let B = basis(fact)
         [(B * v)[] for v in cols(V)]
     end
@@ -312,18 +316,16 @@ function realeigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi; alg_
     end
     normresiduals = [normres(fact) * abs(last(v)) for v in cols(V)]
 
-    if alg.verbosity > 0
-        if converged < howmany
-            @warn """Arnoldi realeigsolve finished without convergence after $numiter iterations:
-             *  $converged eigenvalues converged
-             *  norm of residuals = $((normresiduals...,))
-             *  number of operations = $numops"""
-        else
-            @info """Arnoldi realeigsolve finished after $numiter iterations:
-             *  $converged eigenvalues converged
-             *  norm of residuals = $((normresiduals...,))
-             *  number of operations = $numops"""
-        end
+    if (converged < howmany) && alg.verbosity >= WARN_LEVEL
+        @warn """Arnoldi realeigsolve stopped without convergence after $numiter iterations:
+        * $converged eigenvalues converged
+        * norm of residuals = $(normres2string(normresiduals))
+        * number of operations = $numops"""
+    elseif alg.verbosity >= STARTSTOP_LEVEL
+        @info """Arnoldi realeigsolve finished after $numiter iterations:
+        * $converged eigenvalues converged
+        * norm of residuals = $(normres2string(normresiduals))
+        * number of operations = $numops"""
     end
     return values,
            vectors,
@@ -340,7 +342,7 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     numiter = 1
     # initialize arnoldi factorization
     iter = ArnoldiIterator(A, x₀, alg.orth)
-    fact = initialize(iter; verbosity=alg.verbosity - 2)
+    fact = initialize(iter; verbosity=alg.verbosity - EACHITERATION_LEVEL)
     numops = 1
     sizehint!(fact, krylovdim)
     β = normres(fact)
@@ -358,10 +360,11 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
         β = normres(fact)
         K = length(fact)
 
-        if β <= tol
-            if K < howmany
-                @warn "Invariant subspace of dimension $K (up to requested tolerance `tol = $tol`), which is smaller than the number of requested eigenvalues (i.e. `howmany == $howmany`); setting `howmany = $K`."
-                howmany = K
+        if β <= tol && K < howmany
+            if alg.verbosity >= WARN_LEVEL
+                msg = "Invariant subspace of dimension $K (up to requested tolerance `tol = $tol`), "
+                msg *= "which is smaller than the number of requested eigenvalues (i.e. `howmany == $howmany`)."
+                @warn msg
             end
         end
         if K == krylovdim || β <= tol || (alg.eager && K >= howmany) # process
@@ -387,33 +390,23 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
                 converged -= 1
             end
 
-            if converged >= howmany
+            if converged >= howmany || β <= tol
                 break
-            elseif alg.verbosity > 1
-                msg = "Arnoldi schursolve in iter $numiter, krylovdim = $K: "
-                msg *= "$converged values converged, normres = ("
-                msg *= @sprintf("%.2e", abs(f[1]))
-                for i in 2:howmany
-                    msg *= ", "
-                    msg *= @sprintf("%.2e", abs(f[i]))
-                end
-                msg *= ")"
-                @info msg
+            elseif alg.verbosity >= EACHITERATION_LEVEL
+                @info "Arnoldi schursolve in iteration $numiter, step = $K: $converged values converged, normres = $(normres2string(abs.(f[1:howmany])))"
             end
         end
 
         if K < krylovdim # expand
-            fact = expand!(iter, fact; verbosity=alg.verbosity - 2)
+            fact = expand!(iter, fact; verbosity=alg.verbosity - EACHITERATION_LEVEL)
             numops += 1
         else # shrink
             numiter == maxiter && break
 
             # Determine how many to keep
             keep = div(3 * krylovdim + 2 * converged, 5) # strictly smaller than krylovdim since converged < howmany <= krylovdim, at least equal to converged
-            if eltype(H) <: Real && H[keep + 1, keep] != 0 # we are in the middle of a 2x2 block
-                keep += 1 # conservative choice
-                keep >= krylovdim &&
-                    error("krylov dimension $(krylovdim) too small to compute $howmany eigenvalues")
+            if eltype(H) <: Real && H[keep + 1, keep] != 0 # we are in the middle of a 2x2 block; this cannot happen if keep == converged, so we can decrease keep
+                keep -= 1 # conservative choice
             end
 
             # Restore Arnoldi form in the first keep columns
@@ -437,7 +430,7 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
             B[keep + 1] = scale!!(r, 1 / normres(fact))
 
             # Shrink Arnoldi factorization
-            fact = shrink!(fact, keep)
+            fact = shrink!(fact, keep; verbosity=alg.verbosity - EACHITERATION_LEVEL)
             numiter += 1
         end
     end

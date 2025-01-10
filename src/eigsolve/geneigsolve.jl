@@ -88,8 +88,11 @@ The return value is always of the form `vals, vecs, info = geneigsolve(...)` wit
 
 Keyword arguments and their default values are given by:
 
-  - `verbosity::Int = 0`: verbosity level, i.e. 0 (no messages), 1 (single message
-    at the end), 2 (information after every iteration), 3 (information per Krylov step)
+  - `verbosity::Int = 0`: verbosity level, i.e. 
+    - 0 (suppress all messages)
+    - 1 (only warnings)
+    - 2 (one message with convergence info at the end)
+    - 3 (progress info after every iteration)
   - `tol::Real`: the requested accuracy, relative to the 2-norm of the corresponding
     eigenvectors, i.e. convergence is achieved if `norm((A - λB)x) < tol * norm(x)`. Because
     eigenvectors are now normalised such that `dot(x, B*x) = 1`, `norm(x)` is not

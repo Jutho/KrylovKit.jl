@@ -12,7 +12,17 @@
                                                         wrapvec(v, Val(mode)), n1, :SR;
                                                         krylovdim=n,
                                                         maxiter=1, tol=tolerance(T),
-                                                        verbosity=1)
+                                                        verbosity=2)
+            @test_logs eigsolve(wrapop(A, Val(mode)),
+                                wrapvec(v, Val(mode)), n1, :SR;
+                                krylovdim=n,
+                                maxiter=1, tol=tolerance(T),
+                                verbosity=1)
+            @test_logs (:warn,) eigsolve(wrapop(A, Val(mode)),
+                                         wrapvec(v, Val(mode)), n1, :SR;
+                                         krylovdim=n1 + 1,
+                                         maxiter=1, tol=tolerance(T),
+                                         verbosity=1)
             @test KrylovKit.eigselector(wrapop(A, Val(mode)), scalartype(v); krylovdim=n,
                                         maxiter=1,
                                         tol=tolerance(T), ishermitian=true) isa Lanczos
@@ -31,10 +41,11 @@
             @test A * U1 ≈ U1 * Diagonal(D1)
             @test A * U2 ≈ U2 * Diagonal(D2)
 
-            @test_logs (:warn,) eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n + 1,
-                                         :LM;
-                                         krylovdim=2n,
-                                         maxiter=1, tol=tolerance(T), verbosity=0)
+            @test_logs (:warn,) (:warn,) eigsolve(wrapop(A, Val(mode)),
+                                                  wrapvec(v, Val(mode)), n + 1,
+                                                  :LM;
+                                                  krylovdim=2n,
+                                                  maxiter=1, tol=tolerance(T), verbosity=1)
         end
     end
 end
@@ -84,11 +95,32 @@ end
             A = rand(T, (n, n)) .- one(T) / 2
             v = rand(T, (n,))
             n1 = div(n, 2)
-            D1, V1, info1 = @test_logs (:info,) eigsolve(wrapop(A, Val(mode)),
-                                                         wrapvec(v, Val(mode)), n1, :SR;
-                                                         orth=orth, krylovdim=n,
-                                                         maxiter=1, tol=tolerance(T),
-                                                         verbosity=1)
+            alg = Arnoldi(; orth=orth, krylovdim=n, maxiter=1, tol=tolerance(T))
+            D1, V1, info1 = @constinferred eigsolve(wrapop(A, Val(mode)),
+                                                    wrapvec(v, Val(mode)), n1, :SR, alg)
+            @test_logs eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n1, :SR;
+                                orth=orth, krylovdim=n, maxiter=1, tol=tolerance(T),
+                                verbosity=0)
+            @test_logs eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n1, :SR;
+                                orth=orth, krylovdim=n, maxiter=1, tol=tolerance(T),
+                                verbosity=1)
+            @test_logs (:warn,) eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n1,
+                                         :SR;
+                                         orth=orth, krylovdim=n1 + 2, maxiter=1,
+                                         tol=tolerance(T),
+                                         verbosity=1)
+            @test_logs (:info,) eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n1,
+                                         :SR;
+                                         orth=orth, krylovdim=n, maxiter=1,
+                                         tol=tolerance(T),
+                                         verbosity=2)
+            @test_logs min_level = Warn eigsolve(wrapop(A, Val(mode)),
+                                                 wrapvec(v, Val(mode)),
+                                                 n1, :SR;
+                                                 orth=orth, krylovdim=n, maxiter=1,
+                                                 tol=tolerance(T),
+                                                 verbosity=4)
+
             @test KrylovKit.eigselector(wrapop(A, Val(mode)), eltype(v); orth=orth,
                                         krylovdim=n, maxiter=1,
                                         tol=tolerance(T)) isa Arnoldi
@@ -124,10 +156,11 @@ end
                 @test A * U2 ≈ U2 * Diagonal(D2)
             end
 
-            @test_logs (:warn,) eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n + 1,
-                                         :LM; orth=orth,
-                                         krylovdim=2n,
-                                         maxiter=1, tol=tolerance(T), verbosity=0)
+            @test_logs (:warn,) (:warn,) eigsolve(wrapop(A, Val(mode)),
+                                                  wrapvec(v, Val(mode)), n + 1,
+                                                  :LM; orth=orth,
+                                                  krylovdim=2n,
+                                                  maxiter=1, tol=tolerance(T), verbosity=1)
         end
     end
 end

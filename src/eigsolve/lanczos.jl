@@ -13,7 +13,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos;
 
     # Initialize Lanczos factorization
     iter = LanczosIterator(A, x₀, alg.orth)
-    fact = initialize(iter; verbosity=alg.verbosity - 2)
+    fact = initialize(iter; verbosity=alg.verbosity - EACHITERATION_LEVEL)
     numops = 1
     numiter = 1
     sizehint!(fact, krylovdim)
@@ -31,10 +31,11 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos;
         K = length(fact)
 
         # diagonalize Krylov factorization
-        if β <= tol
-            if K < howmany
-                @warn "Invariant subspace of dimension $K (up to requested tolerance `tol = $tol`), which is smaller than the number of requested eigenvalues (i.e. `howmany == $howmany`); setting `howmany = $K`."
-                howmany = K
+        if β <= tol && K < howmany
+            if alg.verbosity >= WARN_LEVEL
+                msg = "Invariant subspace of dimension $K (up to requested tolerance `tol = $tol`), "
+                msg *= "which is smaller than the number of requested eigenvalues (i.e. `howmany == $howmany`)."
+                @warn msg
             end
         end
         if K == krylovdim || β <= tol || (alg.eager && K >= howmany)
@@ -62,23 +63,16 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos;
                 end
             end
 
-            if converged >= howmany
+            if converged >= howmany || β <= tol
                 break
-            elseif alg.verbosity > 1
-                msg = "Lanczos eigsolve in iter $numiter, krylovdim = $K: "
-                msg *= "$converged values converged, normres = ("
-                msg *= @sprintf("%.2e", abs(f[1]))
-                for i in 2:howmany
-                    msg *= ", "
-                    msg *= @sprintf("%.2e", abs(f[i]))
-                end
-                msg *= ")"
+            elseif alg.verbosity >= EACHITERATION_LEVEL
+                @info "Lanczos eigsolve in iteration $numiter, step = $K: $converged values converged, normres = $(normres2string(abs.(f[1:howmany])))"
                 @info msg
             end
         end
 
-        if K < krylovdim# expand Krylov factorization
-            fact = expand!(iter, fact; verbosity=alg.verbosity - 2)
+        if K < krylovdim # expand Krylov factorization
+            fact = expand!(iter, fact; verbosity=alg.verbosity - EACHITERATION_LEVEL)
             numops += 1
         else ## shrink and restart
             if numiter == maxiter
@@ -114,18 +108,21 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos;
             B[keep + 1] = scale!!(r, 1 / β)
 
             # Shrink Lanczos factorization
-            fact = shrink!(fact, keep)
+            fact = shrink!(fact, keep; verbosity=alg.verbosity - EACHITERATION_LEVEL)
             numiter += 1
         end
     end
 
+    howmany′ = howmany
     if converged > howmany
-        howmany = converged
+        howmany′ = converged
+    elseif length(D) < howmany
+        howmany′ = length(D)
     end
-    values = D[1:howmany]
+    values = D[1:howmany′]
 
     # Compute eigenvectors
-    V = view(U, :, 1:howmany)
+    V = view(U, :, 1:howmany′)
 
     # Compute convergence information
     vectors = let B = basis(fact)
@@ -135,21 +132,19 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos;
         [scale(r, last(v)) for v in cols(V)]
     end
     normresiduals = let f = f
-        map(i -> abs(f[i]), 1:howmany)
+        map(i -> abs(f[i]), 1:howmany′)
     end
 
-    if alg.verbosity > 0
-        if converged < howmany
-            @warn """Lanczos eigsolve finished without convergence after $numiter iterations:
-             *  $converged eigenvalues converged
-             *  norm of residuals = $((normresiduals...,))
-             *  number of operations = $numops"""
-        else
-            @info """Lanczos eigsolve finished after $numiter iterations:
-             *  $converged eigenvalues converged
-             *  norm of residuals = $((normresiduals...,))
-             *  number of operations = $numops"""
-        end
+    if (converged < howmany) && alg.verbosity >= WARN_LEVEL
+        @warn """Lanczos eigsolve stopped without convergence after $numiter iterations:
+        * $converged eigenvalues converged
+        * norm of residuals = $(normres2string(normresiduals))
+        * number of operations = $numops"""
+    elseif alg.verbosity >= STARTSTOP_LEVEL
+        @info """Lanczos eigsolve finished after $numiter iterations:
+        * $converged eigenvalues converged
+        * norm of residuals = $(normres2string(normresiduals))
+        * number of operations = $numops"""
     end
 
     return values,

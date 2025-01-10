@@ -12,19 +12,36 @@
 
         b = rand(T, 2 * n)
         tol = tol = 10 * n * eps(real(T))
-        alg = LSMR(; maxiter=3, tol=tol, verbosity=2)
-        x, info = @constinferred lssolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), alg)
+        alg = LSMR(; maxiter=3, tol=tol, verbosity=0)
+        x, info = @constinferred lssolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode));
+                                         maxiter=3)
         r = b - A * unwrapvec(x)
         @test unwrapvec(info.residual) ≈ r
         @test info.normres ≈ norm(A' * r)
+        @test info.converged == 0
+        @test_logs lssolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)); maxiter=3,
+                           verbosity=0)
+        @test_logs (:warn,) lssolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)); maxiter=3,
+                                    verbosity=1)
+        @test_logs (:info,) (:warn,) lssolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode));
+                                             maxiter=3, verbosity=2)
 
-        alg = LSMR(; maxiter=2 * n, tol=tol, verbosity=1)
+        alg = LSMR(; maxiter=2 * n, tol=tol, verbosity=0)
         # maxiter = 2 * n because of loss of orthogonality for single precision
         x, info = @constinferred lssolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), alg)
 
         @test info.converged > 0
         @test abs(inner(V[:, end], unwrapvec(x))) < alg.tol
         @test unwrapvec(x) ≈ V * Diagonal(invS) * U' * b
+        @test_logs lssolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), alg)
+        alg = LSMR(; maxiter=2 * n, tol=tol, verbosity=1)
+        @test_logs lssolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), alg)
+        alg = LSMR(; maxiter=2 * n, tol=tol, verbosity=2)
+        @test_logs (:info,) (:info,) lssolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)),
+                                             alg)
+        alg = LSMR(; maxiter=2 * n, tol=tol, verbosity=3)
+        @test_logs min_level = Warn lssolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)),
+                                            alg)
 
         λ = rand(real(T))
         alg = LSMR(; maxiter=2 * n, tol=tol, verbosity=0)

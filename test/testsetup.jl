@@ -10,7 +10,7 @@ using LinearAlgebra: LinearAlgebra
 # Utility functions
 # -----------------
 "function for determining the precision of a type"
-tolerance(T::Type{<:Number}) = eps(real(T))^(2 / 3)
+tolerance(T::Type{<:Number}) = eps(real(T))^(2 // 3)
 
 "function for comparing sets of eigenvalues"
 function ≊(list1::AbstractVector, list2::AbstractVector)

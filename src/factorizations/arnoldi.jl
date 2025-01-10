@@ -170,7 +170,7 @@ function initialize(iter::ArnoldiIterator; verbosity::Int=0)
     V = OrthonormalBasis([v])
     H = T[α, β]
     if verbosity > 0
-        @info "Arnoldi iteration step 1: normres = $β"
+        @info "Arnoldi initiation at dimension 1: subspace normres = $(normres2string(β))"
     end
     return state = ArnoldiFactorization(1, V, H, r)
 end
@@ -190,7 +190,7 @@ function initialize!(iter::ArnoldiIterator, state::ArnoldiFactorization; verbosi
     push!(H, α, β)
     state.r = r
     if verbosity > 0
-        @info "Arnoldi iteration step 1: normres = $β"
+        @info "Arnoldi initiation at dimension 1: subspace normres = $(normres2string(β))"
     end
     return state
 end
@@ -208,11 +208,11 @@ function expand!(iter::ArnoldiIterator, state::ArnoldiFactorization; verbosity::
     H[m + k + 1] = β
     state.r = r
     if verbosity > 0
-        @info "Arnoldi iteration step $k: normres = $β"
+        @info "Arnoldi expansion to dimension $k: subspace normres = $(normres2string(β))"
     end
     return state
 end
-function shrink!(state::ArnoldiFactorization, k)
+function shrink!(state::ArnoldiFactorization, k; verbosity::Int=0)
     length(state) <= k && return state
     V = state.V
     H = state.H
@@ -222,7 +222,11 @@ function shrink!(state::ArnoldiFactorization, k)
     r = pop!(V)
     resize!(H, (k * k + 3 * k) >> 1)
     state.k = k
-    state.r = scale!!(r, normres(state))
+    β = normres(state)
+    if verbosity > 0
+        @info "Arnoldi reduction to dimension $k: subspace normres = $(normres2string(β))"
+    end
+    state.r = scale!!(r, β)
     return state
 end
 

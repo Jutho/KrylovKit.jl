@@ -43,8 +43,11 @@ The return value is always of the form `x, info = linsolve(...)` with
 
 Keyword arguments are given by:
 
-  - `verbosity::Int = 0`: verbosity level, i.e. 0 (no messages), 1 (single message
-    at the end), 2 (information after every iteration), 3 (information per Krylov step)
+  - `verbosity::Int = 0`: verbosity level, i.e. 
+    - 0 (suppress all messages)
+    - 1 (only warnings)
+    - 2 (information at the beginning and end)
+    - 3 (progress info after every iteration)
   - `atol::Real`: the requested accuracy, i.e. absolute tolerance, on the norm of the
     residual.
   - `rtol::Real`: the requested accuracy on the norm of the residual, relative to the norm

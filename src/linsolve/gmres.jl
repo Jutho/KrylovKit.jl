@@ -19,12 +19,14 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number=0, a₁::Number=1;
 
     # Check for early return
     if β < tol
-        if alg.verbosity > 0
+        if alg.verbosity >= STARTSTOP_LEVEL
             @info """GMRES linsolve converged without any iterations:
-             *  norm of residual = $β
-             *  number of operations = 1"""
+            * norm of residual = $(normres2string(β))
+            * number of operations = 1"""
         end
         return (x, ConvergenceInfo(1, r, β, 0, 1))
+    elseif alg.verbosity >= STARTSTOP_LEVEL
+        @info "GMRES linsolve starts with norm of residual = $(normres2string(β))"
     end
 
     # Initialize data structures
@@ -35,11 +37,11 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number=0, a₁::Number=1;
     numops = 1 # operator has been applied once to determine T and r
 
     iter = ArnoldiIterator(operator, r, alg.orth)
-    fact = initialize(iter; verbosity=alg.verbosity - 2)
+    fact = initialize(iter)
     sizehint!(fact, alg.krylovdim)
     numops += 1 # start applies operator once
 
-    while numiter < maxiter # restart loop
+    while true # restart loop
         numiter += 1
         y[1] = β
         k = 1
@@ -49,15 +51,12 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number=0, a₁::Number=1;
         y[2] = zero(T)
         lmul!(gs[1], y)
         β = convert(S, abs(y[2]))
-        if alg.verbosity > 2
-            msg = "GMRES linsolve in iter $numiter; step $k: "
-            msg *= "normres = "
-            msg *= @sprintf("%.12e", β)
-            @info msg
-        end
 
         while (β > tol && length(fact) < krylovdim) # inner arnoldi loop
-            fact = expand!(iter, fact; verbosity=alg.verbosity - 2)
+            if alg.verbosity >= EACHITERATION_LEVEL
+                @info "GMRES linsolve in iteration $numiter; step $k: normres = $(normres2string(β))"
+            end
+            fact = expand!(iter, fact)
             numops += 1 # expand! applies the operator once
             k = length(fact)
             H = rayleighquotient(fact)
@@ -83,18 +82,6 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number=0, a₁::Number=1;
 
             # New error
             β = convert(S, abs(y[k + 1]))
-            if alg.verbosity > 2
-                msg = "GMRES linsolve in iter $numiter; step $k: "
-                msg *= "normres = "
-                msg *= @sprintf("%.12e", β)
-                @info msg
-            end
-        end
-        if alg.verbosity > 1
-            msg = "GMRES linsolve in iter $numiter; finished at step $k: "
-            msg *= "normres = "
-            msg *= @sprintf("%.12e", β)
-            @info msg
         end
 
         # Solve upper triangular system
@@ -123,24 +110,28 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number=0, a₁::Number=1;
             numops += 1
             β = norm(r)
             if β < tol
-                if alg.verbosity > 0
+                if alg.verbosity >= STARTSTOP_LEVEL
                     @info """GMRES linsolve converged at iteration $numiter, step $k:
-                     *  norm of residual = $β
-                     *  number of operations = $numops"""
+                    * norm of residual = $(normres2string(β))
+                    * number of operations = $numops"""
                 end
                 return (x, ConvergenceInfo(1, r, β, numiter, numops))
             end
         end
+        if numiter >= maxiter
+            if alg.verbosity >= WARN_LEVEL
+                @warn """GMRES linsolve stopped without converging after $numiter iterations:
+                * norm of residual = $(normres2string(β))
+                * number of operations = $numops"""
+            end
+            return (x, ConvergenceInfo(0, r, β, numiter, numops))
+        end
+        if alg.verbosity >= EACHITERATION_LEVEL
+            @info "GMRES linsolve in iteration $numiter; step $k: normres = $(normres2string(β))"
+        end
 
         # Restart Arnoldi factorization with new r
         iter = ArnoldiIterator(operator, r, alg.orth)
-        fact = initialize!(iter, fact; verbosity=alg.verbosity - 2)
+        fact = initialize!(iter, fact)
     end
-
-    if alg.verbosity > 0
-        @warn """GMRES linsolve finished without converging after $numiter iterations:
-         *  norm of residual = $β
-         *  number of operations = $numops"""
-    end
-    return (x, ConvergenceInfo(0, r, β, numiter, numops))
 end

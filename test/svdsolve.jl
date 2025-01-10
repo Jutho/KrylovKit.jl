@@ -9,8 +9,32 @@
             S, lvecs, rvecs, info = @constinferred svdsolve(wrapop(A, Val(mode)),
                                                             wrapvec(A[:, 1], Val(mode)), n,
                                                             :LR, alg)
-
             @test S ≈ svdvals(A)
+            @test info.converged == n
+
+            n1 = div(n, 2)
+            @test_logs svdsolve(wrapop(A, Val(mode)), wrapvec(A[:, 1], Val(mode)), n1, :LR,
+                                alg)
+            alg = GKL(; orth=orth, krylovdim=2 * n, maxiter=1, tol=tolerance(T),
+                      verbosity=1)
+            @test_logs svdsolve(wrapop(A, Val(mode)), wrapvec(A[:, 1], Val(mode)), n1, :LR,
+                                alg)
+            alg = GKL(; orth=orth, krylovdim=n1 + 1, maxiter=1, tol=tolerance(T),
+                      verbosity=1)
+            @test_logs (:warn,) svdsolve(wrapop(A, Val(mode)), wrapvec(A[:, 1], Val(mode)),
+                                         n1, :LR,
+                                         alg)
+            alg = GKL(; orth=orth, krylovdim=2 * n, maxiter=1, tol=tolerance(T),
+                      verbosity=2)
+            @test_logs (:info,) svdsolve(wrapop(A, Val(mode)), wrapvec(A[:, 1], Val(mode)),
+                                         n1, :LR,
+                                         alg)
+            alg = GKL(; orth=orth, krylovdim=2 * n, maxiter=1, tol=tolerance(T),
+                      verbosity=4)
+            @test_logs min_level = Warn svdsolve(wrapop(A, Val(mode)),
+                                                 wrapvec(A[:, 1], Val(mode)),
+                                                 n1, :LR,
+                                                 alg)
 
             U = stack(unwrapvec, lvecs)
             V = stack(unwrapvec, rvecs)
