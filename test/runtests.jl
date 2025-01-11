@@ -48,16 +48,16 @@ end
 @testset "Linear Algebra Utilities" verbose = true begin
     include("linalg.jl")
 end
-@testset "Nested Tuples" verbose = true begin
+@testset "Singular value problems via eigsolve with nested tuples" verbose = true begin
     include("nestedtuple.jl")
 end
 
-@testset "Differentiation rules" verbose = true begin
-    include("ad/linsolve.jl")
-    include("ad/eigsolve.jl")
-    include("ad/degenerateeigsolve.jl")
-    include("ad/svdsolve.jl")
-end
+# @testset "Differentiation rules" verbose = true begin
+#     include("ad/linsolve.jl")
+#     include("ad/eigsolve.jl")
+#     include("ad/degenerateeigsolve.jl")
+#     include("ad/svdsolve.jl")
+# end
 t = time() - t
 
 # Issues

@@ -12,9 +12,8 @@
 
         b = rand(T, 2 * n)
         tol = tol = 10 * n * eps(real(T))
-        alg = LSMR(; maxiter=3, tol=tol, verbosity=0)
         x, info = @constinferred lssolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode));
-                                         maxiter=3)
+                                         maxiter=3, verbosity=0)
         r = b - A * unwrapvec(x)
         @test unwrapvec(info.residual) ≈ r
         @test info.normres ≈ norm(A' * r)

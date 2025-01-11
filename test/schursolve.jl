@@ -75,7 +75,8 @@ end
         @testset for orth in orths
             A = rand(T, (N, N)) .- one(T) / 2
             v = rand(T, (N,))
-            alg = Arnoldi(; orth=orth, krylovdim=3 * n, maxiter=10, tol=tolerance(T))
+            alg = Arnoldi(; orth=orth, krylovdim=3 * n, maxiter=10, tol=tolerance(T),
+                          verbosity=0)
             T1, V1, D1, info1 = @constinferred schursolve(wrapop(A, Val(mode)),
                                                           wrapvec(v, Val(mode)), n, :SR,
                                                           alg)

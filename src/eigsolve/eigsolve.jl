@@ -227,12 +227,12 @@ function eigselector(f,
                      T::Type;
                      issymmetric::Bool=false,
                      ishermitian::Bool=issymmetric && (T <: Real),
-                     krylovdim::Int=KrylovDefaults.krylovdim,
-                     maxiter::Int=KrylovDefaults.maxiter,
-                     tol::Real=KrylovDefaults.tol,
+                     krylovdim::Int=KrylovDefaults.krylovdim[],
+                     maxiter::Int=KrylovDefaults.maxiter[],
+                     tol::Real=KrylovDefaults.tol[],
                      orth::Orthogonalizer=KrylovDefaults.orth,
                      eager::Bool=false,
-                     verbosity::Int=0,
+                     verbosity::Int=KrylovDefaults.verbosity[],
                      alg_rrule=nothing)
     if (T <: Real && issymmetric) || ishermitian
         return Lanczos(; krylovdim=krylovdim,
@@ -254,12 +254,12 @@ function eigselector(A::AbstractMatrix,
                      T::Type;
                      issymmetric::Bool=T <: Real && LinearAlgebra.issymmetric(A),
                      ishermitian::Bool=issymmetric || LinearAlgebra.ishermitian(A),
-                     krylovdim::Int=KrylovDefaults.krylovdim,
-                     maxiter::Int=KrylovDefaults.maxiter,
-                     tol::Real=KrylovDefaults.tol,
+                     krylovdim::Int=KrylovDefaults.krylovdim[],
+                     maxiter::Int=KrylovDefaults.maxiter[],
+                     tol::Real=KrylovDefaults.tol[],
                      orth::Orthogonalizer=KrylovDefaults.orth,
                      eager::Bool=false,
-                     verbosity::Int=0,
+                     verbosity::Int=KrylovDefaults.verbosity[],
                      alg_rrule=nothing)
     if (T <: Real && issymmetric) || ishermitian
         return Lanczos(; krylovdim=krylovdim,

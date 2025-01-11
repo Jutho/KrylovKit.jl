@@ -65,9 +65,9 @@ Keyword arguments are given by:
   - `ishermitian::Bool`: if the linear map is hermitian
   - `isposdef::Bool`: if the linear map is positive definite
 
-The default values are given by `atol = KrylovDefaults.tol`, `rtol = KrylovDefaults.tol`,
-`tol = max(atol, rtol*norm(b))`, `krylovdim = KrylovDefaults.krylovdim`,
-`maxiter = KrylovDefaults.maxiter`, `orth = KrylovDefaults.orth`;
+The default values are given by `atol = KrylovDefaults.tol[]`, `rtol = KrylovDefaults.tol[]`,
+`tol = max(atol, rtol*norm(b))`, `krylovdim = KrylovDefaults.krylovdim[]`,
+`maxiter = KrylovDefaults.maxiter[]`, `orth = KrylovDefaults.orth`;
 see [`KrylovDefaults`](@ref) for details.
 
 The default value for the last three parameters depends on the method. If an
@@ -128,13 +128,13 @@ function linselector(f,
                      issymmetric::Bool=false,
                      ishermitian::Bool=T <: Real && issymmetric,
                      isposdef::Bool=false,
-                     krylovdim::Int=KrylovDefaults.krylovdim,
-                     maxiter::Int=KrylovDefaults.maxiter,
-                     rtol::Real=KrylovDefaults.tol,
-                     atol::Real=KrylovDefaults.tol,
+                     krylovdim::Int=KrylovDefaults.krylovdim[],
+                     maxiter::Int=KrylovDefaults.maxiter[],
+                     rtol::Real=KrylovDefaults.tol[],
+                     atol::Real=KrylovDefaults.tol[],
                      tol::Real=max(atol, rtol * norm(b)),
                      orth=KrylovDefaults.orth,
-                     verbosity::Int=0)
+                     verbosity::Int=KrylovDefaults.verbosity[])
     if (T <: Real && issymmetric) || ishermitian
         if isposdef
             return CG(; maxiter=krylovdim * maxiter, tol=tol, verbosity=verbosity)
@@ -155,13 +155,13 @@ function linselector(A::AbstractMatrix,
                      issymmetric::Bool=T <: Real && LinearAlgebra.issymmetric(A),
                      ishermitian::Bool=issymmetric || LinearAlgebra.ishermitian(A),
                      isposdef::Bool=ishermitian ? LinearAlgebra.isposdef(A) : false,
-                     krylovdim::Int=KrylovDefaults.krylovdim,
-                     maxiter::Int=KrylovDefaults.maxiter,
-                     rtol::Real=KrylovDefaults.tol,
-                     atol::Real=KrylovDefaults.tol,
+                     krylovdim::Int=KrylovDefaults.krylovdim[],
+                     maxiter::Int=KrylovDefaults.maxiter[],
+                     rtol::Real=KrylovDefaults.tol[],
+                     atol::Real=KrylovDefaults.tol[],
                      tol::Real=max(atol, rtol * norm(b)),
                      orth=KrylovDefaults.orth,
-                     verbosity::Int=0)
+                     verbosity::Int=KrylovDefaults.verbosity[])
     if (T <: Real && issymmetric) || ishermitian
         if isposdef
             return CG(; maxiter=krylovdim * maxiter, tol=tol, verbosity=verbosity)
