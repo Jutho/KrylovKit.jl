@@ -93,7 +93,7 @@ end
             B = sqrt(B * B')
             v = rand(T, (N,))
             alg = GolubYe(; orth=orth, krylovdim=3 * n, maxiter=100,
-                          tol=cond(B) * tolerance(T))
+                          tol=cond(B) * tolerance(T), verbosity=0)
             D1, V1, info1 = @constinferred geneigsolve((wrapop(A, Val(mode)),
                                                         wrapop(B, Val(mode))),
                                                        wrapvec(v, Val(mode)),

@@ -60,7 +60,7 @@ end
             A = (A + A') / 2
             v = rand(T, (N,))
             alg = Lanczos(; krylovdim=2 * n, maxiter=10,
-                          tol=tolerance(T), eager=true)
+                          tol=tolerance(T), eager=true, verbosity=0)
             D1, V1, info1 = @constinferred eigsolve(wrapop(A, Val(mode)),
                                                     wrapvec(v, Val(mode)), n, :SR, alg)
             D2, V2, info2 = eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n, :LR,
@@ -174,7 +174,7 @@ end
             A = rand(T, (N, N)) .- one(T) / 2
             v = rand(T, (N,))
             alg = Arnoldi(; krylovdim=3 * n, maxiter=20,
-                          tol=tolerance(T), eager=true)
+                          tol=tolerance(T), eager=true, verbosity=0)
             D1, V1, info1 = @constinferred eigsolve(wrapop(A, Val(mode)),
                                                     wrapvec(v, Val(mode)), n, :SR, alg)
             D2, V2, info2 = eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n, :LR,
@@ -241,7 +241,7 @@ end
             A = V * Diagonal(D) / V
             v = rand(T, (N,))
             alg = Arnoldi(; krylovdim=3 * n, maxiter=20,
-                          tol=tolerance(T), eager=true)
+                          tol=tolerance(T), eager=true, verbosity=0)
             D1, V1, info1 = @constinferred realeigsolve(wrapop(A, Val(mode)),
                                                         wrapvec(v, Val(mode)), n, :SR, alg)
             D2, V2, info2 = realeigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n,
@@ -289,7 +289,7 @@ end
                 f = buildrealmap(A, B)
                 v = rand(complex(T), (N,))
                 alg = Arnoldi(; krylovdim=3 * n, maxiter=20,
-                              tol=tolerance(T), eager=true)
+                              tol=tolerance(T), eager=true, verbosity=0)
                 D1, V1, info1 = @constinferred realeigsolve(f, v, n, :SR, alg)
                 D2, V2, info2 = realeigsolve(f, v, n, :LR, alg)
                 D3, V3, info3 = realeigsolve(f, v, n, :LM, alg)

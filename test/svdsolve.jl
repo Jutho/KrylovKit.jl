@@ -55,7 +55,8 @@ end
             A = rand(T, (2 * N, N))
             v = rand(T, (2 * N,))
             n₁ = div(n, 2)
-            alg = GKL(; orth=orth, krylovdim=n, maxiter=10, tol=tolerance(T), eager=true)
+            alg = GKL(; orth=orth, krylovdim=n, maxiter=10, tol=tolerance(T), eager=true,
+                      verbosity=0)
             S, lvecs, rvecs, info = @constinferred svdsolve(wrapop(A, Val(mode)),
                                                             wrapvec(v, Val(mode)),
                                                             n₁, :LR, alg)
