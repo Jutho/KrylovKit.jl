@@ -25,10 +25,12 @@
                                               ishermitian=true, isposdef=true, maxiter=2n,
                                               krylovdim=1, rtol=tolerance(T),
                                               verbosity=2)
-        @test_logs min_level = Warn linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode));
-                                             ishermitian=true, isposdef=true, maxiter=2n,
-                                             krylovdim=1, rtol=tolerance(T),
-                                             verbosity=3)
+        @test_logs min_level = Logging.Warn linsolve(wrapop(A, Val(mode)),
+                                                     wrapvec(b, Val(mode));
+                                                     ishermitian=true, isposdef=true,
+                                                     maxiter=2n,
+                                                     krylovdim=1, rtol=tolerance(T),
+                                                     verbosity=3)
 
         x, info = linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), x, alg)
         @test info.numops == 1
@@ -112,9 +114,10 @@ end
         @test_logs (:info,) (:info,) linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode));
                                               krylovdim=n, maxiter=2,
                                               rtol=tolerance(T), verbosity=2)
-        @test_logs min_level = Warn linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode));
-                                             krylovdim=n, maxiter=2,
-                                             rtol=tolerance(T), verbosity=3)
+        @test_logs min_level = Logging.Warn linsolve(wrapop(A, Val(mode)),
+                                                     wrapvec(b, Val(mode));
+                                                     krylovdim=n, maxiter=2,
+                                                     rtol=tolerance(T), verbosity=3)
 
         alg = GMRES(; krylovdim=n, maxiter=2, tol=tolerance(T) * norm(b), verbosity=0)
         x, info = @constinferred linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), x,
@@ -232,8 +235,9 @@ end
         @test_logs (:info,) (:info,) linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)),
                                               wrapvec(zerovector(b), Val(mode)), alg)
         alg = BiCGStab(; maxiter=4n, tol=tolerance(T) * norm(b), verbosity=3)
-        @test_logs min_level = Warn linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)),
-                                             wrapvec(zerovector(b), Val(mode)), alg)
+        @test_logs min_level = Logging.Warn linsolve(wrapop(A, Val(mode)),
+                                                     wrapvec(b, Val(mode)),
+                                                     wrapvec(zerovector(b), Val(mode)), alg)
         alg = BiCGStab(; maxiter=4n, tol=tolerance(T) * norm(b), verbosity=0)
 
         x, info = @constinferred linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), x,

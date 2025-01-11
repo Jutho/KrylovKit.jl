@@ -31,10 +31,10 @@
                                          alg)
             alg = GKL(; orth=orth, krylovdim=2 * n, maxiter=1, tol=tolerance(T),
                       verbosity=4)
-            @test_logs min_level = Warn svdsolve(wrapop(A, Val(mode)),
-                                                 wrapvec(A[:, 1], Val(mode)),
-                                                 n1, :LR,
-                                                 alg)
+            @test_logs min_level = Logging.Warn svdsolve(wrapop(A, Val(mode)),
+                                                         wrapvec(A[:, 1], Val(mode)),
+                                                         n1, :LR,
+                                                         alg)
 
             U = stack(unwrapvec, lvecs)
             V = stack(unwrapvec, rvecs)

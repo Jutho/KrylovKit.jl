@@ -39,8 +39,9 @@
         @test_logs (:info,) (:info,) lssolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)),
                                              alg)
         alg = LSMR(; maxiter=2 * n, tol=tol, verbosity=3)
-        @test_logs min_level = Warn lssolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)),
-                                            alg)
+        @test_logs min_level = Logging.Warn lssolve(wrapop(A, Val(mode)),
+                                                    wrapvec(b, Val(mode)),
+                                                    alg)
 
         λ = rand(real(T))
         alg = LSMR(; maxiter=2 * n, tol=tol, verbosity=0)
