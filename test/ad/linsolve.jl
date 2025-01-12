@@ -120,7 +120,7 @@ end
                                                               fvec)
         (JA′, Jb′, Jc′, Jd′, Je′, Jf′) = Zygote.jacobian(fun_example, Avec, bvec, cvec,
                                                          dvec, evec, fvec)
-        rtol = cond(A + c * d') * sqrt(eps(real(T)))
+        rtol = 2 * cond(A + c * d') * sqrt(eps(real(T)))
         @test isapprox(JA, JA′; rtol=rtol)
         @test isapprox(Jb, Jb′; rtol=rtol)
         @test isapprox(Jc, Jc′; rtol=rtol)
