@@ -2,6 +2,7 @@ module LinsolveAD
 using KrylovKit, LinearAlgebra
 using Random, Test, TestExtras
 using ChainRulesCore, ChainRulesTestUtils, Zygote, FiniteDifferences
+using ..TestSetup
 
 fdm = ChainRulesTestUtils._fdm
 n = 10
@@ -75,7 +76,7 @@ end
     x = 2 * (rand(T, n) .- one(T) / 2)
 
     condA = cond(A)
-    tol = condA * (T <: Real ? eps(T) : 4 * eps(real(T)))
+    tol = tolerance(T) #condA * (T <: Real ? eps(T) : 4 * eps(real(T)))
     alg = GMRES(; tol=tol, krylovdim=n, maxiter=1)
 
     config = Zygote.ZygoteRuleConfig()
@@ -105,25 +106,27 @@ end
     f = rand(T)
 
     # mix algorithms]
-    tol = N^2 * eps(real(T))
+    tol = tolerance(T) # N^2 * eps(real(T))
     alg1 = GMRES(; tol=tol, krylovdim=20)
     alg2 = BiCGStab(; tol=tol, maxiter=100) # BiCGStab seems to require slightly smaller tolerance for tests to work
     for (alg, alg_rrule) in ((alg1, alg2), (alg2, alg1))
-        fun_example, Avec, bvec, cvec, dvec, evec, fvec = build_fun_example(A, b, c, d, e,
-                                                                            f, alg,
-                                                                            alg_rrule)
+        #! format: off
+        fun_example, Avec, bvec, cvec, dvec, evec, fvec =
+            build_fun_example(A, b, c, d, e, f, alg, alg_rrule)
+        #! format: on
 
         (JA, Jb, Jc, Jd, Je, Jf) = FiniteDifferences.jacobian(fdm, fun_example,
                                                               Avec, bvec, cvec, dvec, evec,
                                                               fvec)
         (JA′, Jb′, Jc′, Jd′, Je′, Jf′) = Zygote.jacobian(fun_example, Avec, bvec, cvec,
                                                          dvec, evec, fvec)
-        @test JA ≈ JA′
-        @test Jb ≈ Jb′
-        @test Jc ≈ Jc′
-        @test Jd ≈ Jd′
-        @test Je ≈ Je′
-        @test Jf ≈ Jf′
+        rtol = cond(A + c * d') * sqrt(eps(real(T)))
+        @test isapprox(JA, JA′; rtol=rtol)
+        @test isapprox(Jb, Jb′; rtol=rtol)
+        @test isapprox(Jc, Jc′; rtol=rtol)
+        @test isapprox(Jd, Jd′; rtol=rtol)
+        @test isapprox(Je, Je′; rtol=rtol)
+        @test isapprox(Jf, Jf′; rtol=rtol)
     end
 end
 end

@@ -112,7 +112,7 @@ function compute_svdsolve_pullback_data(Δvals, Δlvecs, Δrvecs, vals, lvecs, r
         udΔu = inner(u, Δu)
         vdΔv = inner(v, Δv)
         if (udΔu isa Complex) || (vdΔv isa Complex)
-            if alg_primal.verbosity >= 1
+            if alg_rrule.verbosity >= WARN_LEVEL
                 gauge = abs(imag(udΔu + vdΔv))
                 gauge > alg_primal.tol &&
                     @warn "`svdsolve` cotangents for singular vectors $i are sensitive to gauge choice: (|gauge| = $gauge)"
@@ -131,7 +131,8 @@ function compute_svdsolve_pullback_data(Δvals, Δlvecs, Δrvecs, vals, lvecs, r
                 return (x′, y′)
             end
         end
-        if info.converged >= i && reverse_info.converged == 0 && alg_primal.verbosity >= 0
+        if info.converged >= i && reverse_info.converged == 0 &&
+           alg_primal.verbosity >= WARN_LEVEL
             @warn "`svdsolve` cotangent linear problem ($i) did not converge, whereas the primal eigenvalue problem did: normres = $(reverse_info.normres)"
         end
         x = VectorInterface.add!!(x, u, Δs / 2)
@@ -162,7 +163,7 @@ function compute_svdsolve_pullback_data(Δvals, Δlvecs, Δrvecs, vals, lvecs, r
     aVdΔV = rmul!(VdΔV - VdΔV', 1 / 2)
 
     tol = alg_primal.tol
-    if alg_primal.verbosity >= 1
+    if alg_rrule.verbosity >= WARN_LEVEL
         mask = abs.(vals' .- vals) .< tol
         gaugepart = view(aUdΔU, mask) + view(aVdΔV, mask)
         gauge = norm(gaugepart, Inf)
@@ -227,7 +228,8 @@ function compute_svdsolve_pullback_data(Δvals, Δlvecs, Δrvecs, vals, lvecs, r
             return (x′, y′, vals .* z)
         end
     end
-    if info.converged >= n && reverse_info.converged < n && alg_primal.verbosity >= 1
+    if info.converged >= n && reverse_info.converged < n &&
+       alg_primal.verbosity >= WARN_LEVEL
         @warn "`svdsolve` cotangent problem did not converge, whereas the primal singular value problem did"
     end
 
@@ -236,13 +238,13 @@ function compute_svdsolve_pullback_data(Δvals, Δlvecs, Δrvecs, vals, lvecs, r
     for i in 1:n
         x, y, z = Ws[i]
         _, ic = findmax(abs, z)
-        if ic != i && alg_primal.verbosity >= 1
+        if ic != i && alg_primal.verbosity >= WARN_LEVEL
             @warn "`svdsolve` cotangent linear problem ($ic) returns unexpected result"
         end
         factor = 1 / z[ic]
         z[ic] = zero(z[ic])
         error = max(norm(z, Inf), abs(rvals[i] - vals[ic]))
-        if error > 10 * tol && alg_primal.verbosity >= 1
+        if error > 10 * tol && alg_primal.verbosity >= WARN_LEVEL
             @warn "`svdsolve` cotangent linear problem ($ic) returns unexpected result: error = $error vs tol = $tol"
         end
         xs[ic] = VectorInterface.add!!(xs[ic], x, -factor)

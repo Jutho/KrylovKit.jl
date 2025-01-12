@@ -52,12 +52,16 @@ end
     include("nestedtuple.jl")
 end
 
-# @testset "Differentiation rules" verbose = true begin
-#     include("ad/linsolve.jl")
-#     include("ad/eigsolve.jl")
-#     include("ad/degenerateeigsolve.jl")
-#     include("ad/svdsolve.jl")
-# end
+@testset "Linsolve differentiation rules" verbose = true begin
+    include("ad/linsolve.jl")
+end
+@testset "Eigsolve differentiation rules" verbose = true begin
+    include("ad/eigsolve.jl")
+    include("ad/degenerateeigsolve.jl")
+end
+@testset "Svdsolve differentiation rules" verbose = true begin
+    include("ad/svdsolve.jl")
+end
 t = time() - t
 
 # Issues
