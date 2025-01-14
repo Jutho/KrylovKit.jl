@@ -102,9 +102,6 @@ function Base.iterate(r::SplitRange, i=1)
 end
 Base.length(r::SplitRange) = r.outerlength
 
-# Algorithm types
-include("algorithms.jl")
-
 # Structures to store a list of basis vectors
 """
     abstract type Basis{T} end
@@ -121,14 +118,6 @@ type that has vector like behavior (as defined in the docs of KrylovKit).
 See [`OrthonormalBasis`](@ref) for a specific implementation.
 """
 abstract type Basis{T} end
-
-include("orthonormal.jl")
-
-# Dense linear algebra structures and functions used in the algorithms below
-include("dense/givens.jl")
-include("dense/linalg.jl")
-include("dense/packedhessenberg.jl")
-include("dense/reflector.jl")
 
 # Simple coordinate basis vector, i.e. a vector of all zeros and a single one on position `k`:
 """
@@ -163,6 +152,23 @@ end
 
 # apply operators
 include("apply.jl")
+
+# Verbosity levels
+const WARN_LEVEL = 1
+const STARTSTOP_LEVEL = 2
+const EACHITERATION_LEVEL = 3
+
+# Algorithm types
+include("algorithms.jl")
+
+# OrthonormalBasis, orthogonalization and orthonormalization methods
+include("orthonormal.jl")
+
+# Dense linear algebra structures and functions used in the algorithms below
+include("dense/givens.jl")
+include("dense/linalg.jl")
+include("dense/packedhessenberg.jl")
+include("dense/reflector.jl")
 
 # Krylov and related factorizations and their iterators
 include("factorizations/krylov.jl")
@@ -217,7 +223,19 @@ function Base.show(io::IO, info::ConvergenceInfo)
             " iterations and ",
             info.numops,
             " applications of the linear map;")
-    return println(io, "norms of residuals are given by $((info.normres...,)).")
+    return print(io, "norms of residuals are given by ", normres2string(info.normres), ".")
+end
+
+# Convert residual norms into strings for info and warning printing
+normres2string(β::Number) = @sprintf("%.2e", β)
+function normres2string(β)
+    s = "("
+    for i in 1:length(β)
+        s *= normres2string(β[i])
+        i < length(β) && (s *= ", ")
+    end
+    s *= ")"
+    return s
 end
 
 # vectors with modified inner product

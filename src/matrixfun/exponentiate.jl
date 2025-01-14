@@ -27,12 +27,12 @@ The return value is always of the form `y, info = exponentiate(...)` with
 
   - `info`: an object of type [`ConvergenceInfo`], which has the following fields
 
-      + `info.converged::Int`: 0 or 1 if the solution `y` was approximated up to the
-        requested tolerance `tol`.
+      + `info.converged::Int`: 0 or 1 if the solution `y` at time `t` was found with an
+        error below the requested tolerance per unit time, i.e. if `info.normres <= tol * abs(t)`
       + `info.residual::Nothing`: value `nothing`, there is no concept of a residual in
         this case
-      + `info.normres::Real`: a (rough) estimate of the error between the approximate and
-        exact solution
+      + `info.normres::Real`: a (rough) estimate of the total error accumulated in the
+        solution
       + `info.numops::Int`: number of times the linear map was applied, i.e. number of times
         `f` was called, or a vector was multiplied with `A`
       + `info.numiter::Int`: number of times the Krylov subspace was restarted (see below)
@@ -46,8 +46,12 @@ The return value is always of the form `y, info = exponentiate(...)` with
 
 Keyword arguments and their default values are given by:
 
-  - `verbosity::Int = 0`: verbosity level, i.e. 0 (no messages), 1 (single message
-    at the end), 2 (information after every iteration), 3 (information per Krylov step)
+  - `verbosity::Int = 0`: verbosity level, i.e. 
+    - 0 (suppress all messages)
+    - 1 (only warnings)
+    - 2 (one message with convergence info at the end)
+    - 3 (progress info after every iteration)
+    - 4+ (all of the above and additional information about the Lanczos or Arnoldi iteration)
   - `krylovdim = 30`: the maximum dimension of the Krylov subspace that will be constructed.
     Note that the dimension of the vector space is not known or checked, e.g. `x₀` should
     not necessarily support the `Base.length` function. If you know the actual problem

@@ -47,7 +47,12 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
     while true
         β = norm(r)
         if β <= tol && K < howmany
-            @warn "Invariant subspace of dimension $K (up to requested tolerance `tol = $tol`), which is smaller than the number of requested eigenvalues (i.e. `howmany == $howmany`); setting `howmany = $K`."
+            if alg.verbosity >= WARN_LEVEL
+                msg = "Invariant subspace of dimension $K (up to requested tolerance `tol = $tol`), "
+                msg *= "which is smaller than the number of requested eigenvalues (i.e. `howmany == $howmany`);"
+                msg *= "setting `howmany = $K`."
+                @warn msg
+            end
             howmany = K
         end
         if K == krylovdim - converged || β <= tol # process
@@ -136,15 +141,8 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
                     push!(residuals, r)
                     push!(normresiduals, β)
                 end
-            elseif alg.verbosity > 1
-                msg = "Golub-Ye geneigsolve in iter $numiter: "
-                msg *= "$converged values converged, normres = ("
-                for i in 1:converged
-                    msg *= @sprintf("%.2e", normresiduals[i])
-                    msg *= ", "
-                end
-                msg *= @sprintf("%.2e", β) * ")"
-                @info msg
+            elseif alg.verbosity >= EACHITERATION_LEVEL
+                @info "Golub-Ye geneigsolve in iter $numiter: $converged values converged, normres = $(normres2string(normresiduals))"
             end
         end
 
@@ -162,8 +160,8 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
             HHA[K, K] = checkhermitian(α, n)
             push!(BV, bv)
 
-            if alg.verbosity > 2
-                @info "Golub-Ye iteration $numiter, step $K: normres = $β"
+            if alg.verbosity >= EACHITERATION_LEVEL
+                @info "Golub-Ye iteration $numiter, step $K: normres = $(normres2string(β))"
             end
         else # restart
             numiter == maxiter && break
@@ -185,18 +183,16 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
             numiter += 1
         end
     end
-    if alg.verbosity > 0
-        if converged < howmany
-            @warn """Golub-Ye geneigsolve finished without convergence after $numiter iterations:
-             *  $converged eigenvalues converged
-             *  norm of residuals = $((normresiduals...,))
-             *  number of operations = $numops"""
-        else
-            @info """Golub-Ye geneigsolve finished after $numiter iterations:
-             *  $converged eigenvalues converged
-             *  norm of residuals = $((normresiduals...,))
-             *  number of operations = $numops"""
-        end
+    if (converged < howmany) && alg.verbosity >= WARN_LEVEL
+        @warn """Golub-Ye geneigsolve stopped without convergence after $numiter iterations:
+        * $converged eigenvalues converged
+        * norm of residuals = $(normres2string(normresiduals))
+        * number of operations = $numops"""
+    elseif alg.verbosity >= STARTSTOP_LEVEL
+        @info """Golub-Ye geneigsolve finished after $numiter iterations:
+        * $converged eigenvalues converged
+        * norm of residuals = $(normres2string(normresiduals))
+        * number of operations = $numops"""
     end
 
     return values,

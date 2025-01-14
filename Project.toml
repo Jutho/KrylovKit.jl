@@ -22,12 +22,13 @@ ChainRulesCore = "1"
 ChainRulesTestUtils = "1"
 FiniteDifferences = "0.12"
 LinearAlgebra = "1"
+Logging = "1"
 PackageExtensionCompat = "1"
 Printf = "1"
 Random = "1"
 Test = "1"
 TestExtras = "0.2,0.3"
-VectorInterface = "0.4,0.5"
+VectorInterface = "0.5"
 Zygote = "0.6"
 julia = "1.6"
 
@@ -36,9 +37,10 @@ Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 ChainRulesTestUtils = "cdddcdb0-9152-4a09-a978-84456f9df70a"
 FiniteDifferences = "26cc04aa-876d-5657-8c51-4c34ba976000"
+Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 TestExtras = "5ed8adda-3752-4e41-b88a-e8b09835ee3a"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [targets]
-test = ["Test", "Aqua", "TestExtras", "ChainRulesTestUtils", "ChainRulesCore", "FiniteDifferences", "Zygote"]
+test = ["Test", "Aqua", "Logging", "TestExtras", "ChainRulesTestUtils", "ChainRulesCore", "FiniteDifferences", "Zygote"]

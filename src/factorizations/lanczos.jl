@@ -213,7 +213,7 @@ function initialize(iter::LanczosIterator; verbosity::Int=0)
     αs = [real(α)]
     βs = [β]
     if verbosity > 0
-        @info "Lanczos iteration step 1: normres = $β"
+        @info "Lanczos initiation at dimension 1: subspace normres = $(normres2string(β))"
     end
     return LanczosFactorization(1, V, αs, βs, r)
 end
@@ -237,7 +237,7 @@ function initialize!(iter::LanczosIterator, state::LanczosFactorization; verbosi
     push!(βs, β)
     state.r = r
     if verbosity > 0
-        @info "Lanczos iteration step 1: normres = $β"
+        @info "Lanczos initiation at dimension 1: subspace normres = $(normres2string(β))"
     end
     return state
 end
@@ -257,11 +257,11 @@ function expand!(iter::LanczosIterator, state::LanczosFactorization; verbosity::
     state.k += 1
     state.r = r
     if verbosity > 0
-        @info "Lanczos iteration step $(state.k): normres = $β"
+        @info "Lanczos expansion to dimension $(state.k): subspace normres = $(normres2string(β))"
     end
     return state
 end
-function shrink!(state::LanczosFactorization, k)
+function shrink!(state::LanczosFactorization, k; verbosity::Int=0)
     length(state) == length(state.V) ||
         error("we cannot shrink LanczosFactorization without keeping Lanczos vectors")
     length(state) <= k && return state
@@ -273,7 +273,11 @@ function shrink!(state::LanczosFactorization, k)
     resize!(state.αs, k)
     resize!(state.βs, k)
     state.k = k
-    state.r = scale!!(r, normres(state))
+    β = normres(state)
+    if verbosity > 0
+        @info "Lanczos reduction to dimension $k: subspace normres = $(normres2string(β))"
+    end
+    state.r = scale!!(r, β)
     return state
 end
 

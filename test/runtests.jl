@@ -1,7 +1,7 @@
 using Random
 Random.seed!(76543210)
 
-using Test, TestExtras
+using Test, TestExtras, Logging
 using LinearAlgebra
 using KrylovKit
 using VectorInterface
@@ -25,31 +25,51 @@ const mgsr = ModifiedGramSchmidtIR(η₀)
 # Tests
 # -----
 t = time()
-include("factorize.jl")
-include("gklfactorize.jl")
+@testset "Krylov factorisations" verbose = true begin
+    include("factorize.jl")
+end
+@testset "Linear problems with linsolve" verbose = true begin
+    include("linsolve.jl")
+end
+@testset "Least squares problems with lssolve" verbose = true begin
+    include("lssolve.jl")
+end
+@testset "Eigenvalue problems with eigsolve" verbose = true begin
+    include("eigsolve.jl")
+    include("schursolve.jl")
+    include("geneigsolve.jl")
+end
+@testset "Singular value problems with svdsolve" verbose = true begin
+    include("svdsolve.jl")
+end
+@testset "Exponentiate and exponential integrator" verbose = true begin
+    include("expintegrator.jl")
+end
+@testset "Linear Algebra Utilities" verbose = true begin
+    include("linalg.jl")
+end
+@testset "Singular value problems via eigsolve with nested tuples" verbose = true begin
+    include("nestedtuple.jl")
+end
 
-include("linsolve.jl")
-include("lssolve.jl")
-include("eigsolve.jl")
-include("schursolve.jl")
-include("geneigsolve.jl")
-include("svdsolve.jl")
-include("expintegrator.jl")
-
-include("linalg.jl")
-include("nestedtuple.jl")
-
-include("ad/linsolve.jl")
-include("ad/eigsolve.jl")
-include("ad/degenerateeigsolve.jl")
-include("ad/svdsolve.jl")
-
+@testset "Linsolve differentiation rules" verbose = true begin
+    include("ad/linsolve.jl")
+end
+@testset "Eigsolve differentiation rules" verbose = true begin
+    include("ad/eigsolve.jl")
+    include("ad/degenerateeigsolve.jl")
+end
+@testset "Svdsolve differentiation rules" verbose = true begin
+    include("ad/svdsolve.jl")
+end
 t = time() - t
-println("Tests finished in $t seconds")
 
 # Issues
 # ------
-include("issues.jl")
+@testset "Known issues" verbose = true begin
+    include("issues.jl")
+end
+println("Tests finished in $t seconds")
 
 module AquaTests
 using KrylovKit

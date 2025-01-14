@@ -10,7 +10,7 @@ using LinearAlgebra: LinearAlgebra
 # Utility functions
 # -----------------
 "function for determining the precision of a type"
-tolerance(T::Type{<:Number}) = eps(real(T))^(2 / 3)
+tolerance(T::Type{<:Number}) = eps(real(T))^(2 // 3)
 
 "function for comparing sets of eigenvalues"
 function ≊(list1::AbstractVector, list2::AbstractVector)
@@ -30,83 +30,20 @@ function buildrealmap(A, B)
     return x -> A * x + B * conj(x)
 end
 
-# Minimal vector type
-# -------------------
-"""
-    MinimalVec{T<:Number,IP}
-
-Minimal interface for a vector. Can support either in-place assignments or not, depending on
-`IP=true` or `IP=false`.
-"""
-struct MinimalVec{IP,V<:AbstractVector}
-    vec::V
-    function MinimalVec{IP}(vec::V) where {IP,V}
-        return new{IP,V}(vec)
-    end
-end
-const InplaceVec{V} = MinimalVec{true,V}
-const OutplaceVec{V} = MinimalVec{false,V}
-
-isinplace(::Type{MinimalVec{IP,V}}) where {V,IP} = IP
-isinplace(v::MinimalVec) = isinplace(typeof(v))
-
-VI.scalartype(::Type{<:MinimalVec{IP,V}}) where {IP,V} = scalartype(V)
-
-function VI.zerovector(v::MinimalVec, S::Type{<:Number})
-    return MinimalVec{isinplace(v)}(zerovector(v.vec, S))
-end
-function VI.zerovector!(v::InplaceVec{V}) where {V}
-    zerovector!(v.vec)
-    return v
-end
-VI.zerovector!!(v::MinimalVec) = isinplace(v) ? zerovector!(v) : zerovector(v)
-
-function VI.scale(v::MinimalVec, α::Number)
-    return MinimalVec{isinplace(v)}(scale(v.vec, α))
-end
-function VI.scale!(v::InplaceVec{V}, α::Number) where {V}
-    scale!(v.vec, α)
-    return v
-end
-function VI.scale!!(v::MinimalVec, α::Number)
-    return isinplace(v) ? scale!(v, α) : scale(v, α)
-end
-function VI.scale!(w::InplaceVec{V}, v::InplaceVec{W}, α::Number) where {V,W}
-    scale!(w.vec, v.vec, α)
-    return w
-end
-function VI.scale!!(w::MinimalVec, v::MinimalVec, α::Number)
-    isinplace(w) && return scale!(w, v, α)
-    return MinimalVec{false}(scale!!(copy(w.vec), v.vec, α))
-end
-
-function VI.add(y::MinimalVec, x::MinimalVec, α::Number, β::Number)
-    return MinimalVec{isinplace(y)}(add(y.vec, x.vec, α, β))
-end
-function VI.add!(y::InplaceVec{W}, x::InplaceVec{V}, α::Number, β::Number) where {W,V}
-    add!(y.vec, x.vec, α, β)
-    return y
-end
-function VI.add!!(y::MinimalVec, x::MinimalVec, α::Number, β::Number)
-    return isinplace(y) ? add!(y, x, α, β) : add(y, x, α, β)
-end
-
-VI.inner(x::MinimalVec, y::MinimalVec) = inner(x.vec, y.vec)
-VI.norm(x::MinimalVec) = LinearAlgebra.norm(x.vec)
-
 # Wrappers
 # --------
+using VectorInterface: MinimalSVec, MinimalMVec, MinimalVec
 # dispatch on val is necessary for type stability
 
 function wrapvec(v, ::Val{mode}) where {mode}
     return mode === :vector ? v :
-           mode === :inplace ? MinimalVec{true}(v) :
-           mode === :outplace ? MinimalVec{false}(v) :
-           mode === :mixed ? MinimalVec{false}(v) :
+           mode === :inplace ? MinimalMVec(v) :
+           mode === :outplace ? MinimalSVec(v) :
+           mode === :mixed ? MinimalSVec(v) :
            throw(ArgumentError("invalid mode ($mode)"))
 end
 function wrapvec2(v, ::Val{mode}) where {mode}
-    return mode === :mixed ? MinimalVec{true}(v) : wrapvec(v, mode)
+    return mode === :mixed ? MinimalMVec(v) : wrapvec(v, mode)
 end
 
 unwrapvec(v::MinimalVec) = v.vec

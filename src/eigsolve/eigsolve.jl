@@ -98,8 +98,12 @@ The return value is always of the form `vals, vecs, info = eigsolve(...)` with
 
 Keyword arguments and their default values are given by:
 
-  - `verbosity::Int = 0`: verbosity level, i.e. 0 (no messages), 1 (single message
-    at the end), 2 (information after every iteration), 3 (information per Krylov step)
+  - `verbosity::Int = 0`: verbosity level, i.e. 
+    - 0 (suppress all messages)
+    - 1 (only warnings)
+    - 2 (one message with convergence info at the end)
+    - 3 (progress info after every iteration)
+    - 4+ (all of the above and additional information about the Lanczos or Arnoldi iteration)
   - `tol::Real`: the requested accuracy (corresponding to the 2-norm of the residual for
     Schur vectors, not the eigenvectors). If you work in e.g. single precision (`Float32`),
     you should definitely change the default value.
@@ -223,12 +227,12 @@ function eigselector(f,
                      T::Type;
                      issymmetric::Bool=false,
                      ishermitian::Bool=issymmetric && (T <: Real),
-                     krylovdim::Int=KrylovDefaults.krylovdim,
-                     maxiter::Int=KrylovDefaults.maxiter,
-                     tol::Real=KrylovDefaults.tol,
+                     krylovdim::Int=KrylovDefaults.krylovdim[],
+                     maxiter::Int=KrylovDefaults.maxiter[],
+                     tol::Real=KrylovDefaults.tol[],
                      orth::Orthogonalizer=KrylovDefaults.orth,
                      eager::Bool=false,
-                     verbosity::Int=0,
+                     verbosity::Int=KrylovDefaults.verbosity[],
                      alg_rrule=nothing)
     if (T <: Real && issymmetric) || ishermitian
         return Lanczos(; krylovdim=krylovdim,
@@ -250,12 +254,12 @@ function eigselector(A::AbstractMatrix,
                      T::Type;
                      issymmetric::Bool=T <: Real && LinearAlgebra.issymmetric(A),
                      ishermitian::Bool=issymmetric || LinearAlgebra.ishermitian(A),
-                     krylovdim::Int=KrylovDefaults.krylovdim,
-                     maxiter::Int=KrylovDefaults.maxiter,
-                     tol::Real=KrylovDefaults.tol,
+                     krylovdim::Int=KrylovDefaults.krylovdim[],
+                     maxiter::Int=KrylovDefaults.maxiter[],
+                     tol::Real=KrylovDefaults.tol[],
                      orth::Orthogonalizer=KrylovDefaults.orth,
                      eager::Bool=false,
-                     verbosity::Int=0,
+                     verbosity::Int=KrylovDefaults.verbosity[],
                      alg_rrule=nothing)
     if (T <: Real && issymmetric) || ishermitian
         return Lanczos(; krylovdim=krylovdim,

@@ -2,6 +2,7 @@ module EigsolveAD
 using KrylovKit, LinearAlgebra
 using Random, Test, TestExtras
 using ChainRulesCore, ChainRulesTestUtils, Zygote, FiniteDifferences
+using ..TestSetup
 Random.seed!(987654321)
 
 fdm = ChainRulesTestUtils._fdm
@@ -203,10 +204,10 @@ end
 
     howmany = 3
     condA = cond(A)
-    tol = n * condA * (T <: Real ? eps(T) : 4 * eps(real(T)))
+    tol = tolerance(T) # n * condA * (T <: Real ? eps(T) : 4 * eps(real(T)))
     alg = Arnoldi(; tol=tol, krylovdim=n)
-    alg_rrule1 = Arnoldi(; tol=tol, krylovdim=2n, verbosity=-1)
-    alg_rrule2 = GMRES(; tol=tol, krylovdim=n + 1, verbosity=-1)
+    alg_rrule1 = Arnoldi(; tol=tol, krylovdim=2n, verbosity=0)
+    alg_rrule2 = GMRES(; tol=tol, krylovdim=n + 1, verbosity=0)
     config = Zygote.ZygoteRuleConfig()
     @testset for which in whichlist
         for alg_rrule in (alg_rrule1, alg_rrule2)
@@ -226,13 +227,10 @@ end
         end
 
         for alg_rrule in (alg_rrule1, alg_rrule2)
-            mat_example, mat_example_fun, mat_example_fd, Avec, xvec, vals, vecs, howmany = build_mat_example(A,
-                                                                                                              x,
-                                                                                                              howmany,
-                                                                                                              which,
-                                                                                                              alg,
-                                                                                                              alg_rrule)
-
+            #! format: off
+            mat_example, mat_example_fun, mat_example_fd, Avec, xvec, vals, vecs, howmany = 
+                build_mat_example(A, x, howmany, which, alg, alg_rrule)
+            #! format: on
             (JA, Jx) = FiniteDifferences.jacobian(fdm, mat_example_fd, Avec, xvec)
             (JA1, Jx1) = Zygote.jacobian(mat_example, Avec, xvec)
             (JA2, Jx2) = Zygote.jacobian(mat_example_fun, Avec, xvec)
@@ -269,12 +267,14 @@ end
 
     if T <: Complex
         @testset "test warnings and info" begin
-            alg_rrule = Arnoldi(; tol=tol, krylovdim=n, verbosity=-1)
+            alg = Arnoldi(; tol=tol, krylovdim=n, verbosity=0)
+            alg_rrule = Arnoldi(; tol=tol, krylovdim=n, verbosity=0)
             (vals, vecs, info), pb = ChainRulesCore.rrule(config, eigsolve, A, x, howmany,
                                                           :LR, alg; alg_rrule=alg_rrule)
             @test_logs pb((ZeroTangent(), im .* vecs[1:2] .+ vecs[2:-1:1], NoTangent()))
 
-            alg_rrule = Arnoldi(; tol=tol, krylovdim=n, verbosity=0)
+            alg = Arnoldi(; tol=tol, krylovdim=n, verbosity=0)
+            alg_rrule = Arnoldi(; tol=tol, krylovdim=n, verbosity=1)
             (vals, vecs, info), pb = ChainRulesCore.rrule(config, eigsolve, A, x, howmany,
                                                           :LR, alg; alg_rrule=alg_rrule)
             @test_logs (:warn,) pb((ZeroTangent(), im .* vecs[1:2] .+ vecs[2:-1:1],
@@ -282,7 +282,8 @@ end
             pbs = @test_logs pb((ZeroTangent(), vecs[1:2], NoTangent()))
             @test norm(unthunk(pbs[1]), Inf) < condA * sqrt(eps(real(T)))
 
-            alg_rrule = Arnoldi(; tol=tol, krylovdim=n, verbosity=1)
+            alg = Arnoldi(; tol=tol, krylovdim=n, verbosity=1)
+            alg_rrule = Arnoldi(; tol=tol, krylovdim=n, verbosity=2)
             (vals, vecs, info), pb = ChainRulesCore.rrule(config, eigsolve, A, x, howmany,
                                                           :LR, alg; alg_rrule=alg_rrule)
             @test_logs (:warn,) (:info,) pb((ZeroTangent(), im .* vecs[1:2] .+ vecs[2:-1:1],
@@ -290,12 +291,14 @@ end
             pbs = @test_logs (:info,) pb((ZeroTangent(), vecs[1:2], NoTangent()))
             @test norm(unthunk(pbs[1]), Inf) < condA * sqrt(eps(real(T)))
 
-            alg_rrule = GMRES(; tol=tol, krylovdim=n, verbosity=-1)
+            alg = Arnoldi(; tol=tol, krylovdim=n, verbosity=0)
+            alg_rrule = GMRES(; tol=tol, krylovdim=n, verbosity=0)
             (vals, vecs, info), pb = ChainRulesCore.rrule(config, eigsolve, A, x, howmany,
                                                           :LR, alg; alg_rrule=alg_rrule)
             @test_logs pb((ZeroTangent(), im .* vecs[1:2] .+ vecs[2:-1:1], NoTangent()))
 
-            alg_rrule = GMRES(; tol=tol, krylovdim=n, verbosity=0)
+            alg = Arnoldi(; tol=tol, krylovdim=n, verbosity=0)
+            alg_rrule = GMRES(; tol=tol, krylovdim=n, verbosity=1)
             (vals, vecs, info), pb = ChainRulesCore.rrule(config, eigsolve, A, x, howmany,
                                                           :LR, alg; alg_rrule=alg_rrule)
             @test_logs (:warn,) (:warn,) pb((ZeroTangent(),
@@ -305,13 +308,15 @@ end
             pbs = @test_logs pb((ZeroTangent(), vecs[1:2], NoTangent()))
             @test norm(unthunk(pbs[1]), Inf) < condA * sqrt(eps(real(T)))
 
-            alg_rrule = GMRES(; tol=tol, krylovdim=n, verbosity=1)
+            alg = Arnoldi(; tol=tol, krylovdim=n, verbosity=1)
+            alg_rrule = GMRES(; tol=tol, krylovdim=n, verbosity=2)
             (vals, vecs, info), pb = ChainRulesCore.rrule(config, eigsolve, A, x, howmany,
                                                           :LR, alg; alg_rrule=alg_rrule)
-            @test_logs (:warn,) (:info,) (:warn,) (:info,) pb((ZeroTangent(),
-                                                               im .* vecs[1:2] .+
-                                                               vecs[2:-1:1],
-                                                               NoTangent()))
+            @test_logs (:warn,) (:info,) (:info,) (:warn,) (:info,) (:info,) pb((ZeroTangent(),
+                                                                                 im .*
+                                                                                 vecs[1:2] .+
+                                                                                 vecs[2:-1:1],
+                                                                                 NoTangent()))
             pbs = @test_logs (:info,) (:info,) pb((ZeroTangent(), vecs[1:2], NoTangent()))
             @test norm(unthunk(pbs[1]), Inf) < condA * sqrt(eps(real(T)))
         end
@@ -332,26 +337,24 @@ end
         d = 2 * (rand(T, N) .- one(T) / 2)
 
         howmany = 2
-        tol = 2 * N^2 * eps(real(T))
+        tol = tolerance(T) # 2 * N^2 * eps(real(T))
         alg = Arnoldi(; tol=tol, krylovdim=2n)
-        alg_rrule1 = Arnoldi(; tol=tol, krylovdim=2n, verbosity=-1)
-        alg_rrule2 = GMRES(; tol=tol, krylovdim=2n, verbosity=-1)
+        alg_rrule1 = Arnoldi(; tol=tol, krylovdim=2n, verbosity=0)
+        alg_rrule2 = GMRES(; tol=tol, krylovdim=2n, verbosity=0)
         @testset for alg_rrule in (alg_rrule1, alg_rrule2)
-            fun_example, fun_example_fd, Avec, xvec, cvec, dvec, vals, vecs, howmany = build_fun_example(A,
-                                                                                                         x,
-                                                                                                         c,
-                                                                                                         d,
-                                                                                                         howmany,
-                                                                                                         which,
-                                                                                                         alg,
-                                                                                                         alg_rrule)
+            #! format: off
+            fun_example, fun_example_fd, Avec, xvec, cvec, dvec, vals, vecs, howmany =
+                build_fun_example(A, x, c, d, howmany, which, alg, alg_rrule)
+            #! format: on
 
             (JA, Jx, Jc, Jd) = FiniteDifferences.jacobian(fdm, fun_example_fd, Avec, xvec,
                                                           cvec, dvec)
             (JA′, Jx′, Jc′, Jd′) = Zygote.jacobian(fun_example, Avec, xvec, cvec, dvec)
-            @test JA ≈ JA′
-            @test Jc ≈ Jc′
-            @test Jd ≈ Jd′
+
+            rtol = cond(A + c * d') * sqrt(eps(real(T)))
+            @test isapprox(JA, JA′; rtol=rtol)
+            @test isapprox(Jc, Jc′; rtol=rtol)
+            @test isapprox(Jd, Jd′; rtol=rtol)
         end
     end
 end
@@ -366,24 +369,22 @@ end
         c = 2 * (rand(T, N) .- one(T) / 2)
 
         howmany = 2
-        tol = 2 * N^2 * eps(real(T))
+        tol = tolerance(T)
         alg = Lanczos(; tol=tol, krylovdim=2n)
-        alg_rrule1 = Arnoldi(; tol=tol, krylovdim=2n, verbosity=-1)
-        alg_rrule2 = GMRES(; tol=tol, krylovdim=2n, verbosity=-1)
+        alg_rrule1 = Arnoldi(; tol=tol, krylovdim=2n, verbosity=0)
+        alg_rrule2 = GMRES(; tol=tol, krylovdim=2n, verbosity=0)
         @testset for alg_rrule in (alg_rrule1, alg_rrule2)
-            fun_example, fun_example_fd, Avec, xvec, cvec, vals, vecs, howmany = build_hermitianfun_example(A,
-                                                                                                            x,
-                                                                                                            c,
-                                                                                                            howmany,
-                                                                                                            which,
-                                                                                                            alg,
-                                                                                                            alg_rrule)
+            #! format: off
+            fun_example, fun_example_fd, Avec, xvec, cvec, vals, vecs, howmany =
+                build_hermitianfun_example(A, x, c, howmany, which, alg, alg_rrule)
+            #! format: on
 
             (JA, Jx, Jc) = FiniteDifferences.jacobian(fdm, fun_example_fd, Avec, xvec,
                                                       cvec)
             (JA′, Jx′, Jc′) = Zygote.jacobian(fun_example, Avec, xvec, cvec)
-            @test JA ≈ JA′
-            @test Jc ≈ Jc′
+            rtol = cond(A + c * c') * sqrt(eps(real(T)))
+            @test isapprox(JA, JA′; rtol=rtol)
+            @test isapprox(Jc, Jc′; rtol=rtol)
         end
     end
 end

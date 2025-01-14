@@ -19,7 +19,47 @@
                                                       n1, :SR; orth=orth, krylovdim=n,
                                                       maxiter=1, tol=tolerance(T),
                                                       ishermitian=true, isposdef=true,
-                                                      verbosity=2)
+                                                      verbosity=0)
+
+            if info.converged < n1
+                @test_logs geneigsolve((wrapop(A, Val(mode)),
+                                        wrapop(B, Val(mode))),
+                                       wrapvec(v, Val(mode)),
+                                       n1, :SR; orth=orth, krylovdim=n,
+                                       maxiter=1, tol=tolerance(T),
+                                       ishermitian=true, isposdef=true,
+                                       verbosity=0)
+                @test_logs geneigsolve((wrapop(A, Val(mode)),
+                                        wrapop(B, Val(mode))),
+                                       wrapvec(v, Val(mode)),
+                                       n1, :SR; orth=orth, krylovdim=n,
+                                       maxiter=1, tol=tolerance(T),
+                                       ishermitian=true, isposdef=true,
+                                       verbosity=1)
+                @test_logs (:warn,) geneigsolve((wrapop(A, Val(mode)),
+                                                 wrapop(B, Val(mode))),
+                                                wrapvec(v, Val(mode)),
+                                                n1, :SR; orth=orth, krylovdim=n1 + 1,
+                                                maxiter=1, tol=tolerance(T),
+                                                ishermitian=true, isposdef=true,
+                                                verbosity=1)
+                @test_logs (:info,) geneigsolve((wrapop(A, Val(mode)),
+                                                 wrapop(B, Val(mode))),
+                                                wrapvec(v, Val(mode)),
+                                                n1, :SR; orth=orth, krylovdim=n,
+                                                maxiter=1, tol=tolerance(T),
+                                                ishermitian=true, isposdef=true,
+                                                verbosity=2)
+                @test_logs min_level = Logging.Warn geneigsolve((wrapop(A, Val(mode)),
+                                                                 wrapop(B, Val(mode))),
+                                                                wrapvec(v, Val(mode)),
+                                                                n1, :SR; orth=orth,
+                                                                krylovdim=n,
+                                                                maxiter=1, tol=tolerance(T),
+                                                                ishermitian=true,
+                                                                isposdef=true,
+                                                                verbosity=3)
+            end
             @test KrylovKit.geneigselector((wrapop(A, Val(mode)), wrapop(B, Val(mode))),
                                            scalartype(v); orth=orth, krylovdim=n,
                                            maxiter=1, tol=tolerance(T), ishermitian=true,
@@ -55,7 +95,7 @@ end
             B = sqrt(B * B')
             v = rand(T, (N,))
             alg = GolubYe(; orth=orth, krylovdim=3 * n, maxiter=100,
-                          tol=cond(B) * tolerance(T))
+                          tol=cond(B) * tolerance(T), verbosity=0)
             D1, V1, info1 = @constinferred geneigsolve((wrapop(A, Val(mode)),
                                                         wrapop(B, Val(mode))),
                                                        wrapvec(v, Val(mode)),

@@ -34,7 +34,8 @@ function make_linsolve_pullback(fᴴ, b, a₀, a₁, alg_rrule, construct∂f, x
                                                                                      a₁)))
         ∂b, reverse_info = linsolve(fᴴ, x̄, x̄₀, alg_rrule, conj(a₀),
                                     conj(a₁))
-        if info.converged > 0 && reverse_info.converged == 0 && alg_rrule.verbosity >= 0
+        if info.converged > 0 && reverse_info.converged == 0 &&
+           alg_primal.verbosity >= WARN_LEVEL
             @warn "`linsolve` cotangent problem did not converge, whereas the primal linear problem did: normres = $(reverse_info.normres)"
         end
         x∂b = inner(x, ∂b)

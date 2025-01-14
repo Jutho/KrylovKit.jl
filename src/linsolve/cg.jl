@@ -20,12 +20,14 @@ function linsolve(operator, b, x₀, alg::CG, a₀::Real=0, a₁::Real=1; alg_rr
 
     # Check for early return
     if normr < tol
-        if alg.verbosity > 0
+        if alg.verbosity >= STARTSTOP_LEVEL
             @info """CG linsolve converged without any iterations:
-             *  norm of residual = $normr
-             *  number of operations = 1"""
+            * norm of residual = $(normres2string(normr))
+            * number of operations = 1"""
         end
         return (x, ConvergenceInfo(1, r, normr, numiter, numops))
+    elseif alg.verbosity >= STARTSTOP_LEVEL
+        @info "CG linsolve starts with norm of residual = $(normres2string(normr))"
     end
 
     # First iteration
@@ -41,25 +43,23 @@ function linsolve(operator, b, x₀, alg::CG, a₀::Real=0, a₁::Real=1; alg_rr
     β = ρ / ρold
     numops += 1
     numiter += 1
+
     if normr < tol
-        if alg.verbosity > 0
+        if alg.verbosity >= STARTSTOP_LEVEL
             @info """CG linsolve converged at iteration $numiter:
-             *  norm of residual = $normr
-             *  number of operations = $numops"""
+            * norm of residual = $(normres2string(normr))
+            * number of operations = $numops"""
         end
         return (x, ConvergenceInfo(1, r, normr, numiter, numops))
     end
-    if alg.verbosity > 1
-        msg = "CG linsolve in iter $numiter: "
-        msg *= "normres = "
-        msg *= @sprintf("%.12e", normr)
-        @info msg
+    if alg.verbosity >= EACHITERATION_LEVEL
+        @info "CG linsolve in iteration $numiter: normres = $(normres2string(normr))"
     end
 
     # Check for early return
     normr < tol && return (x, ConvergenceInfo(1, r, normr, numiter, numops))
 
-    while numiter < maxiter
+    while true
         p = add!!(p, r, 1, β)
         q = apply(operator, p, α₀, α₁)
         α = ρ / inner(p, q)
@@ -80,24 +80,23 @@ function linsolve(operator, b, x₀, alg::CG, a₀::Real=0, a₁::Real=1; alg_rr
         numops += 1
         numiter += 1
         if normr < tol
-            if alg.verbosity > 0
+            if alg.verbosity >= STARTSTOP_LEVEL
                 @info """CG linsolve converged at iteration $numiter:
-                 *  norm of residual = $normr
-                 *  number of operations = $numops"""
+                * norm of residual = $(normres2string(normr))
+                * number of operations = $numops"""
             end
             return (x, ConvergenceInfo(1, r, normr, numiter, numops))
         end
-        if alg.verbosity > 1
-            msg = "CG linsolve in iter $numiter: "
-            msg *= "normres = "
-            msg *= @sprintf("%.12e", normr)
-            @info msg
+        if numiter >= maxiter
+            if alg.verbosity >= WARN_LEVEL
+                @warn """CG linsolve stopped without converging after $numiter iterations:
+                * norm of residual = $(normres2string(normr))
+                * number of operations = $numops"""
+            end
+            return (x, ConvergenceInfo(0, r, normr, numiter, numops))
+        end
+        if alg.verbosity >= EACHITERATION_LEVEL
+            @info "CG linsolve in iteration $numiter: normres = $(normres2string(normr))"
         end
     end
-    if alg.verbosity > 0
-        @warn """CG linsolve finished without converging after $numiter iterations:
-         *  norm of residual = $normr
-         *  number of operations = $numops"""
-    end
-    return (x, ConvergenceInfo(0, r, normr, numiter, numops))
 end

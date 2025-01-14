@@ -81,8 +81,12 @@ The return value is always of the form `vals, lvecs, rvecs, info = svdsolve(...)
 
 Keyword arguments and their default values are given by:
 
-  - `verbosity::Int = 0`: verbosity level, i.e. 0 (no messages), 1 (single message
-    at the end), 2 (information after every iteration), 3 (information per Krylov step)
+  - `verbosity::Int = 0`: verbosity level
+    - 0 (suppress all messages)
+    - 1 (only warnings)
+    - 2 (one message with convergence info at the end)
+    - 3 (progress info after every iteration)
+    - 4+ (all of the above and additional information about the GKL iteration)
   - `krylovdim`: the maximum dimension of the Krylov subspace that will be constructed.
     Note that the dimension of the vector space is not known or checked, e.g. `x₀` should
     not necessarily support the `Base.length` function. If you know the actual problem
@@ -153,7 +157,7 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL;
     numiter = 1
     # initialize GKL factorization
     iter = GKLIterator(A, x₀, alg.orth)
-    fact = initialize(iter; verbosity=alg.verbosity - 2)
+    fact = initialize(iter; verbosity=alg.verbosity - EACHITERATION_LEVEL)
     numops = 2
     sizehint!(fact, krylovdim)
     β = normres(fact)
@@ -171,10 +175,11 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL;
         β = normres(fact)
         K = length(fact)
 
-        if β < tol
-            if K < howmany
-                @warn "Invariant subspace of dimension $K (up to requested tolerance `tol = $tol`), which is smaller than the number of requested singular values (i.e. `howmany == $howmany`); setting `howmany = $K`."
-                howmany = K
+        if β <= tol && K < howmany
+            if alg.verbosity >= WARN_LEVEL
+                msg = "Invariant subspace of dimension $K (up to requested tolerance `tol = $tol`), "
+                msg *= "which is smaller than the number of requested eigenvalues (i.e. `howmany == $howmany`)."
+                @warn msg
             end
         end
         if K == krylovdim || β <= tol || (alg.eager && K >= howmany)
@@ -201,23 +206,15 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL;
                 converged += 1
             end
 
-            if converged >= howmany
+            if converged >= howmany || β <= tol
                 break
-            elseif alg.verbosity > 1
-                msg = "GKL svdsolve in iter $numiter, krylovdim $krylovdim: "
-                msg *= "$converged values converged, normres = ("
-                msg *= @sprintf("%.2e", abs(f[1]))
-                for i in 2:howmany
-                    msg *= ", "
-                    msg *= @sprintf("%.2e", abs(f[i]))
-                end
-                msg *= ")"
-                @info msg
+            elseif alg.verbosity >= EACHITERATION_LEVEL
+                @info "GKL svdsolve in iteration $numiter, step $K: $converged values converged, normres = $(normres2string(abs.(f[1:howmany])))"
             end
         end
 
         if K < krylovdim # expand
-            fact = expand!(iter, fact; verbosity=alg.verbosity - 2)
+            fact = expand!(iter, fact; verbosity=alg.verbosity - EACHITERATION_LEVEL)
             numops += 2
         else ## shrink and restart
             if numiter == maxiter
@@ -270,7 +267,7 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL;
                 fact.βs[j] = H[j + 1, j]
             end
             # Shrink GKL factorization
-            fact = shrink!(fact, keep)
+            fact = shrink!(fact, keep; verbosity=alg.verbosity - EACHITERATION_LEVEL)
             numiter += 1
         end
     end
@@ -296,18 +293,16 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL;
     normresiduals = let f = f
         map(i -> abs(f[i]), 1:howmany)
     end
-    if alg.verbosity > 0
-        if converged < howmany
-            @warn """GKL svdsolve finished without convergence after $numiter iterations:
-             *  $converged singular values converged
-             *  norm of residuals = $((normresiduals...,))
-             *  number of operations = $numops"""
-        else
-            @info """GKL svdsolve finished after $numiter iterations:
-             *  $converged singular values converged
-             *  norm of residuals = $((normresiduals...,))
-             *  number of operations = $numops"""
-        end
+    if (converged < howmany) && alg.verbosity >= WARN_LEVEL
+        @warn """GKL svdsolve finished without convergence after $numiter iterations:
+        * $converged singular values converged
+        * norm of residuals = $(normres2string(normresiduals))
+        * number of operations = $numops"""
+    elseif alg.verbosity >= STARTSTOP_LEVEL
+        @info """GKL svdsolve finished after $numiter iterations:
+        * $converged singular values converged
+        * norm of residuals = $(normres2string(normresiduals))
+        * number of operations = $numops"""
     end
 
     return values,

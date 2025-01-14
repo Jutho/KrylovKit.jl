@@ -40,15 +40,17 @@ function lssolve(operator, b, alg::LSMR, λ_::Real=0)
     λ::S = convert(S, λ_)
 
     # Check for early return
-    if abs(ζ̄) < tol
-        if alg.verbosity > 0
+    if absζ̄ < tol
+        if alg.verbosity > STARTSTOP_LEVEL
             @info """LSMR lssolve converged without any iterations:
-             *  ‖b - A * x ‖ = $β
-             *  ‖[b - A * x; λ * x] ‖ = $β
-             *  ‖ Aᴴ(b - A x) - λ^2 x ‖ = $absζ̄
-             *  number of operations = $numops"""
+            * ‖b - A * x ‖ = $(normres2string(β))
+            * ‖[b - A * x; λ * x] ‖ = $(normres2string(β))
+            * ‖ Aᴴ(b - A x) - λ^2 x ‖ = $(normres2string(absζ̄))
+            * number of operations = $numops"""
         end
-        return (x, ConvergenceInfo(1, r, abs(ζ̄), numiter, numops))
+        return (x, ConvergenceInfo(1, r, absζ̄, numiter, numops))
+    elseif alg.verbosity >= STARTSTOP_LEVEL
+        @info "LSMR lssolve starts with convergence measure ‖ Aᴴ(b - A x) - λ^2 x ‖ = $(normres2string(absζ̄))"
     end
 
     while true
@@ -101,31 +103,27 @@ function lssolve(operator, b, alg::LSMR, λ_::Real=0)
 
         absζ̄ = abs(ζ̄)
         if absζ̄ <= tol
-            if alg.verbosity > 0
+            if alg.verbosity >= STARTSTOP_LEVEL
                 @info """LSMR lssolve converged at iteration $numiter:
-                 *  ‖ b - A x ‖ = $(norm(r))
-                 *  ‖ x ‖ = $(norm(x))
-                 *  ‖ Aᴴ(b - A x) - λ^2 x ‖ = $absζ̄
-                 *  number of operations = $numops"""
+                * ‖ b - A x ‖ = $(normres2string(norm(r)))
+                * ‖ x ‖ = $(normres2string(norm(x)))
+                * ‖ Aᴴ(b - A x) - λ^2 x ‖ = $(normres2string(absζ̄))
+                * number of operations = $numops"""
             end
             return (x, ConvergenceInfo(1, r, absζ̄, numiter, numops))
-        elseif numiter >= maxiter
-            if alg.verbosity > 0
-                normr = norm(r)
-                normx = norm(x)
+        end
+        if numiter >= maxiter
+            if alg.verbosity >= WARN_LEVEL
                 @warn """LSMR lssolve finished without converging after $numiter iterations:
-                 *  ‖ b - A x ‖ = $(norm(r))
-                 *  ‖ x ‖ = $(norm(x))
-                 *  ‖ Aᴴ(b - A x) - λ^2 x ‖ = $absζ̄
-                 *  number of operations = $numops"""
+                * ‖ b - A x ‖ = $(normres2string(norm(r)))
+                * ‖ x ‖ = $(normres2string(norm(x)))
+                * ‖ Aᴴ(b - A x) - λ^2 x ‖ = $(normres2string(absζ̄))
+                * number of operations = $numops"""
             end
             return (x, ConvergenceInfo(0, r, absζ̄, numiter, numops))
         end
-        if alg.verbosity > 1
-            msg = "LSMR lssolve in iter $numiter: "
-            msg *= "convergence measure ‖ Aᴴ(b - A x) - λ^2 x ‖ = "
-            msg *= @sprintf("%.12e", absζ̄)
-            @info msg
+        if alg.verbosity >= EACHITERATION_LEVEL
+            @info "LSMR lssolve in iter $numiter: convergence measure ‖ Aᴴ(b - A x) - λ^2 x ‖ = $(normres2string(absζ̄))"
         end
     end
 end

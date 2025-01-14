@@ -84,8 +84,12 @@ abstract type KrylovAlgorithm end
 
 # General purpose; good for linear systems, eigensystems and matrix functions
 """
-    Lanczos(; krylovdim=KrylovDefaults.krylovdim, maxiter=KrylovDefaults.maxiter,
-        tol=KrylovDefaults.tol, orth=KrylovDefaults.orth, eager=false, verbosity=0)
+    Lanczos(; krylovdim=KrylovDefaults.krylovdim,
+            maxiter=KrylovDefaults.maxiter,
+            tol=KrylovDefaults.tol,
+            orth=KrylovDefaults.orth,
+            eager=false,
+            verbosity=KrylovDefaults.verbosity[])
 
 Represents the Lanczos algorithm for building the Krylov subspace; assumes the linear
 operator is real symmetric or complex Hermitian. Can be used in `eigsolve` and
@@ -111,18 +115,22 @@ struct Lanczos{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     verbosity::Int
 end
 function Lanczos(;
-                 krylovdim::Int=KrylovDefaults.krylovdim,
-                 maxiter::Int=KrylovDefaults.maxiter,
-                 tol::Real=KrylovDefaults.tol,
+                 krylovdim::Int=KrylovDefaults.krylovdim[],
+                 maxiter::Int=KrylovDefaults.maxiter[],
+                 tol::Real=KrylovDefaults.tol[],
                  orth::Orthogonalizer=KrylovDefaults.orth,
                  eager::Bool=false,
-                 verbosity::Int=0)
+                 verbosity::Int=KrylovDefaults.verbosity[])
     return Lanczos(orth, krylovdim, maxiter, tol, eager, verbosity)
 end
 
 """
-    GKL(; krylovdim=KrylovDefaults.krylovdim, maxiter=KrylovDefaults.maxiter,
-        tol=KrylovDefaults.tol, orth=KrylovDefaults.orth, verbosity=0)
+    GKL(; krylovdim=KrylovDefaults.krylovdim,
+        maxiter=KrylovDefaults.maxiter,
+        tol=KrylovDefaults.tol,
+        orth=KrylovDefaults.orth,
+        eager=false,
+        verbosity=KrylovDefaults.verbosity[])
 
 Represents the Golub-Kahan-Lanczos bidiagonalization algorithm for sequentially building a
 Krylov-like factorization of a general matrix or linear operator with a bidiagonal reduced
@@ -143,18 +151,22 @@ struct GKL{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     verbosity::Int
 end
 function GKL(;
-             krylovdim::Int=KrylovDefaults.krylovdim,
-             maxiter::Int=KrylovDefaults.maxiter,
-             tol::Real=KrylovDefaults.tol,
+             krylovdim::Int=KrylovDefaults.krylovdim[],
+             maxiter::Int=KrylovDefaults.maxiter[],
+             tol::Real=KrylovDefaults.tol[],
              orth::Orthogonalizer=KrylovDefaults.orth,
              eager::Bool=false,
-             verbosity::Int=0)
+             verbosity::Int=KrylovDefaults.verbosity[])
     return GKL(orth, krylovdim, maxiter, tol, eager, verbosity)
 end
 
 """
-    Arnoldi(; krylovdim=KrylovDefaults.krylovdim, maxiter=KrylovDefaults.maxiter,
-        tol=KrylovDefaults.tol, orth=KrylovDefaults.orth, eager=false, verbosity=0)
+    Arnoldi(; krylovdim=KrylovDefaults.krylovdim,
+            maxiter=KrylovDefaults.maxiter,
+            tol=KrylovDefaults.tol,
+            orth=KrylovDefaults.orth,
+            eager=false,
+            verbosity=KrylovDefaults.verbosity[])
 
 Represents the Arnoldi algorithm for building the Krylov subspace for a general matrix or
 linear operator. Can be used in `eigsolve` and `exponentiate`. The corresponding algorithms
@@ -180,18 +192,22 @@ struct Arnoldi{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     verbosity::Int
 end
 function Arnoldi(;
-                 krylovdim::Int=KrylovDefaults.krylovdim,
-                 maxiter::Int=KrylovDefaults.maxiter,
-                 tol::Real=KrylovDefaults.tol,
+                 krylovdim::Int=KrylovDefaults.krylovdim[],
+                 maxiter::Int=KrylovDefaults.maxiter[],
+                 tol::Real=KrylovDefaults.tol[],
                  orth::Orthogonalizer=KrylovDefaults.orth,
                  eager::Bool=false,
-                 verbosity::Int=0)
+                 verbosity::Int=KrylovDefaults.verbosity[])
     return Arnoldi(orth, krylovdim, maxiter, tol, eager, verbosity)
 end
 
 """
-    GolubYe(; krylovdim=KrylovDefaults.krylovdim, maxiter=KrylovDefaults.maxiter,
-        tol=KrylovDefaults.tol, orth=KrylovDefaults.orth, verbosity=0)
+    GolubYe(; krylovdim=KrylovDefaults.krylovdim,
+            maxiter=KrylovDefaults.maxiter,
+            tol=KrylovDefaults.tol,
+            orth=KrylovDefaults.orth,
+            eager=false,
+            verbosity=KrylovDefaults.verbosity[])
 
 Represents the Golub-Ye algorithm for solving hermitian (symmetric) generalized eigenvalue
 problems `A x = λ B x` with positive definite `B`, without the need for inverting `B`.
@@ -210,11 +226,11 @@ struct GolubYe{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     verbosity::Int
 end
 function GolubYe(;
-                 krylovdim::Int=KrylovDefaults.krylovdim,
-                 maxiter::Int=KrylovDefaults.maxiter,
-                 tol::Real=KrylovDefaults.tol,
+                 krylovdim::Int=KrylovDefaults.krylovdim[],
+                 maxiter::Int=KrylovDefaults.maxiter[],
+                 tol::Real=KrylovDefaults.tol[],
                  orth::Orthogonalizer=KrylovDefaults.orth,
-                 verbosity::Int=0)
+                 verbosity::Int=KrylovDefaults.verbosity[])
     return GolubYe(orth, krylovdim, maxiter, tol, verbosity)
 end
 
@@ -222,7 +238,7 @@ end
 abstract type LinearSolver <: KrylovAlgorithm end
 
 """
-    CG(; maxiter=KrylovDefaults.maxiter, tol=KrylovDefaults.tol, verbosity=0)
+    CG(; maxiter=KrylovDefaults.maxiter, tol=KrylovDefaults.tol, verbosity=KrylovDefaults.verbosity[])
 
 Construct an instance of the conjugate gradient algorithm with specified parameters, which
 can be passed to `linsolve` in order to iteratively solve a linear system with a positive
@@ -240,15 +256,18 @@ struct CG{S<:Real} <: LinearSolver
     verbosity::Int
 end
 function CG(;
-            maxiter::Integer=KrylovDefaults.maxiter,
-            tol::Real=KrylovDefaults.tol,
-            verbosity::Int=0)
+            maxiter::Integer=KrylovDefaults.maxiter[],
+            tol::Real=KrylovDefaults.tol[],
+            verbosity::Int=KrylovDefaults.verbosity[])
     return CG(maxiter, tol, verbosity)
 end
 
 """
-    GMRES(; krylovdim=KrylovDefaults.krylovdim, maxiter=KrylovDefaults.maxiter,
-        tol=KrylovDefaults.tol, orth::Orthogonalizer=KrylovDefaults.orth)
+    GMRES(; krylovdim=KrylovDefaults.krylovdim,
+            maxiter=KrylovDefaults.maxiter,
+            tol=KrylovDefaults.tol, 
+            orth::Orthogonalizer=KrylovDefaults.orth,
+            verbosity=KrylovDefaults.verbosity[])
 
 Construct an instance of the GMRES algorithm with specified parameters, which can be passed
 to `linsolve` in order to iteratively solve a linear system. The `GMRES` method will search
@@ -273,17 +292,17 @@ struct GMRES{O<:Orthogonalizer,S<:Real} <: LinearSolver
     verbosity::Int
 end
 function GMRES(;
-               krylovdim::Integer=KrylovDefaults.krylovdim,
-               maxiter::Integer=KrylovDefaults.maxiter,
-               tol::Real=KrylovDefaults.tol,
+               krylovdim::Integer=KrylovDefaults.krylovdim[],
+               maxiter::Integer=KrylovDefaults.maxiter[],
+               tol::Real=KrylovDefaults.tol[],
                orth::Orthogonalizer=KrylovDefaults.orth,
-               verbosity::Int=0)
+               verbosity::Int=KrylovDefaults.verbosity[])
     return GMRES(orth, maxiter, krylovdim, tol, verbosity)
 end
 
 # TODO
 """
-    MINRES(; maxiter=KrylovDefaults.maxiter, tol=KrylovDefaults.tol)
+    MINRES(; maxiter=KrylovDefaults.maxiter, tol=KrylovDefaults.tol, verbosity=KrylovDefaults.verbosity[])
 
     !!! warning "Not implemented yet"
 
@@ -304,14 +323,14 @@ struct MINRES{S<:Real} <: LinearSolver
     verbosity::Int
 end
 function MINRES(;
-                maxiter::Integer=KrylovDefaults.maxiter,
-                tol::Real=KrylovDefaults.tol,
-                verbosity::Int=0)
+                maxiter::Integer=KrylovDefaults.maxiter[],
+                tol::Real=KrylovDefaults.tol[],
+                verbosity::Int=KrylovDefaults.verbosity[])
     return MINRES(maxiter, tol, verbosity)
 end
 
 """
-    BiCG(; maxiter=KrylovDefaults.maxiter, tol=KrylovDefaults.tol)
+    BiCG(; maxiter=KrylovDefaults.maxiter, tol=KrylovDefaults.tol, verbosity=KrylovDefaults.verbosity[])
 
     !!! warning "Not implemented yet"
 
@@ -331,14 +350,14 @@ struct BiCG{S<:Real} <: LinearSolver
     verbosity::Int
 end
 function BiCG(;
-              maxiter::Integer=KrylovDefaults.maxiter,
-              tol::Real=KrylovDefaults.tol,
-              verbosity::Int=0)
+              maxiter::Integer=KrylovDefaults.maxiter[],
+              tol::Real=KrylovDefaults.tol[],
+              verbosity::Int=KrylovDefaults.verbosity[])
     return BiCG(maxiter, tol, verbosity)
 end
 
 """
-    BiCGStab(; maxiter=KrylovDefaults.maxiter, tol=KrylovDefaults.tol)
+    BiCGStab(; maxiter=KrylovDefaults.maxiter, tol=KrylovDefaults.tol, verbosity=KrylovDefaults.verbosity[])
 
     Construct an instance of the Biconjugate gradient algorithm with specified parameters,
     which can be passed to `linsolve` in order to iteratively solve a linear system general
@@ -355,16 +374,16 @@ struct BiCGStab{S<:Real} <: LinearSolver
     verbosity::Int
 end
 function BiCGStab(;
-                  maxiter::Integer=KrylovDefaults.maxiter,
-                  tol::Real=KrylovDefaults.tol,
-                  verbosity::Int=0)
+                  maxiter::Integer=KrylovDefaults.maxiter[],
+                  tol::Real=KrylovDefaults.tol[],
+                  verbosity::Int=KrylovDefaults.verbosity[])
     return BiCGStab(maxiter, tol, verbosity)
 end
 
 # Solving least squares problems
 abstract type LeastSquaresSolver <: KrylovAlgorithm end
 """
-LSMR(; maxiter=KrylovDefaults.maxiter, tol=KrylovDefaults.tol, verbosity=0)
+LSMR(; maxiter=KrylovDefaults.maxiter, tol=KrylovDefaults.tol, verbosity=KrylovDefaults.verbosity[])
 
 Represents the LSMR algorithm, which minimizes ``\\|Ax - b\\|^2 + \\|λx\\|^2`` in the Euclidean norm.
 If multiple solutions exists the minimum norm solution is returned.
@@ -385,9 +404,9 @@ struct LSMR{S<:Real} <: LeastSquaresSolver
     verbosity::Int
 end
 function LSMR(;
-              maxiter::Integer=KrylovDefaults.maxiter,
-              tol::Real=KrylovDefaults.tol,
-              verbosity::Int=0)
+              maxiter::Integer=KrylovDefaults.maxiter[],
+              tol::Real=KrylovDefaults.tol[],
+              verbosity::Int=KrylovDefaults.verbosity[])
     return LSMR(maxiter, tol, verbosity)
 end
 
@@ -400,9 +419,10 @@ struct JacobiDavidson <: EigenSolver end
 """
     module KrylovDefaults
         const orth = KrylovKit.ModifiedGramSchmidtIR()
-        const krylovdim = 30
-        const maxiter = 100
-        const tol = 1e-12
+        const krylovdim = Ref(30)
+        const maxiter = Ref(100)
+        const tol = Ref(1e-12)
+        const verbosity = Ref(KrylovKit.WARN_LEVEL)
     end
 
 A module listing the default values for the typical parameters in Krylov based algorithms:
@@ -424,7 +444,8 @@ A module listing the default values for the typical parameters in Krylov based a
 module KrylovDefaults
 using ..KrylovKit
 const orth = KrylovKit.ModifiedGramSchmidt2() # conservative choice
-const krylovdim = 30
-const maxiter = 100
-const tol = 1e-12
+const krylovdim = Ref(30)
+const maxiter = Ref(100)
+const tol = Ref(1e-12)
+const verbosity = Ref(KrylovKit.WARN_LEVEL)
 end

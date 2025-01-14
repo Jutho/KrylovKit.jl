@@ -135,7 +135,7 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
             b = (zerovector(v), convert(T, Δλ))
         else
             vdΔv = inner(v, Δv)
-            if alg_rrule.verbosity >= 0
+            if alg_rrule.verbosity >= WARN_LEVEL
                 gauge = abs(imag(vdΔv))
                 gauge > alg_primal.tol &&
                     @warn "`eigsolve` cotangent for eigenvector $i is sensitive to gauge choice: (|gauge| = $gauge)"
@@ -152,9 +152,11 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
                 return (y1, y2)
             end
         end
-        if info.converged >= i && reverse_info.converged == 0 && alg_rrule.verbosity >= 0
+        if info.converged >= i && reverse_info.converged == 0 &&
+           alg_primal.verbosity >= WARN_LEVEL
             @warn "`eigsolve` cotangent linear problem ($i) did not converge, whereas the primal eigenvalue problem did: normres = $(reverse_info.normres)"
-        elseif abs(w[2]) > alg_rrule.tol && alg_rrule.verbosity >= 0
+        elseif abs(w[2]) > (alg_rrule.tol * norm(w[1])) &&
+               alg_primal.verbosity >= WARN_LEVEL
             @warn "`eigsolve` cotangent linear problem ($i) returns unexpected result: error = $(w[2])"
         end
         ws[i] = w[1]
@@ -185,7 +187,7 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
 
     # components along subspace spanned by current eigenvectors
     tol = alg_primal.tol
-    if alg_rrule.verbosity >= 0
+    if alg_rrule.verbosity >= WARN_LEVEL
         mask = abs.(transpose(vals) .- vals) .< tol
         gaugepart = VdΔV[mask] - Diagonal(real(diag(VdΔV)))[mask]
         Δgauge = norm(gaugepart, Inf)
@@ -263,7 +265,8 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
             return (w′, conj.(vals) .* x)
         end
     end
-    if info.converged >= n && reverse_info.converged < n && alg_rrule.verbosity >= 0
+    if info.converged >= n && reverse_info.converged < n &&
+       alg_primal.verbosity >= WARN_LEVEL
         @warn "`eigsolve` cotangent problem did not converge, whereas the primal eigenvalue problem did"
     end
     # cleanup and construct final result by renormalising the eigenvectors and explicitly
@@ -276,7 +279,7 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
         w, x = Ws[ic]
         factor = 1 / x[i]
         x[i] = zero(x[i])
-        if alg_rrule.verbosity >= 0
+        if alg_primal.verbosity >= WARN_LEVEL
             error = max(norm(x, Inf), abs(rvals[ic] - conj(vals[i])))
             error > 10 * tol &&
                 @warn "`eigsolve` cotangent linear problem ($i) returns unexpected result: error = $error"
@@ -308,7 +311,7 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
     # components along subspace spanned by current eigenvectors
     tol = alg_primal.tol
     aVdΔV = rmul!(VdΔV - VdΔV', 1 / 2)
-    if alg_rrule.verbosity >= 0
+    if alg_rrule.verbosity >= WARN_LEVEL
         mask = abs.(transpose(vals) .- vals) .< tol
         gaugepart = view(aVdΔV, mask)
         gauge = norm(gaugepart, Inf)
@@ -366,7 +369,8 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
             return (w′, vals .* x)
         end
     end
-    if info.converged >= n && reverse_info.converged < n && alg_rrule.verbosity >= 0
+    if info.converged >= n && reverse_info.converged < n &&
+       alg_primal.verbosity >= WARN_LEVEL
         @warn "`eigsolve` cotangent problem did not converge, whereas the primal eigenvalue problem did"
     end
 
@@ -380,7 +384,7 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
         factor = 1 / x[ic]
         x[ic] = zero(x[ic])
         error = max(norm(x, Inf), abs(rvals[i] - conj(vals[ic])))
-        if error > 5 * tol && alg_rrule.verbosity >= 0
+        if error > 10 * tol && alg_primal.verbosity >= WARN_LEVEL
             @warn "`eigsolve` cotangent linear problem ($ic) returns unexpected result: error = $error"
         end
         ws[ic] = VectorInterface.add!!(zs[ic], Q(w), -factor)

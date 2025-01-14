@@ -17,12 +17,6 @@ linear map, i.e. a `AbstractMatrix` or just a general function or callable objec
     any eigenvalues with real part larger than zero, however, the solution to the ODE will
     diverge, i.e. the fixed point is not stable.
 
-!!! warning
-
-    The returned solution might be the solution of the ODE integrated up to a smaller time
-    ``t̃ = sign(t) * |t̃|`` with ``|t̃| < |t|``, when the required precision could not be
-    attained. Always check `info.converged > 0` or `info.residual == 0` (see below).
-
 ### Arguments:
 
 The linear map `A` can be an `AbstractMatrix` (dense or sparse) or a general function or
@@ -41,18 +35,16 @@ of any type and should be in the domain of `A`.
 The return value is always of the form `y, info = expintegrator(...)` with
 
   - `y`: the result of the computation, i.e.
-    ``y = ϕ₀(t̃*A)*u₀ + t̃*ϕ₁(t̃*A)*u₁ + t̃^2*ϕ₂(t̃*A)*u₂ + …``
-    with ``t̃ = sign(t) * |t̃|`` with ``|t̃| <= |t|``, such that the accumulated error in
-    `y` per unit time is at most equal to the keyword argument `tol`
+    ``y = ϕ₀(t*A)*u₀ + t*ϕ₁(t*A)*u₁ + t^2*ϕ₂(t*A)*u₂ + …``
 
   - `info`: an object of type [`ConvergenceInfo`], which has the following fields
 
-      + `info.converged::Int`: 0 or 1 if the solution `y` was evolved all the way up to the
-        requested time `t`.
-      + `info.residual`: there is no residual in the conventional sense, however, this
-        value equals the residual time `t - t̃`, i.e. it is zero if `info.converged == 1`
+      + `info.converged::Int`: 0 or 1 if the solution `y` at time `t` was found with an
+        error below the requested tolerance per unit time, i.e. if `info.normres <= tol * abs(t)`
+      + `info.residual::Nothing`: value `nothing`, there is no concept of a residual in
+        this case
       + `info.normres::Real`: a (rough) estimate of the total error accumulated in the
-        solution, should be smaller than `tol * |t̃|`
+        solution
       + `info.numops::Int`: number of times the linear map was applied, i.e. number of times
         `f` was called, or a vector was multiplied with `A`
       + `info.numiter::Int`: number of times the Krylov subspace was restarted (see below)
@@ -61,8 +53,12 @@ The return value is always of the form `y, info = expintegrator(...)` with
 
 Keyword arguments and their default values are given by:
 
-  - `verbosity::Int = 0`: verbosity level, i.e. 0 (no messages), 1 (single message
-    at the end), 2 (information after every iteration), 3 (information per Krylov step)
+  - `verbosity::Int = 0`: verbosity level, i.e. 
+    - 0 (suppress all messages)
+    - 1 (only warnings)
+    - 2 (one message with convergence info at the end)
+    - 3 (progress info after every iteration)
+    - 4+ (all of the above and additional information about the Lanczos or Arnoldi iteration)
   - `krylovdim = 30`: the maximum dimension of the Krylov subspace that will be constructed.
     Note that the dimension of the vector space is not known or checked, e.g. `x₀` should
     not necessarily support the `Base.length` function. If you know the actual problem
@@ -116,7 +112,9 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
     S = real(T)
     w₀ = scale(u₀, one(T))
 
-    # krylovdim and related allocations
+    # maxiter, krylovdim and related allocations
+    maxiter = alg.maxiter
+    @assert maxiter >= 1
     krylovdim = alg.krylovdim
     K = krylovdim
     HH = zeros(T, (krylovdim + p + 1, krylovdim + p + 1))
@@ -126,14 +124,23 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
     totalerr = zero(η)
     sgn = sign(t)
     τ::S = abs(t)
-    τ₀::S = zero(τ)
-    Δτ::S = τ - τ₀ # don't try any clever initial guesses, rely on correction mechanism
+    if isfinite(τ)
+        Δτ = τ  # don't try any clever initial guesses, rely on correction mechanism
+        Δτmin = τ / alg.maxiter
+        maxerr = τ * η
+    else
+        Δτ = oneunit(S)
+        Δτmin = zero(S)
+        maxerr = η
+    end
+    totaltimestring = @sprintf("%.2e", τ)
 
     # safety factors
     δ::S = 1.2
     γ::S = 0.8
 
     # initial vectors
+    τ₀ = zero(τ)
     w = Vector{typeof(w₀)}(undef, p + 1)
     w[1] = w₀
     # reuse the result of apply computed earlier:
@@ -151,11 +158,11 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
     end
     v = zerovector(w₀)
     β = norm(w[p + 1])
-    if β < alg.tol && p == 1
-        if alg.verbosity > 0
-            @info """expintegrate finished after 0 iterations, converged to fixed point up to error = $β"""
+    if β < η && p == 1
+        if alg.verbosity >= STARTSTOP_LEVEL
+            @info "expintegrate finished after 0 iterations, converged to fixed point up to error = $(normres2string(β))"
         end
-        return w₀, ConvergenceInfo(1, zero(τ), β, 0, numops)
+        return w₀, ConvergenceInfo(1, nothing, β, 0, numops)
     end
     v = scale!!(v, w[p + 1], 1 / β)
 
@@ -170,14 +177,17 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
     sizehint!(fact, krylovdim)
 
     # start outer iteration loop
-    maxiter = alg.maxiter
     numiter = 1
     while true
         K = length(fact)
         V = basis(fact)
 
         if K == krylovdim
-            Δτ = min(Δτ, τ - τ₀)
+            if numiter < maxiter
+                Δτ = min(Δτ, τ - τ₀)
+            else
+                Δτ = τ - τ₀
+            end
 
             # Small matrix exponential and error estimation
             H = fill!(view(HH, 1:(K + p + 1), 1:(K + p + 1)), zero(T))
@@ -190,11 +200,11 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
             ϵ = abs(Δτ^p * β * normres(fact) * expH[K, K + p + 1])
             ω = ϵ / (Δτ * η)
 
-            q = K / 2
-            while ω > one(ω)
+            q::S = K / 2
+            while numiter < maxiter && ω > one(ω) && Δτ > Δτmin
                 ϵ_prev = ϵ
                 Δτ_prev = Δτ
-                Δτ *= (γ / ω)^(1 / (q + 1))
+                Δτ = max(Δτ * (γ / ω)^(1 // (q + 1)), Δτmin)
                 H = fill!(view(HH, 1:(K + p + 1), 1:(K + p + 1)), zero(T))
                 mul!(view(H, 1:K, 1:K), rayleighquotient(fact), sgn * Δτ)
                 H[1, K + 1] = 1
@@ -208,6 +218,7 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
             end
 
             # take time step
+            τ₀ = numiter < maxiter ? τ₀ + Δτ : τ # to avoid floating point errors
             totalerr += ϵ
             jfac = 1
             for j in 1:(p - 1)
@@ -218,18 +229,10 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
             # add first correction
             w[p + 1] = add!!(w[p + 1], residual(fact), expH[K, K + p + 1])
             w₀ = add!!(w₀, w[p + 1], β * (sgn * Δτ)^p)
-            τ₀ += Δτ
 
             # increase time step for next iteration:
             if ω < γ
                 Δτ *= (γ / ω)^(1 / (q + 1))
-            end
-
-            if alg.verbosity > 1
-                msg = "expintegrate in iteration $numiter: "
-                msg *= "reached time " * @sprintf("%.2e", τ₀)
-                msg *= ", total error = " * @sprintf("%.4e", totalerr)
-                @info msg
             end
         elseif normres(fact) <= ((τ - τ₀) * η) || alg.eager
             # Small matrix exponential and error estimation
@@ -258,49 +261,57 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
             end
         end
         if τ₀ >= τ
-            if alg.verbosity > 0
-                @info """expintegrate finished after $numiter iterations: total error = $totalerr"""
+            if totalerr <= maxerr
+                if alg.verbosity >= STARTSTOP_LEVEL
+                    @info """expintegrate finished after $numiter iterations:
+                    * total error = $(normres2string(totalerr))
+                    * number of operations = $numops"""
+                end
+                return w₀, ConvergenceInfo(1, nothing, totalerr, numiter, numops)
+            else
+                if alg.verbosity >= WARN_LEVEL
+                    @warn """expintegrate did not reach sufficiently small error after $numiter iterations:
+                    * total error = $(normres2string(totalerr))
+                    * number of operations = $numops"""
+                end
+                return w₀, ConvergenceInfo(0, nothing, totalerr, numiter, numops)
             end
-            return w₀, ConvergenceInfo(1, zero(τ), totalerr, numiter, numops)
         end
         if K < krylovdim
-            fact = expand!(iter, fact; verbosity=alg.verbosity - 2)
+            fact = expand!(iter, fact; verbosity=alg.verbosity - EACHITERATION_LEVEL)
             numops += 1
         else
-            if numiter == maxiter
-                if alg.verbosity > 0
-                    @warn """expintegrate finished without convergence after $numiter iterations:
-                    total error = $totalerr, residual time = $(τ - τ₀)"""
-                end
-                return w₀, ConvergenceInfo(0, τ - τ₀, totalerr, numiter, numops)
-            else # reinitialize
-                for j in 1:p
-                    w[j + 1] = apply(A, w[j])
-                    numops += 1
-                    lfac = 1
-                    for l in 0:(p - j)
-                        w[j + 1] = add!!(w[j + 1], u[j + l + 1], (sgn * τ₀)^l / lfac)
-                        lfac *= l + 1
-                    end
-                end
-                β = norm(w[p + 1])
-                if β < alg.tol && p == 1 # w₀ is fixed point of ODE
-                    if alg.verbosity > 0
-                        @info """expintegrate finished after $numiter iterations, converged to fixed point up to error = $β"""
-                    end
-                    return w₀, ConvergenceInfo(1, zero(τ), β, numiter, numops)
-                end
-                v = scale!!(v, w[p + 1], 1 / β)
-
-                if alg isa Lanczos
-                    iter = LanczosIterator(A, w[p + 1], alg.orth)
-                else
-                    iter = ArnoldiIterator(A, w[p + 1], alg.orth)
-                end
-                fact = initialize!(iter, fact; verbosity=alg.verbosity - 2)
+            for j in 1:p
+                w[j + 1] = apply(A, w[j])
                 numops += 1
-                numiter += 1
+                lfac = 1
+                for l in 0:(p - j)
+                    w[j + 1] = add!!(w[j + 1], u[j + l + 1], (sgn * τ₀)^l / lfac)
+                    lfac *= l + 1
+                end
             end
+            β = norm(w[p + 1])
+            if β < η && p == 1 # w₀ is fixed point of ODE
+                if alg.verbosity >= STARTSTOP_LEVEL
+                    @info "expintegrate finished after $numiter iterations, converged to fixed point up to error = $(normres2string(totalerr))"
+                end
+                return w₀, ConvergenceInfo(1, nothing, β, numiter, numops)
+            end
+            v = scale!!(v, w[p + 1], 1 / β)
+
+            if alg.verbosity >= EACHITERATION_LEVEL
+                timestring = @sprintf("%.2e", τ₀)
+                @info "expintegrate in iteration $numiter: reached time $timestring of $totaltimestring, total error = $(normres2string(totalerr))"
+            end
+
+            if alg isa Lanczos
+                iter = LanczosIterator(A, w[p + 1], alg.orth)
+            else
+                iter = ArnoldiIterator(A, w[p + 1], alg.orth)
+            end
+            fact = initialize!(iter, fact; verbosity=alg.verbosity - EACHITERATION_LEVEL)
+            numops += 1
+            numiter += 1
         end
     end
 end

@@ -11,6 +11,24 @@
             T1, V1, D1, info1 = @constinferred schursolve(wrapop(A, Val(mode)),
                                                           wrapvec(v, Val(mode)), n1, :SR,
                                                           alg)
+            @test_logs schursolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n1, :SR,
+                                  alg)
+            alg = Arnoldi(; orth=orth, krylovdim=n, maxiter=1, tol=tolerance(T),
+                          verbosity=1)
+            @test_logs schursolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n1, :SR,
+                                  alg)
+            alg = Arnoldi(; orth=orth, krylovdim=n1 + 1, maxiter=1, tol=tolerance(T),
+                          verbosity=1)
+            @test_logs (:warn,) schursolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n1,
+                                           :SR,
+                                           alg)
+            alg = Arnoldi(; orth=orth, krylovdim=n, maxiter=1, tol=tolerance(T),
+                          verbosity=2)
+            @test_logs (:info,) schursolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n1,
+                                           :SR,
+                                           alg)
+
+            alg = Arnoldi(; orth=orth, krylovdim=n, maxiter=1, tol=tolerance(T))
             n2 = n - n1
             T2, V2, D2, info2 = schursolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n2,
                                            :LR, alg)
@@ -57,7 +75,8 @@ end
         @testset for orth in orths
             A = rand(T, (N, N)) .- one(T) / 2
             v = rand(T, (N,))
-            alg = Arnoldi(; orth=orth, krylovdim=3 * n, maxiter=10, tol=tolerance(T))
+            alg = Arnoldi(; orth=orth, krylovdim=3 * n, maxiter=10, tol=tolerance(T),
+                          verbosity=0)
             T1, V1, D1, info1 = @constinferred schursolve(wrapop(A, Val(mode)),
                                                           wrapvec(v, Val(mode)), n, :SR,
                                                           alg)

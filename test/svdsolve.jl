@@ -9,8 +9,32 @@
             S, lvecs, rvecs, info = @constinferred svdsolve(wrapop(A, Val(mode)),
                                                             wrapvec(A[:, 1], Val(mode)), n,
                                                             :LR, alg)
-
             @test S ≈ svdvals(A)
+            @test info.converged == n
+
+            n1 = div(n, 2)
+            @test_logs svdsolve(wrapop(A, Val(mode)), wrapvec(A[:, 1], Val(mode)), n1, :LR,
+                                alg)
+            alg = GKL(; orth=orth, krylovdim=2 * n, maxiter=1, tol=tolerance(T),
+                      verbosity=1)
+            @test_logs svdsolve(wrapop(A, Val(mode)), wrapvec(A[:, 1], Val(mode)), n1, :LR,
+                                alg)
+            alg = GKL(; orth=orth, krylovdim=n1 + 1, maxiter=1, tol=tolerance(T),
+                      verbosity=1)
+            @test_logs (:warn,) svdsolve(wrapop(A, Val(mode)), wrapvec(A[:, 1], Val(mode)),
+                                         n1, :LR,
+                                         alg)
+            alg = GKL(; orth=orth, krylovdim=2 * n, maxiter=1, tol=tolerance(T),
+                      verbosity=2)
+            @test_logs (:info,) svdsolve(wrapop(A, Val(mode)), wrapvec(A[:, 1], Val(mode)),
+                                         n1, :LR,
+                                         alg)
+            alg = GKL(; orth=orth, krylovdim=2 * n, maxiter=1, tol=tolerance(T),
+                      verbosity=4)
+            @test_logs min_level = Logging.Warn svdsolve(wrapop(A, Val(mode)),
+                                                         wrapvec(A[:, 1], Val(mode)),
+                                                         n1, :LR,
+                                                         alg)
 
             U = stack(unwrapvec, lvecs)
             V = stack(unwrapvec, rvecs)
@@ -31,7 +55,8 @@ end
             A = rand(T, (2 * N, N))
             v = rand(T, (2 * N,))
             n₁ = div(n, 2)
-            alg = GKL(; orth=orth, krylovdim=n, maxiter=10, tol=tolerance(T), eager=true)
+            alg = GKL(; orth=orth, krylovdim=n, maxiter=10, tol=tolerance(T), eager=true,
+                      verbosity=0)
             S, lvecs, rvecs, info = @constinferred svdsolve(wrapop(A, Val(mode)),
                                                             wrapvec(v, Val(mode)),
                                                             n₁, :LR, alg)

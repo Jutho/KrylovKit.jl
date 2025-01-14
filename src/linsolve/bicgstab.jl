@@ -20,12 +20,14 @@ function linsolve(operator, b, x₀, alg::BiCGStab, a₀::Number=0, a₁::Number
 
     # Check for early return
     if normr < tol
-        if alg.verbosity > 0
+        if alg.verbosity >= STARTSTOP_LEVEL
             @info """BiCGStab linsolve converged without any iterations:
-             *  norm of residual = $normr
-             *  number of operations = 1"""
+            * norm of residual = $(normres2string(normr))
+            * number of operations = $numops"""
         end
         return (x, ConvergenceInfo(1, r, normr, numiter, numops))
+    elseif alg.verbosity >= STARTSTOP_LEVEL
+        @info "BiCGStab linsolve starts with norm of residual = $(normres2string(normr))"
     end
 
     # First iteration
@@ -35,9 +37,11 @@ function linsolve(operator, b, x₀, alg::BiCGStab, a₀::Number=0, a₁::Number
 
     # Method fails if ρ is zero.
     if ρ ≈ 0.0
-        @warn """BiCGStab linsolve errored after $numiter iterations:
-        *   norm of residual = $normr
-        *   number of operations = $numops"""
+        if alg.verbosity >= WARN_LEVEL
+            @warn """BiCGStab linsolve errored after $numiter iterations:
+            * norm of residual = $(normres2string(normr))
+            * number of operations = $numops"""
+        end
         return (x, ConvergenceInfo(0, r, normr, numiter, numops))
     end
 
@@ -66,10 +70,10 @@ function linsolve(operator, b, x₀, alg::BiCGStab, a₀::Number=0, a₁::Number
 
         normr_act = norm(s)
         if normr_act < tol
-            if alg.verbosity > 0
+            if alg.verbosity >= STARTSTOP_LEVEL
                 @info """BiCGStab linsolve converged at iteration $(numiter-1/2):
-                 *  norm of residual = $normr_act
-                 *  number of operations = $numops"""
+                * norm of residual = $(normres2string(normr_act))
+                * number of operations = $numops"""
             end
             return (xhalf, ConvergenceInfo(1, s, normr_act, numiter, numops))
         end
@@ -97,23 +101,19 @@ function linsolve(operator, b, x₀, alg::BiCGStab, a₀::Number=0, a₁::Number
 
         normr_act = norm(r)
         if normr_act < tol
-            if alg.verbosity > 0
+            if alg.verbosity >= STARTSTOP_LEVEL
                 @info """BiCGStab linsolve converged at iteration $(numiter):
-                *  norm of residual = $normr_act
-                *  number of operations = $numops"""
+                * norm of residual = $(normres2string(normr_act))
+                * number of operations = $numops"""
             end
             return (x, ConvergenceInfo(1, r, normr_act, numiter, numops))
         end
     end
+    if alg.verbosity >= EACHITERATION_LEVEL
+        @info "BiCGStab linsolve in iteration $numiter: normres = $(normres2string(normr))"
+    end
 
-    while numiter < maxiter
-        if alg.verbosity > 0
-            msg = "BiCGStab linsolve in iter $numiter: "
-            msg *= "normres = "
-            msg *= @sprintf("%12e", normr)
-            @info msg
-        end
-
+    while true
         numiter += 1
         ρold = ρ
         ρ = inner(r_shadow, r)
@@ -136,13 +136,6 @@ function linsolve(operator, b, x₀, alg::BiCGStab, a₀::Number=0, a₁::Number
 
         normr = norm(s)
 
-        if alg.verbosity > 0
-            msg = "BiCGStab linsolve in iter $(numiter-1/2): "
-            msg *= "normres = "
-            msg *= @sprintf("%12e", normr)
-            @info msg
-        end
-
         # Check for return at half step.
         if normr < tol
             # Compute non-approximate residual.
@@ -152,13 +145,16 @@ function linsolve(operator, b, x₀, alg::BiCGStab, a₀::Number=0, a₁::Number
 
             normr_act = norm(s)
             if normr_act < tol
-                if alg.verbosity > 0
+                if alg.verbosity >= STARTSTOP_LEVEL
                     @info """BiCGStab linsolve converged at iteration $(numiter-1/2):
-                    *  norm of residual = $normr_act
-                    *  number of operations = $numops"""
+                    * norm of residual = $(normres2string(normr_act))
+                    * number of operations = $numops"""
                 end
                 return (xhalf, ConvergenceInfo(1, s, normr_act, numiter, numops))
             end
+        end
+        if alg.verbosity >= EACHITERATION_LEVEL
+            @info "BiCGStab linsolve in iteration $(numiter-1/2): normres = $(normres2string(normr))"
         end
 
         ## GMRES part of the algorithm.
@@ -183,20 +179,24 @@ function linsolve(operator, b, x₀, alg::BiCGStab, a₀::Number=0, a₁::Number
 
             normr_act = norm(r)
             if normr_act < tol
-                if alg.verbosity > 0
+                if alg.verbosity >= STARTSTOP_LEVEL
                     @info """BiCGStab linsolve converged at iteration $(numiter):
-                    *  norm of residual = $normr_act
-                    *  number of operations = $numops"""
+                    * norm of residual = $(normres2string(normr_act))
+                    * number of operations = $numops"""
                 end
                 return (x, ConvergenceInfo(1, r, normr_act, numiter, numops))
             end
         end
+        if numiter >= maxiter
+            if alg.verbosity >= WARN_LEVEL
+                @warn """BiCGStab linsolve stopped without converging after $numiter iterations:
+                * norm of residual = $(normres2string(normr))
+                * number of operations = $numops"""
+            end
+            return (x, ConvergenceInfo(0, r, normr, numiter, numops))
+        end
+        if alg.verbosity >= EACHITERATION_LEVEL
+            @info "BiCGStab linsolve in iteration $numiter: normres = $(normres2string(normr))"
+        end
     end
-
-    if alg.verbosity > 0
-        @warn """BiCGStab linsolve finished without converging after $numiter iterations:
-        *   norm of residual = $normr
-        *   number of operations = $numops"""
-    end
-    return (x, ConvergenceInfo(0, r, normr, numiter, numops))
 end

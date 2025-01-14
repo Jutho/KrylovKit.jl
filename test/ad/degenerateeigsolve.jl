@@ -3,6 +3,7 @@ module DegenerateEigsolveAD
 using KrylovKit, LinearAlgebra
 using Random, Test, TestExtras
 using ChainRulesCore, ChainRulesTestUtils, Zygote, FiniteDifferences
+using ..TestSetup
 Random.seed!(987654321)
 
 fdm = ChainRulesTestUtils._fdm
@@ -92,22 +93,16 @@ end
     M = [zeros(T, n, 2n) A; B zeros(T, n, 2n); zeros(T, n, n) C zeros(T, n, n)]
     x = randn(T, N)
 
-    tol = 2 * N^2 * eps(real(T))
+    tol = tolerance(T) #2 * N^2 * eps(real(T))
     alg = Arnoldi(; tol=tol, krylovdim=2n)
-    alg_rrule1 = Arnoldi(; tol=tol, krylovdim=2n, verbosity=-1)
-    alg_rrule2 = GMRES(; tol=tol, krylovdim=2n, verbosity=-1)
-    mat_example1, mat_example_fun1, mat_example_fd, Avec, Bvec, Cvec, xvec, vals, vecs = build_mat_example(A,
-                                                                                                           B,
-                                                                                                           C,
-                                                                                                           x,
-                                                                                                           alg,
-                                                                                                           alg_rrule1)
-    mat_example2, mat_example_fun2, mat_example_fd, Avec, Bvec, Cvec, xvec, vals, vecs = build_mat_example(A,
-                                                                                                           B,
-                                                                                                           C,
-                                                                                                           x,
-                                                                                                           alg,
-                                                                                                           alg_rrule2)
+    alg_rrule1 = Arnoldi(; tol=tol, krylovdim=2n, verbosity=0)
+    alg_rrule2 = GMRES(; tol=tol, krylovdim=2n, verbosity=0)
+    #! format: off
+    mat_example1, mat_example_fun1, mat_example_fd, Avec, Bvec, Cvec, xvec, vals, vecs =
+        build_mat_example(A, B, C, x, alg, alg_rrule1)
+    mat_example2, mat_example_fun2, mat_example_fd, Avec, Bvec, Cvec, xvec, vals, vecs =
+        build_mat_example(A, B, C, x, alg, alg_rrule2)
+    #! format: on
     (JA, JB, JC, Jx) = FiniteDifferences.jacobian(fdm, mat_example_fd, Avec, Bvec,
                                                   Cvec, xvec)
     (JA1, JB1, JC1, Jx1) = Zygote.jacobian(mat_example1, Avec, Bvec, Cvec, xvec)
