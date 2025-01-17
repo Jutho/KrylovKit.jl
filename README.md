@@ -43,7 +43,10 @@ KrylovKit v0.9 adds to new sets of functionality:
   which is a specific `InnerProductVec` type where the redefined inner product forgets about the imaginary part of the original
   `inner` function, thereby effectively treating the vector as living in a real vector space. Furthermore, in this setting, only
   real linear combinations of vectors are allowed, so that for the case of `eigsolve`, only real eigenvalues and eigenvectors are
-  computed. An error will be thrown if the requested list of eigenvalues contains complex eigenvalues. 
+  computed. An error will be thrown if the requested list of eigenvalues contains complex eigenvalues.
+* The verbosity system, the different verbosity levels and the output formatting have been redesigned (both in the primal methods
+  and the rrules). The default verbosity level is now 1, which means that warnings will be printed by default, but all other output
+  (info messages) are suppressed. Before, the default verbosity was such that all output (including warnings) were suppressed.
 
 ## Overview
 KrylovKit.jl accepts general functions or callable objects as linear maps, and general Julia
