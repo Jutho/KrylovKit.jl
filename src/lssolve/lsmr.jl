@@ -12,6 +12,11 @@ function lssolve(operator, b, alg::LSMR, λ_::Real=0)
     α = norm(v)
     v = scale!!(v, 1 / α)
 
+    V = OrthonormalBasis([v])
+    K = alg.krylovdim
+    sizehint!(V, K)
+    Vv = zeros(T, K) # storage for reorthogonalization
+
     # Scalar variables for the bidiagonalization
     ᾱ = α
     ζ̄ = α * β
@@ -25,7 +30,7 @@ function lssolve(operator, b, alg::LSMR, λ_::Real=0)
 
     # Vector variables
     x = zerovector(v)
-    h = v
+    h = scale(v, one(T)) # we need h to be a copy of v when we reuse v₀ in the reorthogonalisation
     h̄ = zerovector(v)
 
     r = scale(u, β)
@@ -59,14 +64,26 @@ function lssolve(operator, b, alg::LSMR, λ_::Real=0)
         Ah = add!!(Ah, Av, 1, -θ / ρ)
 
         # βₖ₊₁ uₖ₊₁ = A vₖ - αₖ uₖ₊₁
-        u = add!!(Av, u, -α, 1)
+        u = add!!(Av, u, -α)
         β = norm(u)
         u = scale!!(u, 1 / β)
         # αₖ₊₁ vₖ₊₁ = Aᴴ uₖ₊₁ - βₖ₊₁ vₖ
-        v = add!!(apply_adjoint(operator, u), v, -β, 1)
+        v = add!!(apply_adjoint(operator, u), v, -β)
+        # Reorthogonalize v against previous vectors
+        if K > 1
+            v, = orthogonalize!!(v, V, view(Vv, 1:min(K, numiter)), alg.orth)
+        end
+
         α = norm(v)
         v = scale!!(v, 1 / α)
         numops += 2
+
+        # add new vector to subspace at position numiter+1
+        if numiter < K
+            push!(V, v)
+        else
+            V[mod1(numiter + 1, K)] = v
+        end
 
         # Construct rotation P̂ₖ
         α̂ = hypot(ᾱ, λ) # α̂ₖ = sqrt(ᾱₖ^2 + λ^2)
