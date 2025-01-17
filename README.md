@@ -32,7 +32,7 @@ to vectors.
 ## Release notes for the latest version
 
 ### v0.9
-KrylovKit v0.9 adds to new sets of functionality:
+KrylovKit v0.9 adds two new sets of functionality:
 * The function `lssolve` can be used to solve linear least squares problems, i.e. problems of the form `x = argmin(norm(A*x - b))` 
   for a given linear map `A` and vector `b`. Currently, only one algorithm is implemented, namely the LSMR algorithm
   of Fong and Saunders.
@@ -44,6 +44,8 @@ KrylovKit v0.9 adds to new sets of functionality:
   `inner` function, thereby effectively treating the vector as living in a real vector space. Furthermore, in this setting, only
   real linear combinations of vectors are allowed, so that for the case of `eigsolve`, only real eigenvalues and eigenvectors are
   computed. An error will be thrown if the requested list of eigenvalues contains complex eigenvalues.
+
+In addition, the following is technically a breaking change:
 * The verbosity system, the different verbosity levels and the output formatting have been redesigned (both in the primal methods
   and the rrules). The default verbosity level is now 1, which means that warnings will be printed by default, but all other output
   (info messages) are suppressed. Before, the default verbosity was such that all output (including warnings) were suppressed.
