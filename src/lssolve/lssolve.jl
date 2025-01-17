@@ -99,11 +99,10 @@ Currently, only [`LSMR`](@ref) is available and thus selected.
 function lssolve end
 
 function lssolve(f, b, λ=0;
-                 maxiter=KrylovDefaults.maxiter[],
                  rtol::Real=KrylovDefaults.tol[],
                  atol::Real=KrylovDefaults.tol[],
                  tol::Real=max(atol, rtol * norm(b)),
-                 verbosity::Int=KrylovDefaults.verbosity[])
-    alg = LSMR(; maxiter, tol, verbosity)
+                 kwargs...)
+    alg = LSMR(; tol=tol, kwargs...)
     return lssolve(f, b, alg, λ)
 end

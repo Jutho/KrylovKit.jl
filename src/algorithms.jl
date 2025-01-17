@@ -84,9 +84,9 @@ abstract type KrylovAlgorithm end
 
 # General purpose; good for linear systems, eigensystems and matrix functions
 """
-    Lanczos(; krylovdim=KrylovDefaults.krylovdim,
-            maxiter=KrylovDefaults.maxiter,
-            tol=KrylovDefaults.tol,
+    Lanczos(; krylovdim=KrylovDefaults.krylovdim[],
+            maxiter=KrylovDefaults.maxiter[],
+            tol=KrylovDefaults.tol[],
             orth=KrylovDefaults.orth,
             eager=false,
             verbosity=KrylovDefaults.verbosity[])
@@ -99,8 +99,9 @@ the residual of the Lanczos factorization is smaller than `tol`. The orthogonali
 will be used to orthogonalize the different Krylov vectors. Eager mode, as selected by
 `eager=true`, means that the algorithm that uses this Lanczos process (e.g. `eigsolve`)
 can try to finish its computation before the total Krylov subspace of dimension `krylovdim`
-is constructed. Default verbosity level `verbosity` is zero, meaning that no output will be
-printed.
+is constructed. The default verbosity level `verbosity` amounts to printing warnings upon
+lack of convergence.
+
 
 Use `Arnoldi` for non-symmetric or non-Hermitian linear operators.
 
@@ -125,9 +126,9 @@ function Lanczos(;
 end
 
 """
-    GKL(; krylovdim=KrylovDefaults.krylovdim,
-        maxiter=KrylovDefaults.maxiter,
-        tol=KrylovDefaults.tol,
+    GKL(; krylovdim=KrylovDefaults.krylovdim[],
+        maxiter=KrylovDefaults.maxiter[],
+        tol=KrylovDefaults.tol[],
         orth=KrylovDefaults.orth,
         eager=false,
         verbosity=KrylovDefaults.verbosity[])
@@ -137,8 +138,9 @@ Krylov-like factorization of a general matrix or linear operator with a bidiagon
 matrix. Can be used in `svdsolve`. The corresponding algorithm builds a Krylov subspace of
 size at most `krylovdim`, which will be repeated at most `maxiter` times and will stop when
 the norm of the residual of the Arnoldi factorization is smaller than `tol`. The
-orthogonalizer `orth` will be used to orthogonalize the different Krylov vectors. Default
-verbosity level `verbosity` is zero, meaning that no output will be printed.
+orthogonalizer `orth` will be used to orthogonalize the different Krylov vectors. The default
+verbosity level `verbosity` amounts to printing warnings upon lack of convergence.
+
 
 See also: [`svdsolve`](@ref), [`Orthogonalizer`](@ref)
 """
@@ -161,9 +163,9 @@ function GKL(;
 end
 
 """
-    Arnoldi(; krylovdim=KrylovDefaults.krylovdim,
-            maxiter=KrylovDefaults.maxiter,
-            tol=KrylovDefaults.tol,
+    Arnoldi(; krylovdim=KrylovDefaults.krylovdim[],
+            maxiter=KrylovDefaults.maxiter[],
+            tol=KrylovDefaults.tol[],
             orth=KrylovDefaults.orth,
             eager=false,
             verbosity=KrylovDefaults.verbosity[])
@@ -175,8 +177,9 @@ will build a Krylov subspace of size at most `krylovdim`, which will be repeated
 smaller than `tol`. The orthogonalizer `orth` will be used to orthogonalize the different
 Krylov vectors. Eager mode, as selected by `eager=true`, means that the algorithm that
 uses this Arnoldi process (e.g. `eigsolve`) can try to finish its computation before the
-total Krylov subspace of dimension `krylovdim` is constructed. Default verbosity level
-`verbosity` is zero, meaning that no output will be printed.
+total Krylov subspace of dimension `krylovdim` is constructed. The default verbosity level
+`verbosity` amounts to printing warnings upon lack of convergence.
+
 
 Use `Lanczos` for real symmetric or complex Hermitian linear operators.
 
@@ -202,9 +205,9 @@ function Arnoldi(;
 end
 
 """
-    GolubYe(; krylovdim=KrylovDefaults.krylovdim,
-            maxiter=KrylovDefaults.maxiter,
-            tol=KrylovDefaults.tol,
+    GolubYe(; krylovdim=KrylovDefaults.krylovdim[],
+            maxiter=KrylovDefaults.maxiter[],
+            tol=KrylovDefaults.tol[],
             orth=KrylovDefaults.orth,
             eager=false,
             verbosity=KrylovDefaults.verbosity[])
@@ -238,14 +241,15 @@ end
 abstract type LinearSolver <: KrylovAlgorithm end
 
 """
-    CG(; maxiter=KrylovDefaults.maxiter, tol=KrylovDefaults.tol, verbosity=KrylovDefaults.verbosity[])
+    CG(; maxiter=KrylovDefaults.maxiter[], tol=KrylovDefaults.tol[], verbosity=KrylovDefaults.verbosity[])
 
 Construct an instance of the conjugate gradient algorithm with specified parameters, which
 can be passed to `linsolve` in order to iteratively solve a linear system with a positive
 definite (and thus symmetric or hermitian) coefficient matrix or operator. The `CG` method
 will search for the optimal `x` in a Krylov subspace of maximal size `maxiter`, or stop when
-`norm(A*x - b) < tol`. Default verbosity level `verbosity` is zero, meaning that no output
-will be printed.
+`norm(A*x - b) < tol`. The default verbosity level `verbosity` amounts to printing warnings
+upon lack of convergence.
+
 
 See also: [`linsolve`](@ref), [`MINRES`](@ref), [`GMRES`](@ref), [`BiCG`](@ref), [`LSMR`](@ref),
 [`BiCGStab`](@ref)
@@ -263,9 +267,9 @@ function CG(;
 end
 
 """
-    GMRES(; krylovdim=KrylovDefaults.krylovdim,
-            maxiter=KrylovDefaults.maxiter,
-            tol=KrylovDefaults.tol, 
+    GMRES(; krylovdim=KrylovDefaults.krylovdim[],
+            maxiter=KrylovDefaults.maxiter[],
+            tol=KrylovDefaults.tol[], 
             orth::Orthogonalizer=KrylovDefaults.orth,
             verbosity=KrylovDefaults.verbosity[])
 
@@ -273,8 +277,9 @@ Construct an instance of the GMRES algorithm with specified parameters, which ca
 to `linsolve` in order to iteratively solve a linear system. The `GMRES` method will search
 for the optimal `x` in a Krylov subspace of maximal size `krylovdim`, and repeat this
 process for at most `maxiter` times, or stop when `norm(A*x - b) < tol`. In building the
-Krylov subspace, `GMRES` will use the orthogonalizer `orth`. Default verbosity level
-`verbosity` is zero, meaning that no output will be printed.
+Krylov subspace, `GMRES` will use the orthogonalizer `orth`. The default verbosity level
+`verbosity` amounts to printing warnings upon lack of convergence.
+
 
 Note that in the traditional nomenclature of `GMRES`, the parameter `krylovdim` is referred
 to as the restart parameter, and `maxiter` is the number of outer iterations, i.e. restart
@@ -302,7 +307,7 @@ end
 
 # TODO
 """
-    MINRES(; maxiter=KrylovDefaults.maxiter, tol=KrylovDefaults.tol, verbosity=KrylovDefaults.verbosity[])
+    MINRES(; maxiter=KrylovDefaults.maxiter[], tol=KrylovDefaults.tol[], verbosity=KrylovDefaults.verbosity[])
 
     !!! warning "Not implemented yet"
 
@@ -311,8 +316,9 @@ end
     real symmetric or complex hermitian coefficient matrix or operator. The `MINRES` method
     will search for the optimal `x` in a Krylov subspace of maximal size `maxiter`, or stop
     when `norm(A*x - b) < tol`. In building the Krylov subspace, `MINRES` will use the
-    orthogonalizer `orth`. Default verbosity level `verbosity` is zero, meaning that no
-    output will be printed.
+    orthogonalizer `orth`. The default verbosity level `verbosity` amounts to printing
+    warnings upon lack of convergence.
+
 
 See also: [`linsolve`](@ref), [`CG`](@ref), [`GMRES`](@ref), [`BiCG`](@ref), [`LSMR`](@ref),
 [`BiCGStab`](@ref)
@@ -330,7 +336,7 @@ function MINRES(;
 end
 
 """
-    BiCG(; maxiter=KrylovDefaults.maxiter, tol=KrylovDefaults.tol, verbosity=KrylovDefaults.verbosity[])
+    BiCG(; maxiter=KrylovDefaults.maxiter[], tol=KrylovDefaults.tol[], verbosity=KrylovDefaults.verbosity[])
 
     !!! warning "Not implemented yet"
 
@@ -338,8 +344,9 @@ end
     which can be passed to `linsolve` in order to iteratively solve a linear system general
     linear map, of which the adjoint can also be applied. The `BiCG` method will search for
     the optimal `x` in a Krylov subspace of maximal size `maxiter`, or stop when `norm(A*x -
-    b) < tol`. Default verbosity level `verbosity` is zero, meaning that no output will be
-    printed.
+    b) < tol`. The default verbosity level `verbosity` amounts to printing warnings upon
+    lack of convergence.
+
 
 See also: [`linsolve`](@ref), [`GMRES`](@ref), [`CG`](@ref), [`BiCGStab`](@ref), [`LSMR`](@ref),
 [`MINRES`](@ref)
@@ -357,13 +364,13 @@ function BiCG(;
 end
 
 """
-    BiCGStab(; maxiter=KrylovDefaults.maxiter, tol=KrylovDefaults.tol, verbosity=KrylovDefaults.verbosity[])
+    BiCGStab(; maxiter=KrylovDefaults.maxiter[], tol=KrylovDefaults.tol[], verbosity=KrylovDefaults.verbosity[])
 
     Construct an instance of the Biconjugate gradient algorithm with specified parameters,
     which can be passed to `linsolve` in order to iteratively solve a linear system general
     linear map. The `BiCGStab` method will search for the optimal `x` in a Krylov subspace
-    of maximal size `maxiter`, or stop when `norm(A*x - b) < tol`. Default verbosity level
-    `verbosity` is zero, meaning that no output will be printed.
+    of maximal size `maxiter`, or stop when `norm(A*x - b) < tol`. The default verbosity level 
+    `verbosity` amounts to printing warnings upon lack of convergence.
 
 See also: [`linsolve`](@ref), [`GMRES`](@ref), [`CG`](@ref), [`BiCG`](@ref), [`LSMR`](@ref),
 [`MINRES`](@ref)
@@ -383,7 +390,11 @@ end
 # Solving least squares problems
 abstract type LeastSquaresSolver <: KrylovAlgorithm end
 """
-LSMR(; maxiter=KrylovDefaults.maxiter, tol=KrylovDefaults.tol, verbosity=KrylovDefaults.verbosity[])
+    LSMR(; krylovdim=1,
+            maxiter=KrylovDefaults.maxiter[],
+            tol=KrylovDefaults.tol[], 
+            orth::Orthogonalizer=ModifiedGramSchmidt(),
+            verbosity=KrylovDefaults.verbosity[])
 
 Represents the LSMR algorithm, which minimizes ``\\|Ax - b\\|^2 + \\|λx\\|^2`` in the Euclidean norm.
 If multiple solutions exists the minimum norm solution is returned.
@@ -393,21 +404,27 @@ algebraically equivalent to applying MINRES to the normal equations
 especially if ``A`` is ill-conditioned.
 
 The `LSMR` method will search for the optimal ``x`` in a Krylov subspace of maximal size 
-`maxiter`, or stop when ``norm(A'*(A*x - b) + λ^2 * x) < tol``. Default verbosity level
-`verbosity` is zero, meaning that no output will be printed.
+`maxiter`, or stop when ``norm(A'*(A*x - b) + λ^2 * x) < tol``. The parameter `krylovdim`
+does in this case not indicate that a subspace of that size will be built, but represents the
+number of most recent vectors that will be kept to which the next vector will be reorthogonalized.
+The default verbosity level `verbosity` amounts to printing warnings upon lack of convergence.
 
 See also: [`lssolve`](@ref)
 """
-struct LSMR{S<:Real} <: LeastSquaresSolver
+struct LSMR{O<:Orthogonalizer,S<:Real} <: LeastSquaresSolver
+    orth::O
     maxiter::Int
+    krylovdim::Int
     tol::S
     verbosity::Int
 end
 function LSMR(;
+              krylovdim::Integer=KrylovDefaults.krylovdim[],
               maxiter::Integer=KrylovDefaults.maxiter[],
               tol::Real=KrylovDefaults.tol[],
+              orth::Orthogonalizer=ModifiedGramSchmidt(),
               verbosity::Int=KrylovDefaults.verbosity[])
-    return LSMR(maxiter, tol, verbosity)
+    return LSMR(orth, maxiter, krylovdim, tol, verbosity)
 end
 
 # Solving eigenvalue systems specifically

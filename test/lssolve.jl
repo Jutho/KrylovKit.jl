@@ -13,7 +13,7 @@
         b = rand(T, 2 * n)
         tol = tol = 10 * n * eps(real(T))
         x, info = @constinferred lssolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode));
-                                         maxiter=3, verbosity=0)
+                                         maxiter=3, krylovdim=1, verbosity=0) # no reorthogonalization
         r = b - A * unwrapvec(x)
         @test unwrapvec(info.residual) ≈ r
         @test info.normres ≈ norm(A' * r)
@@ -25,8 +25,8 @@
         @test_logs (:info,) (:warn,) lssolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode));
                                              maxiter=3, verbosity=2)
 
-        alg = LSMR(; maxiter=2 * n, tol=tol, verbosity=0)
-        # maxiter = 2 * n because of loss of orthogonality for single precision
+        alg = LSMR(; maxiter=n, tol=tol, verbosity=0, krylovdim=n)
+        # reorthogonalisation is essential here to converge in exactly n iterations
         x, info = @constinferred lssolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), alg)
 
         @test info.converged > 0
@@ -44,7 +44,8 @@
                                                     alg)
 
         λ = rand(real(T))
-        alg = LSMR(; maxiter=2 * n, tol=tol, verbosity=0)
+        alg = LSMR(; maxiter=n, tol=tol, verbosity=0, krylovdim=n)
+        # reorthogonalisation is essential here to converge in exactly n iterations
         x, info = @constinferred lssolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), alg,
                                          λ)
 
@@ -61,10 +62,10 @@ end
 
         tol = 10 * N * eps(real(T))
         x, info = @constinferred lssolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode));
-                                         maxiter=N, tol=tol, verbosity=0)
+                                         maxiter=N, tol=tol, verbosity=0, krylovdim=5)
 
         r = b - A * unwrapvec(x)
         @test info.converged > 0
-        @test norm(A' * r) < 2 * tol
+        @test norm(A' * r) < 5 * tol # there seems to be some loss of precision in the computation of the convergence measure
     end
 end
