@@ -201,8 +201,8 @@ end
                 verbosity = 1 - verbosity # flipflop
             end
 
-            U = stack(unwrapvec, basis(fact, :U))
-            V = stack(unwrapvec, basis(fact, :V))
+            U = stack(unwrapvec, basis(fact, Val(:U)))
+            V = stack(unwrapvec, basis(fact, Val(:V)))
             B = rayleighquotient(fact)
             @test normres(fact) < 10 * n * eps(real(T))
             @test U' * U ≈ I
@@ -257,8 +257,8 @@ end
             end
 
             fact = @constinferred shrink!(fact, div(n, 2))
-            U = stack(unwrapvec, @constinferred basis(fact, :U))
-            V = stack(unwrapvec, @constinferred basis(fact, :V))
+            U = stack(unwrapvec, @constinferred basis(fact, Val(:U)))
+            V = stack(unwrapvec, @constinferred basis(fact, Val(:V)))
             B = @constinferred rayleighquotient(fact)
             r = unwrapvec(@constinferred residual(fact))
             β = @constinferred normres(fact)

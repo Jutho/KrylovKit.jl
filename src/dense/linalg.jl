@@ -112,7 +112,11 @@ function ldiv!(A::UpperTriangular, y::AbstractVector, r::UnitRange{Int}=1:length
 end
 
 # Eigenvalue decomposition of SymTridiagonal matrix
-function tridiageigh!(A::SymTridiagonal{T}, Z::StridedMatrix{T}=one(A)) where {T<:BlasFloat}
+function tridiageigh!(A::SymTridiagonal{T}) where {T<:BlasFloat}
+    Z = copyto!(similar(A.ev, size(A)), LinearAlgebra.I)
+    return tridiageigh!(A, Z)
+end
+function tridiageigh!(A::SymTridiagonal{T}, Z::StridedMatrix{T}) where {T<:BlasFloat}
     return stegr!(A.dv, A.ev, Z)
 end # redefined
 
