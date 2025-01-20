@@ -201,7 +201,7 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
             ω = ϵ / (Δτ * η)
 
             q::S = K / 2
-            while numiter < maxiter && ω > one(ω) && Δτ > Δτmin
+            while numiter < maxiter && ω >= one(ω) && Δτ > Δτmin
                 ϵ_prev = ϵ
                 Δτ_prev = Δτ
                 Δτ = max(Δτ * (γ / ω)^(1 / (q + 1)), Δτmin)

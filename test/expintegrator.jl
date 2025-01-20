@@ -100,10 +100,8 @@ end
     orths = mode === :vector ? (cgs2, mgs2, cgsr, mgsr) : (mgsr,)
     @testset for T in scalartypes
         @testset for orth in orths
-            A = rand(T, (N, N)) .- one(T) / 2
+            A = (1 // 5) .* (rand(T, (N, N)) .- one(T) / 2)
             A = (A + A') / 2
-            s = norm(eigvals(A), 1)
-            rmul!(A, 1 / (10 * s))
             pmax = 5
             for t in (rand(real(T)), -rand(real(T)), im * randn(real(T)),
                       randn(real(T)) + im * randn(real(T)))
@@ -137,7 +135,7 @@ end
     orths = mode === :vector ? (cgs2, mgs2, cgsr, mgsr) : (mgsr,)
     @testset for T in scalartypes
         @testset for orth in orths
-            A = rand(T, (N, N)) .- one(T) / 2
+            A = (1 // 5) .* (rand(T, (N, N)) .- one(T) / 2)
             pmax = 5
             for t in (rand(real(T)), -rand(real(T)), im * randn(real(T)),
                       randn(real(T)) + im * randn(real(T)))
