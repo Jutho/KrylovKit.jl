@@ -225,10 +225,11 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
                 w₀ = add!!(w₀, w[j + 1], (sgn * Δτ)^j / jfac)
                 jfac *= (j + 1)
             end
-            w[p + 1] = mul!(w[p + 1], basis(fact), view(expH, 1:K, K + p))
+            w[p + 1] = unproject!!(w[p + 1], basis(fact), view(expH, 1:K, K + p))
             # add first correction
             w[p + 1] = add!!(w[p + 1], residual(fact), expH[K, K + p + 1])
             w₀ = add!!(w₀, w[p + 1], β * (sgn * Δτ)^p)
+            w[1] = w₀
 
             # increase time step for next iteration:
             if ω < γ
@@ -253,10 +254,11 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
                     w₀ = add!!(w₀, w[j + 1], (sgn * (τ - τ₀))^j / jfac)
                     jfac *= (j + 1)
                 end
-                w[p + 1] = mul!(w[p + 1], basis(fact), view(expH, 1:K, K + p))
+                w[p + 1] = unproject!!(w[p + 1], basis(fact), view(expH, 1:K, K + p))
                 # add first correction
                 w[p + 1] = add!!(w[p + 1], residual(fact), expH[K, K + p + 1])
                 w₀ = add!!(w₀, w[p + 1], β * (sgn * (τ - τ₀))^p)
+                w[1] = w₀
                 τ₀ = τ
             end
         end

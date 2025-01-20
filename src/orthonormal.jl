@@ -56,9 +56,8 @@ Base.resize!(b::OrthonormalBasis, k::Int) = (resize!(b.basis, k); return b)
 # Multiplication methods with OrthonormalBasis
 function Base.:*(b::OrthonormalBasis, x::AbstractVector)
     y = zerovector(first(b), promote_type(scalartype(x), scalartype(first(b))))
-    return mul!(y, b, x)
+    return unproject!!(y, b, x)
 end
-LinearAlgebra.mul!(y, b::OrthonormalBasis, x::AbstractVector) = unproject!!(y, b, x, 1, 0)
 
 const BLOCKSIZE = 4096
 
