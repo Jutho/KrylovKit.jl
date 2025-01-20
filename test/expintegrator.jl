@@ -160,7 +160,7 @@ end
 
 @testset "Arnoldi - expintegrator fixed point branch" begin
     @testset for T in (ComplexF32, ComplexF64) # less probable that :LR eig is degenerate
-        A = rand(T, (N, N))
+        A = rand(T, (N, N)) / 10
         v₀ = rand(T, N)
         λs, vs, infoR = eigsolve(A, v₀, 1, :LR)
         @test infoR.converged > 0

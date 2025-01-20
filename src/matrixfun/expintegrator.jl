@@ -211,7 +211,7 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
                 for i in 1:p
                     H[K + i, K + i + 1] = 1
                 end
-                expH = LinearAlgebra.exp!(H)
+                expH = exp(H) # LinearAlgebra.exp! is type unstable for SubArray instances
                 ϵ = abs(Δτ^p * β * normres(fact) * expH[K, K + p + 1])
                 ω = ϵ / (Δτ * η)
                 q = max(zero(q), log(ϵ / ϵ_prev) / log(Δτ / Δτ_prev) - 1)
@@ -242,7 +242,7 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
             for i in 1:p
                 H[K + i, K + i + 1] = 1
             end
-            expH = LinearAlgebra.exp!(H)
+            expH = exp(H) # LinearAlgebra.exp! is type unstable for SubArray instances
             ϵ = abs((τ - τ₀)^p * β * normres(fact) * expH[K, K + p + 1])
             ω = ϵ / ((τ - τ₀) * η)
             if ω < one(ω)
