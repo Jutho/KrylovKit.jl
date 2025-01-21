@@ -223,7 +223,6 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
             # take time step
             τ₀ = numiter < maxiter ? τ₀ + Δτ : τ # to avoid floating point errors
             totalerr += ϵ
-            @show numiter, Δτ, ϵ, η * Δτ, totalerr, maxerr, η * τ
             jfac = 1
             for j in 1:(p - 1)
                 w₀ = add!!(w₀, w[j + 1], (sgn * Δτ)^j / jfac)
