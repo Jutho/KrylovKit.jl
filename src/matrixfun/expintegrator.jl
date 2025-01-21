@@ -185,6 +185,9 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
         if K == krylovdim
             if numiter < maxiter
                 Δτ = min(Δτ, τ - τ₀)
+                if isfinite(τ) # try to adapt minimal time step
+                    Δτmin = (τ - τ₀) / (maxiter - numiter + 1)
+                end
             else
                 Δτ = τ - τ₀
             end
@@ -196,22 +199,22 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
             for i in 1:p
                 H[K + i, K + i + 1] = 1
             end
-            expH = LinearAlgebra.exp!(H)
+            expH = exp(H) # LinearAlgebra.exp! is type unstable for SubArray instances
             ϵ = abs(Δτ^p * β * normres(fact) * expH[K, K + p + 1])
             ω = ϵ / (Δτ * η)
 
             q::S = K / 2
-            while numiter < maxiter && ω > one(ω) && Δτ > Δτmin
+            while numiter < maxiter && ω >= one(ω) && Δτ > Δτmin
                 ϵ_prev = ϵ
                 Δτ_prev = Δτ
-                Δτ = max(Δτ * (γ / ω)^(1 // (q + 1)), Δτmin)
+                Δτ = max(Δτ * (γ / ω)^(1 / (q + 1)), Δτmin)
                 H = fill!(view(HH, 1:(K + p + 1), 1:(K + p + 1)), zero(T))
                 mul!(view(H, 1:K, 1:K), rayleighquotient(fact), sgn * Δτ)
                 H[1, K + 1] = 1
                 for i in 1:p
                     H[K + i, K + i + 1] = 1
                 end
-                expH = LinearAlgebra.exp!(H)
+                expH = exp(H) # LinearAlgebra.exp! is type unstable for SubArray instances
                 ϵ = abs(Δτ^p * β * normres(fact) * expH[K, K + p + 1])
                 ω = ϵ / (Δτ * η)
                 q = max(zero(q), log(ϵ / ϵ_prev) / log(Δτ / Δτ_prev) - 1)
@@ -220,15 +223,17 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
             # take time step
             τ₀ = numiter < maxiter ? τ₀ + Δτ : τ # to avoid floating point errors
             totalerr += ϵ
+            @show numiter, Δτ, ϵ, η * Δτ, totalerr, maxerr, η * τ
             jfac = 1
             for j in 1:(p - 1)
                 w₀ = add!!(w₀, w[j + 1], (sgn * Δτ)^j / jfac)
                 jfac *= (j + 1)
             end
-            w[p + 1] = mul!(w[p + 1], basis(fact), view(expH, 1:K, K + p))
+            w[p + 1] = unproject!!(w[p + 1], basis(fact), view(expH, 1:K, K + p))
             # add first correction
             w[p + 1] = add!!(w[p + 1], residual(fact), expH[K, K + p + 1])
             w₀ = add!!(w₀, w[p + 1], β * (sgn * Δτ)^p)
+            w[1] = w₀
 
             # increase time step for next iteration:
             if ω < γ
@@ -242,7 +247,7 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
             for i in 1:p
                 H[K + i, K + i + 1] = 1
             end
-            expH = LinearAlgebra.exp!(H)
+            expH = exp(H) # LinearAlgebra.exp! is type unstable for SubArray instances
             ϵ = abs((τ - τ₀)^p * β * normres(fact) * expH[K, K + p + 1])
             ω = ϵ / ((τ - τ₀) * η)
             if ω < one(ω)
@@ -253,10 +258,11 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
                     w₀ = add!!(w₀, w[j + 1], (sgn * (τ - τ₀))^j / jfac)
                     jfac *= (j + 1)
                 end
-                w[p + 1] = mul!(w[p + 1], basis(fact), view(expH, 1:K, K + p))
+                w[p + 1] = unproject!!(w[p + 1], basis(fact), view(expH, 1:K, K + p))
                 # add first correction
                 w[p + 1] = add!!(w[p + 1], residual(fact), expH[K, K + p + 1])
                 w₀ = add!!(w₀, w[p + 1], β * (sgn * (τ - τ₀))^p)
+                w[1] = w₀
                 τ₀ = τ
             end
         end

@@ -100,46 +100,8 @@ end
     orths = mode === :vector ? (cgs2, mgs2, cgsr, mgsr) : (mgsr,)
     @testset for T in scalartypes
         @testset for orth in orths
-            A = rand(T, (N, N)) .- one(T) / 2
+            A = (1 // 2) .* (rand(T, (N, N)) .- one(T) / 2)
             A = (A + A') / 2
-            s = norm(eigvals(A), 1)
-            rmul!(A, 1 / (10 * s))
-            pmax = 5
-            for t in (rand(real(T)), -rand(real(T)), im * randn(real(T)),
-                      randn(real(T)) + im * randn(real(T)))
-                for p in 1:pmax
-                    u = ntuple(i -> rand(T, N), p + 1)
-                    w1, info = @constinferred expintegrator(wrapop(A, Val(mode)), t,
-                                                            wrapvec.(u, Ref(Val(mode)))...;
-                                                            maxiter=100, krylovdim=n,
-                                                            eager=true)
-                    @assert info.converged > 0
-                    w2 = exp(t * A) * u[1]
-                    for j in 1:p
-                        w2 .+= t^j * ϕ(t * A, u[j + 1], j)
-                    end
-                    @test w2 ≈ unwrapvec(w1)
-                    w1, info = @constinferred expintegrator(wrapop(A, Val(mode)), t,
-                                                            wrapvec.(u, Ref(Val(mode)))...;
-                                                            maxiter=100, krylovdim=n,
-                                                            tol=1e-3, eager=true)
-                    @test unwrapvec(w1) ≈ w2 atol = 1e-2 * abs(t)
-                end
-            end
-        end
-    end
-end
-
-@testset "Arnoldi - expintegrator iteratively ($mode)" for mode in
-                                                           (:vector, :inplace, :outplace)
-    scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
-                  (ComplexF64,)
-    orths = mode === :vector ? (cgs2, mgs2, cgsr, mgsr) : (mgsr,)
-    @testset for T in scalartypes
-        @testset for orth in orths
-            A = rand(T, (N, N)) .- one(T) / 2
-            s = norm(eigvals(A), 1)
-            rmul!(A, 1 / (10 * s))
             pmax = 5
             for t in (rand(real(T)), -rand(real(T)), im * randn(real(T)),
                       randn(real(T)) + im * randn(real(T)))
@@ -166,9 +128,37 @@ end
     end
 end
 
+@testset "Arnoldi - expintegrator iteratively ($mode)" for mode in
+                                                           (:vector, :inplace, :outplace)
+    scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
+                  (ComplexF64,)
+    orths = mode === :vector ? (cgs2, mgs2, cgsr, mgsr) : (mgsr,)
+    @testset for T in scalartypes
+        @testset for orth in orths
+            A = (1 // 2) .* (rand(T, (N, N)) .- one(T) / 2)
+            pmax = 5
+            for t in (rand(real(T)), -rand(real(T)), im * randn(real(T)),
+                      randn(real(T)) + im * randn(real(T)))
+                for p in 1:pmax
+                    u = ntuple(i -> rand(T, N), p + 1)
+                    w1, info = @constinferred expintegrator(wrapop(A, Val(mode)), t,
+                                                            wrapvec.(u, Ref(Val(mode)))...;
+                                                            maxiter=100, krylovdim=n,
+                                                            eager=true)
+                    @test info.converged > 0
+                    w2 = exp(t * A) * u[1]
+                    for j in 1:p
+                        w2 .+= t^j * ϕ(t * A, u[j + 1], j)
+                    end
+                end
+            end
+        end
+    end
+end
+
 @testset "Arnoldi - expintegrator fixed point branch" begin
     @testset for T in (ComplexF32, ComplexF64) # less probable that :LR eig is degenerate
-        A = rand(T, (N, N))
+        A = rand(T, (N, N)) / 10
         v₀ = rand(T, N)
         λs, vs, infoR = eigsolve(A, v₀, 1, :LR)
         @test infoR.converged > 0

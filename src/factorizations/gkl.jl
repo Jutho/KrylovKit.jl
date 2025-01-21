@@ -11,8 +11,8 @@ A' * U = V * B'
 ```
 
 For a given GKL factorization `fact` of length `k = length(fact)`, the two bases `U` and `V`
-are obtained via [`basis(fact, :U)`](@ref basis) and `basis(fact, :V)`. Here, `U` and `V`
-are instances of [`OrthonormalBasis{T}`](@ref Basis), with also
+are obtained via [`basis(fact, Val(:U))`](@ref basis) and `basis(fact, Val(:V))`. Here,
+`U` and `V` are instances of [`OrthonormalBasis{T}`](@ref Basis), with also
 `length(U) == length(V) == k` and where `T` denotes the type of vector like objects used in
 the problem. The Rayleigh quotient `B` is obtained as [`rayleighquotient(fact)`](@ref) and
 is of type `Bidiagonal{S<:Number}` with `size(B) == (k,k)`. The residual `r` is
@@ -50,8 +50,8 @@ Base.eltype(F::GKLFactorization) = eltype(typeof(F))
 Base.eltype(::Type{<:GKLFactorization{<:Any,<:Any,S}}) where {S} = S
 
 # iteration for destructuring into components
-Base.iterate(F::GKLFactorization) = (basis(F, :U), Val(:V))
-Base.iterate(F::GKLFactorization, ::Val{:V}) = (basis(F, :V), Val(:rayleighquotient))
+Base.iterate(F::GKLFactorization) = (basis(F, Val(:U)), Val(:V))
+Base.iterate(F::GKLFactorization, ::Val{:V}) = (basis(F, Val(:V)), Val(:rayleighquotient))
 function Base.iterate(F::GKLFactorization, ::Val{:rayleighquotient})
     return (rayleighquotient(F), Val(:residual))
 end
@@ -63,17 +63,17 @@ end
 Base.iterate(F::GKLFactorization, ::Val{:done}) = nothing
 
 """
-        basis(fact::GKLFactorization, which::Symbol)
+        basis(fact::GKLFactorization, ::Val{which})
 
 Return the list of basis vectors of a [`GKLFactorization`](@ref), where `which` should take
 the value `:U` or `:V` and indicates which set of basis vectors (in the domain or in the
 codomain of the corresponding linear map) should be returned. The return type is an
 `OrthonormalBasis{T}`, where `T` represents the type of the vectors used by the problem.
 """
-function basis(F::GKLFactorization, which::Symbol)
+function basis(F::GKLFactorization, ::Val{UV}) where {UV}
     length(F.U) == F.k || error("Not keeping vectors during GKL bidiagonalization")
-    which == :U || which == :V || error("invalid flag for specifying basis")
-    return which == :U ? F.U : F.V
+    UV == :U || UV == :V || error("invalid flag for specifying basis")
+    return UV == :U ? F.U : F.V
 end
 function rayleighquotient(F::GKLFactorization)
     return Bidiagonal(view(F.αs, 1:(F.k)), view(F.βs, 1:(F.k - 1)), :L)
@@ -106,7 +106,7 @@ possibly uses reorthogonalization steps.
 
 When iterating over an instance of `GKLIterator`, the values being generated are
 instances `fact` of [`GKLFactorization`](@ref), which can be immediately destructured into a
-[`basis(fact, :U)`](@ref), [`basis(fact, :V)`](@ref), [`rayleighquotient`](@ref),
+[`basis(fact, Val(:U))`](@ref), [`basis(fact, Val(:V))`](@ref), [`rayleighquotient`](@ref),
 [`residual`](@ref), [`normres`](@ref) and [`rayleighextension`](@ref), for example as
 
 ```julia

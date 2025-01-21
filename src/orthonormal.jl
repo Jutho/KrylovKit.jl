@@ -16,8 +16,8 @@ One can easily orthogonalize or orthonormalize a given vector `v` with respect t
 [`w, = orthogonalize(v,b,...)`](@ref orthogonalize) or
 [`w, = orthonormalize(v,b,...)`](@ref orthonormalize). The resulting vector `w` of the
 latter can then be added to `b` using `push!(b, w)`. Note that in place versions
-[`orthogonalize!(v, b, ...)`](@ref orthogonalize) or
-[`orthonormalize!(v, b, ...)`](@ref orthonormalize) are also available.
+[`orthogonalize!!(v, b, ...)`](@ref orthogonalize) or
+[`orthonormalize!!(v, b, ...)`](@ref orthonormalize) are also available.
 
 Finally, a linear combination of the vectors in `b::OrthonormalBasis` can be obtained by
 multiplying `b` with a `Vector{<:Number}` using `*` or `mul!` (if the output vector is
@@ -56,9 +56,8 @@ Base.resize!(b::OrthonormalBasis, k::Int) = (resize!(b.basis, k); return b)
 # Multiplication methods with OrthonormalBasis
 function Base.:*(b::OrthonormalBasis, x::AbstractVector)
     y = zerovector(first(b), promote_type(scalartype(x), scalartype(first(b))))
-    return mul!(y, b, x)
+    return unproject!!(y, b, x)
 end
-LinearAlgebra.mul!(y, b::OrthonormalBasis, x::AbstractVector) = unproject!!(y, b, x, 1, 0)
 
 const BLOCKSIZE = 4096
 
@@ -380,7 +379,7 @@ end
 # end
 
 # Orthogonalization of a vector against a given OrthonormalBasis
-orthogonalize(v, args...) = orthogonalize!(true * v, args...)
+orthogonalize(v, args...) = orthogonalize!!(scale(v, true), args...)
 
 function orthogonalize!!(v::T, b::OrthonormalBasis{T}, alg::Orthogonalizer) where {T}
     S = promote_type(scalartype(v), scalartype(T))

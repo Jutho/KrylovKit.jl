@@ -91,14 +91,15 @@ function Base.iterate(r::SplitRange, i=1)
         offset = (i - 1) * (r.innerlength + 1) * step
         start = r.start + offset
         stop = start + step * r.innerlength
+        return StepRange(start, step, stop), i + 1
     elseif i <= r.outerlength
         offset = (r.outerlength1 + (i - 1) * r.innerlength) * step
         start = r.start + offset
         stop = start + step * (r.innerlength - 1)
+        return StepRange(start, step, stop), i + 1
     else
         return nothing
     end
-    return StepRange(start, step, stop), i + 1
 end
 Base.length(r::SplitRange) = r.outerlength
 
@@ -141,7 +142,8 @@ end
 # some often used tools
 function checkposdef(z)
     r = checkhermitian(z)
-    r > 0 || error("operator does not appear to be positive definite: diagonal element $z")
+    r > 0 ||
+        error("operator does not appear to be positive definite: diagonal element $z")
     return r
 end
 function checkhermitian(z, n=abs(z))
@@ -272,5 +274,4 @@ include("matrixfun/expintegrator.jl")
 
 # deprecations
 include("deprecated.jl")
-
 end

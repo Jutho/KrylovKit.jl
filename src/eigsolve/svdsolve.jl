@@ -225,14 +225,14 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL;
             keep = div(3 * krylovdim + 2 * converged, 5) # strictly smaller than krylovdim since converged < howmany <= krylovdim, at least equal to converged
 
             # Update basis by applying P and Q using Householder reflections
-            U = basis(fact, :U)
+            U = basis(fact, Val(:U))
             basistransform!(U, view(P, :, 1:keep))
             # for j = 1:m
             #     h, ν = householder(P, j:m, j)
             #     lmul!(h, view(P, :, j+1:krylovdim))
             #     rmul!(U, h')
             # end
-            V = basis(fact, :V)
+            V = basis(fact, Val(:V))
             basistransform!(V, view(Q', :, 1:keep))
             # for j = 1:m
             #     h, ν = householder(Q, j, j:m)
@@ -281,10 +281,10 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL;
     Qv = view(Q, 1:howmany, :)
 
     # Compute convergence information
-    leftvectors = let U = basis(fact, :U)
+    leftvectors = let U = basis(fact, Val(:U))
         [U * v for v in cols(Pv)]
     end
-    rightvectors = let V = basis(fact, :V)
+    rightvectors = let V = basis(fact, Val(:V))
         [V * v for v in cols(Qv')]
     end
     residuals = let r = residual(fact)
