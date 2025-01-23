@@ -105,7 +105,7 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
             resize!(normresiduals, 0)
             while converged < K
                 z = view(Z, :, p[converged + 1])
-                v = mul!(zerovector(vold), V, z)
+                v = unproject!!(zerovector(vold), V, z)
                 av, bv = genapply(f, v)
                 numops += 1
                 ρ = checkhermitian(inner(v, av)) / checkposdef(inner(v, bv))
@@ -129,7 +129,7 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
             elseif numiter == maxiter
                 for k in (converged + 1):howmany
                     z = view(Z, :, p[k])
-                    v = mul!(zerovector(vold), V, z)
+                    v = unproject!!(zerovector(vold), V, z)
                     av, bv = genapply(f, v)
                     numops += 1
                     ρ = checkhermitian(inner(v, av)) / checkposdef(inner(v, bv))

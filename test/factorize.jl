@@ -3,6 +3,7 @@
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
                   (ComplexF64,)
     orths = mode === :vector ? (cgs2, mgs2, cgsr, mgsr) : (cgs2,)
+    using KrylovKit: EACHITERATION_LEVEL
 
     @testset for T in scalartypes
         @testset for orth in orths # tests fail miserably for cgs and mgs
@@ -12,16 +13,17 @@
             iter = LanczosIterator(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), orth)
             fact = @constinferred initialize(iter)
             @constinferred expand!(iter, fact)
-            @test_logs initialize(iter; verbosity=0)
-            @test_logs (:info,) initialize(iter; verbosity=1)
-            verbosity = 1
+            @test_logs initialize(iter; verbosity=EACHITERATION_LEVEL)
+            @test_logs (:info,) initialize(iter; verbosity=EACHITERATION_LEVEL + 1)
+            verbosity = EACHITERATION_LEVEL + 1
             while length(fact) < n
-                if verbosity == 1
+                if verbosity == EACHITERATION_LEVEL + 1
                     @test_logs (:info,) expand!(iter, fact; verbosity=verbosity)
+                    verbosity = EACHITERATION_LEVEL
                 else
                     @test_logs expand!(iter, fact; verbosity=verbosity)
+                    verbosity = EACHITERATION_LEVEL + 1
                 end
-                verbosity = 1 - verbosity # flipflop
             end
             V = stack(unwrapvec, basis(fact))
             H = rayleighquotient(fact)
@@ -33,11 +35,32 @@
             @test rayleighquotient(last(states)) ≈ H
 
             @constinferred shrink!(fact, n - 1)
-            @test_logs (:info,) shrink!(fact, n - 2; verbosity=1)
-            @test_logs shrink!(fact, n - 3; verbosity=0)
+            @test_logs (:info,) shrink!(fact, n - 2; verbosity=EACHITERATION_LEVEL + 1)
+            @test_logs shrink!(fact, n - 3; verbosity=EACHITERATION_LEVEL)
             @constinferred initialize!(iter, deepcopy(fact))
-            @test_logs initialize!(iter, deepcopy(fact); verbosity=0)
-            @test_logs (:info,) initialize!(iter, deepcopy(fact); verbosity=1)
+            @test_logs initialize!(iter, deepcopy(fact); verbosity=EACHITERATION_LEVEL)
+            @test_logs (:info,) initialize!(iter, deepcopy(fact);
+                                            verbosity=EACHITERATION_LEVEL + 1)
+
+            if T <: Complex
+                A = rand(T, (n, n)) # test warnings for non-hermitian matrices
+                v = rand(T, (n,))
+                iter = LanczosIterator(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), orth)
+                fact = @constinferred initialize(iter; verbosity=0)
+                @constinferred expand!(iter, fact; verbosity=0)
+                @test_logs initialize(iter; verbosity=0)
+                @test_logs (:warn,) initialize(iter)
+                verbosity = 1
+                while length(fact) < n
+                    if verbosity == 1
+                        @test_logs (:warn,) expand!(iter, fact; verbosity=verbosity)
+                        verbosity = 0
+                    else
+                        @test_logs expand!(iter, fact; verbosity=verbosity)
+                        verbosity = 1
+                    end
+                end
+            end
         end
     end
 end
@@ -55,18 +78,18 @@ end
             iter = ArnoldiIterator(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), orth)
             fact = @constinferred initialize(iter)
             @constinferred expand!(iter, fact)
-            @test_logs initialize(iter; verbosity=0)
-            @test_logs (:info,) initialize(iter; verbosity=1)
-            verbosity = 1
+            @test_logs initialize(iter; verbosity=EACHITERATION_LEVEL)
+            @test_logs (:info,) initialize(iter; verbosity=EACHITERATION_LEVEL + 1)
+            verbosity = EACHITERATION_LEVEL + 1
             while length(fact) < n
-                if verbosity == 1
+                if verbosity == EACHITERATION_LEVEL + 1
                     @test_logs (:info,) expand!(iter, fact; verbosity=verbosity)
+                    verbosity = EACHITERATION_LEVEL
                 else
                     @test_logs expand!(iter, fact; verbosity=verbosity)
+                    verbosity = EACHITERATION_LEVEL + 1
                 end
-                verbosity = 1 - verbosity # flipflop
             end
-
             V = stack(unwrapvec, basis(fact))
             H = rayleighquotient(fact)
             factor = (orth == cgs || orth == mgs ? 250 : 10)
@@ -78,11 +101,12 @@ end
             @test rayleighquotient(last(states)) ≈ H
 
             @constinferred shrink!(fact, n - 1)
-            @test_logs (:info,) shrink!(fact, n - 2; verbosity=1)
-            @test_logs shrink!(fact, n - 3; verbosity=0)
+            @test_logs (:info,) shrink!(fact, n - 2; verbosity=EACHITERATION_LEVEL + 1)
+            @test_logs shrink!(fact, n - 3; verbosity=EACHITERATION_LEVEL)
             @constinferred initialize!(iter, deepcopy(fact))
-            @test_logs initialize!(iter, deepcopy(fact); verbosity=0)
-            @test_logs (:info,) initialize!(iter, deepcopy(fact); verbosity=1)
+            @test_logs initialize!(iter, deepcopy(fact); verbosity=EACHITERATION_LEVEL)
+            @test_logs (:info,) initialize!(iter, deepcopy(fact);
+                                            verbosity=EACHITERATION_LEVEL + 1)
         end
     end
 end
@@ -189,18 +213,18 @@ end
             iter = GKLIterator(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), orth)
             fact = @constinferred initialize(iter)
             @constinferred expand!(iter, fact)
-            @test_logs initialize(iter; verbosity=0)
-            @test_logs (:info,) initialize(iter; verbosity=1)
-            verbosity = 1
+            @test_logs initialize(iter; verbosity=EACHITERATION_LEVEL)
+            @test_logs (:info,) initialize(iter; verbosity=EACHITERATION_LEVEL + 1)
+            verbosity = EACHITERATION_LEVEL + 1
             while length(fact) < n
-                if verbosity == 1
+                if verbosity == EACHITERATION_LEVEL + 1
                     @test_logs (:info,) expand!(iter, fact; verbosity=verbosity)
+                    verbosity = EACHITERATION_LEVEL
                 else
                     @test_logs expand!(iter, fact; verbosity=verbosity)
+                    verbosity = EACHITERATION_LEVEL + 1
                 end
-                verbosity = 1 - verbosity # flipflop
             end
-
             U = stack(unwrapvec, basis(fact, Val(:U)))
             V = stack(unwrapvec, basis(fact, Val(:V)))
             B = rayleighquotient(fact)
@@ -214,11 +238,12 @@ end
             @test rayleighquotient(last(states)) ≈ B
 
             @constinferred shrink!(fact, n - 1)
-            @test_logs (:info,) shrink!(fact, n - 2; verbosity=1)
-            @test_logs shrink!(fact, n - 3; verbosity=0)
+            @test_logs (:info,) shrink!(fact, n - 2; verbosity=EACHITERATION_LEVEL + 1)
+            @test_logs shrink!(fact, n - 3; verbosity=EACHITERATION_LEVEL)
             @constinferred initialize!(iter, deepcopy(fact))
-            @test_logs initialize!(iter, deepcopy(fact); verbosity=0)
-            @test_logs (:info,) initialize!(iter, deepcopy(fact); verbosity=1)
+            @test_logs initialize!(iter, deepcopy(fact); verbosity=EACHITERATION_LEVEL)
+            @test_logs (:info,) initialize!(iter, deepcopy(fact);
+                                            verbosity=EACHITERATION_LEVEL + 1)
         end
     end
 end
