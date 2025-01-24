@@ -183,7 +183,7 @@ function Base.iterate(iter::GKLIterator, state::GKLFactorization)
     end
 end
 
-function initialize(iter::GKLIterator; verbosity::Int=0)
+function initialize(iter::GKLIterator; verbosity::Int=KrylovDefaults.verbosity[])
     # initialize without using eltype
     u₀ = iter.u₀
     β₀ = norm(u₀)
@@ -211,12 +211,13 @@ function initialize(iter::GKLIterator; verbosity::Int=0)
     S = real(T)
     αs = S[α]
     βs = S[β]
-    if verbosity > 0
+    if verbosity > EACHITERATION_LEVEL
         @info "GKL initiation at dimension 1: subspace normres = $(normres2string(β))"
     end
     return GKLFactorization(1, U, V, αs, βs, r)
 end
-function initialize!(iter::GKLIterator, state::GKLFactorization; verbosity::Int=0)
+function initialize!(iter::GKLIterator, state::GKLFactorization;
+                     verbosity::Int=KrylovDefaults.verbosity[])
     U = state.U
     while length(U) > 1
         pop!(U)
@@ -238,12 +239,13 @@ function initialize!(iter::GKLIterator, state::GKLFactorization; verbosity::Int=
     push!(αs, α)
     push!(βs, β)
     state.r = r
-    if verbosity > 0
+    if verbosity > EACHITERATION_LEVEL
         @info "GKL initiation at dimension 1: subspace normres = $(normres2string(β))"
     end
     return state
 end
-function expand!(iter::GKLIterator, state::GKLFactorization; verbosity::Int=0)
+function expand!(iter::GKLIterator, state::GKLFactorization;
+                 verbosity::Int=KrylovDefaults.verbosity[])
     βold = normres(state)
     U = state.U
     V = state.V
@@ -259,12 +261,12 @@ function expand!(iter::GKLIterator, state::GKLFactorization; verbosity::Int=0)
 
     state.k += 1
     state.r = r
-    if verbosity > 0
+    if verbosity > EACHITERATION_LEVEL
         @info "GKL expension to dimension $(state.k): subspace normres = $(normres2string(β))"
     end
     return state
 end
-function shrink!(state::GKLFactorization, k; verbosity::Int=0)
+function shrink!(state::GKLFactorization, k; verbosity::Int=KrylovDefaults.verbosity[])
     length(state) == length(state.V) ||
         error("we cannot shrink GKLFactorization without keeping vectors")
     length(state) <= k && return state
@@ -280,7 +282,7 @@ function shrink!(state::GKLFactorization, k; verbosity::Int=0)
     resize!(state.βs, k)
     state.k = k
     β = normres(state)
-    if verbosity > 0
+    if verbosity > EACHITERATION_LEVEL
         @info "GKL reduction to dimension $k: subspace normres = $(normres2string(β))"
     end
     state.r = scale!!(r, β)

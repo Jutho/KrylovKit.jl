@@ -133,7 +133,7 @@ function Base.iterate(iter::ArnoldiIterator, state)
     end
 end
 
-function initialize(iter::ArnoldiIterator; verbosity::Int=0)
+function initialize(iter::ArnoldiIterator; verbosity::Int=KrylovDefaults.verbosity[])
     # initialize without using eltype
     x₀ = iter.x₀
     β₀ = norm(x₀)
@@ -169,12 +169,13 @@ function initialize(iter::ArnoldiIterator; verbosity::Int=0)
     end
     V = OrthonormalBasis([v])
     H = T[α, β]
-    if verbosity > 0
+    if verbosity > EACHITERATION_LEVEL
         @info "Arnoldi initiation at dimension 1: subspace normres = $(normres2string(β))"
     end
     return state = ArnoldiFactorization(1, V, H, r)
 end
-function initialize!(iter::ArnoldiIterator, state::ArnoldiFactorization; verbosity::Int=0)
+function initialize!(iter::ArnoldiIterator, state::ArnoldiFactorization;
+                     verbosity::Int=KrylovDefaults.verbosity[])
     x₀ = iter.x₀
     V = state.V
     while length(V) > 1
@@ -189,12 +190,13 @@ function initialize!(iter::ArnoldiIterator, state::ArnoldiFactorization; verbosi
     state.k = 1
     push!(H, α, β)
     state.r = r
-    if verbosity > 0
+    if verbosity > EACHITERATION_LEVEL
         @info "Arnoldi initiation at dimension 1: subspace normres = $(normres2string(β))"
     end
     return state
 end
-function expand!(iter::ArnoldiIterator, state::ArnoldiFactorization; verbosity::Int=0)
+function expand!(iter::ArnoldiIterator, state::ArnoldiFactorization;
+                 verbosity::Int=KrylovDefaults.verbosity[])
     state.k += 1
     k = state.k
     V = state.V
@@ -207,12 +209,12 @@ function expand!(iter::ArnoldiIterator, state::ArnoldiFactorization; verbosity::
     r, β = arnoldirecurrence!!(iter.operator, V, view(H, (m + 1):(m + k)), iter.orth)
     H[m + k + 1] = β
     state.r = r
-    if verbosity > 0
+    if verbosity > EACHITERATION_LEVEL
         @info "Arnoldi expansion to dimension $k: subspace normres = $(normres2string(β))"
     end
     return state
 end
-function shrink!(state::ArnoldiFactorization, k; verbosity::Int=0)
+function shrink!(state::ArnoldiFactorization, k; verbosity::Int=KrylovDefaults.verbosity[])
     length(state) <= k && return state
     V = state.V
     H = state.H
@@ -223,7 +225,7 @@ function shrink!(state::ArnoldiFactorization, k; verbosity::Int=0)
     resize!(H, (k * k + 3 * k) >> 1)
     state.k = k
     β = normres(state)
-    if verbosity > 0
+    if verbosity > EACHITERATION_LEVEL
         @info "Arnoldi reduction to dimension $k: subspace normres = $(normres2string(β))"
     end
     state.r = scale!!(r, β)

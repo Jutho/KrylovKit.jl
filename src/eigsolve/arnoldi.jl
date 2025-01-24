@@ -342,7 +342,7 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     numiter = 1
     # initialize arnoldi factorization
     iter = ArnoldiIterator(A, x₀, alg.orth)
-    fact = initialize(iter; verbosity=alg.verbosity - EACHITERATION_LEVEL)
+    fact = initialize(iter; verbosity=alg.verbosity)
     numops = 1
     sizehint!(fact, krylovdim)
     β = normres(fact)
@@ -398,7 +398,7 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
         end
 
         if K < krylovdim # expand
-            fact = expand!(iter, fact; verbosity=alg.verbosity - EACHITERATION_LEVEL)
+            fact = expand!(iter, fact; verbosity=alg.verbosity)
             numops += 1
         else # shrink
             numiter == maxiter && break
@@ -430,7 +430,7 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
             B[keep + 1] = scale!!(r, 1 / normres(fact))
 
             # Shrink Arnoldi factorization
-            fact = shrink!(fact, keep; verbosity=alg.verbosity - EACHITERATION_LEVEL)
+            fact = shrink!(fact, keep; verbosity=alg.verbosity)
             numiter += 1
         end
     end

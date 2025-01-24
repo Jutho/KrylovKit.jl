@@ -13,7 +13,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos;
 
     # Initialize Lanczos factorization
     iter = LanczosIterator(A, x₀, alg.orth)
-    fact = initialize(iter; verbosity=alg.verbosity - EACHITERATION_LEVEL)
+    fact = initialize(iter; verbosity=alg.verbosity)
     numops = 1
     numiter = 1
     sizehint!(fact, krylovdim)
@@ -72,7 +72,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos;
         end
 
         if K < krylovdim # expand Krylov factorization
-            fact = expand!(iter, fact; verbosity=alg.verbosity - EACHITERATION_LEVEL)
+            fact = expand!(iter, fact; verbosity=alg.verbosity)
             numops += 1
         else ## shrink and restart
             if numiter == maxiter
@@ -108,7 +108,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos;
             B[keep + 1] = scale!!(r, 1 / β)
 
             # Shrink Lanczos factorization
-            fact = shrink!(fact, keep; verbosity=alg.verbosity - EACHITERATION_LEVEL)
+            fact = shrink!(fact, keep; verbosity=alg.verbosity)
             numiter += 1
         end
     end

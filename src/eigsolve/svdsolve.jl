@@ -157,7 +157,7 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL;
     numiter = 1
     # initialize GKL factorization
     iter = GKLIterator(A, x₀, alg.orth)
-    fact = initialize(iter; verbosity=alg.verbosity - EACHITERATION_LEVEL)
+    fact = initialize(iter; verbosity=alg.verbosity)
     numops = 2
     sizehint!(fact, krylovdim)
     β = normres(fact)
@@ -214,7 +214,7 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL;
         end
 
         if K < krylovdim # expand
-            fact = expand!(iter, fact; verbosity=alg.verbosity - EACHITERATION_LEVEL)
+            fact = expand!(iter, fact; verbosity=alg.verbosity)
             numops += 2
         else ## shrink and restart
             if numiter == maxiter
@@ -267,7 +267,7 @@ function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL;
                 fact.βs[j] = H[j + 1, j]
             end
             # Shrink GKL factorization
-            fact = shrink!(fact, keep; verbosity=alg.verbosity - EACHITERATION_LEVEL)
+            fact = shrink!(fact, keep; verbosity=alg.verbosity)
             numiter += 1
         end
     end

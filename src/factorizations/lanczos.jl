@@ -172,7 +172,7 @@ function warn_nonhermitian(α, β₁, β₂)
     return nothing
 end
 
-function initialize(iter::LanczosIterator; verbosity::Int=0)
+function initialize(iter::LanczosIterator; verbosity::Int=KrylovDefaults.verbosity[])
     # initialize without using eltype
     x₀ = iter.x₀
     β₀ = norm(x₀)
@@ -191,14 +191,12 @@ function initialize(iter::LanczosIterator; verbosity::Int=0)
     βold = norm(r)
     r = add!!(r, v, -α) # should we use real(α) here?
     β = norm(r)
-    warn_nonhermitian(α, zero(β), β)
     # possibly reorthogonalize
     if iter.orth isa Union{ClassicalGramSchmidt2,ModifiedGramSchmidt2}
         dα = inner(v, r)
         α += dα
         r = add!!(r, v, -dα) # should we use real(dα) here?
         β = norm(r)
-        warn_nonhermitian(α, zero(β), β)
     elseif iter.orth isa Union{ClassicalGramSchmidtIR,ModifiedGramSchmidtIR}
         while eps(one(β)) < β < iter.orth.η * βold
             βold = β
@@ -206,18 +204,19 @@ function initialize(iter::LanczosIterator; verbosity::Int=0)
             α += dα
             r = add!!(r, v, -dα) # should we use real(dα) here?
             β = norm(r)
-            warn_nonhermitian(α, zero(β), β)
         end
     end
+    verbosity >= WARN_LEVEL && warn_nonhermitian(α, zero(β), β)
     V = OrthonormalBasis([v])
     αs = [real(α)]
     βs = [β]
-    if verbosity > 0
+    if verbosity > EACHITERATION_LEVEL
         @info "Lanczos initiation at dimension 1: subspace normres = $(normres2string(β))"
     end
     return LanczosFactorization(1, V, αs, βs, r)
 end
-function initialize!(iter::LanczosIterator, state::LanczosFactorization; verbosity::Int=0)
+function initialize!(iter::LanczosIterator, state::LanczosFactorization;
+                     verbosity::Int=KrylovDefaults.verbosity[])
     x₀ = iter.x₀
     V = state.V
     while length(V) > 1
@@ -230,24 +229,25 @@ function initialize!(iter::LanczosIterator, state::LanczosFactorization; verbosi
     w = apply(iter.operator, V[1])
     r, α = orthogonalize!!(w, V[1], iter.orth)
     β = norm(r)
-    warn_nonhermitian(α, zero(β), β)
+    verbosity >= WARN_LEVEL && warn_nonhermitian(α, zero(β), β)
 
     state.k = 1
     push!(αs, real(α))
     push!(βs, β)
     state.r = r
-    if verbosity > 0
+    if verbosity > EACHITERATION_LEVEL
         @info "Lanczos initiation at dimension 1: subspace normres = $(normres2string(β))"
     end
     return state
 end
-function expand!(iter::LanczosIterator, state::LanczosFactorization; verbosity::Int=0)
+function expand!(iter::LanczosIterator, state::LanczosFactorization;
+                 verbosity::Int=KrylovDefaults.verbosity[])
     βold = normres(state)
     V = state.V
     r = state.r
     V = push!(V, scale!!(r, 1 / βold))
     r, α, β = lanczosrecurrence(iter.operator, V, βold, iter.orth)
-    warn_nonhermitian(α, βold, β)
+    verbosity >= WARN_LEVEL && warn_nonhermitian(α, βold, β)
 
     αs = push!(state.αs, real(α))
     βs = push!(state.βs, β)
@@ -256,12 +256,12 @@ function expand!(iter::LanczosIterator, state::LanczosFactorization; verbosity::
 
     state.k += 1
     state.r = r
-    if verbosity > 0
+    if verbosity > EACHITERATION_LEVEL
         @info "Lanczos expansion to dimension $(state.k): subspace normres = $(normres2string(β))"
     end
     return state
 end
-function shrink!(state::LanczosFactorization, k; verbosity::Int=0)
+function shrink!(state::LanczosFactorization, k; verbosity::Int=KrylovDefaults.verbosity[])
     length(state) == length(state.V) ||
         error("we cannot shrink LanczosFactorization without keeping Lanczos vectors")
     length(state) <= k && return state
@@ -274,7 +274,7 @@ function shrink!(state::LanczosFactorization, k; verbosity::Int=0)
     resize!(state.βs, k)
     state.k = k
     β = normres(state)
-    if verbosity > 0
+    if verbosity > EACHITERATION_LEVEL
         @info "Lanczos reduction to dimension $k: subspace normres = $(normres2string(β))"
     end
     state.r = scale!!(r, β)
