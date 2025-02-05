@@ -67,7 +67,6 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos;
                 break
             elseif alg.verbosity >= EACHITERATION_LEVEL
                 @info "Lanczos eigsolve in iteration $numiter, step = $K: $converged values converged, normres = $(normres2string(abs.(f[1:howmany])))"
-                @info msg
             end
         end
 
