@@ -44,6 +44,9 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
 
     K = 1
     HHA[K, K] = real(α)
+    if alg.verbosity >= EACHITERATION_LEVEL + 1
+        @info "Golub-Ye iteration $numiter, step $K: normres = $(normres2string(β))"
+    end
     while true
         β = norm(r)
         if β <= tol && K < howmany
@@ -103,8 +106,8 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
             resize!(vectors, 0)
             resize!(residuals, 0)
             resize!(normresiduals, 0)
-            while converged < K
-                z = view(Z, :, p[converged + 1])
+            for k in 1:K
+                z = view(Z, :, p[k])
                 v = unproject!!(zerovector(vold), V, z)
                 av, bv = genapply(f, v)
                 numops += 1
@@ -112,36 +115,24 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
                 r = add!!(av, bv, -ρ)
                 β = norm(r)
 
-                if β > tol * norm(z)
-                    break
+                if β < tol * norm(z)
+                    converged += 1
+                elseif numiter < maxiter
+                    break # in last iteration, keep adding nonconverged vectors up to howmany
                 end
-
                 push!(values, ρ)
                 push!(vectors, v)
                 push!(residuals, r)
                 push!(normresiduals, β)
-                converged += 1
+                if (k == howmany && numiter == maxiter)
+                    break
+                end
             end
-
             if converged >= howmany
                 howmany = converged
                 break
-            elseif numiter == maxiter
-                for k in (converged + 1):howmany
-                    z = view(Z, :, p[k])
-                    v = unproject!!(zerovector(vold), V, z)
-                    av, bv = genapply(f, v)
-                    numops += 1
-                    ρ = checkhermitian(inner(v, av)) / checkposdef(inner(v, bv))
-                    r = add!!(av, bv, -ρ)
-                    β = norm(r)
-
-                    push!(values, ρ)
-                    push!(vectors, v)
-                    push!(residuals, r)
-                    push!(normresiduals, β)
-                end
-            elseif alg.verbosity >= EACHITERATION_LEVEL
+            end
+            if alg.verbosity >= EACHITERATION_LEVEL
                 @info "Golub-Ye geneigsolve in iter $numiter: $converged values converged, normres = $(normres2string(normresiduals))"
             end
         end
@@ -160,7 +151,7 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
             HHA[K, K] = checkhermitian(α, n)
             push!(BV, bv)
 
-            if alg.verbosity >= EACHITERATION_LEVEL
+            if alg.verbosity >= EACHITERATION_LEVEL + 1
                 @info "Golub-Ye iteration $numiter, step $K: normres = $(normres2string(β))"
             end
         else # restart
@@ -181,6 +172,9 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
             HHA[K, K] = real(α)
             push!(BV, bv)
             numiter += 1
+            if alg.verbosity >= EACHITERATION_LEVEL + 1
+                @info "Golub-Ye iteration $numiter, step $K: normres = $(normres2string(β))"
+            end
         end
     end
     if (converged < howmany) && alg.verbosity >= WARN_LEVEL

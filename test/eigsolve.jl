@@ -24,11 +24,16 @@
                           verbosity=2)
             @test_logs (:info,) eigsolve(wrapop(A, Val(mode)),
                                          wrapvec(v, Val(mode)), n1, :SR, alg)
-            alg = Lanczos(; orth=orth, krylovdim=n, maxiter=1, tol=tolerance(T),
+            alg = Lanczos(; orth=orth, krylovdim=n1, maxiter=3, tol=tolerance(T),
+                          verbosity=3)
+            @test_logs((:info,), (:info,), (:info,), (:warn,),
+                       eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), 1, :SR, alg))
+            alg = Lanczos(; orth=orth, krylovdim=3, maxiter=2, tol=tolerance(T),
                           verbosity=4)
-            @test_logs min_level = Logging.Warn eigsolve(wrapop(A, Val(mode)),
-                                                         wrapvec(v, Val(mode)),
-                                                         n1, :SR, alg)
+            @test_logs((:info,), (:info,), (:info,), (:info,),
+                       (:info,), (:info,), (:info,), (:info,), (:warn,),
+                       eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), 1, :SR, alg))
+
             @test KrylovKit.eigselector(wrapop(A, Val(mode)), scalartype(v); krylovdim=n,
                                         maxiter=1,
                                         tol=tolerance(T), ishermitian=true) isa Lanczos
@@ -118,11 +123,15 @@ end
                           verbosity=2)
             @test_logs (:info,) eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n1,
                                          :SR, alg)
-            alg = Arnoldi(; orth=orth, krylovdim=n, maxiter=1, tol=tolerance(T),
+            alg = Arnoldi(; orth=orth, krylovdim=n1, maxiter=3, tol=tolerance(T),
+                          verbosity=3)
+            @test_logs((:info,), (:info,), (:info,), (:warn,),
+                       eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), 1, :SR, alg))
+            alg = Arnoldi(; orth=orth, krylovdim=3, maxiter=2, tol=tolerance(T),
                           verbosity=4)
-            @test_logs min_level = Logging.Warn eigsolve(wrapop(A, Val(mode)),
-                                                         wrapvec(v, Val(mode)),
-                                                         n1, :SR, alg)
+            @test_logs((:info,), (:info,), (:info,), (:info,),
+                       (:info,), (:info,), (:info,), (:info,), (:warn,),
+                       eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), 1, :SR, alg))
 
             @test KrylovKit.eigselector(wrapop(A, Val(mode)), eltype(v); orth=orth,
                                         krylovdim=n, maxiter=1,
