@@ -28,10 +28,11 @@
                           verbosity=3)
             @test_logs((:info,), (:info,), (:info,), (:warn,),
                        eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), 1, :SR, alg))
-            alg = Lanczos(; orth=orth, krylovdim=3, maxiter=2, tol=tolerance(T),
+            alg = Lanczos(; orth=orth, krylovdim=4, maxiter=1, tol=tolerance(T),
                           verbosity=4)
-            @test_logs((:info,), (:info,), (:info,), (:info,),
-                       (:info,), (:info,), (:info,), (:info,), (:warn,),
+            # since it is impossible to know exactly the size of the Krylov subspace after shrinking,
+            # we only know the output for a sigle iteration
+            @test_logs((:info,), (:info,), (:info,), (:info,), (:info,), (:warn,),
                        eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), 1, :SR, alg))
 
             @test KrylovKit.eigselector(wrapop(A, Val(mode)), scalartype(v); krylovdim=n,
@@ -127,10 +128,11 @@ end
                           verbosity=3)
             @test_logs((:info,), (:info,), (:info,), (:warn,),
                        eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), 1, :SR, alg))
-            alg = Arnoldi(; orth=orth, krylovdim=3, maxiter=2, tol=tolerance(T),
+            alg = Arnoldi(; orth=orth, krylovdim=4, maxiter=1, tol=tolerance(T),
                           verbosity=4)
-            @test_logs((:info,), (:info,), (:info,), (:info,),
-                       (:info,), (:info,), (:info,), (:info,), (:warn,),
+            # since it is impossible to know exactly the size of the Krylov subspace after shrinking,
+            # we only know the output for a sigle iteration
+            @test_logs((:info,), (:info,), (:info,), (:info,), (:info,), (:warn,),
                        eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), 1, :SR, alg))
 
             @test KrylovKit.eigselector(wrapop(A, Val(mode)), eltype(v); orth=orth,

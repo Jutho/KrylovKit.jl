@@ -6,8 +6,12 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos;
                                     orth=alg.orth))
     krylovdim = alg.krylovdim
     maxiter = alg.maxiter
-    howmany > krylovdim &&
+    if howmany > krylovdim
         error("krylov dimension $(krylovdim) too small to compute $howmany eigenvalues")
+    end
+    if krylovdim < 2
+        error("krylov dimension should be at least 2 to avoid getting stuck in the Lanczos process")
+    end
 
     ## FIRST ITERATION: setting up
 
