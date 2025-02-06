@@ -30,8 +30,8 @@ function buildrealmap(A, B)
     function f(x)
         return A * x + B * conj(x)
     end
-    function f(x, ::Val{A}) where {A}
-        if A == false
+    function f(x, ::Val{C}) where {C}
+        if C == false
             return A * x + B * conj(x)
         else
             return adjoint(A) * x + transpose(B) * conj(x)
