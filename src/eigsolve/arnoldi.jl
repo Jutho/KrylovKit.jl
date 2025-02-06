@@ -348,12 +348,6 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     β = normres(fact)
     tol::eltype(β) = alg.tol
 
-    if eltype(fact) <: Real && krylovdim < 4
-        error("krylov dimension should be at least 4 to avoid getting stuck in the Arnoldi process in real arithmetic")
-    elseif krylovdim < 2
-        error("krylov dimension should be at least 2 to avoid getting stuck in the Arnoldi process in complex arithmetic")
-    end
-
     # allocate storage
     HH = fill(zero(eltype(fact)), krylovdim + 1, krylovdim)
     UU = fill(zero(eltype(fact)), krylovdim, krylovdim)
@@ -413,8 +407,17 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
             keep = div(3 * krylovdim + 2 * converged, 5) # strictly smaller than krylovdim since converged < howmany <= krylovdim, at least equal to converged
             if eltype(H) <: Real && H[keep + 1, keep] != 0
                 # we are in the middle of a 2x2 block; this cannot happen if keep == converged, so we can decrease keep
-                # however, we have 
-                keep -= 1 # conservative choice
+                # however, we have to make sure that we do not end up with keep = 0
+                if keep > 1
+                    keep -= 1 # conservative choice
+                else
+                    keep += 1
+                    if krylovdim == 2
+                        alg.verbosity >= WARN_LEVEL &&
+                            @warn "Arnoldi iteration got stuck in a 2x2 block, consider increasing the Krylov dimension"
+                        break
+                    end
+                end
             end
 
             # Restore Arnoldi form in the first keep columns

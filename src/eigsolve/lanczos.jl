@@ -9,12 +9,8 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos;
     if howmany > krylovdim
         error("krylov dimension $(krylovdim) too small to compute $howmany eigenvalues")
     end
-    if krylovdim < 2
-        error("krylov dimension should be at least 2 to avoid getting stuck in the Lanczos process")
-    end
 
     ## FIRST ITERATION: setting up
-
     # Initialize Lanczos factorization
     iter = LanczosIterator(A, x₀, alg.orth)
     fact = initialize(iter; verbosity=alg.verbosity)
