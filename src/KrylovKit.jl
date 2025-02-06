@@ -28,7 +28,7 @@ using Random
 using PackageExtensionCompat
 const IndexRange = AbstractRange{Int}
 
-export linsolve, reallinsolve, lssolve
+export linsolve, reallinsolve, lssolve, reallssolve
 export eigsolve, geneigsolve, realeigsolve, schursolve, svdsolve
 export exponentiate, expintegrator
 export orthogonalize, orthogonalize!!, orthonormalize, orthonormalize!!
@@ -249,6 +249,11 @@ const RealVec{V} = InnerProductVec{typeof(_realinner),V}
 RealVec(v) = InnerProductVec(v, _realinner)
 
 apply(A, x::RealVec) = RealVec(apply(A, x[]))
+
+apply_normal(f::Tuple{Any,Any}, x::RealVec) = RealVec(apply_normal(f, x[]))
+apply_adjoint(f::Tuple{Any,Any}, x::RealVec) = RealVec(apply_adjoint(f, x[]))
+apply_normal(f, x::RealVec) = RealVec(apply_normal(f, x[]))
+apply_adjoint(f, x::RealVec) = RealVec(apply_adjoint(f, x[]))
 
 # linsolve
 include("linsolve/linsolve.jl")
