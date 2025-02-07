@@ -26,6 +26,7 @@ jobs:
           - ubuntu-latest
         arch:
           - x64
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2

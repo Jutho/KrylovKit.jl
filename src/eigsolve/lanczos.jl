@@ -6,11 +6,11 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos;
                                     orth=alg.orth))
     krylovdim = alg.krylovdim
     maxiter = alg.maxiter
-    howmany > krylovdim &&
+    if howmany > krylovdim
         error("krylov dimension $(krylovdim) too small to compute $howmany eigenvalues")
+    end
 
     ## FIRST ITERATION: setting up
-
     # Initialize Lanczos factorization
     iter = LanczosIterator(A, x₀, alg.orth)
     fact = initialize(iter; verbosity=alg.verbosity)
@@ -67,7 +67,6 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos;
                 break
             elseif alg.verbosity >= EACHITERATION_LEVEL
                 @info "Lanczos eigsolve in iteration $numiter, step = $K: $converged values converged, normres = $(normres2string(abs.(f[1:howmany])))"
-                @info msg
             end
         end
 
