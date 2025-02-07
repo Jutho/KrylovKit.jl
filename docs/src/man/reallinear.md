@@ -21,10 +21,12 @@ with twice the original length.
 However, KrylovKit.jl admits a different approach, where the original representation of
 vectors is kept, and the inner product is simply replaced by its real part. KrylovKit.jl
 offers specific methods for solving linear systems and eigenvalue systems in this way. For
-linear problems, this is implemented using `reallinsolve`:
+linear problems and least square problems, this is implemented using `reallinsolve` and
+`reallssolve`:
 
 ```@docs
 reallinsolve
+reallssolve
 ```
 
 In the case of eigenvalue systems, a similar method `realeigsolve` is available. In this
@@ -41,6 +43,7 @@ targetted set.
 realeigsolve
 ```
 
-Note that both `reallinsolve` and `realeigsolve` currently only exist with the "expert" mode
-interface, where the user has to manually specify the underlying Krylov algorithm and its
-parameters, i.e. `GMRES` or `BiCGStab` for `reallinsolve` and `Arnoldi` for `realeigsolve`.
+Note that `reallinsolve`, `reallssolve` and `realeigsolve` currently only exist with the
+"expert" mode interface, where the user has to manually specify the underlying Krylov
+algorithm and its parameters, i.e. `GMRES` or `BiCGStab` for `reallinsolve`, `LSMR` for
+`reallssolve` and `Arnoldi` for `realeigsolve`.

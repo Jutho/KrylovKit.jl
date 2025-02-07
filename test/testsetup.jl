@@ -27,7 +27,17 @@ function ≊(list1::AbstractVector, list2::AbstractVector)
 end
 
 function buildrealmap(A, B)
-    return x -> A * x + B * conj(x)
+    function f(x)
+        return A * x + B * conj(x)
+    end
+    function f(x, ::Val{C}) where {C}
+        if C == false
+            return A * x + B * conj(x)
+        else
+            return adjoint(A) * x + transpose(B) * conj(x)
+        end
+    end
+    return f
 end
 
 # Wrappers

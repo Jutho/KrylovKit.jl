@@ -36,14 +36,15 @@ KrylovKit v0.9 adds two new sets of functionality:
 * The function `lssolve` can be used to solve linear least squares problems, i.e. problems of the form `x = argmin(norm(A*x - b))` 
   for a given linear map `A` and vector `b`. Currently, only one algorithm is implemented, namely the LSMR algorithm
   of Fong and Saunders.
-* There are now two new functions `reallinsolve` and `realeigsolve`, which are useful when using vectors with complex arithmetic,
-  but where the linear map (implemented as a function `f`) acts as a real linear map, meaning that it only satisfies
-  `f(α*x) = α*f(x)` when `α` is a real number. This occurs for example when computing the Jacobian of a complex function that is
-  not holomorphic, e.g. in the context of automatic differentation. This is implemented by simply wrapping the vector as `RealVec`,
-  which is a specific `InnerProductVec` type where the redefined inner product forgets about the imaginary part of the original
-  `inner` function, thereby effectively treating the vector as living in a real vector space. Furthermore, in this setting, only
-  real linear combinations of vectors are allowed, so that for the case of `eigsolve`, only real eigenvalues and eigenvectors are
-  computed. An error will be thrown if the requested list of eigenvalues contains complex eigenvalues.
+* There are now new functions `reallinsolve` and `realeigsolve` (and `reallssolve` since v0.9.4), which are useful when 
+  using vectors with complex arithmetic, but where the linear map (implemented as a function `f`) acts as a real linear map,
+  meaning that it only satisfies `f(α*x) = α*f(x)` when `α` is a real number. This occurs for example when computing the
+  Jacobian of a complex function that is not holomorphic, e.g. in the context of automatic differentation. This is implemented
+  by simply wrapping the vector as `RealVec`, which is a specific `InnerProductVec` type where the redefined inner product
+  forgets about the imaginary part of the original `inner` function, thereby effectively treating the vector as living in a
+  real vector space. Furthermore, in this setting, only real linear combinations of vectors are allowed, so that for the
+  case of `eigsolve`, only real eigenvalues and eigenvectors are computed. An error will be thrown if the requested list
+  of eigenvalues contains complex eigenvalues.
 
 In addition, the following is technically a breaking change:
 * The verbosity system, the different verbosity levels and the output formatting have been redesigned (both in the primal methods

@@ -52,6 +52,19 @@
         r = b - A * unwrapvec(x)
         @test info.converged > 0
         @test A' * r ≈ λ^2 * unwrapvec(x) atol = 2 * tol
+
+        if mode == :vector && T <: Complex
+            A = rand(T, (2 * n, n)) .- one(T) / 2
+            B = rand(T, (2 * n, n)) .- one(T) / 2
+            f = buildrealmap(A, B)
+            # the effective linear problem has twice the size, so 4n x 2n
+            alg = LSMR(; maxiter=2 * n, tol=tol, verbosity=0, krylovdim=2 * n)
+            xr, infor = @constinferred reallssolve(f, b, alg)
+            @test infor.converged > 0
+            y = (A * xr + B * conj(xr))
+            @test b ≈ y + infor.residual
+            @test (A' * b + conj(B' * b)) ≈ (A' * y + conj(B' * y))
+        end
     end
 end
 @testset "LSMR large problem ($mode)" for mode in (:vector, :inplace, :outplace, :mixed)
@@ -67,5 +80,17 @@ end
         r = b - A * unwrapvec(x)
         @test info.converged > 0
         @test norm(A' * r) < 5 * tol # there seems to be some loss of precision in the computation of the convergence measure
+
+        if mode == :vector && T <: Complex
+            A = rand(T, (2 * N, N)) .- one(T) / 2
+            B = rand(T, (2 * N, N)) .- one(T) / 2
+            f = buildrealmap(A, B)
+            alg = LSMR(; maxiter=N, tol=tol, verbosity=0, krylovdim=5)
+            xr, infor = @constinferred reallssolve(f, b, alg)
+            @test infor.converged > 0
+            y = (A * xr + B * conj(xr))
+            @test b ≈ y + infor.residual
+            @test (A' * b + conj(B' * b)) ≈ (A' * y + conj(B' * y))
+        end
     end
 end
