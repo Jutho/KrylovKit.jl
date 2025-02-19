@@ -53,7 +53,7 @@ function lin_preprocess(config, f, x)
         throw(ArgumentError("`linsolve` reverse-mode AD requires AD engine that supports calling back into AD"))
     pb = rrule_via_ad(config, f, x)[2]
     fᴴ, construct∂f_lin = let pb = rrule_via_ad(config, f, x)[2]
-        v -> pb(v)[2], w -> pb(w)[1]
+        v -> unthunk(pb(v)[2]), w -> pb(w)[1]
     end
     return fᴴ, construct∂f_lin
 end

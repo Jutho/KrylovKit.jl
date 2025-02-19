@@ -18,7 +18,7 @@ function ChainRulesCore.rrule(config::RuleConfig,
         fᴴ = adjoint(f)
     else
         fᴴ = let pb = rrule_via_ad(config, f, zerovector(x₀, complex(scalartype(x₀))))[2]
-            v -> pb(v)[2]
+            v -> unthunk(pb(v)[2])
         end
     end
     eigsolve_pullback = make_eigsolve_pullback(config, f, fᴴ, x₀, howmany, which,
