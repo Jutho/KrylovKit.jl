@@ -42,6 +42,20 @@ function build_mat_example(A, b, x, alg, alg_rrule)
     return mat_example, mat_example_fun, Avec, bvec, xvec
 end
 
+function testfun(A, x, c, d)
+    return A * x + c * dot(d, x)
+end
+testfunthunk(A, x, c, d) = testfun(A, x, c, d)
+function ChainRulesCore.rrule(config::RuleConfig{>:HasReverseMode}, ::typeof(testfunthunk),
+                              args...)
+    y = testfunthunk(args...)
+    function thunkedpb(dy)
+        pb = rrule_via_ad(config, testfun, args...)[2]
+        return map(z -> @thunk(z), pb(dy))
+    end
+    return y, thunkedpb
+end
+
 function build_fun_example(A, b, c, d, e, f, alg, alg_rrule)
     Avec, matfromvec = to_vec(A)
     bvec, vecfromvec = to_vec(b)
@@ -59,7 +73,7 @@ function build_fun_example(A, b, c, d, e, f, alg, alg_rrule)
         f̃ = scalarfromvec(fv)
 
         x, info = linsolve(b̃, zero(b̃), alg, ẽ, f̃; alg_rrule=alg_rrule) do y
-            return Ã * y + c̃ * dot(d̃, y)
+            return testfunthunk(Ã, y, c̃, d̃)
         end
         # info.converged > 0 || @warn "not converged"
         xv, = to_vec(x)

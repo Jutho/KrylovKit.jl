@@ -69,6 +69,20 @@ function build_mat_example(A, x, howmany::Int, which, alg, alg_rrule)
     return mat_example, mat_example_fun, mat_example_fd, Avec, xvec, vals, vecs, howmany
 end
 
+function testfun(A, x, c, d)
+    return A * x + c * dot(d, x)
+end
+testfunthunk(A, x, c, d) = testfun(A, x, c, d)
+function ChainRulesCore.rrule(config::RuleConfig{>:HasReverseMode}, ::typeof(testfunthunk),
+                              args...)
+    y = testfunthunk(args...)
+    function thunkedpb(dy)
+        pb = rrule_via_ad(config, testfun, args...)[2]
+        return map(z -> @thunk(z), pb(dy))
+    end
+    return y, thunkedpb
+end
+
 function build_fun_example(A, x, c, d, howmany::Int, which, alg, alg_rrule)
     Avec, matfromvec = to_vec(A)
     xvec, vecfromvec = to_vec(x)
@@ -76,7 +90,7 @@ function build_fun_example(A, x, c, d, howmany::Int, which, alg, alg_rrule)
     dvec, = to_vec(d)
 
     vals, vecs, info = eigsolve(x, howmany, which, alg) do y
-        return A * y + c * dot(d, y)
+        return testfunthunk(A, y, c, d)
     end
     info.converged < howmany && @warn "eigsolve did not converge"
     if eltype(A) <: Real && length(vals) > howmany &&
@@ -93,7 +107,7 @@ function build_fun_example(A, x, c, d, howmany::Int, which, alg, alg_rrule)
 
             vals′, vecs′, info′ = eigsolve(x̃, howmany′, which, alg;
                                            alg_rrule=alg_rrule) do y
-                return Ã * y + c̃ * dot(d̃, y)
+                return testfunthunk(Ã, y, c̃, d̃)
             end
             info′.converged < howmany′ && @warn "eigsolve did not converge"
             catresults = vcat(vals′[1:howmany′], vecs′[1:howmany′]...)
@@ -141,7 +155,7 @@ function build_hermitianfun_example(A, x, c, howmany::Int, which, alg, alg_rrule
     cvec, cvecfromvec = to_vec(c)
 
     vals, vecs, info = eigsolve(x, howmany, which, alg) do y
-        return Hermitian(A) * y + c * dot(c, y)
+        return testfunthunk(Hermitian(A), y, c, c)
     end
     info.converged < howmany && @warn "eigsolve did not converge"
 
@@ -152,7 +166,7 @@ function build_hermitianfun_example(A, x, c, howmany::Int, which, alg, alg_rrule
 
         vals′, vecs′, info′ = eigsolve(x̃, howmany, which, alg;
                                        alg_rrule=alg_rrule) do y
-            return Hermitian(Ã) * y + c̃ * dot(c̃, y)
+            return testfunthunk(Hermitian(Ã), y, c̃, c̃)
         end
         info′.converged < howmany && @warn "eigsolve did not converge"
         catresults = vcat(vals′[1:howmany], vecs′[1:howmany]...)
