@@ -304,8 +304,16 @@ function realeigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi; alg_
             T[i + 1, i] = 0
         end
     end
-    while i < converged && i < length(fact) && abs(T[i + 1, i]) <= alg.tol
+    while i < converged
         i += 1
+        if i < length(fact)
+            if abs(T[i + 1, i]) <= alg.tol
+                T[i + 1, i] = 0
+            else
+                i -= 1
+                break
+            end
+        end
     end
     howmany′ = i
     TT = view(T, 1:howmany′, 1:howmany′)
