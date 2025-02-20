@@ -293,16 +293,21 @@ function realeigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi; alg_
     T, U, fact, converged, numiter, numops = _schursolve(A, RealVec(x₀), howmany, which,
                                                          alg)
     i = 0
-    while i < length(fact)
+    while i < howmany
         i += 1
-        if i < length(fact) && T[i + 1, i] != 0
-            i -= 1
-            break
+        if i < length(fact)
+            if abs(T[i + 1, i]) > alg.tol && alg.verbosity >= WARN_LEVEL
+                impart = sqrt(-T[i + 1, i] * T[i, i + 1])
+                warnmsg = "2 x 2 Schur block at position $i and $(i + 1) detected, complex eigenvalues "
+                warnmsg *= "with imaginary part $impart will be ignored by setting T[i+1,i] = $(T[i+1,i]) to zero."
+            end
+            T[i + 1, i] = 0
         end
     end
-    i < howmany &&
-        throw(ArgumentError("only the first $i eigenvalues are real, which is less then the requested `howmany = $howmany`"))
-    howmany′ = max(howmany, min(i, converged))
+    while i < converged && i < length(fact) && abs(T[i + 1, i]) <= alg.tol
+        i += 1
+    end
+    howmany′ = i
     TT = view(T, 1:howmany′, 1:howmany′)
     values = diag(TT)
 
