@@ -300,6 +300,7 @@ function realeigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi; alg_
                 impart = sqrt(-T[i + 1, i] * T[i, i + 1])
                 warnmsg = "2 x 2 Schur block at position $i and $(i + 1) detected, complex eigenvalues "
                 warnmsg *= "with imaginary part $impart will be ignored by setting T[i+1,i] = $(T[i+1,i]) to zero."
+                @warn warnmsg
             end
             T[i + 1, i] = 0
         end
