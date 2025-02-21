@@ -336,3 +336,17 @@ end
         end
     end
 end
+
+@testset "Arnoldi - realeigsolve imaginary eigenvalue warning" begin
+    A = diagm(sort(exp.(randn(Float64, N)); rev=true))
+    A[1, 1] = A[2, 2] = (A[1, 1] + A[2, 2]) / 2
+    A[2, 1] = 1e-9
+    A[1, 2] = -1
+    v = randn(Float64, N)
+    @test_logs realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-8, verbosity=0))
+    @test_logs realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-8, verbosity=1))
+    @test_logs (:info,) realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-8, verbosity=2))
+    @test_logs (:warn,) realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-10, verbosity=1))
+    @test_logs (:warn,) (:info,) realeigsolve(A, v, 1, :LM,
+                                              Arnoldi(; tol=1e-10, verbosity=2))
+end
