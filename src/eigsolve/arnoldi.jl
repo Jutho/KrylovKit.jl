@@ -316,12 +316,13 @@ function realeigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi; alg_
             end
         end
     end
-    howmany′ = i
-    TT = view(T, 1:howmany′, 1:howmany′)
+    howmany = i
+    converged = min(converged, howmany)
+    TT = view(T, 1:howmany, 1:howmany)
     values = diag(TT)
 
     # Compute eigenvectors
-    V = view(U, :, 1:howmany′) * schur2realeigvecs(TT)
+    V = view(U, :, 1:howmany) * schur2realeigvecs(TT)
     vectors = let B = basis(fact)
         [(B * v)[] for v in cols(V)]
     end

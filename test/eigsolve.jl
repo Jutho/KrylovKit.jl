@@ -340,7 +340,7 @@ end
 @testset "Arnoldi - realeigsolve imaginary eigenvalue warning" begin
     A = diagm(vcat(1, 1, exp.(-(0.1:0.02:2))))
     A[2, 1] = 1e-9
-    A[1, 2] = -1
+    A[1, 2] = -1e-9
     v = ones(Float64, size(A, 1))
     @test_logs realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-8, verbosity=0))
     @test_logs realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-8, verbosity=1))
@@ -351,8 +351,10 @@ end
 
     # this should not trigger a warning
     A[1, 2] = A[2, 1] = 0
-    A[4, 3] = 1e-9
-    A[3, 4] = -1
+    A[1, 1] = 1
+    A[2, 2] = A[3, 3] = 0.99
+    A[3, 2] = 1e-6
+    A[2, 3] = -1e-6
     @test_logs realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-10, verbosity=0))
     @test_logs realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-10, verbosity=1))
     @test_logs (:info,) realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-10, verbosity=2))
