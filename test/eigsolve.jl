@@ -355,7 +355,7 @@ end
     A[2, 2] = A[3, 3] = 0.99
     A[3, 2] = 1e-6
     A[2, 3] = -1e-6
-    @test_logs realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-10, verbosity=0))
-    @test_logs realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-10, verbosity=1))
-    @test_logs (:info,) realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-10, verbosity=2))
+    @test_logs realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-12, verbosity=0))
+    @test_logs realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-12, verbosity=1))
+    @test_logs (:info,) realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-12, verbosity=2))
 end
