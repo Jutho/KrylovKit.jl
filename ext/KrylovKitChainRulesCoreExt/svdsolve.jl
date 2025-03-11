@@ -235,20 +235,20 @@ function compute_svdsolve_pullback_data(Δvals, Δlvecs, Δrvecs, vals, lvecs, r
 
     # cleanup and construct final result
     tol = alg_rrule.tol
+    Z = zeros(T, n, n)
     for i in 1:n
-        x, y, z = Ws[i]
-        _, ic = findmax(abs, z)
-        if ic != i && alg_primal.verbosity >= WARN_LEVEL
-            @warn "`svdsolve` cotangent linear problem ($ic) returns unexpected result"
+        copy!(view(Z, :, i), Ws[i][3])
+    end
+    Zinv = inv(Z)
+    error = norm(Diagonal(view(vals, 1:n)) - Z * Diagonal(view(rvals, 1:n)) * Zinv, Inf)
+    if error > 10 * tol && alg_primal.verbosity >= WARN_LEVEL
+        @warn "`svdsolve` cotangent linear problem returns unexpected result: error = $error vs tol = $tol"
+    end
+    for i in 1:n
+        for j in 1:n
+            xs[i] = VectorInterface.add!!(xs[i], Ws[j][1], -Zinv[j, i])
+            ys[i] = VectorInterface.add!!(ys[i], Ws[j][2], -Zinv[j, i])
         end
-        factor = 1 / z[ic]
-        z[ic] = zero(z[ic])
-        error = max(norm(z, Inf), abs(rvals[i] - vals[ic]))
-        if error > 10 * tol && alg_primal.verbosity >= WARN_LEVEL
-            @warn "`svdsolve` cotangent linear problem ($ic) returns unexpected result: error = $error vs tol = $tol"
-        end
-        xs[ic] = VectorInterface.add!!(xs[ic], x, -factor)
-        ys[ic] = VectorInterface.add!!(ys[ic], y, -factor)
     end
     return xs, ys
 end
