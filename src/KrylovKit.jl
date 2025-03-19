@@ -36,8 +36,8 @@ export basis, rayleighquotient, residual, normres, rayleighextension
 export initialize, initialize!, expand!, shrink!
 export ClassicalGramSchmidt, ClassicalGramSchmidt2, ClassicalGramSchmidtIR
 export ModifiedGramSchmidt, ModifiedGramSchmidt2, ModifiedGramSchmidtIR
-export LanczosIterator, ArnoldiIterator, GKLIterator
-export CG, GMRES, BiCGStab, Lanczos, Arnoldi, GKL, GolubYe, LSMR
+export LanczosIterator, ArnoldiIterator, GKLIterator, BiArnoldiIterator
+export CG, GMRES, BiCGStab, Lanczos, Arnoldi, GKL, GolubYe, LSMR, BiArnoldi
 export KrylovDefaults, EigSorter
 export RecursiveVec, InnerProductVec
 
@@ -176,6 +176,7 @@ include("dense/reflector.jl")
 include("factorizations/krylov.jl")
 include("factorizations/lanczos.jl")
 include("factorizations/arnoldi.jl")
+include("factorizations/biarnoldi.jl")
 include("factorizations/gkl.jl")
 
 # A general structure to pass on convergence information
@@ -269,6 +270,7 @@ include("lssolve/lsmr.jl")
 include("eigsolve/eigsolve.jl")
 include("eigsolve/lanczos.jl")
 include("eigsolve/arnoldi.jl")
+include("eigsolve/biarnoldi.jl")
 include("eigsolve/geneigsolve.jl")
 include("eigsolve/golubye.jl")
 include("eigsolve/svdsolve.jl")
