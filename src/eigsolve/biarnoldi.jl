@@ -123,8 +123,8 @@ function _schursolve(A, AH, v₀, w₀, howmany::Int, which::Selector, alg::BiAr
             # Step 2 and 3 - Correct H, K and the residuals using the oblique projection
 
             # Compute the projections W* residual(V) and V* residual(W)
-            Wv = zeros(krylovdim)
-            Vw = zeros(krylovdim)
+            Wv = zeros(eltype(rV), krylovdim)
+            Vw = zeros(eltype(rV), krylovdim)
             for i in eachindex(Wv)
                 Wv[i] = dot(fact.W[i], rV)
                 Vw[i] = dot(fact.V[i], rW)
@@ -200,8 +200,8 @@ function _schursolve(A, AH, v₀, w₀, howmany::Int, which::Selector, alg::BiAr
             Vv = -adjoint(Q[:, 1:keep]) * MWv
             Ww = -adjoint(Z[:, 1:keep]) * MVw
 
-            _H[1:keep, 1:keep] += Vv * _h[1:keep]'
-            _K[1:keep, 1:keep] += Ww * _k[1:keep]'
+            _H[1:keep, 1:keep] += Vv * transpose(_h[1:keep])
+            _K[1:keep, 1:keep] += Ww * transpose(_k[1:keep])
 
             # newresidual = (I - Vm Vm*) oldresidual = (I - Vl Q1 Vm*) oldresidual = oldresidual + Vl Q1 Q_1^* MWv = oldresidual + Vl Q1 Vv
             Q1Vv = Q[:, 1:keep] * Vv
