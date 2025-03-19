@@ -247,6 +247,24 @@ function Arnoldi(;
     return Arnoldi(orth, krylovdim, maxiter, tol, eager, verbosity)
 end
 
+struct BiArnoldi{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
+    orth::O
+    krylovdim::Int
+    maxiter::Int
+    tol::S
+    eager::Bool
+    verbosity::Int
+end
+function BiArnoldi(;
+                 krylovdim::Int=KrylovDefaults.krylovdim[],
+                 maxiter::Int=KrylovDefaults.maxiter[],
+                 tol::Real=KrylovDefaults.tol[],
+                 orth::Orthogonalizer=KrylovDefaults.orth,
+                 eager::Bool=false,
+                 verbosity::Int=KrylovDefaults.verbosity[])
+    return BiArnoldi(orth, krylovdim, maxiter, tol, eager, verbosity)
+end
+
 """
     GolubYe(; krylovdim=KrylovDefaults.krylovdim[],
             maxiter=KrylovDefaults.maxiter[],
