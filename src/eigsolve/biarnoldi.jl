@@ -120,8 +120,8 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
             copyto!(_K, rayleighquotient(fact)[2])
 
             rV, rW = residual(fact)
-            scale!(rV, 1/βv)
-            scale!(rW, 1/βw)
+            scale!!(rV, 1/βv)
+            scale!!(rW, 1/βw)
 
             # Step 2 and 3 - Correct H, K and the residuals using the oblique projection
 
