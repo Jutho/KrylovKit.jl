@@ -81,32 +81,32 @@
                 @test A'UW2 ≈ UW2 * Diagonal(conj.(D2))
             end
 
-            # if T <: Complex
-            #     n1 = div(n, 2)
-            #     D1, V1, W1, info = bieigsolve(wrapop(A, Val(mode)),
-            #                                             wrapvec(v, Val(mode)),
-            #                                             wrapvec(w, Val(mode)), n1,
-            #                                             :SI,
-            #                                             alg)
-            #     n2 = n - n1
-            #     D2, V2, W2, info = bieigsolve(wrapop(A, Val(mode)),
-            #                                             wrapvec(v, Val(mode)),
-            #                                             wrapvec(w, Val(mode)), n2,
-            #                                             :LI,
-            #                                             alg)
-            #     D = sort(eigvals(A); by=imag)
-            #     @test vcat(D1[1:n1], reverse(D2[1:n2])) ≊ D
+            if T <: Complex
+                n1 = div(n, 2)
+                D1, V1, W1, info = bieigsolve(wrapop(A, Val(mode)),
+                                                        wrapvec(v, Val(mode)),
+                                                        wrapvec(w, Val(mode)), n1,
+                                                        :SI,
+                                                        alg)
+                n2 = n - n1
+                D2, V2, W2, info = bieigsolve(wrapop(A, Val(mode)),
+                                                        wrapvec(v, Val(mode)),
+                                                        wrapvec(w, Val(mode)), n2,
+                                                        :LI,
+                                                        alg)
+                D = sort(eigvals(A); by=imag)
+                @test vcat(D1[1:n1], reverse(D2[1:n2])) ≊ D
 
-            #     UV1 = stack(unwrapvec, V1)
-            #     UV2 = stack(unwrapvec, V2)
-            #     @test A * UV1 ≈ UV1 * Diagonal(D1)
-            #     @test A * UV2 ≈ UV2 * Diagonal(D2)
+                UV1 = stack(unwrapvec, V1)
+                UV2 = stack(unwrapvec, V2)
+                @test A * UV1 ≈ UV1 * Diagonal(D1)
+                @test A * UV2 ≈ UV2 * Diagonal(D2)
 
-            #     UW1 = stack(unwrapvec, W1)
-            #     UW2 = stack(unwrapvec, W2)
-            #     @test A'UW1 ≈ UW1 * Diagonal(conj.(D1))
-            #     @test A'UW2 ≈ UW2 * Diagonal(conj.(D2))
-            # end
+                UW1 = stack(unwrapvec, W1)
+                UW2 = stack(unwrapvec, W2)
+                @test A'UW1 ≈ UW1 * Diagonal(conj.(D1))
+                @test A'UW2 ≈ UW2 * Diagonal(conj.(D2))
+            end
 
             # alg = Arnoldi(; orth=orth, krylovdim=2n, maxiter=1, tol=tolerance(T),
             #               verbosity=1)
