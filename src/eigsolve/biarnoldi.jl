@@ -14,10 +14,18 @@ function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi
         howmany′ = converged
     end
 
-    TT = view(T, 1:howmany′, 1:howmany′)
     SS = view(S, 1:howmany′, 1:howmany′)
-    valuesT = schur2eigvals(TT)
+    TT = view(T, 1:howmany′, 1:howmany′)
     valuesS = schur2eigvals(SS)
+    valuesT = schur2eigvals(TT)
+
+    if length(valuesS) != length(valuesT) 
+        @error "BiArnoldi bieigsolve converged with unequal number of eigenvalues for the left- and right eigenspaces"
+    elseif eltype(T) <: Real && !all(isapprox.(valuesS, valuesT)) 
+        @error "BiArnoldi bieigsolve converged with mismatched eigenvalues for the left- and right eigenspaces"
+    elseif eltype(T) <: Complex && !all(isapprox.(valuesS, conj.(valuesT))) 
+        @error "BiArnoldi bieigsolve converged with mismatched eigenvalues for the left- and right eigenspaces, $valuesS, $valuesT"
+    end
 
     # Compute eigenvectors
     VS = view(Q, :, 1:howmany′) * schur2eigvecs(SS)
@@ -36,8 +44,8 @@ function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi
         [scale(r, last(v)) for v in cols(VT)]
     end
 
-    normresidualsS = [normres(fact)[1] * abs(last(v)) for v in cols(VS)]
-    normresidualsT = [normres(fact)[2] * abs(last(v)) for v in cols(VT)]
+    normresidualsS = [abs(normres(fact)[1]) * abs(last(v)) for v in cols(VS)]
+    normresidualsT = [abs(normres(fact)[2]) * abs(last(v)) for v in cols(VT)]
 
     if (converged < howmany) && alg.verbosity >= WARN_LEVEL
         @warn """Arnoldi eigsolve stopped without convergence after $numiter iterations:
@@ -50,10 +58,8 @@ function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi
         * norm of residuals = $(normres2string(normresidualsS))
         * number of operations = $numops"""
     end
-    return (valuesS, valuesT),
-           (vectorsS, vectorsT),
-           (ConvergenceInfo(converged, residualsS, normresidualsS, numiter, numops),
-            ConvergenceInfo(converged, residualsT, normresidualsT, numiter, numops))
+    return valuesS, vectorsS, vectorsT,
+           ConvergenceInfo(converged, residualsS, max.(normresidualsS, normresidualsT), numiter, numops)
 end
 
 function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi)
