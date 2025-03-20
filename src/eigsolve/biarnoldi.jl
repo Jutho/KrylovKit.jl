@@ -1,6 +1,6 @@
 # 
 function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi;
-                  alg_rrule=alg)
+                    alg_rrule=alg)
     S, Q, T, Z, fact, converged, numiter, numops = _schursolve(f, v₀, w₀, howmany,
                                                                which, alg)
 
@@ -52,7 +52,8 @@ function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi
     end
     return (valuesS, valuesT),
            (vectorsS, vectorsT),
-           (ConvergenceInfo(converged, residualsS, normresidualsS, numiter, numops), ConvergenceInfo(converged, residualsT, normresidualsT, numiter, numops))
+           (ConvergenceInfo(converged, residualsS, normresidualsS, numiter, numops),
+            ConvergenceInfo(converged, residualsT, normresidualsT, numiter, numops))
 end
 
 function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi)
@@ -77,6 +78,9 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
     QQ = fill(zero(eltype(fact)), krylovdim, krylovdim)
     ZZ = fill(zero(eltype(fact)), krylovdim, krylovdim)
 
+    MM = fill(zero(eltype(fact)), krylovdim, krylovdim)
+    temp = fill(zero(eltype(fact)), krylovdim, krylovdim)
+
     # initialize storage
     K = length(fact) # == 1
     converged = 0
@@ -99,6 +103,7 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
             _K = view(KK, 1:K, 1:K)
             Q = view(QQ, 1:K, 1:K)
             Z = view(ZZ, 1:K, 1:K)
+            M = view(MM, 1:K, 1:K)
             _h = view(HH, K + 1, 1:K)
             _k = view(KK, K + 1, 1:K)
 
@@ -111,15 +116,6 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
             rV, rW = residual(fact)
             normalize!(rV)
             normalize!(rW)
-
-            # Compute the oblique Projection
-            # TODO: This should reuse the old projection after restarting
-            M = fill(zero(eltype(fact)), K, K)
-            for i in axes(M, 1)
-                for j in axes(M, 2)
-                    M[i, j] = dot(fact.W[i], fact.V[j])
-                end
-            end
 
             # Step 2 and 3 - Correct H, K and the residuals using the oblique projection
 
@@ -179,6 +175,14 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
 
         if K < krylovdim # expand
             fact = expand!(iter, fact; verbosity=alg.verbosity)
+
+            # update M with the new basis vectors
+            for i in 1:K
+                MM[i, K + 1] = dot(fact.W[i], fact.V[K + 1])
+                MM[K + 1, i] = dot(fact.W[K + 1], fact.V[i])
+            end
+            MM[K + 1, K + 1] = dot(fact.W[K + 1], fact.V[K + 1])
+
             numops += 1
         else # shrink
             numiter == maxiter && break
@@ -224,6 +228,12 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
                                                fact.V, rV, βpv)
             _restorearnoldiformandupdatebasis!(keep, _K, Z, _k, rayleighquotient(fact)[2],
                                                fact.W, rW, βpw)
+
+            # Update M according to the transformation M -> Z'MQ to save some inner products later
+            _M = view(MM, 1:keep, 1:keep)
+            _temp = view(temp, 1:keep, 1:K)
+            mul!(_temp, (Z[:, 1:keep])', M)
+            mul!(_M, _temp, Q[:, 1:keep])
 
             # Shrink Arnoldi factorization
             fact = shrink!(fact, keep; verbosity=alg.verbosity)
