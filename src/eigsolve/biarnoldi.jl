@@ -1,6 +1,7 @@
-function eigsolve(A, AH, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi;
+# 
+function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi;
                   alg_rrule=alg)
-    S, Q, T, Z, fact, converged, numiter, numops = _schursolve(A, AH, v₀, w₀, howmany,
+    S, Q, T, Z, fact, converged, numiter, numops = _schursolve(f, v₀, w₀, howmany,
                                                                which, alg)
 
     howmany′ = howmany
@@ -54,7 +55,7 @@ function eigsolve(A, AH, v₀, w₀, howmany::Int, which::Selector, alg::BiArnol
            (ConvergenceInfo(converged, residualsS, normresidualsS, numiter, numops), ConvergenceInfo(converged, residualsT, normresidualsT, numiter, numops))
 end
 
-function _schursolve(A, AH, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi)
+function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi)
     krylovdim = alg.krylovdim
     maxiter = alg.maxiter
     howmany > krylovdim &&
@@ -63,7 +64,7 @@ function _schursolve(A, AH, v₀, w₀, howmany::Int, which::Selector, alg::BiAr
     ## FIRST ITERATION: setting up
     numiter = 1
     # initialize arnoldi factorization
-    iter = BiArnoldiIterator(A, AH, v₀, w₀, alg.orth)
+    iter = BiArnoldiIterator(f, v₀, w₀, alg.orth)
     fact = initialize(iter; verbosity=alg.verbosity)
     numops = 1
     sizehint!(fact, krylovdim)

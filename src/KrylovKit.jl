@@ -29,7 +29,7 @@ using PackageExtensionCompat
 const IndexRange = AbstractRange{Int}
 
 export linsolve, reallinsolve, lssolve, reallssolve
-export eigsolve, geneigsolve, realeigsolve, schursolve, svdsolve
+export eigsolve, geneigsolve, realeigsolve, schursolve, svdsolve, bieigsolve
 export exponentiate, expintegrator
 export orthogonalize, orthogonalize!!, orthonormalize, orthonormalize!!
 export basis, rayleighquotient, residual, normres, rayleighextension
