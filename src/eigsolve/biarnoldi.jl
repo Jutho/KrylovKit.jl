@@ -120,17 +120,17 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
             copyto!(_K, rayleighquotient(fact)[2])
 
             rV, rW = residual(fact)
-            normalize!(rV)
-            normalize!(rW)
+            scale!(rV, 1/βv)
+            scale!(rW, 1/βw)
 
             # Step 2 and 3 - Correct H, K and the residuals using the oblique projection
 
             # Compute the projections W* residual(V) and V* residual(W)
-            Wv = zeros(eltype(rV), K)
-            Vw = zeros(eltype(rV), K)
+            Wv = zeros(eltype(fact), K)
+            Vw = zeros(eltype(fact), K)
             for i in eachindex(Wv)
-                Wv[i] = dot(fact.W[i], rV)
-                Vw[i] = dot(fact.V[i], rW)
+                Wv[i] = inner(fact.W[i], rV)
+                Vw[i] = inner(fact.V[i], rW)
             end
 
             MWv = inv(M) * Wv
@@ -140,8 +140,8 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
             _K[:, end] += MVw * βw
 
             for i in eachindex(Wv)
-                rV -= fact.V[i] * MWv[i]
-                rW -= fact.W[i] * MVw[i]
+                rV = add!!(rV, fact.V[i], -MWv[i])
+                rW = add!!(rW, fact.W[i], -MVw[i])
             end
 
             # Step 5 - Compute dense schur factorization
@@ -200,10 +200,10 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
 
             # update M with the new basis vectors
             for i in 1:K
-                MM[i, K + 1] = dot(fact.W[i], fact.V[K + 1])
-                MM[K + 1, i] = dot(fact.W[K + 1], fact.V[i])
+                MM[i, K + 1] = inner(fact.W[i], fact.V[K + 1])
+                MM[K + 1, i] = inner(fact.W[K + 1], fact.V[i])
             end
-            MM[K + 1, K + 1] = dot(fact.W[K + 1], fact.V[K + 1])
+            MM[K + 1, K + 1] = inner(fact.W[K + 1], fact.V[K + 1])
 
             numops += 1
         else # shrink
@@ -235,8 +235,8 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
             Z1Ww = Z[:, 1:keep] * Ww
 
             for i in eachindex(Q1Vv)
-                rV -= fact.V[i] * Q1Vv[i]
-                rW -= fact.W[i] * Z1Ww[i]
+                rV = add!!(rV, fact.V[i], -Q1Vv[i])
+                rW = add!!(rW, fact.W[i], -Z1Ww[i])
             end
 
             βpv = norm(rV)
