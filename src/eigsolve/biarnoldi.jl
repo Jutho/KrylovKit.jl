@@ -174,8 +174,8 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
                 # as suggested by the authors 
 
                 # This is Eq. 10 in the paper
-                xh = abs(_h[converged + 1]) / abs(valuesH[pH[converged + 1]]) * βrV
-                xk = abs(_k[converged + 1]) / abs(valuesK[pK[converged + 1]]) * βrW
+                xh = abs(_h[converged + 1]) / abs(valuesH[pH[converged + 1]]) * βrV / abs(M[converged+1, converged+1])
+                xk = abs(_k[converged + 1]) / abs(valuesK[pK[converged + 1]]) * βrW / abs(M[converged+1, converged+1])
                 if max(xh, xk) <= tol
                     converged += 1
                 else
