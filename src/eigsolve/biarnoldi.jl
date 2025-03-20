@@ -154,11 +154,27 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
             _h = mul!(_h, view(Q, K, :), βv)
             _k = mul!(_k, view(Z, K, :), βw)
 
+            βrV = norm(rV)
+            βrW = norm(rW)
+
             converged = 0
-            # TODO: this needs refinement
-            while converged < length(fact) && abs(_h[converged + 1]) <= tol &&
-                      abs(_k[converged + 1]) <= tol
-                converged += 1
+            while converged < length(fact)
+                # The authors suggest the convergence should also include the 
+                # 1. a biorthogonality component, i.e., kappa_j / |rho_j| in the paper 
+                #    with kappa_j = norm(w_j* v_j) and rho_j = abs(w_j* A v_j) / kappa_j 
+                # 2. a contribution of the norms of tilde v and tilde w
+
+                # For the first case (1.), we use the Ritz values instead of the Rayleigh quotients 
+                # as suggested by the authors 
+
+                # This is Eq. 10 in the paper
+                xh = abs(_h[converged + 1]) / abs(valuesH[pH[converged + 1]]) * βrV
+                xk = abs(_k[converged + 1]) / abs(valuesK[pK[converged + 1]]) * βrW
+                if max(xh, xk) <= tol
+                    converged += 1
+                else
+                    break
+                end
             end
             if eltype(T) <: Real &&
                0 < converged < length(fact) &&
