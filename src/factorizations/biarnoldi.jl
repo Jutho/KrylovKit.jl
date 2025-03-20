@@ -30,12 +30,11 @@ rayleighextension(F::BiArnoldiFactorization) = SimpleBasisVector(F.k, F.k)
 
 struct BiArnoldiIterator{F,T,O<:Orthogonalizer} <: KrylovIterator{F,T}
     operator::F
-    operatorH::F
     v₀::T
     w₀::T
     orth::O
 end
-BiArnoldiIterator(A, AH, v₀, w₀) = BiArnoldiIterator(A, AH, v₀, w₀, KrylovDefaults.orth)
+BiArnoldiIterator(f, v₀, w₀) = BiArnoldiIterator(f, v₀, w₀, KrylovDefaults.orth)
 
 Base.IteratorSize(::Type{<:BiArnoldiIterator}) = Base.SizeUnknown()
 Base.IteratorEltype(::Type{<:BiArnoldiIterator}) = Base.EltypeUnknown()
@@ -54,12 +53,13 @@ function Base.iterate(iter::BiArnoldiIterator, state)
     end
 end
 
-function _initializebasis(op, x₀, orth; verbosity::Int=KrylovDefaults.verbosity[])
+function _initializebasis(operation, op, x₀, orth;
+                          verbosity::Int=KrylovDefaults.verbosity[])
     # initialize without using eltype
 
     β₀ = norm(x₀)
     iszero(β₀) && throw(ArgumentError("initial vector should not have norm zero"))
-    Ax₀ = apply(op, x₀)
+    Ax₀ = operation(op, x₀)
     α = inner(x₀, Ax₀) / (β₀ * β₀)
     T = typeof(α) # scalar type of the Rayleigh quotient
     # this line determines the vector type that we will henceforth use
@@ -80,7 +80,7 @@ function _initializebasis(op, x₀, orth; verbosity::Int=KrylovDefaults.verbosit
         r = add!!(r, v, -dα)
         β = norm(r)
     elseif orth isa Union{ClassicalGramSchmidtIR,ModifiedGramSchmidtIR}
-        while eps(one(β)) < β < iter.orth.η * βold
+        while eps(one(β)) < β < orth.η * βold
             βold = β
             dα = inner(v, r)
             α += dα
@@ -98,20 +98,22 @@ function _initializebasis(op, x₀, orth; verbosity::Int=KrylovDefaults.verbosit
 end
 
 function initialize(iter::BiArnoldiIterator; verbosity::Int=KrylovDefaults.verbosity[])
-    V, H, rv = _initializebasis(iter.operator, iter.v₀, iter.orth; verbosity)
-    W, K, rw = _initializebasis(iter.operatorH, iter.w₀, iter.orth; verbosity)
+    V, H, rv = _initializebasis(apply_normal, iter.operator, iter.v₀, iter.orth;
+                                verbosity)
+    W, K, rw = _initializebasis(apply_adjoint, iter.operator, iter.w₀, iter.orth;
+                                verbosity)
 
     return BiArnoldiFactorization(1, V, W, H, K, rv, rw)
 end
 
-function _initializebasis!(op, x₀, V, H, orth; verbosity)
+function _initializebasis!(operation, op, x₀, V, H, orth; verbosity)
     while length(V) > 1
         pop!(V)
     end
     H = empty!(H)
 
     V[1] = scale!!(V[1], x₀, 1 / norm(x₀))
-    w = apply(op, V[1])
+    w = operation(op, V[1])
     r, α = orthogonalize!!(w, V[1], orth)
     β = norm(r)
     # state.k = 1
@@ -126,26 +128,37 @@ end
 
 function initialize!(iter::BiArnoldiIterator, state::BiArnoldiFactorization;
                      verbosity::Int=KrylovDefaults.verbosity[])
-    state.rV = _initializebasis!(iter.operator, iter.v₀, iter.V, iter.H, iter.orth;
+    state.rV = _initializebasis!(apply_normal, iter.operator, iter.v₀, iter.V, iter.H,
+                                 iter.orth;
                                  verbosity)
-    state.rW = _initializebasis!(iter.operatorH, iter.w₀, iter.W, iter.K, iter.orth;
+    state.rW = _initializebasis!(apply_adjoint, iter.operator, iter.w₀, iter.W,
+                                 iter.K, iter.orth;
                                  verbosity)
 
     return state
 end
 
-function _expand!(op, k, V, H, r, β, orth; verbosity)
+function _expand!(operation, op, k, V, H, r, β, orth; verbosity)
     push!(V, scale(r, 1 / β))
     m = length(H)
     resize!(H, m + k + 1)
-    r, β = arnoldirecurrence!!(op, V, view(H, (m + 1):(m + k)), orth)
+    r, β = biarnoldirecurrence!!(operation, op, V, view(H, (m + 1):(m + k)), orth)
     H[m + k + 1] = β
     # state.r = r
     if verbosity > EACHITERATION_LEVEL
         @info "Arnoldi expansion to dimension $k: subspace normres = $(normres2string(β))"
     end
 
-    r
+    return r
+end
+
+function biarnoldirecurrence!!(operation, op,
+                               V::OrthonormalBasis,
+                               h::AbstractVector,
+                               orth::Orthogonalizer)
+    w = operation(op, last(V))
+    r, h = orthogonalize!!(w, V, h, orth)
+    return r, norm(r)
 end
 
 function expand!(iter::BiArnoldiIterator, state::BiArnoldiFactorization;
@@ -153,9 +166,13 @@ function expand!(iter::BiArnoldiIterator, state::BiArnoldiFactorization;
     state.k += 1
 
     βv, βw = normres(state)
-    state.rV = _expand!(iter.operator, state.k, state.V, state.H, state.rV, βv, iter.orth; verbosity)
-    state.rW = _expand!(iter.operatorH, state.k, state.W, state.K, state.rW, βw, iter.orth; verbosity)
-    
+    state.rV = _expand!(apply_normal, iter.operator, state.k, state.V, state.H, state.rV,
+                        βv, iter.orth;
+                        verbosity)
+    state.rW = _expand!(apply_adjoint, iter.operator, state.k, state.W, state.K,
+                        state.rW, βw, iter.orth;
+                        verbosity)
+
     return state
 end
 
@@ -165,23 +182,24 @@ function _shrink!(V, H, k)
     end
     r = pop!(V)
     resize!(H, (k * k + 3 * k) >> 1)
-    
+
     return r
 end
 
-function shrink!(state::BiArnoldiFactorization, k; verbosity::Int=KrylovDefaults.verbosity[])
+function shrink!(state::BiArnoldiFactorization, k;
+                 verbosity::Int=KrylovDefaults.verbosity[])
     length(state) <= k && return state
 
     state.k = k
     rV = _shrink!(state.V, state.H, k)
     rW = _shrink!(state.W, state.K, k)
-    
+
     βv, βw = normres(state)
     if verbosity > EACHITERATION_LEVEL
         @info "Arnoldi reduction to dimension $k: subspace normres v = $(normres2string(βv)), w = $(normres2string(βw))"
     end
     state.rV = scale!!(rV, βv)
     state.rW = scale!!(rW, βw)
-    
+
     return state
 end
