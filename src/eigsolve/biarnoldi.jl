@@ -151,7 +151,7 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
             # Step 6 - Order the Schur decompositions
             by, rev = eigsort(which)
             pH = sortperm(valuesH; by=by, rev=rev)
-            pK = sortperm(valuesK; by=by, rev=rev)
+            pK = eltype(fact) <: Complex ? sortperm(conj.(valuesK); by=by, rev=rev) : sortperm(valuesK; by=by, rev=rev)
 
             S, Q = permuteschur!(S, Q, pH)
             T, Z = permuteschur!(T, Z, pK)
