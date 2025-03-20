@@ -114,7 +114,7 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
 
             # Compute the oblique Projection
             # TODO: This should reuse the old projection after restarting
-            M = fill(zero(eltype(fact)), krylovdim, krylovdim)
+            M = fill(zero(eltype(fact)), K, K)
             for i in axes(M, 1)
                 for j in axes(M, 2)
                     M[i, j] = dot(fact.W[i], fact.V[j])
@@ -124,8 +124,8 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
             # Step 2 and 3 - Correct H, K and the residuals using the oblique projection
 
             # Compute the projections W* residual(V) and V* residual(W)
-            Wv = zeros(eltype(rV), krylovdim)
-            Vw = zeros(eltype(rV), krylovdim)
+            Wv = zeros(eltype(rV), K)
+            Vw = zeros(eltype(rV), K)
             for i in eachindex(Wv)
                 Wv[i] = dot(fact.W[i], rV)
                 Vw[i] = dot(fact.V[i], rW)
