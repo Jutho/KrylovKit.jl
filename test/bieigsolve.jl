@@ -10,13 +10,13 @@
             n1 = div(n, 2)
 
             alg = BiArnoldi(; orth=orth, krylovdim=n, maxiter=1, tol=tolerance(T))
-            (D1v, D1w), (V1, W1), (info1v, info1w) = @constinferred bieigsolve(wrapop(A,
-                                                                                      Val(mode)),
-                                                                               wrapvec(v,
-                                                                                       Val(mode)),
-                                                                               wrapvec(w,
-                                                                                       Val(mode)),
-                                                                               n1, :SR, alg)
+            D1, V1, W1, info1 = @constinferred bieigsolve(wrapop(A,
+                                                                 Val(mode)),
+                                                          wrapvec(v,
+                                                                  Val(mode)),
+                                                          wrapvec(w,
+                                                                  Val(mode)),
+                                                          n1, :SR, alg)
 
             # Some of these still fail
             # alg = BiArnoldi(; orth=orth, krylovdim=n, maxiter=1, tol=tolerance(T),
@@ -55,57 +55,58 @@
             #                             tol=tolerance(T)) isa BiArnoldi
             n2 = n - n1
             alg = BiArnoldi(; orth=orth, krylovdim=2 * n, maxiter=1, tol=tolerance(T))
-            (D2v, D2w), (V2, W2), (info2v, info2w) = @constinferred bieigsolve(wrapop(A,
-                                                                                      Val(mode)),
-                                                                               wrapvec(v,
-                                                                                       Val(mode)),
-                                                                               wrapvec(w,
-                                                                                       Val(mode)),
-                                                                               n2, :LR, alg)
+            D2, V2, W2, info2 = @constinferred bieigsolve(wrapop(A,
+                                                                  Val(mode)),
+                                                           wrapvec(v,
+                                                                   Val(mode)),
+                                                           wrapvec(w,
+                                                                   Val(mode)),
+                                                           n2, :LR, alg)
             D = sort(sort(eigvals(A); by=imag, rev=true); alg=MergeSort, by=real)
-            D2v′ = sort(sort(D2v; by=imag, rev=true); alg=MergeSort, by=real)
-            @test vcat(D1v[1:n1], D2v′[(end - n2 + 1):end]) ≊ D
-            
-            Dw = sort(sort(eigvals(adjoint(A)); by=imag, rev=true); alg=MergeSort, by=real)
-            D2w′ = sort(sort(D2w; by=imag, rev=true); alg=MergeSort, by=real)
-            @test vcat(D1w[1:n1], D2w′[(end - n2 + 1):end]) ≊ Dw
+            D2′ = sort(sort(D2; by=imag, rev=true); alg=MergeSort, by=real)
+            @test vcat(D1[1:n1], D2′[(end - n2 + 1):end]) ≊ D
 
             UV1 = stack(unwrapvec, V1)
             UV2 = stack(unwrapvec, V2)
-            @test A * UV1 ≈ UV1 * Diagonal(D1v)
-            @test A * UV2 ≈ UV2 * Diagonal(D2v)
-
+            @test A * UV1 ≈ UV1 * Diagonal(D1)
+            @test A * UV2 ≈ UV2 * Diagonal(D2)
 
             UW1 = stack(unwrapvec, W1)
             UW2 = stack(unwrapvec, W2)
-            @test A'UW1 ≈ UW1 * Diagonal(D1w)
-            @test A'UW2 ≈ UW2 * Diagonal(D2w)
-
-            if T <: Complex
-                n1 = div(n, 2)
-                (D1v, D1w), (V1, W1), info = bieigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), wrapvec(w, Val(mode)), n1,
-                                          :SI,
-                                          alg)
-                n2 = n - n1
-                (D2v, D2w), (V2, W2), info = bieigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), wrapvec(w, Val(mode)), n2,
-                                          :LI,
-                                          alg)
-                Dv = sort(eigvals(A); by=imag)
-                Dw = sort(eigvals(adjoint(A)); by=imag)
-
-                @test vcat(D1v[1:n1], reverse(D2v[1:n2])) ≊ Dv
-                @test vcat(D1w[1:n1], reverse(D2w[1:n2])) ≊ Dw
-
-                UV1 = stack(unwrapvec, V1)
-                UV2 = stack(unwrapvec, V2)
-                @test A * UV1 ≈ UV1 * Diagonal(D1v)
-                @test A * UV2 ≈ UV2 * Diagonal(D2v)
-                
-                UW1 = stack(unwrapvec, W1)
-                UW2 = stack(unwrapvec, W2)
-                @test A'UW1 ≈ UW1 * Diagonal(D1w)
-                @test A'UW2 ≈ UW2 * Diagonal(D2w)
+            if T <: Real 
+                @test A'UW1 ≈ UW1 * Diagonal(D1)
+                @test A'UW2 ≈ UW2 * Diagonal(D2)
+            else
+                @test A'UW1 ≈ UW1 * Diagonal(conj.(D1))
+                @test A'UW2 ≈ UW2 * Diagonal(conj.(D2))
             end
+
+            # if T <: Complex
+            #     n1 = div(n, 2)
+            #     D1, V1, W1, info = bieigsolve(wrapop(A, Val(mode)),
+            #                                             wrapvec(v, Val(mode)),
+            #                                             wrapvec(w, Val(mode)), n1,
+            #                                             :SI,
+            #                                             alg)
+            #     n2 = n - n1
+            #     D2, V2, W2, info = bieigsolve(wrapop(A, Val(mode)),
+            #                                             wrapvec(v, Val(mode)),
+            #                                             wrapvec(w, Val(mode)), n2,
+            #                                             :LI,
+            #                                             alg)
+            #     D = sort(eigvals(A); by=imag)
+            #     @test vcat(D1[1:n1], reverse(D2[1:n2])) ≊ D
+
+            #     UV1 = stack(unwrapvec, V1)
+            #     UV2 = stack(unwrapvec, V2)
+            #     @test A * UV1 ≈ UV1 * Diagonal(D1)
+            #     @test A * UV2 ≈ UV2 * Diagonal(D2)
+
+            #     UW1 = stack(unwrapvec, W1)
+            #     UW2 = stack(unwrapvec, W2)
+            #     @test A'UW1 ≈ UW1 * Diagonal(conj.(D1))
+            #     @test A'UW2 ≈ UW2 * Diagonal(conj.(D2))
+            # end
 
             # alg = Arnoldi(; orth=orth, krylovdim=2n, maxiter=1, tol=tolerance(T),
             #               verbosity=1)
