@@ -269,22 +269,25 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
        alg_primal.verbosity >= WARN_LEVEL
         @warn "`eigsolve` cotangent problem did not converge, whereas the primal eigenvalue problem did"
     end
-    # cleanup and construct final result by renormalising the eigenvectors and explicitly
-    # checking that they have the expected form and reproduce the expected eigenvalue
-    ws = zs
+
+    # cleanup and construct final result
     tol = alg_rrule.tol
-    Q = orthogonalcomplementprojector(vecs, n, Gc)
+    Z = zeros(T, n, n)
     for i in 1:n
-        d, ic = findmin(DistanceTo(conj(vals[i])), rvals)
-        w, x = Ws[ic]
-        factor = 1 / x[i]
-        x[i] = zero(x[i])
-        if alg_primal.verbosity >= WARN_LEVEL
-            error = max(norm(x, Inf), abs(rvals[ic] - conj(vals[i])))
-            error > 10 * tol &&
-                @warn "`eigsolve` cotangent linear problem ($i) returns unexpected result: error = $error"
+        copy!(view(Z, :, i), Ws[i][2])
+    end
+    Zinv = inv(Z)
+    error = norm(Diagonal(view(vals, 1:n))' - Z * Diagonal(view(rvals, 1:n)) * Zinv, Inf)
+    if error > 10 * tol && alg_primal.verbosity >= WARN_LEVEL
+        @warn "`eigsolve` cotangent linear problem returns unexpected result: error = $error vs tol = $tol"
+    end
+    Q = orthogonalcomplementprojector(vecs, n, Gc)
+    xs = Q.(getindex.(view(Ws, 1:n), 1))
+    ws = zs
+    for i in 1:n
+        for j in 1:n
+            ws[i] = VectorInterface.add!!(ws[i], xs[j], -Zinv[j, i])
         end
-        ws[i] = VectorInterface.add!!(zs[i], Q(w), -factor)
     end
     return ws
 end
@@ -375,19 +378,23 @@ function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which,
     end
 
     # cleanup and construct final result
-    ws = zs
     tol = alg_rrule.tol
-    Q = orthogonalcomplementprojector(vecs, n)
+    Z = zeros(T, n, n)
     for i in 1:n
-        w, x = Ws[i]
-        _, ic = findmax(abs, x)
-        factor = 1 / x[ic]
-        x[ic] = zero(x[ic])
-        error = max(norm(x, Inf), abs(rvals[i] - conj(vals[ic])))
-        if error > 10 * tol && alg_primal.verbosity >= WARN_LEVEL
-            @warn "`eigsolve` cotangent linear problem ($ic) returns unexpected result: error = $error"
+        copy!(view(Z, :, i), Ws[i][2])
+    end
+    Zinv = inv(Z)
+    error = norm(Diagonal(view(vals, 1:n))' - Z * Diagonal(view(rvals, 1:n)) * Zinv, Inf)
+    if error > 10 * tol && alg_primal.verbosity >= WARN_LEVEL
+        @warn "`eigsolve` cotangent linear problem returns unexpected result: error = $error vs tol = $tol"
+    end
+    Q = orthogonalcomplementprojector(vecs, n)
+    xs = Q.(getindex.(view(Ws, 1:n), 1))
+    ws = zs
+    for i in 1:n
+        for j in 1:n
+            ws[i] = VectorInterface.add!!(ws[i], xs[j], -Zinv[j, i])
         end
-        ws[ic] = VectorInterface.add!!(zs[ic], Q(w), -factor)
     end
     return ws
 end
