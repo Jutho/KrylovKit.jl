@@ -19,11 +19,11 @@ function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi
     valuesS = schur2eigvals(SS)
     valuesT = schur2eigvals(TT)
 
-    if length(valuesS) != length(valuesT) 
+    if length(valuesS) != length(valuesT)
         @error "BiArnoldi bieigsolve converged with unequal number of eigenvalues for the left- and right eigenspaces"
-    elseif eltype(T) <: Real && !all(isapprox.(valuesS, valuesT)) 
+    elseif eltype(T) <: Real && !all(isapprox.(valuesS, valuesT))
         @error "BiArnoldi bieigsolve converged with mismatched eigenvalues for the left- and right eigenspaces"
-    elseif eltype(T) <: Complex && !all(isapprox.(valuesS, conj.(valuesT))) 
+    elseif eltype(T) <: Complex && !all(isapprox.(valuesS, conj.(valuesT)))
         @error "BiArnoldi bieigsolve converged with mismatched eigenvalues for the left- and right eigenspaces, $valuesS, $valuesT"
     end
 
@@ -59,7 +59,8 @@ function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi
         * number of operations = $numops"""
     end
     return valuesS, vectorsS, vectorsT,
-           ConvergenceInfo(converged, residualsS, max.(normresidualsS, normresidualsT), numiter, numops)
+           ConvergenceInfo(converged, residualsS, max.(normresidualsS, normresidualsT),
+                           numiter, numops)
 end
 
 function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi)
@@ -89,6 +90,8 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
 
     # initialize storage
     K = length(fact) # == 1
+    V, W = basis(fact)
+    MM[K, K] = inner(W[K], V[K])
     converged = 0
     local S, T, Q, Z
     while true
@@ -120,17 +123,18 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
             copyto!(_K, rayleighquotient(fact)[2])
 
             rV, rW = residual(fact)
-            rV = scale!!(rV, 1/βv)
-            rW = scale!!(rW, 1/βw)
+            rV = scale!!(rV, 1 / βv)
+            rW = scale!!(rW, 1 / βw)
 
             # Step 2 and 3 - Correct H, K and the residuals using the oblique projection
 
             # Compute the projections W* residual(V) and V* residual(W)
+            V, W = basis(fact)
             Wv = zeros(eltype(fact), K)
             Vw = zeros(eltype(fact), K)
             for i in eachindex(Wv)
-                Wv[i] = inner(fact.W[i], rV)
-                Vw[i] = inner(fact.V[i], rW)
+                Wv[i] = inner(W[i], rV)
+                Vw[i] = inner(V[i], rW)
             end
 
             MWv = inv(M) * Wv
@@ -140,8 +144,8 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
             _K[:, end] += MVw * βw
 
             for i in eachindex(Wv)
-                rV = add!!(rV, fact.V[i], -MWv[i])
-                rW = add!!(rW, fact.W[i], -MVw[i])
+                rV = add!!(rV, V[i], -MWv[i])
+                rW = add!!(rW, W[i], -MVw[i])
             end
 
             # Step 5 - Compute dense schur factorization
@@ -151,7 +155,8 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
             # Step 6 - Order the Schur decompositions
             by, rev = eigsort(which)
             pH = sortperm(valuesH; by=by, rev=rev)
-            pK = eltype(fact) <: Complex ? sortperm(conj.(valuesK); by=by, rev=rev) : sortperm(valuesK; by=by, rev=rev)
+            pK = eltype(fact) <: Complex ? sortperm(conj.(valuesK); by=by, rev=rev) :
+                 sortperm(valuesK; by=by, rev=rev)
 
             S, Q = permuteschur!(S, Q, pH)
             T, Z = permuteschur!(T, Z, pK)
@@ -174,8 +179,10 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
                 # as suggested by the authors 
 
                 # This is Eq. 10 in the paper
-                xh = abs(_h[converged + 1]) / abs(valuesH[pH[converged + 1]]) * βrV / abs(M[converged+1, converged+1])
-                xk = abs(_k[converged + 1]) / abs(valuesK[pK[converged + 1]]) * βrW / abs(M[converged+1, converged+1])
+                xh = abs(_h[converged + 1]) / abs(valuesH[pH[converged + 1]]) * βrV /
+                     abs(M[converged + 1, converged + 1])
+                xk = abs(_k[converged + 1]) / abs(valuesK[pK[converged + 1]]) * βrW /
+                     abs(M[converged + 1, converged + 1])
                 if max(xh, xk) <= tol
                     converged += 1
                 else
@@ -197,13 +204,14 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
 
         if K < krylovdim # expand
             fact = expand!(iter, fact; verbosity=alg.verbosity)
+            V, W = basis(fact)
 
             # update M with the new basis vectors
             for i in 1:K
-                MM[i, K + 1] = inner(fact.W[i], fact.V[K + 1])
-                MM[K + 1, i] = inner(fact.W[K + 1], fact.V[i])
+                MM[i, K + 1] = inner(W[i], V[K + 1])
+                MM[K + 1, i] = inner(W[K + 1], V[i])
             end
-            MM[K + 1, K + 1] = inner(fact.W[K + 1], fact.V[K + 1])
+            MM[K + 1, K + 1] = inner(W[K + 1], V[K + 1])
 
             numops += 1
         else # shrink
@@ -234,9 +242,10 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
             Q1Vv = Q[:, 1:keep] * Vv
             Z1Ww = Z[:, 1:keep] * Ww
 
+            V, W = basis(fact)
             for i in eachindex(Q1Vv)
-                rV = add!!(rV, fact.V[i], -Q1Vv[i])
-                rW = add!!(rW, fact.W[i], -Z1Ww[i])
+                rV = add!!(rV, V[i], -Q1Vv[i])
+                rW = add!!(rW, W[i], -Z1Ww[i])
             end
 
             βpv = norm(rV)
@@ -247,9 +256,9 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
 
             # Restore Arnoldi form in the first keep columns; this is not part of the original paper
             _restorearnoldiformandupdatebasis!(keep, _H, Q, _h, rayleighquotient(fact)[1],
-                                               fact.V, rV, βpv)
+                                               V, rV, βpv)
             _restorearnoldiformandupdatebasis!(keep, _K, Z, _k, rayleighquotient(fact)[2],
-                                               fact.W, rW, βpw)
+                                               W, rW, βpw)
 
             # Update M according to the transformation M -> Z'MQ to save some inner products later
             _M = view(MM, 1:keep, 1:keep)
