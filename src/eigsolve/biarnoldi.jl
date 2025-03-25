@@ -57,7 +57,7 @@ function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi
         end
 
         if matchperm[i] == 0 
-            matchperm = matchperm[1:i-1]
+            resize!(matchperm, i-1)
             @error "BiArnoldi bieigsolve converged with mismatched left- and right-eigenspaces"
             break
         end
@@ -84,7 +84,11 @@ function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi
         * norm of residuals = $(normres2string(normresidualsS))
         * number of operations = $numops"""
     end
-    return valuesS[1:length(matchperm)], vectorsS[1:length(matchperm)], vectorsT[matchperm],
+
+    resize!(valuesS, length(matchperm))
+    resize!(vectorsS, length(matchperm))
+
+    return valuesS, vectorsS, vectorsT[matchperm],
            ConvergenceInfo(converged, residualsS, max.(normresidualsS, normresidualsT),
                            numiter, numops)
 end
