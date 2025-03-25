@@ -19,10 +19,6 @@ function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi
     valuesS = schur2eigvals(SS)
     valuesT = schur2eigvals(TT)
 
-    if length(valuesS) != length(valuesT)
-        @error "BiArnoldi bieigsolve converged with unequal number of eigenvalues for the left- and right eigenspaces"
-    end
-
     # Compute eigenvectors
     VS = view(Q, :, 1:howmany′) * schur2eigvecs(SS)
     VT = view(Z, :, 1:howmany′) * schur2eigvecs(TT)
