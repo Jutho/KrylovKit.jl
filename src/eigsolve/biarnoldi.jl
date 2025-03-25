@@ -1,7 +1,7 @@
 # 
 function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi;
                     alg_rrule=alg)
-    S, Q, T, Z, fact, converged, numiter, numops = _schursolve(f, v₀, w₀, howmany,
+    (S, Q), (T, Z), fact, converged, numiter, numops = _schursolve(f, v₀, w₀, howmany,
                                                                which, alg)
 
     howmany′ = howmany
@@ -301,7 +301,7 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
         end
     end
 
-    return S, Q, T, Z, fact, converged, numiter, numops
+    return (S, Q), (T, Z), fact, converged, numiter, numops
 end
 
 function _restorearnoldiformandupdatebasis!(keep, H, U, f, rq, B, r, βr)
