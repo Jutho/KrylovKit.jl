@@ -43,7 +43,7 @@ function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi
         for j in firstunusedT:length(valuesT)
             if !usedvaluesT[j] && isapprox(valuesS[i], conj(valuesT[j]))
                 overlapji = inner(vectorsT[j], vectorsS[i])
-                if !isapprox(norm(overlapji), 0.0)
+                if !isapprox(abs(overlapji), 0.0)
                     matchperm[i] = j
                     usedvaluesT[j] = true
                     # normalize and rotate the vectors according to biorthogonality,
