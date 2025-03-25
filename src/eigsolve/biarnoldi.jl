@@ -40,13 +40,15 @@ function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi
     for i in eachindex(matchperm)
         for j in eachindex(valuesT)
             if !usedvaluesT[j] && isapprox(valuesS[i], conj(valuesT[j]))
-                overlapij = norm(inner(vectorsS[i], vectorsT[j]))
-                if !isapprox(overlapij, 0.0)
+                overlapji = inner(vectorsT[j], vectorsS[i])
+                if !isapprox(norm(overlapji), 0.0)
                     matchperm[i] = j
-                    # normalize the vectors according to biorthogonality,
+                    usedvaluesT[j] = true
+                    # normalize and rotate the vectors according to biorthogonality,
+                    #          <W_i | V_j> = delta_ij
                     # distribute the weight to both vectors
-                    # vectorsS[i] = scale!!(vectorsS[i], 1 / sqrt(overlapij))
-                    # vectorsT[j] = scale!!(vectorsT[j], 1 / sqrt(overlapij))
+                    vectorsS[i] = scale!!(vectorsS[i], 1 / sqrt(overlapji))
+                    vectorsT[j] = scale!!(vectorsT[j], 1 / conj(sqrt(overlapji)))
                     break
                 end
             end
