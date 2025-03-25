@@ -76,6 +76,10 @@
             @test A'UW1 ≈ UW1 * Diagonal(conj.(D1))
             @test A'UW2 ≈ UW2 * Diagonal(conj.(D2))
 
+            # check biorthogonality
+            @test UW1'UV1 ≈ Matrix(I, size(UW1, 2), size(UV1, 2))
+            @test UW2'UV2 ≈ Matrix(I, size(UW2, 2), size(UV2, 2))
+
             if T <: Complex
                 n1 = div(n, 2)
                 D1, V1, W1, info = bieigsolve(wrapop(A, Val(mode)),
@@ -101,6 +105,10 @@
                 UW2 = stack(unwrapvec, W2)
                 @test A'UW1 ≈ UW1 * Diagonal(conj.(D1))
                 @test A'UW2 ≈ UW2 * Diagonal(conj.(D2))
+
+                # check biorthogonality
+                @test UW1'UV1 ≈ Matrix(I, size(UW1, 2), size(UV1, 2))
+                @test UW2'UV2 ≈ Matrix(I, size(UW2, 2), size(UV2, 2))
             end
 
             # alg = Arnoldi(; orth=orth, krylovdim=2n, maxiter=1, tol=tolerance(T),
