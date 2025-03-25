@@ -359,3 +359,34 @@ end
     @test_logs realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-12, verbosity=1))
     @test_logs (:info,) realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-12, verbosity=2))
 end
+
+using LinearAlgebra,KrylovKit,Test,Random,Yao
+@testset "Block Lanczos - eigsolve " begin
+	function toric_code_strings(m::Int, n::Int)
+		li = LinearIndices((m, n))
+		bottom(i, j) = li[mod1(i, m), mod1(j, n)] + m * n
+		right(i, j) = li[mod1(i, m), mod1(j, n)]
+		xstrings = Vector{Int}[]
+		zstrings = Vector{Int}[]
+		for i ∈ 1:m, j ∈ 1:n
+			# face center
+			push!(xstrings, [bottom(i, j - 1), right(i, j), bottom(i, j), right(i - 1, j)])
+			# cross
+			push!(zstrings, [right(i, j), bottom(i, j), right(i, j + 1), bottom(i + 1, j)])
+		end
+		return xstrings, zstrings
+	end
+	function toric_code_hamiltonian(m::Int, n::Int)
+		xstrings, zstrings = toric_code_strings(m, n)
+		sum([kron(2m * n, [i => X for i in xs]...) for xs in xstrings[1:end-1]]) + sum([kron(2m * n, [i => Z for i in zs]...) for zs in zstrings[1:end-1]])
+	end
+	h = toric_code_hamiltonian(3, 3)
+
+	Random.seed!(4)
+	p = 8 # block size
+	X1 = Matrix(qr(rand(2^18, p)).Q)
+	D, U, info = eigsolve(-mat(h), X1, 10, :SR, BlockLanczos(p))
+    @show D[1:10]
+    @test count(x -> abs(x+16.0) < 1.9, D[1:10]) == 4
+    @test count(x -> abs(x+16.0) < 1e-8, D[1:10]) == 4
+end
