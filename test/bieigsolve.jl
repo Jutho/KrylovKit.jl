@@ -73,13 +73,8 @@
 
             UW1 = stack(unwrapvec, W1)
             UW2 = stack(unwrapvec, W2)
-            if T <: Real 
-                @test A'UW1 ≈ UW1 * Diagonal(D1)
-                @test A'UW2 ≈ UW2 * Diagonal(D2)
-            else
-                @test A'UW1 ≈ UW1 * Diagonal(conj.(D1))
-                @test A'UW2 ≈ UW2 * Diagonal(conj.(D2))
-            end
+            @test A'UW1 ≈ UW1 * Diagonal(conj.(D1))
+            @test A'UW2 ≈ UW2 * Diagonal(conj.(D2))
 
             if T <: Complex
                 n1 = div(n, 2)

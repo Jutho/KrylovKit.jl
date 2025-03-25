@@ -21,10 +21,6 @@ function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi
 
     if length(valuesS) != length(valuesT)
         @error "BiArnoldi bieigsolve converged with unequal number of eigenvalues for the left- and right eigenspaces"
-    elseif eltype(T) <: Real && !all(isapprox.(valuesS, valuesT))
-        @error "BiArnoldi bieigsolve converged with mismatched eigenvalues for the left- and right eigenspaces"
-    elseif eltype(T) <: Complex && !all(isapprox.(valuesS, conj.(valuesT)))
-        @error "BiArnoldi bieigsolve converged with mismatched eigenvalues for the left- and right eigenspaces, $valuesS, $valuesT"
     end
 
     # Compute eigenvectors
@@ -35,6 +31,32 @@ function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi
     end
     vectorsT = let B = basis(fact)[2]
         [B * v for v in cols(VT)]
+    end
+
+    # we need to match the eigenvalues; sometimes λ and λ* get mismatched,
+    # if, e.g., one sorts by the real part
+    matchperm = zeros(Int64, length(valuesS))
+    usedvaluesT = zeros(Bool, length(valuesT))
+    for i in eachindex(matchperm)
+        for j in eachindex(valuesT)
+            if !usedvaluesT[j] && isapprox(valuesS[i], conj(valuesT[j]))
+                overlapij = norm(inner(vectorsS[i], vectorsT[j]))
+                if !isapprox(overlapij, 0.0)
+                    matchperm[i] = j
+                    # normalize the vectors according to biorthogonality,
+                    # distribute the weight to both vectors
+                    # vectorsS[i] = scale!!(vectorsS[i], 1 / sqrt(overlapij))
+                    # vectorsT[j] = scale!!(vectorsT[j], 1 / sqrt(overlapij))
+                    break
+                end
+            end
+        end
+
+        if matchperm[i] == 0 
+            matchperm = matchperm[1:i-1]
+            @error "BiArnoldi bieigsolve converged with mismatched left- and right-eigenspaces"
+            break
+        end
     end
 
     residualsS = let r = residual(fact)[1]
@@ -58,7 +80,7 @@ function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi
         * norm of residuals = $(normres2string(normresidualsS))
         * number of operations = $numops"""
     end
-    return valuesS, vectorsS, vectorsT,
+    return valuesS[1:length(matchperm)], vectorsS[1:length(matchperm)], vectorsT[matchperm],
            ConvergenceInfo(converged, residualsS, max.(normresidualsS, normresidualsT),
                            numiter, numops)
 end
@@ -155,8 +177,7 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
             # Step 6 - Order the Schur decompositions
             by, rev = eigsort(which)
             pH = sortperm(valuesH; by=by, rev=rev)
-            pK = eltype(fact) <: Complex ? sortperm(conj.(valuesK); by=by, rev=rev) :
-                 sortperm(valuesK; by=by, rev=rev)
+            pK = sortperm(valuesK; by=by ∘ conj, rev=rev)
 
             S, Q = permuteschur!(S, Q, pH)
             T, Z = permuteschur!(T, Z, pK)
