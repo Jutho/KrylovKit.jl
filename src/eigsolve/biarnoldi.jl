@@ -31,6 +31,39 @@ function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi
 
     # we need to match the eigenvalues; sometimes λ and λ* get mismatched,
     # if, e.g., one sorts by the real part
+    matchperm = _geteigenspacematchperm!!(valuesS, valuesT, vectorsS, vectorsT)
+
+    residualsS = let r = residual(fact)[1]
+        [scale(r, last(v)) for v in cols(VS)]
+    end
+    residualsT = let r = residual(fact)[2]
+        [scale(r, last(v)) for v in cols(VT)]
+    end
+
+    normresidualsS = [abs(normres(fact)[1]) * abs(last(v)) for v in cols(VS)]
+    normresidualsT = [abs(normres(fact)[2]) * abs(last(v)) for v in cols(VT)]
+
+    if (converged < howmany) && alg.verbosity >= WARN_LEVEL
+        @warn """Arnoldi eigsolve stopped without convergence after $numiter iterations:
+        * $converged eigenvalues converged
+        * norm of residuals = $(normres2string(normresidualsS))
+        * number of operations = $numops"""
+    elseif alg.verbosity >= STARTSTOP_LEVEL
+        @info """Arnoldi eigsolve finished after $numiter iterations:
+        * $converged eigenvalues converged
+        * norm of residuals = $(normres2string(normresidualsS))
+        * number of operations = $numops"""
+    end
+
+    resize!(valuesS, length(matchperm))
+    resize!(vectorsS, length(matchperm))
+
+    return valuesS, vectorsS, vectorsT[matchperm],
+           ConvergenceInfo(converged, residualsS, max.(normresidualsS, normresidualsT),
+                           numiter, numops)
+end
+
+function _geteigenspacematchperm!!(valuesS, valuesT, vectorsS, vectorsT)
     matchperm = zeros(Int64, length(valuesS))
     usedvaluesT = zeros(Bool, length(valuesT))
     firstunusedT = 1
@@ -63,34 +96,7 @@ function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi
         end
     end
 
-    residualsS = let r = residual(fact)[1]
-        [scale(r, last(v)) for v in cols(VS)]
-    end
-    residualsT = let r = residual(fact)[2]
-        [scale(r, last(v)) for v in cols(VT)]
-    end
-
-    normresidualsS = [abs(normres(fact)[1]) * abs(last(v)) for v in cols(VS)]
-    normresidualsT = [abs(normres(fact)[2]) * abs(last(v)) for v in cols(VT)]
-
-    if (converged < howmany) && alg.verbosity >= WARN_LEVEL
-        @warn """Arnoldi eigsolve stopped without convergence after $numiter iterations:
-        * $converged eigenvalues converged
-        * norm of residuals = $(normres2string(normresidualsS))
-        * number of operations = $numops"""
-    elseif alg.verbosity >= STARTSTOP_LEVEL
-        @info """Arnoldi eigsolve finished after $numiter iterations:
-        * $converged eigenvalues converged
-        * norm of residuals = $(normres2string(normresidualsS))
-        * number of operations = $numops"""
-    end
-
-    resize!(valuesS, length(matchperm))
-    resize!(vectorsS, length(matchperm))
-
-    return valuesS, vectorsS, vectorsT[matchperm],
-           ConvergenceInfo(converged, residualsS, max.(normresidualsS, normresidualsT),
-                           numiter, numops)
+    return matchperm
 end
 
 function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi)
