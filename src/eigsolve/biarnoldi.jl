@@ -37,8 +37,14 @@ function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi
     # if, e.g., one sorts by the real part
     matchperm = zeros(Int64, length(valuesS))
     usedvaluesT = zeros(Bool, length(valuesT))
+    firstunusedT = 1
     for i in eachindex(matchperm)
-        for j in eachindex(valuesT)
+        # as both arrays are sorted roughly similar, tracking the first valid index
+        # changes the scaling of the loop from O(n^2) to rougly O(n)
+        while usedvaluesT[firstunusedT]
+            firstunusedT += 1
+        end
+        for j in firstunusedT:length(valuesT)
             if !usedvaluesT[j] && isapprox(valuesS[i], conj(valuesT[j]))
                 overlapji = inner(vectorsT[j], vectorsS[i])
                 if !isapprox(norm(overlapji), 0.0)
