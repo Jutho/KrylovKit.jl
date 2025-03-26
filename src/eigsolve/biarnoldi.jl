@@ -120,6 +120,8 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
     KK = fill(zero(eltype(fact)), krylovdim + 1, krylovdim)
     QQ = fill(zero(eltype(fact)), krylovdim, krylovdim)
     ZZ = fill(zero(eltype(fact)), krylovdim, krylovdim)
+    Wvv = zeros(eltype(fact), krylovdim)
+    Vww = zeros(eltype(fact), krylovdim)
 
     MM = fill(zero(eltype(fact)), krylovdim, krylovdim)
     temp = fill(zero(eltype(fact)), krylovdim, krylovdim)
@@ -151,12 +153,12 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
             M = view(MM, 1:L, 1:L)
             h = view(HH, L + 1, 1:L)
             k = view(KK, L + 1, 1:L)
+            Wv = view(Wvv, 1:L)
+            Vw = view(Vww, 1:L)
 
             copyto!(Q, I)
             copyto!(Z, I)
-
-            copyto!(H, rayleighquotient(fact)[1])
-            copyto!(K, rayleighquotient(fact)[2])
+            copyto!.((H, K), rayleighquotient(fact))
 
             rV, rW = residual(fact)
             rV = scale!!(rV, 1 / βv)
@@ -166,18 +168,15 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
 
             # Compute the projections W* residual(V) and V* residual(W)
             V, W = basis(fact)
-            Wv = zeros(eltype(fact), L)
-            Vw = zeros(eltype(fact), L)
             for i in eachindex(Wv)
                 Wv[i] = inner(W[i], rV)
                 Vw[i] = inner(V[i], rW)
             end
 
-            MWv = inv(M) * Wv
-            MVw = inv(M') * Vw
-
-            H[:, end] += MWv * βv
-            K[:, end] += MVw * βw
+            MWv = M \ Wv
+            MVw = M' \ Vw
+            add!(view(H, :, L), MWv, βv)
+            add!(view(K, :, L), MVw, βw)
 
             for i in eachindex(Wv)
                 rV = add!!(rV, V[i], -MWv[i])
