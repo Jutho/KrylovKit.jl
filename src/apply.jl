@@ -1,4 +1,4 @@
-apply(A::AbstractMatrix, x::AbstractVector) = A * x
+apply(A::AbstractMatrix, x::AbstractVecOrMat) = A * x
 apply(f, x) = f(x)
 
 function apply(operator, x, α₀, α₁)

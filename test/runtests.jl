@@ -2,7 +2,7 @@ using Random
 Random.seed!(76543210)
 
 using Test, TestExtras, Logging
-using LinearAlgebra
+using LinearAlgebra, SparseArrays
 using KrylovKit
 using VectorInterface
 
