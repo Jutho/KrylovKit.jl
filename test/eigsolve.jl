@@ -359,86 +359,86 @@ end
     @test_logs realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-12, verbosity=1))
     @test_logs (:info,) realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-12, verbosity=2))
 end
-
+using Test
 @testset "Block Lanczos - eigsolve for large sparse matrix and map input" begin
+    function toric_code_strings(m::Int, n::Int)
+        li = LinearIndices((m, n))
+        bottom(i, j) = li[mod1(i, m), mod1(j, n)] + m * n
+        right(i, j) = li[mod1(i, m), mod1(j, n)]
+        xstrings = Vector{Int}[]
+        zstrings = Vector{Int}[]
+        for i in 1:m, j in 1:n
+            # face center
+            push!(xstrings, [bottom(i, j - 1), right(i, j), bottom(i, j), right(i - 1, j)])
+            # cross
+            push!(zstrings, [right(i, j), bottom(i, j), right(i, j + 1), bottom(i + 1, j)])
+        end
+        return xstrings, zstrings
+    end
 
-	function toric_code_strings(m::Int, n::Int)
-		li = LinearIndices((m, n))
-		bottom(i, j) = li[mod1(i, m), mod1(j, n)] + m * n
-		right(i, j) = li[mod1(i, m), mod1(j, n)]
-		xstrings = Vector{Int}[]
-		zstrings = Vector{Int}[]
-		for i ∈ 1:m, j ∈ 1:n
-			# face center
-			push!(xstrings, [bottom(i, j - 1), right(i, j), bottom(i, j), right(i - 1, j)])
-			# cross
-			push!(zstrings, [right(i, j), bottom(i, j), right(i, j + 1), bottom(i + 1, j)])
-		end
-		return xstrings, zstrings
-	end
+    function pauli_kron(n::Int, ops::Pair{Int,Char}...)
+        mat = sparse(1.0I, 2^n, 2^n)
+        for (pos, op) in ops
+            if op == 'X'
+                σ = sparse([0 1; 1 0])
+            elseif op == 'Y'
+                σ = sparse([0 -im; im 0])
+            elseif op == 'Z'
+                σ = sparse([1 0; 0 -1])
+            elseif op == 'I'
+                σ = sparse(1.0I, 2, 2)
+            else
+                error("Unknown Pauli operator $op")
+            end
 
-	function pauli_kron(n::Int, ops::Pair{Int, Char}...)
-		mat = sparse(1.0I, 2^n, 2^n)
-		for (pos, op) in ops
-			if op == 'X'
-				σ = sparse([0 1; 1 0])
-			elseif op == 'Y'
-				σ = sparse([0 -im; im 0])
-			elseif op == 'Z'
-				σ = sparse([1 0; 0 -1])
-			elseif op == 'I'
-				σ = sparse(1.0I, 2, 2)
-			else
-				error("Unknown Pauli operator $op")
-			end
+            left = sparse(1.0I, 2^(pos - 1), 2^(pos - 1))
+            right = sparse(1.0I, 2^(n - pos), 2^(n - pos))
+            mat = kron(left, kron(σ, right)) * mat
+        end
+        return mat
+    end
 
-			left = sparse(1.0I, 2^(pos - 1), 2^(pos - 1))
-			right = sparse(1.0I, 2^(n - pos), 2^(n - pos))
-			mat = kron(left, kron(σ, right)) * mat
-		end
-		return mat
-	end
+    # define the function to construct the Hamiltonian matrix
+    function toric_code_hamiltonian_matrix(m::Int, n::Int)
+        xstrings, zstrings = toric_code_strings(m, n)
+        N = 2 * m * n  # total number of qubits
 
-	# define the function to construct the Hamiltonian matrix
-	function toric_code_hamiltonian_matrix(m::Int, n::Int)
-		xstrings, zstrings = toric_code_strings(m, n)
-		N = 2 * m * n  # total number of qubits
+        # initialize the Hamiltonian matrix as a zero matrix
+        H = spzeros(2^N, 2^N)
 
-		# initialize the Hamiltonian matrix as a zero matrix
-		H = spzeros(2^N, 2^N)
+        # add the X-type operator terms
+        for xs in xstrings[1:(end - 1)]
+            ops = [i => 'X' for i in xs]
+            H += pauli_kron(N, ops...)
+        end
 
-		# add the X-type operator terms
-		for xs in xstrings[1:end-1]
-			ops = [i => 'X' for i in xs]
-			H += pauli_kron(N, ops...)
-		end
+        for zs in zstrings[1:(end - 1)]
+            ops = [i => 'Z' for i in zs]
+            H += pauli_kron(N, ops...)
+        end
 
-		for zs in zstrings[1:end-1]
-			ops = [i => 'Z' for i in zs]
-			H += pauli_kron(N, ops...)
-		end
+        return H
+    end
 
-		return H
-	end
+    h_mat = toric_code_hamiltonian_matrix(3, 3)
 
-	h_mat = toric_code_hamiltonian_matrix(3, 3)
+    Random.seed!(4)
+    p = 8 # block size
+    X1 = Matrix(qr(rand(2^18, p)).Q)
+    get_value_num = 10
+    tol = 1e-8
 
-	Random.seed!(4)
-	p = 8 # block size
-	X1 = Matrix(qr(rand(2^18, p)).Q)
-	get_value_num = 10
-	tol = 1e-8
+    # matrix input
+    D, U, info = eigsolve(-h_mat, X1, get_value_num, :SR,
+                          Lanczos(; block_size=p, maxiter=20, tol=tol))
+    @show D[1:get_value_num]
+    @test count(x -> abs(x + 16.0) < 2.0 - tol, D[1:get_value_num]) == 4
+    @test count(x -> abs(x + 16.0) < tol, D[1:get_value_num]) == 4
 
-	# matrix input
-	D, U, info = eigsolve(-h_mat, X1, get_value_num, :SR, Lanczos(block_size = p, maxiter = 20, tol = tol))
-	@show D[1:get_value_num]
-	@test count(x -> abs(x + 16.0) < 2.0 - tol, D[1:get_value_num]) == 4
-	@test count(x -> abs(x + 16.0) < tol, D[1:get_value_num]) == 4
-
-	# map input
-	D, U, info = eigsolve(x -> -h_mat * x, X1, get_value_num, :SR, Lanczos(block_size = p, maxiter = 20, tol = tol))
-	@show D[1:get_value_num]
-	@test count(x -> abs(x + 16.0) < 1.9, D[1:get_value_num]) == 4
-	@test count(x -> abs(x + 16.0) < 1e-8, D[1:get_value_num]) == 4
-	
+    # map input
+    D, U, info = eigsolve(x -> -h_mat * x, X1, get_value_num, :SR,
+                          Lanczos(; block_size=p, maxiter=20, tol=tol))
+    @show D[1:get_value_num]
+    @test count(x -> abs(x + 16.0) < 1.9, D[1:get_value_num]) == 4
+    @test count(x -> abs(x + 16.0) < 1e-8, D[1:get_value_num]) == 4
 end
