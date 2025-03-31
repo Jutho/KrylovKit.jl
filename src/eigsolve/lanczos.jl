@@ -154,8 +154,9 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos;
            ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end
 
-function block_lanczos_reortho(A, x₀::AbstractMatrix{S}, howmany::Int, which::Selector,
+function block_lanczos_reortho(A, x₀, howmany::Int, which::Selector,
                                alg::Lanczos) where {S}
+    @assert alg.block_size == blocksize(x₀)
     block_size = alg.block_size
     maxiter = alg.maxiter
     tol = alg.tol
@@ -172,48 +173,15 @@ function block_lanczos_reortho(A, x₀::AbstractMatrix{S}, howmany::Int, which::
     local values, vectors, residuals, normresiduals, num_converged
     converged = false
 
-    function _res(fact, A, howmany, tol, block_size)
-        T = triblockdiag(fact)
-        D, U = eigen(Hermitian((T + T') / 2))
-
-        by, rev = eigsort(which)
-        p = sortperm(D; by=by, rev=rev)
-        D = D[p]
-        U = U[:, p]
-
-        howmany_actual = min(howmany, length(D))
-        values = D[1:howmany_actual]
-
-        basis_so_far = view(fact.V, :, 1:(fact.k * block_size))
-        vectors = Vector{typeof(fact.V[:, 1])}(undef, howmany_actual)
-
-        for i in 1:howmany_actual
-            vectors[i] = similar(basis_so_far, size(basis_so_far, 1))
-            mul!(vectors[i], basis_so_far, view(U, :, i))
-        end
-
-        residuals = Vector{typeof(vectors[1])}(undef, howmany_actual)
-        normresiduals = Vector{Float64}(undef, howmany_actual)
-
-        for i in 1:howmany_actual
-            residuals[i] = apply(A, vectors[i])
-            axpy!(-values[i], vectors[i], residuals[i])  # residuals[i] -= values[i] * vectors[i]
-            normresiduals[i] = norm(residuals[i])
-        end
-
-        num_converged = count(nr -> nr <= tol, normresiduals)
-        return values, vectors, residuals, normresiduals, num_converged
-    end
-
     for numiter in 2:min(maxiter, max_blocks - 2)
         expand!(iter, fact; verbosity=verbosity)
         numops += 1
 
         # Although norm(Rk) is not our convergence condition, when norm(Rk) is to small, we may lose too much precision and orthogonalization.
         if (numiter % converge_check == 0) || (fact.normR < tol)
-            values, vectors, residuals, normresiduals, num_converged = _res(fact, A,
+            values, vectors, residuals, normresiduals, num_converged = _residual(fact, A,
                                                                             howmany, tol,
-                                                                            block_size)
+                                                                            block_size, which)
 
             if verbosity >= EACHITERATION_LEVEL
                 @info "Block Lanczos eigsolve in iteration $numiter: $num_converged values converged, normres = $(normres2string(normresiduals[1:min(howmany, length(normresiduals))]))"
@@ -228,8 +196,8 @@ function block_lanczos_reortho(A, x₀::AbstractMatrix{S}, howmany::Int, which::
     end
 
     if !converged
-        values, vectors, residuals, normresiduals, num_converged = _res(fact, A, howmany,
-                                                                        tol, block_size)
+        values, vectors, residuals, normresiduals, num_converged = _residual(fact, A, howmany,
+                                                                            tol, block_size, which)
     end
 
     if (fact.k * block_size > alg.krylovdim)
@@ -253,4 +221,37 @@ function block_lanczos_reortho(A, x₀::AbstractMatrix{S}, howmany::Int, which::
     return values,
            vectors,
            ConvergenceInfo(num_converged, residuals, normresiduals, fact.k, numops)
+end
+
+function _residual(fact, A, howmany, tol, block_size, which)
+    T = triblockdiag(fact)
+    D, U = eigen(Hermitian((T + T') / 2))   # TODO: use keyword sortby
+
+    by, rev = eigsort(which)
+    p = sortperm(D; by=by, rev=rev)
+    D = D[p]
+    U = U[:, p]
+
+    howmany_actual = min(howmany, length(D))
+    values = D[1:howmany_actual]
+
+    basis_so_far = view(fact.V, :, 1:(fact.k * block_size))
+    vectors = Vector{typeof(fact.V[:, 1])}(undef, howmany_actual)
+
+    for i in 1:howmany_actual
+        vectors[i] = similar(basis_so_far, size(basis_so_far, 1))
+        mul!(vectors[i], basis_so_far, view(U, :, i))
+    end
+
+    residuals = Vector{typeof(vectors[1])}(undef, howmany_actual)
+    normresiduals = Vector{Float64}(undef, howmany_actual)
+
+    for i in 1:howmany_actual
+        residuals[i] = apply(A, vectors[i])
+        axpy!(-values[i], vectors[i], residuals[i])  # residuals[i] -= values[i] * vectors[i]
+        normresiduals[i] = norm(residuals[i])
+    end
+
+    num_converged = count(nr -> nr <= tol, normresiduals)
+    return values, vectors, residuals, normresiduals, num_converged
 end

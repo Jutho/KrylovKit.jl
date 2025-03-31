@@ -366,18 +366,16 @@ function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ModifiedGram
     return w, α, β
 end
 
-# block_lanczos.jl
-
 mutable struct BlockLanczosFactorization{T,S<:Real} <: KrylovFactorization{T,S}
     k::Int
-    block_size::Int
-    V::Matrix{T}             # Lanczos basis matrix
-    M::Matrix{T}             # diagonal block matrices (projections)
-    B::Matrix{T}             # connection matrices between blocks
-    R::Matrix{T}             # residual block
+    const block_size::Int
+    const V::Matrix{T}             # Lanczos basis matrix
+    const M::Matrix{T}             # diagonal block matrices (projections)
+    const B::Matrix{T}             # connection matrices between blocks
+    const R::Matrix{T}             # residual block
     normR::S                 # norm of residual
 
-    tmp::Matrix{T}          # temporary matrix. Used to decrease allocations.
+    const tmp::Matrix{T}          # temporary matrix. Used to decrease allocations.
 end
 
 Base.length(F::BlockLanczosFactorization) = F.k
@@ -417,6 +415,7 @@ function BlockLanczosIterator(operator::F,
     return BlockLanczosIterator{F,T,O}(operator, x₀, block_size, maxiter, orth)
 end
 
+# TODO: delete
 function Base.iterate(iter::BlockLanczosIterator)
     state = initialize(iter)
     return state, state
@@ -432,6 +431,8 @@ function Base.iterate(iter::BlockLanczosIterator, state::BlockLanczosFactorizati
     end
 end
 
+is_orthonormal(x) = isapprox(x' * x, I, atol=1e-12)
+
 function initialize(iter::BlockLanczosIterator; verbosity::Int=KrylovDefaults.verbosity[])
     maxiter = iter.maxiter
     x₀ = iter.x₀
@@ -441,17 +442,17 @@ function initialize(iter::BlockLanczosIterator; verbosity::Int=KrylovDefaults.ve
     T = eltype(x₀)
     n = size(x₀, 1)
 
-    V_mat = Matrix{T}(undef, n, block_size * (maxiter + 1))
-    M_mat = Matrix{T}(undef, block_size, block_size * (maxiter + 1))
-    B_mat = Matrix{T}(undef, block_size, block_size * maxiter)
-    R_mat = Matrix{T}(undef, n, block_size)
-    tmp_mat = Matrix{T}(undef, n, block_size)
+    V_mat = similar(iter.x₀, n, block_size * (maxiter + 1))
+    M_mat = similar(iter.x₀, block_size, block_size * (maxiter + 1))
+    B_mat = similar(iter.x₀, block_size, block_size * maxiter)
+    R_mat = similar(iter.x₀, n, block_size)
+    tmp_mat = similar(iter.x₀, n, block_size)
 
     x₀_view = view(V_mat, :, 1:block_size)
     copyto!(x₀_view, x₀)
 
     # The the key step different from current papers. We have to detect orthogonality in one block.
-    norm(x₀_view' * x₀_view - I) > 1e-12 ? copyto!(x₀_view, Matrix(qr(x₀_view).Q)) : ()
+    is_orthonormal(x₀_view) && copyto!(x₀_view, Matrix(qr(x₀_view).Q))
 
     A_x₀ = copy!(tmp_mat, apply(A, x₀_view))
     M₁_view = view(M_mat, :, 1:block_size)
@@ -460,6 +461,7 @@ function initialize(iter::BlockLanczosIterator; verbosity::Int=KrylovDefaults.ve
 
     residual = mul!(A_x₀, x₀_view, M₁_view, -1.0, 1.0)
 
+    # get the next basis vector
     next_basis_view = view(V_mat, :, (block_size + 1):(2 * block_size))
     next_basis_q, B₁ = qr(residual)
     copyto!(next_basis_view, Matrix(next_basis_q))
@@ -467,18 +469,19 @@ function initialize(iter::BlockLanczosIterator; verbosity::Int=KrylovDefaults.ve
     mul!(tmp_mat, x₀_view, x₀_view' * next_basis_view)
     next_basis_view .-= tmp_mat
 
+    # normalize the columns of next_basis_view
     for j in 1:block_size
-        col_view = view(next_basis_view, :, j)
-        col_view ./= sqrt(sum(abs2, col_view))
+        normalize!(view(next_basis_view, :, j))
     end
 
     # This orthogonalization method refers to "ABLE: AN ADAPTIVE BLOCK LANCZOS METHOD FOR NON-HERMITIAN EIGENVALUE PROBLEMS"
     # But it ignores the orthogonality in one block and I add it here. This check is necessary.
-    if norm(next_basis_view' * next_basis_view - I) > 1e-12
+    if !is_orthonormal(next_basis_view)
         next_basis_q = qr(next_basis_view).Q
         copyto!(next_basis_view, Matrix(next_basis_q))
     end
 
+    # DRY principle!!
     A_x₁ = apply(A, next_basis_view)
     M₂_view = view(M_mat, :, (block_size + 1):(2 * block_size))
     mul!(M₂_view, next_basis_view', A_x₁)
@@ -530,8 +533,9 @@ function expand!(iter::BlockLanczosIterator, state::BlockLanczosFactorization;
         col_view ./= sqrt(sum(abs2, col_view))
     end
 
-    norm(next_basis_view' * next_basis_view - I) > 1e-12 ?
-    copyto!(next_basis_view, Matrix(qr(next_basis_view).Q)) : ()
+    if !is_orthonormal(next_basis_view)
+        copyto!(next_basis_view, Matrix(qr(next_basis_view).Q))
+    end
 
     connection_view = view(state.B, :, ((k - 1) * p + 1):(k * p))
     mul!(connection_view, next_basis_view', residual)

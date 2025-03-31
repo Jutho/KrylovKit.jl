@@ -359,7 +359,7 @@ end
     @test_logs realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-12, verbosity=1))
     @test_logs (:info,) realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-12, verbosity=2))
 end
-using Test
+
 @testset "Block Lanczos - eigsolve for large sparse matrix and map input" begin
     function toric_code_strings(m::Int, n::Int)
         li = LinearIndices((m, n))
@@ -442,3 +442,5 @@ using Test
     @test count(x -> abs(x + 16.0) < 1.9, D[1:get_value_num]) == 4
     @test count(x -> abs(x + 16.0) < 1e-8, D[1:get_value_num]) == 4
 end
+
+# TODO: test complex numbers
