@@ -33,6 +33,8 @@ Base.IteratorSize(::Type{<:OrthonormalBasis}) = Base.HasLength()
 Base.IteratorEltype(::Type{<:OrthonormalBasis}) = Base.HasEltype()
 
 Base.length(b::OrthonormalBasis) = length(b.basis)
+# blocksize(b::OrthonormalBasis) does have the same logic with Base.length(b::OrthonormalBasis), but I make sense for block lanczos.
+blocksize(b::OrthonormalBasis) = length(b.basis)
 Base.eltype(b::OrthonormalBasis{T}) where {T} = T
 
 Base.iterate(b::OrthonormalBasis) = Base.iterate(b.basis)
@@ -574,3 +576,55 @@ and its concrete subtypes [`ClassicalGramSchmidt`](@ref), [`ModifiedGramSchmidt`
 [`ClassicalGramSchmidtIR`](@ref) and [`ModifiedGramSchmidtIR`](@ref).
 """
 orthonormalize, orthonormalize!!
+
+# TODO : Test
+
+abstract_qr!(A::OrthonormalBasis{T};arg...) where T = abstract_qr!(A.basis;arg...)
+function abstract_qr!(A::AbstractVector{T};arg...) where T
+    if T<:InnerProductVec
+        return _abstract_qr!(A;arg...)
+    else
+        Aq,B = qr(hcat(A...))
+        Am = Matrix(Aq)
+        @inbounds @simd for i in eachindex(A)
+            A[i] = view(Am,:,i)
+        end
+        return A,B
+    end
+end
+
+function _abstract_qr!(block::OrthonormalBasis{T}; 
+                     alg::Orthogonalizer=ModifiedGramSchmidt(),
+                     tol::Real=1e4*eps(InnerNumType(T))) where {T}
+    n = length(block)
+    R = zeros(InnerNumType(T), n, n)
+    
+    coeffs = Vector{InnerNumType(T)}(undef, n)
+    
+    @inbounds for j in 1:n
+        _, β, coeffs = orthonormalize!!(block[j], OrthonormalBasis(block.basis[1:j-1]), 
+                                             coeffs, alg) 
+        if β ≤ tol * norm(block[j])
+            error("Column $j is linearly dependent (β = $β)")
+        end
+        
+        R[1:j-1, j] = coeffs[1:j-1]
+        R[j, j] = β
+    end
+    
+    return block, R
+end
+
+function  abstract_qr(block::OrthonormalBasis{T}; 
+                     alg::Orthogonalizer=ModifiedGramSchmidt(),
+                     tol::Real=1e4*eps(InnerNumType(T))) where {T}
+    block, R = abstract_qr!(copy(block); alg, tol)
+    return R
+end
+
+
+
+
+
+
+

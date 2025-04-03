@@ -1,5 +1,5 @@
 """
-    v = InnerProductVec(vec, dotf)
+	v = InnerProductVec(vec, dotf)
 
 Create a new vector `v` from an existing vector `dotf` with a modified inner product given
 by `inner`. The vector `vec`, which can be any type (not necessarily `Vector`) that supports
@@ -16,112 +16,161 @@ In a (linear) map applied to `v`, the original vector can be obtained as `v.vec`
 as `v[]`.
 """
 struct InnerProductVec{F,T}
-    vec::T
-    dotf::F
+	vec::T
+	dotf::F
 end
 
 Base.:-(v::InnerProductVec) = InnerProductVec(-v.vec, v.dotf)
 function Base.:+(v::InnerProductVec{F}, w::InnerProductVec{F}) where {F}
-    return InnerProductVec(v.vec + w.vec, v.dotf)
+	return InnerProductVec(v.vec + w.vec, v.dotf)
 end
+function Base.sum(v::AbstractVector{InnerProductVec})
+	@assert length(v) > 0
+	res = copy(v[1])
+	@inbounds for i in 2:length(v)
+		res += v[i]
+	end
+	return res
+end
+
 function Base.:-(v::InnerProductVec{F}, w::InnerProductVec{F}) where {F}
-    return InnerProductVec(v.vec - w.vec, v.dotf)
+	return InnerProductVec(v.vec - w.vec, v.dotf)
 end
+
 Base.:*(v::InnerProductVec, a::Number) = InnerProductVec(v.vec * a, v.dotf)
 Base.:*(a::Number, v::InnerProductVec) = InnerProductVec(a * v.vec, v.dotf)
+Base.:*(v::AbstractVector{InnerProductVec}, a::Number) = [v[i] * a for i in 1:length(v)]
+Base.:*(a::Number, v::AbstractVector{InnerProductVec}) = [a * v[i] for i in 1:length(v)]
+function Base.:*(v::AbstractVector, V::AbstractVector)
+	@assert length(v) == length(V)
+	return sum(v .* V)
+end
+# It's in fact a kind of Linear map
+mul_vm(v::AbstractVector, A::AbstractMatrix) = [v * A[:, i] for i in 1:size(A, 2)]
+
 Base.:/(v::InnerProductVec, a::Number) = InnerProductVec(v.vec / a, v.dotf)
+Base.:/(v::AbstractVector{InnerProductVec}, a::Number) = [v[i] / a for i in 1:length(v)]
 Base.:\(a::Number, v::InnerProductVec) = InnerProductVec(a \ v.vec, v.dotf)
+# I can't understand well why the last function exists so I don't implement it's block version.
 
 function Base.similar(v::InnerProductVec, ::Type{T}=scalartype(v)) where {T}
-    return InnerProductVec(similar(v.vec), v.dotf)
+	return InnerProductVec(similar(v.vec), v.dotf)
 end
 
 Base.getindex(v::InnerProductVec) = v.vec
 
 function Base.copy!(w::InnerProductVec{F}, v::InnerProductVec{F}) where {F}
-    copy!(w.vec, v.vec)
-    return w
+	copy!(w.vec, v.vec)
+	return w
 end
 
 function LinearAlgebra.mul!(w::InnerProductVec{F},
-                            a::Number,
-                            v::InnerProductVec{F}) where {F}
-    mul!(w.vec, a, v.vec)
-    return w
+	a::Number,
+	v::InnerProductVec{F}) where {F}
+	mul!(w.vec, a, v.vec)
+	return w
 end
 
 function LinearAlgebra.mul!(w::InnerProductVec{F},
-                            v::InnerProductVec{F},
-                            a::Number) where {F}
-    mul!(w.vec, v.vec, a)
-    return w
+	v::InnerProductVec{F},
+	a::Number) where {F}
+	mul!(w.vec, v.vec, a)
+	return w
 end
 
 function LinearAlgebra.rmul!(v::InnerProductVec, a::Number)
     rmul!(v.vec, a)
     return v
 end
+function LinearAlgebra.mul!(A::AbstractVector{T},B::AbstractVector{T},M::AbstractMatrix) where T
+    @inbounds for i in eachindex(A)
+        @simd for j in eachindex(B)
+            A[i] += B[j] * M[j,i]
+        end
+    end
+    return A
+end
 
 function LinearAlgebra.axpy!(a::Number,
-                             v::InnerProductVec{F},
-                             w::InnerProductVec{F}) where {F}
-    axpy!(a, v.vec, w.vec)
-    return w
+	v::InnerProductVec{F},
+	w::InnerProductVec{F}) where {F}
+	axpy!(a, v.vec, w.vec)
+	return w
 end
 function LinearAlgebra.axpby!(a::Number,
-                              v::InnerProductVec{F},
-                              b,
-                              w::InnerProductVec{F}) where {F}
-    axpby!(a, v.vec, b, w.vec)
-    return w
+	v::InnerProductVec{F},
+	b,
+	w::InnerProductVec{F}) where {F}
+	axpby!(a, v.vec, b, w.vec)
+	return w
 end
 
 function LinearAlgebra.dot(v::InnerProductVec{F}, w::InnerProductVec{F}) where {F}
-    return v.dotf(v.vec, w.vec)
+	return v.dotf(v.vec, w.vec)
 end
 
 VectorInterface.scalartype(::Type{<:InnerProductVec{F,T}}) where {F,T} = scalartype(T)
 
 function VectorInterface.zerovector(v::InnerProductVec, T::Type{<:Number})
-    return InnerProductVec(zerovector(v.vec, T), v.dotf)
+	return InnerProductVec(zerovector(v.vec, T), v.dotf)
 end
 
 function VectorInterface.scale(v::InnerProductVec, a::Number)
-    return InnerProductVec(scale(v.vec, a), v.dotf)
+	return InnerProductVec(scale(v.vec, a), v.dotf)
 end
 function VectorInterface.scale!!(v::InnerProductVec, a::Number)
-    return InnerProductVec(scale!!(v.vec, a), v.dotf)
+	return InnerProductVec(scale!!(v.vec, a), v.dotf)
 end
 function VectorInterface.scale!(v::InnerProductVec, a::Number)
-    scale!(v.vec, a)
-    return v
+	scale!(v.vec, a)
+	return v
 end
 function VectorInterface.scale!!(w::InnerProductVec{F}, v::InnerProductVec{F},
-                                 a::Number) where {F}
-    return InnerProductVec(scale!!(w.vec, v.vec, a), w.dotf)
+	a::Number) where {F}
+	return InnerProductVec(scale!!(w.vec, v.vec, a), w.dotf)
 end
 function VectorInterface.scale!(w::InnerProductVec{F}, v::InnerProductVec{F},
-                                a::Number) where {F}
-    scale!(w.vec, v.vec, a)
-    return w
+	a::Number) where {F}
+	scale!(w.vec, v.vec, a)
+	return w
 end
 
 function VectorInterface.add(v::InnerProductVec{F}, w::InnerProductVec{F}, a::Number,
-                             b::Number) where {F}
-    return InnerProductVec(add(v.vec, w.vec, a, b), v.dotf)
+	b::Number) where {F}
+	return InnerProductVec(add(v.vec, w.vec, a, b), v.dotf)
 end
 function VectorInterface.add!!(v::InnerProductVec{F}, w::InnerProductVec{F}, a::Number,
-                               b::Number) where {F}
-    return InnerProductVec(add!!(v.vec, w.vec, a, b), v.dotf)
+	b::Number) where {F}
+	return InnerProductVec(add!!(v.vec, w.vec, a, b), v.dotf)
 end
 function VectorInterface.add!(v::InnerProductVec{F}, w::InnerProductVec{F}, a::Number,
-                              b::Number) where {F}
-    add!(v.vec, w.vec, a, b)
-    return v
+	b::Number) where {F}
+	add!(v.vec, w.vec, a, b)
+	return v
 end
 
 function VectorInterface.inner(v::InnerProductVec{F}, w::InnerProductVec{F}) where {F}
-    return v.dotf(v.vec, w.vec)
+	return v.dotf(v.vec, w.vec)
 end
 
+# TODO: Add tests
+function inner!(M::AbstractMatrix,
+    v::AbstractVector,
+    w::AbstractVector)
+    @assert size(M) == (length(v), length(w)) "Matrix dimensions must match"
+    @inbounds for j in eachindex(w), i in eachindex(v)
+        M[i, j] = inner(v[i], w[j])
+    end
+    return M
+end
+function blockinner(x::AbstractVector{T}, y::AbstractVector{T}) where T
+    m, n = length(x), length(y)
+    res = Matrix{InnerNumType(T)}(undef, m, n)
+    @inbounds for i in 1:m
+        @simd for j in 1:n
+            res[i, j] = inner(x[i], y[j])
+        end
+    end
+    return res
+end
 VectorInterface.norm(v::InnerProductVec) = sqrt(real(inner(v, v)))

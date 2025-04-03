@@ -62,6 +62,9 @@ end
 @testset "Svdsolve differentiation rules" verbose = true begin
     include("ad/svdsolve.jl")
 end
+@testset "Orthonormal" verbose = true begin
+    include("orthonormal.jl")
+end
 t = time() - t
 
 # Issues

@@ -155,8 +155,8 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos;
 end
 
 function block_lanczos_reortho(A, x₀, howmany::Int, which::Selector,
-                               alg::Lanczos) where {S}
-    @assert alg.block_size == blocksize(x₀)
+                               alg::Lanczos)
+    @assert alg.block_size == size(x₀, 2)
     block_size = alg.block_size
     maxiter = alg.maxiter
     tol = alg.tol
@@ -206,6 +206,9 @@ function block_lanczos_reortho(A, x₀, howmany::Int, which::Selector,
         # Why it happens remains to be investigated.
     end
 
+    basis_view = fact.V.basis[1:fact.k*block_size]
+    @show norm(blockinner(basis_view, basis_view)-I)
+
     if (num_converged < howmany) && verbosity >= WARN_LEVEL
         @warn """Block Lanczos eigsolve stopped without full convergence after $(fact.k) iterations:
         * $num_converged eigenvalues converged
@@ -223,28 +226,24 @@ function block_lanczos_reortho(A, x₀, howmany::Int, which::Selector,
            ConvergenceInfo(num_converged, residuals, normresiduals, fact.k, numops)
 end
 
-function _residual(fact, A, howmany, tol, block_size, which)
-    T = triblockdiag(fact)
-    D, U = eigen(Hermitian((T + T') / 2))   # TODO: use keyword sortby
-
+function _residual(fact::BlockLanczosFactorization, A, howmany::Int, tol::Real, block_size::Int, which::Selector)
+    TDB = triblockdiag(fact)
+    D, U = eigen(Hermitian((TDB + TDB') / 2))   # TODO: use keyword sortby
     by, rev = eigsort(which)
     p = sortperm(D; by=by, rev=rev)
     D = D[p]
     U = U[:, p]
+    V = fact.V.basis
+    T = eltype(V)
 
     howmany_actual = min(howmany, length(D))
     values = D[1:howmany_actual]
 
-    basis_so_far = view(fact.V, :, 1:(fact.k * block_size))
-    vectors = Vector{typeof(fact.V[:, 1])}(undef, howmany_actual)
+    basis_sofar_view = view(V, 1:(fact.k * block_size))
+    vectors = mul_vm(basis_sofar_view, U)
 
-    for i in 1:howmany_actual
-        vectors[i] = similar(basis_so_far, size(basis_so_far, 1))
-        mul!(vectors[i], basis_so_far, view(U, :, i))
-    end
-
-    residuals = Vector{typeof(vectors[1])}(undef, howmany_actual)
-    normresiduals = Vector{Float64}(undef, howmany_actual)
+    residuals = Vector{T}(undef, howmany_actual)
+    normresiduals = Vector{InnerNumType(T)}(undef, howmany_actual)
 
     for i in 1:howmany_actual
         residuals[i] = apply(A, vectors[i])

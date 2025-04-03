@@ -29,6 +29,10 @@ factorizations of a given linear map and a starting vector.
 """
 abstract type KrylovFactorization{T,S} end
 
+# T is the type of the elements in the inner produnct space.
+# S is the type of number field of the space. and SR is the real part of S.
+abstract type BlockKrylovFactorization{T,S,SR} end
+
 """
     abstract type KrylovIterator{F,T}
 
