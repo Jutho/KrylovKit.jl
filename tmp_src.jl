@@ -376,7 +376,7 @@ mutable struct BlockLanczosFactorization{T,S,SR<:Real} <: BlockKrylovFactorizati
     const R::OrthonormalBasis{T}            # residual block
     R_size::Int
     normR::SR
-
+    
     const tmp:: AbstractMatrix{S}           # temporary matrix for ortho_basis!
 end
 
@@ -408,7 +408,7 @@ struct BlockLanczosIterator{F,T,O<:Orthogonalizer} <: KrylovIterator{F,T}
                                          maxiter::Int,
                                          num_field::Type,
                                          orth::O) where {F,T,O<:Orthogonalizer}
-        if length(x₀) < 2 || norm(x₀) < 1e4 * eps(num_field)
+        if length(x₀) < 1 || norm(x₀) < 1e4 * eps(num_field)
             error("initial vector should not have norm zero")
         end
         return new{F,T,O}(operator, x₀, maxiter, num_field, orth)
@@ -463,14 +463,11 @@ function initialize(iter::BlockLanczosIterator; verbosity::Int=KrylovDefaults.ve
     S = iter.num_field
 
     V_basis = similar(x₀_vec, bs_now * (maxiter + 1))
-    for i in 1:length(V_basis)
-        V_basis[i] = similar(x₀_vec[1])
-    end
     R = [similar(x₀_vec[i]) for i in 1:bs_now]
     TDB = zeros(S, bs_now * (maxiter + 1), bs_now * (maxiter + 1))
 
     X₁_view = view(V_basis, 1:bs_now)
-    copyto!.(X₁_view, x₀_vec)
+    copyto!(X₁_view, x₀_vec)
 
     abstract_qr!(X₁_view,S)
 
@@ -487,7 +484,7 @@ function initialize(iter::BlockLanczosIterator; verbosity::Int=KrylovDefaults.ve
     B₁, good_idx = abstract_qr!(residual,S)
     bs_next = length(good_idx)
     X₂_view = view(V_basis, bs_now+1:bs_now+bs_next)
-    copyto!.(X₂_view, residual[good_idx])
+    copyto!(X₂_view, residual[good_idx])
     B₁_view = view(TDB, bs_now+1:bs_now+bs_next, 1:bs_now)
     copyto!(B₁_view, B₁)
     copyto!(view(TDB, 1:bs_now, bs_now+1:bs_now+bs_next), B₁_view')
@@ -525,7 +522,7 @@ function expand!(iter::BlockLanczosIterator, state::BlockLanczosFactorization;
                  verbosity::Int=KrylovDefaults.verbosity[])
     all_size = state.all_size
     @show all_size
-    Rₖ = view(state.R.basis, 1:state.R_size)
+    Rₖ = state.R.basis[1:state.R_size]
     S = iter.num_field
     bs_now = length(Rₖ)
 
@@ -533,7 +530,8 @@ function expand!(iter::BlockLanczosIterator, state::BlockLanczosFactorization;
     Bₖ, good_idx = abstract_qr!(Rₖ,S)
     bs_next = length(good_idx)
     Xnext_view = view(state.V.basis, all_size+1:all_size+bs_next)
-    copyto!.(Xnext_view, Rₖ[good_idx])
+    copyto!(Xnext_view, Rₖ[good_idx])
+
     # Calculate the connection matrix
     Bₖ_view = view(state.TDB, all_size+1:all_size+bs_next, all_size-bs_now+1:all_size)
     copyto!(Bₖ_view, Bₖ)
@@ -546,13 +544,21 @@ function expand!(iter::BlockLanczosIterator, state::BlockLanczosFactorization;
     symmetrize!(Mnext_view)
 
     # Calculate the new residual. Get Rnext
-    Xnow_view = view(state.V.basis, all_size-bs_now+1:all_size)
-    Rₖ[1:bs_next] = Rₖ[good_idx]
-    Rₖnext_view = view(state.R.basis, 1:bs_next)
-    compute_residual!(Rₖnext_view, Axₖnext, Xnext_view, Mnext_view, Xnow_view, Bₖ_view)
+    
+    Axnext_h = hcat(Axₖnext...)
+    Xnext_h = hcat(Xnext_view...)
+    Xk_h = hcat(state.V.basis[all_size-bs_now+1:all_size]...)
+    V_h = hcat(state.V.basis[1:all_size+bs_next]...)
+    Rnext_h = Axnext_h - Xnext_h * Mnext_view - Xk_h * Bₖ_view
+    @show norm(Rnext_h' * Xnext_h)
+    
+    compute_residual!(Rₖ, Axₖnext, Xnext_view, Mnext_view, state.V.basis[all_size-bs_now+1:all_size], Bₖ_view)
+    @show norm(blockinner(Xnext_view, Rₖ))
     tmp_view = view(state.tmp, 1:(all_size+bs_next), 1:bs_next)
-    ortho_basis!(Rₖnext_view, view(state.V.basis, 1:all_size+bs_next), tmp_view)
-    state.normR = norm(Rₖnext_view)
+    ortho_basis!(Rₖ, view(state.V.basis, 1:all_size+bs_next), tmp_view)
+    state.normR = norm(state.R)
+    @show state.normR
+    @show norm(blockinner(state.V.basis[1:(all_size+bs_next)], Rₖ))
     state.all_size += bs_next
     state.R_size = bs_next
 
@@ -573,7 +579,7 @@ function compute_residual!(R::AbstractVector{T}, A_X::AbstractVector{T}, X::Abst
             axpy!(- M[i,j], X[i], r_j)
         end
         @simd for i in 1:length(X_prev)
-            axpy!(- B_prev[i,j], X_prev[i], r_j)
+            axpy!(- B_prev[j,i]', X_prev[i], r_j)
         end
     end
     return R

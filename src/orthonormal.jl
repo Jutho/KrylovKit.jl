@@ -67,7 +67,7 @@ const BLOCKSIZE = 4096
 # this uses functionality beyond VectorInterface, but can be faster
 _use_multithreaded_array_kernel(y) = _use_multithreaded_array_kernel(typeof(y))
 _use_multithreaded_array_kernel(::Type) = false
-function _use_multithreaded_array_kernel(::Type{<:Array{T}}) where {T<:Number}
+function _use_multithreaded_array_kernel(::Type{<:Array{T}}) where {T <: Number}
     return isbitstype(T) && get_num_threads() > 1
 end
 function _use_multithreaded_array_kernel(::Type{<:OrthonormalBasis{T}}) where {T}
@@ -88,11 +88,11 @@ projecting the vector `x` onto the subspace spanned by `b`; more specifically th
 for all ``j ∈ r``.
 """
 function project!!(y::AbstractVector,
-                   b::OrthonormalBasis,
-                   x,
-                   α::Number=true,
-                   β::Number=false,
-                   r=Base.OneTo(length(b)))
+    b::OrthonormalBasis,
+    x,
+    α::Number = true,
+    β::Number = false,
+    r = Base.OneTo(length(b)))
     # no specialized routine for IndexLinear x because reduction dimension is large dimension
     length(y) == length(r) || throw(DimensionMismatch())
     if get_num_threads() > 1
@@ -134,11 +134,11 @@ this computes
 ```
 """
 function unproject!!(y,
-                     b::OrthonormalBasis,
-                     x::AbstractVector,
-                     α::Number=true,
-                     β::Number=false,
-                     r=Base.OneTo(length(b)))
+    b::OrthonormalBasis,
+    x::AbstractVector,
+    α::Number = true,
+    β::Number = false,
+    r = Base.OneTo(length(b)))
     if _use_multithreaded_array_kernel(y)
         return unproject_linear_multithreaded!(y, b, x, α, β, r)
     end
@@ -155,11 +155,11 @@ function unproject!!(y,
     return y
 end
 function unproject_linear_multithreaded!(y::AbstractArray,
-                                         b::OrthonormalBasis{<:AbstractArray},
-                                         x::AbstractVector,
-                                         α::Number=true,
-                                         β::Number=false,
-                                         r=Base.OneTo(length(b)))
+    b::OrthonormalBasis{<:AbstractArray},
+    x::AbstractVector,
+    α::Number = true,
+    β::Number = false,
+    r = Base.OneTo(length(b)))
     # multi-threaded implementation, similar to BLAS level 2 matrix vector multiplication
     m = length(y)
     n = length(r)
@@ -180,12 +180,12 @@ function unproject_linear_multithreaded!(y::AbstractArray,
     return y
 end
 function unproject_linear_kernel!(y::AbstractArray,
-                                  b::OrthonormalBasis{<:AbstractArray},
-                                  x::AbstractVector,
-                                  I,
-                                  α::Number,
-                                  β::Number,
-                                  r)
+    b::OrthonormalBasis{<:AbstractArray},
+    x::AbstractVector,
+    I,
+    α::Number,
+    β::Number,
+    r)
     @inbounds begin
         if β == 0
             @simd for i in I
@@ -219,11 +219,11 @@ Perform a rank 1 update of a basis `b`, i.e. update the basis vectors as
 It is the user's responsibility to make sure that the result is still an orthonormal basis.
 """
 @fastmath function rank1update!(b::OrthonormalBasis,
-                                y,
-                                x::AbstractVector,
-                                α::Number=true,
-                                β::Number=true,
-                                r=Base.OneTo(length(b)))
+    y,
+    x::AbstractVector,
+    α::Number = true,
+    β::Number = true,
+    r = Base.OneTo(length(b)))
     if _use_multithreaded_array_kernel(y)
         return rank1update_linear_multithreaded!(b, y, x, α, β, r)
     end
@@ -241,11 +241,11 @@ It is the user's responsibility to make sure that the result is still an orthono
     return b
 end
 @fastmath function rank1update_linear_multithreaded!(b::OrthonormalBasis{<:AbstractArray},
-                                                     y::AbstractArray,
-                                                     x::AbstractVector,
-                                                     α::Number,
-                                                     β::Number,
-                                                     r)
+    y::AbstractArray,
+    x::AbstractVector,
+    α::Number,
+    β::Number,
+    r)
     # multi-threaded implementation, similar to BLAS level 2 matrix vector multiplication
     m = length(y)
     n = length(r)
@@ -274,7 +274,7 @@ end
                         end
                         if I + blocksize - 1 <= m
                             @simd for i in Base.OneTo(blocksize)
-                                Vj[I - 1 + i] += y[I - 1 + i] * xj
+                                Vj[I-1+i] += y[I-1+i] * xj
                             end
                         else
                             @simd for i in I:m
@@ -336,7 +336,7 @@ function basistransform!(b::OrthonormalBasis{T}, U::AbstractMatrix) where {T} # 
 end
 
 function basistransform_linear_multithreaded!(b::OrthonormalBasis{<:AbstractArray},
-                                              U::AbstractMatrix) # U should be unitary or isometric
+    U::AbstractMatrix) # U should be unitary or isometric
     m, n = size(U)
     m == length(b) || throw(DimensionMismatch())
     K = length(b[1])
@@ -390,17 +390,17 @@ function orthogonalize!!(v::T, b::OrthonormalBasis{T}, alg::Orthogonalizer) wher
 end
 
 function orthogonalize!!(v::T,
-                         b::OrthonormalBasis{T},
-                         x::AbstractVector,
-                         ::ClassicalGramSchmidt) where {T}
+    b::OrthonormalBasis{T},
+    x::AbstractVector,
+    ::ClassicalGramSchmidt) where {T}
     x = project!!(x, b, v)
     v = unproject!!(v, b, x, -1, 1)
     return (v, x)
 end
 function reorthogonalize!!(v::T,
-                           b::OrthonormalBasis{T},
-                           x::AbstractVector,
-                           ::ClassicalGramSchmidt) where {T}
+    b::OrthonormalBasis{T},
+    x::AbstractVector,
+    ::ClassicalGramSchmidt) where {T}
     s = similar(x) ## EXTRA ALLOCATION
     s = project!!(s, b, v)
     v = unproject!!(v, b, s, -1, 1)
@@ -408,16 +408,16 @@ function reorthogonalize!!(v::T,
     return (v, x)
 end
 function orthogonalize!!(v::T,
-                         b::OrthonormalBasis{T},
-                         x::AbstractVector,
-                         ::ClassicalGramSchmidt2) where {T}
+    b::OrthonormalBasis{T},
+    x::AbstractVector,
+    ::ClassicalGramSchmidt2) where {T}
     (v, x) = orthogonalize!!(v, b, x, ClassicalGramSchmidt())
     return reorthogonalize!!(v, b, x, ClassicalGramSchmidt())
 end
 function orthogonalize!!(v::T,
-                         b::OrthonormalBasis{T},
-                         x::AbstractVector,
-                         alg::ClassicalGramSchmidtIR) where {T}
+    b::OrthonormalBasis{T},
+    x::AbstractVector,
+    alg::ClassicalGramSchmidtIR) where {T}
     nold = norm(v)
     (v, x) = orthogonalize!!(v, b, x, ClassicalGramSchmidt())
     nnew = norm(v)
@@ -430,9 +430,9 @@ function orthogonalize!!(v::T,
 end
 
 function orthogonalize!!(v::T,
-                         b::OrthonormalBasis{T},
-                         x::AbstractVector,
-                         ::ModifiedGramSchmidt) where {T}
+    b::OrthonormalBasis{T},
+    x::AbstractVector,
+    ::ModifiedGramSchmidt) where {T}
     for (i, q) in enumerate(b)
         s = inner(q, v)
         v = add!!(v, q, -s)
@@ -441,9 +441,9 @@ function orthogonalize!!(v::T,
     return (v, x)
 end
 function reorthogonalize!!(v::T,
-                           b::OrthonormalBasis{T},
-                           x::AbstractVector,
-                           ::ModifiedGramSchmidt) where {T}
+    b::OrthonormalBasis{T},
+    x::AbstractVector,
+    ::ModifiedGramSchmidt) where {T}
     for (i, q) in enumerate(b)
         s = inner(q, v)
         v = add!!(v, q, -s)
@@ -452,16 +452,16 @@ function reorthogonalize!!(v::T,
     return (v, x)
 end
 function orthogonalize!!(v::T,
-                         b::OrthonormalBasis{T},
-                         x::AbstractVector,
-                         ::ModifiedGramSchmidt2) where {T}
+    b::OrthonormalBasis{T},
+    x::AbstractVector,
+    ::ModifiedGramSchmidt2) where {T}
     (v, x) = orthogonalize!!(v, b, x, ModifiedGramSchmidt())
     return reorthogonalize!!(v, b, x, ModifiedGramSchmidt())
 end
 function orthogonalize!!(v::T,
-                         b::OrthonormalBasis{T},
-                         x::AbstractVector,
-                         alg::ModifiedGramSchmidtIR) where {T}
+    b::OrthonormalBasis{T},
+    x::AbstractVector,
+    alg::ModifiedGramSchmidtIR) where {T}
     nold = norm(v)
     (v, x) = orthogonalize!!(v, b, x, ModifiedGramSchmidt())
     nnew = norm(v)
@@ -478,15 +478,15 @@ orthogonalize!!(v::T, q::T, alg::Orthogonalizer) where {T} = _orthogonalize!!(v,
 # avoid method ambiguity on Julia 1.0 according to Aqua.jl
 
 function _orthogonalize!!(v::T,
-                          q::T,
-                          alg::Union{ClassicalGramSchmidt,ModifiedGramSchmidt}) where {T}
+    q::T,
+    alg::Union{ClassicalGramSchmidt, ModifiedGramSchmidt}) where {T}
     s = inner(q, v)
     v = add!!(v, q, -s)
     return (v, s)
 end
 function _orthogonalize!!(v::T,
-                          q::T,
-                          alg::Union{ClassicalGramSchmidt2,ModifiedGramSchmidt2}) where {T}
+    q::T,
+    alg::Union{ClassicalGramSchmidt2, ModifiedGramSchmidt2}) where {T}
     s = inner(q, v)
     v = add!!(v, q, -s)
     ds = inner(q, v)
@@ -494,8 +494,8 @@ function _orthogonalize!!(v::T,
     return (v, s + ds)
 end
 function _orthogonalize!!(v::T,
-                          q::T,
-                          alg::Union{ClassicalGramSchmidtIR,ModifiedGramSchmidtIR}) where {T}
+    q::T,
+    alg::Union{ClassicalGramSchmidtIR, ModifiedGramSchmidtIR}) where {T}
     nold = norm(v)
     s = inner(q, v)
     v = add!!(v, q, -s)
@@ -578,51 +578,31 @@ and its concrete subtypes [`ClassicalGramSchmidt`](@ref), [`ModifiedGramSchmidt`
 orthonormalize, orthonormalize!!
 
 # TODO : Test
-
-abstract_qr!(A::OrthonormalBasis{T};arg...) where T = abstract_qr!(A.basis;arg...)
-function abstract_qr!(A::AbstractVector{T};arg...) where T
-    if T<:InnerProductVec
-        return _abstract_qr!(A;arg...)
-    else
-        Aq,B = qr(hcat(A...))
-        Am = Matrix(Aq)
-        @inbounds @simd for i in eachindex(A)
-            A[i] = view(Am,:,i)
-        end
-        return A,B
-    end
-end
-
-function _abstract_qr!(block::OrthonormalBasis{T}; 
-                     alg::Orthogonalizer=ModifiedGramSchmidt(),
-                     tol::Real=1e4*eps(InnerNumType(T))) where {T}
+function abstract_qr!(block::AbstractVector{T}, S::Type;
+    tol::Real = 1e4 * eps(S)) where {T}
     n = length(block)
-    R = zeros(InnerNumType(T), n, n)
-    
-    coeffs = Vector{InnerNumType(T)}(undef, n)
-    
+    rank_shrink = false
+    idx = ones(Int64,n)
+    R = zeros(S, n, n)
     @inbounds for j in 1:n
-        _, β, coeffs = orthonormalize!!(block[j], OrthonormalBasis(block.basis[1:j-1]), 
-                                             coeffs, alg) 
-        if β ≤ tol * norm(block[j])
-            error("Column $j is linearly dependent (β = $β)")
+        αⱼ = block[j]
+        for i in 1:j-1
+            R[i, j] = inner(block[i], αⱼ)
+            αⱼ -= R[i, j] * block[i]
         end
-        
-        R[1:j-1, j] = coeffs[1:j-1]
-        R[j, j] = β
+        β = norm(αⱼ)
+        if !(β ≤ tol)
+            R[j, j] = β
+            block[j] = αⱼ / β
+        else
+            block[j] *= S(0)
+            rank_shrink = true
+            idx[j] = 0
+        end
     end
-    
-    return block, R
+    good_idx = findall(idx .> 0)
+    return R[good_idx,:], good_idx
 end
-
-function  abstract_qr(block::OrthonormalBasis{T}; 
-                     alg::Orthogonalizer=ModifiedGramSchmidt(),
-                     tol::Real=1e4*eps(InnerNumType(T))) where {T}
-    block, R = abstract_qr!(copy(block); alg, tol)
-    return R
-end
-
-
 
 
 

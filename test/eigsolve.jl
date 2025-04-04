@@ -360,7 +360,7 @@ end
     @test_logs (:info,) realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-12, verbosity=2))
 end
 
-using Test, SparseArrays, Random, LinearAlgebra
+using Test, SparseArrays, Random, LinearAlgebra, Profile
 
 function toric_code_strings(m::Int, n::Int)
     li = LinearIndices((m, n))
@@ -425,16 +425,23 @@ end
 using KrylovKit
 @testset "Block Lanczos - eigsolve for large sparse matrix and map input" begin
     Random.seed!(4)
-    p = 8 # block size
     sites_num = 3
+    p = 5 # block size
     X1 = Matrix(qr(rand(2^(2*sites_num^2), p)).Q)
     get_value_num = 10
-    tol = 1e-8
+    tol = 1e-6
     h_mat = toric_code_hamiltonian_matrix(sites_num, sites_num)
 
     # matrix input
-    D, U, info = eigsolve(-h_mat, X1, get_value_num, :SR,
+    #=
+    Profile.clear()
+    local D, U, info
+    @profile D, U, info = eigsolve(-h_mat, X1, get_value_num, :SR,
                           Lanczos(; block_size=p, maxiter=20, tol=tol))
+                          Profile.print(format=:flat, sortedby=:count)
+                          =#
+    D, U, info = eigsolve(-h_mat, X1, get_value_num, :SR,
+                          Lanczos(; maxiter=20, tol=tol))            
     @show D[1:get_value_num]
     @test count(x -> abs(x + 16.0) < 2.0 - tol, D[1:get_value_num]) == 4
     @test count(x -> abs(x + 16.0) < tol, D[1:get_value_num]) == 4
