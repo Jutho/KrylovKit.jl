@@ -1,7 +1,7 @@
 # 
 function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi;
                     alg_rrule=alg)
-    (S, Q), (T, Z), fact, converged, numiter, numops = _schursolve(f, v₀, w₀, howmany,
+    (S, Q), (T, Z), (βrV, βrW), fact, converged, numiter, numops = _schursolve(f, v₀, w₀, howmany,
                                                                    which, alg)
 
     howmany′ = howmany
@@ -33,12 +33,9 @@ function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi
     # if, e.g., one sorts by the real part
     matchperm = _geteigenspacematchperm!!(valuesS, valuesT, vectorsS, vectorsT)
 
-    residualsS = let r = residual(fact)[1]
-        [scale(r, last(v)) for v in cols(VS)]
-    end
-    residualsT = let r = residual(fact)[2]
-        [scale(r, last(v)) for v in cols(VT)]
-    end
+    H, K = rayleighquotient(fact)
+    residualsS = _getresiduals(βrV, H[end, :], VS)
+    # residualsT = _getresiduals(βrW, rW, VT )
 
     normresidualsS = [abs(normres(fact)[1]) * abs(last(v)) for v in cols(VS)]
     normresidualsT = [abs(normres(fact)[2]) * abs(last(v)) for v in cols(VT)]
@@ -61,6 +58,21 @@ function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi
     return valuesS, vectorsS, vectorsT[matchperm],
            ConvergenceInfo(converged, residualsS, max.(normresidualsS, normresidualsT),
                            numiter, numops)
+end
+
+function _getresiduals(βr, h, c)
+    # || r_j || = ... = || v~_{l+1} || |h^*_l c_j |
+    # where v~_{l+1} is the biorthogonality corrected residual, 
+    #       h^*_l is the final term in the Arnoldi expansion and 
+    #       c_j is the last Ritzvector
+    # from the _schursolve call we get || v~_{l+1} || = βrV
+
+    @show size(c)
+    residuals = zeros(real(eltype(c)), size(c, 2))
+    for j in axes(c, 2)
+        residuals[j] = βr * abs(h'c[:, j])
+    end
+    residuals
 end
 
 function _geteigenspacematchperm!!(valuesS, valuesT, vectorsS, vectorsT)
@@ -131,6 +143,7 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
     V, W = basis(fact)
     MM[L, L] = inner(W[L], V[L])
     converged = 0
+    βrV = βrW = 0.0
     local S, T, Q, Z
     while true
         βv, βw = normres(fact)
@@ -315,7 +328,7 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
         end
     end
 
-    return (S, Q), (T, Z), fact, converged, numiter, numops
+    return (S, Q), (T, Z), (βrV, βrW), fact, converged, numiter, numops
 end
 
 function _restorearnoldiformandupdatebasis!(keep, H, U, f, rq, B, r, βr)
