@@ -253,11 +253,20 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
 
             # Determine how many to keep
             keep = div(3 * krylovdim + 2 * converged, 5) # strictly smaller than krylovdim since converged < howmany <= krylovdim, at least equal to converged
-            while keep < krylovdim &&
-                (isapprox(valuesH[pH[keep]], conj(valuesH[pH[keep + 1]]); rtol=1e-3) ||
-                 isapprox(valuesK[pK[keep]], conj(valuesK[pK[keep + 1]]); rtol=1e-3))
-                # increase the number of eigenvalues kept such that the eigenspace is not fractured at a eigenvalue pair
-                keep += 1
+
+            while eltype(H) <: Real && (H[keep + 1, keep] != 0 || K[keep + 1, keep] != 0)
+                # we are in the middle of a 2x2 block; this cannot happen if keep == converged, so we can decrease keep
+                # however, we have to make sure that we do not end up with keep = 0
+                if keep > 1
+                    keep -= 1 # conservative choice
+                else
+                    keep += 1
+                    if krylovdim == 2
+                        alg.verbosity >= WARN_LEVEL &&
+                            @warn "Arnoldi iteration got stuck in a 2x2 block, consider increasing the Krylov dimension"
+                        break
+                    end
+                end
             end
 
             # Setp 10 & 11 - Correct the kept part of H and K and the residual 
