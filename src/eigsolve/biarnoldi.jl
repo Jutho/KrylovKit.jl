@@ -29,13 +29,14 @@ function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi
         [B * v for v in cols(VT)]
     end
 
-    # we need to match the eigenvalues; sometimes λ and λ* get mismatched,
-    # if, e.g., one sorts by the real part
-    matchperm = _geteigenspacematchperm!!(valuesS, valuesT, vectorsS, vectorsT)
-
     H, K = rayleighquotient(fact)
     residualsS = _getresiduals(βrV, H[end, :], VS)
     # residualsT = _getresiduals(βrW, rW, VT )
+
+    # we need to match the eigenvalues; sometimes λ and λ* get mismatched,
+    # if, e.g., one sorts by the real part
+    matchperm = _geteigenspacematchperm!!(valuesS, valuesT, vectorsS, vectorsT, residualsS)
+
 
     normresidualsS = [abs(normres(fact)[1]) * abs(last(v)) for v in cols(VS)]
     normresidualsT = [abs(normres(fact)[2]) * abs(last(v)) for v in cols(VT)]
@@ -75,7 +76,7 @@ function _getresiduals(βr, h, c)
     residuals
 end
 
-function _geteigenspacematchperm!!(valuesS, valuesT, vectorsS, vectorsT)
+function _geteigenspacematchperm!!(valuesS, valuesT, vectorsS, vectorsT, residualsS)
     matchperm = zeros(Int64, length(valuesS))
     usedvaluesT = zeros(Bool, length(valuesT))
     firstunusedT = 1
@@ -96,6 +97,7 @@ function _geteigenspacematchperm!!(valuesS, valuesT, vectorsS, vectorsT)
                     # distribute the weight to both vectors
                     vectorsS[i] = scale!!(vectorsS[i], 1 / sqrt(overlapji))
                     vectorsT[j] = scale!!(vectorsT[j], 1 / conj(sqrt(overlapji)))
+                    residualsS[i] /= abs(sqrt(overlapji))
                     break
                 end
             end
