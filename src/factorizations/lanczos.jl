@@ -368,7 +368,22 @@ end
 
 
 # block lanczos
-# TODO: do I need block_size field?
+
+#= Now what I implement is block lanczos with mutable block size. But I'm still confused is it neccesary. That is to say, Can we asseert 
+ the iteration would end with size shrink? 
+
+Mathematically:
+For a set of initial abstract vectors X₀ = {x₁,..,xₚ}, where A is a hermitian operator, if 
+
+Sₖ = {x ∈ AʲX₀:j=0,..,k-1}
+
+is linear dependent, can we assert that Rₖ ∈ span(A^{k-2}X₀,A^{k-1}X₀) or at least in span(Sₖ)?
+For vectors in F^d I believe it's right. But in a abstract inner product space, it's obviouly much more complicated.
+
+What ever, mutable block size is at least undoubtedly useful for non-hermitian operator so I implement it.
+https://www.netlib.org/utk/people/JackDongarra/etemplates/node252.html#ABLEsection
+=#
+
 mutable struct BlockLanczosFactorization{T,S,SR<:Real} <: BlockKrylovFactorization{T,S,SR}
     all_size::Int
     const V::OrthonormalBasis{T}            # Block Lanczos Basis

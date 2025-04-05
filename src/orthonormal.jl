@@ -577,9 +577,8 @@ and its concrete subtypes [`ClassicalGramSchmidt`](@ref), [`ModifiedGramSchmidt`
 """
 orthonormalize, orthonormalize!!
 
-# TODO : Test
 function abstract_qr!(block::AbstractVector{T}, S::Type;
-    tol::Real = 1e4 * eps(S)) where {T}
+    tol::Real = 1e4 * eps(real(S))) where {T}
     n = length(block)
     rank_shrink = false
     idx = ones(Int64,n)

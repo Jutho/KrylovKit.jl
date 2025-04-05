@@ -243,9 +243,7 @@ function _residual!(fact::BlockLanczosFactorization, A, howmany::Int, tol::Real,
     values = D[1:howmany_actual]
 
     basis_sofar_view = view(V, 1:all_size)
-    
-    # TODO: the slowest part
-    @time @inbounds for i in 1:howmany_actual
+    @inbounds for i in 1:howmany_actual
         copyto!(vectors[i], basis_sofar_view[1])
         for j in 2:all_size
             axpy!(U[j,i], basis_sofar_view[j], vectors[i])
