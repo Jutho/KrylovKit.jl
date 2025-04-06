@@ -24,6 +24,7 @@ Base.:-(v::InnerProductVec) = InnerProductVec(-v.vec, v.dotf)
 function Base.:+(v::InnerProductVec{F}, w::InnerProductVec{F}) where {F}
     return InnerProductVec(v.vec + w.vec, v.dotf)
 end
+# TODO: 
 function Base.sum(v::AbstractVector{InnerProductVec})
     @assert length(v) > 0
     res = copy(v[1])
@@ -39,6 +40,8 @@ end
 
 Base.:*(v::InnerProductVec, a::Number) = InnerProductVec(v.vec * a, v.dotf)
 Base.:*(a::Number, v::InnerProductVec) = InnerProductVec(a * v.vec, v.dotf)
+
+# TODO:
 Base.:*(v::AbstractVector{InnerProductVec}, a::Number) = [v[i] * a for i in 1:length(v)]
 Base.:*(a::Number, v::AbstractVector{InnerProductVec}) = [a * v[i] for i in 1:length(v)]
 function Base.:*(v::AbstractVector, V::AbstractVector)
@@ -47,6 +50,7 @@ end
 # It's in fact a kind of Linear map
 
 Base.:/(v::InnerProductVec, a::Number) = InnerProductVec(v.vec / a, v.dotf)
+# TODO:
 Base.:/(v::AbstractVector{InnerProductVec}, a::Number) = [v[i] / a for i in 1:length(v)]
 Base.:\(a::Number, v::InnerProductVec) = InnerProductVec(a \ v.vec, v.dotf)
 # I can't understand well why the last function exists so I don't implement it's block version.
@@ -166,20 +170,18 @@ function inner!(M::AbstractMatrix,
 end
 VectorInterface.norm(v::InnerProductVec) = sqrt(real(inner(v, v)))
 
-function blockinner(v::AbstractVector, w::AbstractVector)
-    M = Matrix{Float64}(undef, length(v), length(w))
+
+# used for debugging
+function blockinner(v::AbstractVector, w::AbstractVector;S::Type = Float64)
+    M = Matrix{S}(undef, length(v), length(w))
     inner!(M, v, w)
     return M
 end
-#=
-n=10000000;
-m=10;
-x = [rand(n) for i in 1:m];
-y = [rand(n) for i in 1:m];
 
-M = blockinner(x,y);
-Mh = hcat(x...)' * hcat(y...);
+function Base.copyto!(x::InnerProductVec, y::InnerProductVec)
+    @assert x.dotf == y.dotf "Dot functions must match"
+    copyto!(x.vec, y.vec)
+    return x
+end
 
-norm(M - Mh)
 
-=#

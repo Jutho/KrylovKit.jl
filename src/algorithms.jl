@@ -107,6 +107,9 @@ Use `Arnoldi` for non-symmetric or non-Hermitian linear operators.
 
 See also: `factorize`, `eigsolve`, `exponentiate`, `Arnoldi`, `Orthogonalizer`
 """
+
+# I add blockmode explicitly here because I find it difficult to judge
+# whether use block lanczos or not only by the kind of x₀
 struct Lanczos{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     orth::O
     krylovdim::Int
@@ -114,6 +117,7 @@ struct Lanczos{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     tol::S
     eager::Bool
     verbosity::Int
+    blockmode::Bool
 end
 function Lanczos(;
                  krylovdim::Int=KrylovDefaults.krylovdim[],
@@ -121,8 +125,9 @@ function Lanczos(;
                  tol::Real=KrylovDefaults.tol[],
                  orth::Orthogonalizer=KrylovDefaults.orth,
                  eager::Bool=false,
-                 verbosity::Int=KrylovDefaults.verbosity[])
-    return Lanczos(orth, krylovdim, maxiter, tol, eager, verbosity)
+                 verbosity::Int=KrylovDefaults.verbosity[],
+                 blockmode::Bool=false)
+    return Lanczos(orth, krylovdim, maxiter, tol, eager, verbosity, blockmode)
 end
 
 """

@@ -78,6 +78,12 @@ function wrapop(A, ::Val{mode}) where {mode}
     end
 end
 
+# block operations
+# ----------------
+function mul_test(v::AbstractVector, A::AbstractMatrix)
+    return [sum(v .* A[:,i]) for i in axes(A,2)]
+end
+
 if VERSION < v"1.9"
     stack(f, itr) = mapreduce(f, hcat, itr)
     stack(itr) = reduce(hcat, itr)

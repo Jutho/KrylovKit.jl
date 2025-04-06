@@ -4,7 +4,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos;
                                     maxiter=alg.maxiter,
                                     eager=alg.eager,
                                     orth=alg.orth))
-    if (typeof(x₀) <: AbstractMatrix && size(x₀,2)>1)||eltype(x₀) <: Union{InnerProductVec,AbstractVector}
+    if alg.blockmode
         return block_lanczos_reortho(A, x₀, howmany, which, alg)
     end
     krylovdim = alg.krylovdim
@@ -156,7 +156,7 @@ end
 
 function block_lanczos_reortho(A, x₀, howmany::Int, which::Selector,
                                alg::Lanczos)
-    @assert (typeof(x₀) <: AbstractMatrix && size(x₀,2)>1)||eltype(x₀) <: Union{InnerProductVec,AbstractVector}
+    @assert alg.blockmode == true
     maxiter = alg.maxiter
     tol = alg.tol
     verbosity = alg.verbosity
@@ -173,8 +173,8 @@ function block_lanczos_reortho(A, x₀, howmany::Int, which::Selector,
 
     converge_check = max(1, 100 ÷ bs_now) # Periodic check for convergence
 
-    local values, residuals, normresiduals, num_converged
     vectors = [similar(x₀_vec[1]) for _ in 1:howmany]
+    values = Vector{real(eltype(fact.TDB))}(undef, howmany)
     converged = false
 
     for numiter in 2:maxiter
@@ -183,9 +183,9 @@ function block_lanczos_reortho(A, x₀, howmany::Int, which::Selector,
 
         # Although norm(Rk) is not our convergence condition, when norm(Rk) is to small, we may lose too much precision and orthogonalization.
         if (numiter % converge_check == 0) || (fact.normR < tol) || (fact.R_size < 2)
-            values, vectors, residuals, normresiduals, num_converged = _residual!(fact, A,
+            values, vectors, howmany_actual, residuals, normresiduals, num_converged = _residual!(fact, A,
                                                                             howmany, tol,
-                                                                            which,vectors)
+                                                                            which,vectors, values)
 
             if verbosity >= EACHITERATION_LEVEL
                 @info "Block Lanczos eigsolve in iteration $numiter: $num_converged values converged, normres = $(normres2string(normresiduals[1:min(howmany, length(normresiduals))]))"
@@ -200,8 +200,8 @@ function block_lanczos_reortho(A, x₀, howmany::Int, which::Selector,
     end
 
     if !converged
-        values, vectors, residuals, normresiduals, num_converged = _residual(fact, A, howmany,
-                                                                            tol, which)
+        values, vectors, howmany_actual, residuals, normresiduals, num_converged = _residual!(fact, A, howmany,
+                                                                            tol, which, vectors, values)
     end
 
     if (fact.all_size > alg.krylovdim)
@@ -222,43 +222,45 @@ function block_lanczos_reortho(A, x₀, howmany::Int, which::Selector,
         * number of operations = $numops"""
     end
 
-    return values,
-           vectors,
+    return values[1:howmany],
+           vectors[1:howmany],
            ConvergenceInfo(num_converged, residuals, normresiduals, fact.all_size, numops)
 end
 
-function _residual!(fact::BlockLanczosFactorization, A, howmany::Int, tol::Real, which::Selector, vectors)
+function _residual!(fact::BlockLanczosFactorization, A, howmany::Int, tol::Real, which::Selector, vectors::AbstractVector, values::AbstractVector{<:Number})
     all_size = fact.all_size
     TDB = view(fact.TDB, 1:all_size, 1:all_size)
-    D, U = eigen(Hermitian((TDB + TDB') / 2))   # TODO: use keyword sortby
+    D, U = eigen(Hermitian((TDB + TDB') / 2))  
     by, rev = eigsort(which)
     p = sortperm(D; by=by, rev=rev)
     D = D[p]
     U = U[:, p]
-    V = fact.V.basis
-    T = eltype(V)
+    basis_sofar_view = view(fact.V.basis, 1:all_size)
+    T = eltype(basis_sofar_view)
     S = eltype(TDB)
 
     howmany_actual = min(howmany, length(D))
-    values = D[1:howmany_actual]
+    if howmany_actual < howmany
+        @warn "The number of converged eigenvalues is less than the requested number of eigenvalues."
+    end
+    copyto!(values, D[1:howmany_actual])
 
-    basis_sofar_view = view(V, 1:all_size)
     @inbounds for i in 1:howmany_actual
-        copyto!(vectors[i], basis_sofar_view[1])
+        copyto!(vectors[i], basis_sofar_view[1]*U[1,i])
         for j in 2:all_size
             axpy!(U[j,i], basis_sofar_view[j], vectors[i])
         end
     end
 
     residuals = Vector{T}(undef, howmany_actual)
-    normresiduals = Vector{S}(undef, howmany_actual)
+    normresiduals = Vector{real(S)}(undef, howmany_actual)
 
     for i in 1:howmany_actual
         residuals[i] = apply(A, vectors[i])
         axpy!(-values[i], vectors[i], residuals[i])  # residuals[i] -= values[i] * vectors[i]
+        #TODO: Does norm need to be modified when residuals is complex?
         normresiduals[i] = norm(residuals[i])
     end
-
     num_converged = count(nr -> nr <= tol, normresiduals)
-    return values, vectors, residuals, normresiduals, num_converged
+    return values, vectors, howmany_actual, residuals, normresiduals, num_converged
 end

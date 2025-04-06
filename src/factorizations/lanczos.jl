@@ -369,8 +369,9 @@ end
 
 # block lanczos
 
-#= Now what I implement is block lanczos with mutable block size. But I'm still confused is it neccesary. That is to say, Can we asseert 
- the iteration would end with size shrink? 
+#= 
+Now what I implement is block lanczos with mutable block size. But I'm still confused is it neccesary. That is to say, Can we asseert 
+the iteration would end with size shrink? 
 
 Mathematically:
 For a set of initial abstract vectors X₀ = {x₁,..,xₚ}, where A is a hermitian operator, if 
@@ -395,23 +396,24 @@ mutable struct BlockLanczosFactorization{T,S,SR<:Real} <: BlockKrylovFactorizati
     const tmp:: AbstractMatrix{S}           # temporary matrix for ortho_basis!
 end
 
+#= I don't use these functions. But to keep the style, I keep them temporarily.
 Base.length(F::BlockLanczosFactorization) = F.all_size
-#= where use eltype?
 Base.eltype(F::BlockLanczosFactorization) = eltype(typeof(F))
 Base.eltype(::Type{<:BlockLanczosFactorization{T,<:Any}}) where {T} = T
-=#
-
 basis(F::BlockLanczosFactorization) = F.V
 residual(F::BlockLanczosFactorization) = F.R
 normres(F::BlockLanczosFactorization) = F.normR
+=#
 
 
-# Now our orthogonalizer is only ModifiedGramSchmidt2.
-# Dimension of Krylov subspace in BlockLanczosIterator is usually much bigger than lanczos.
-# So ClassicalGramSchmidt and ModifiedGramSchmidt1 is numerically unstable.
-# I don't add IR orthogonalizer because I find it sometimes unstable and I am studying it.
-# Householder reorthogonalization is theoretically stable and saves memory, but the algorithm I implemented is not stable.
-# In the future, I will add IR and Householder orthogonalizer.
+#= 
+Now our orthogonalizer is only ModifiedGramSchmidt2.
+Dimension of Krylov subspace in BlockLanczosIterator is usually much bigger than lanczos.
+So ClassicalGramSchmidt and ModifiedGramSchmidt1 is numerically unstable.
+I don't add IR orthogonalizer because I find it sometimes unstable and I am studying it.
+Householder reorthogonalization is theoretically stable and saves memory, but the algorithm I implemented is not stable.
+In the future, I will add IR and Householder orthogonalizer.
+=#
 struct BlockLanczosIterator{F,T,O<:Orthogonalizer} <: KrylovIterator{F,T}
     operator::F
     x₀::Vector{T}
@@ -423,7 +425,7 @@ struct BlockLanczosIterator{F,T,O<:Orthogonalizer} <: KrylovIterator{F,T}
                                          maxiter::Int,
                                          num_field::Type,
                                          orth::O) where {F,T,O<:Orthogonalizer}
-        if length(x₀) < 2 || norm(x₀) < 1e4 * eps(num_field)
+        if length(x₀) < 2 || norm(x₀) < 1e4 * eps(real(num_field))
             error("initial vector should not have norm zero")
         end
         return new{F,T,O}(operator, x₀, maxiter, num_field, orth)
@@ -488,15 +490,13 @@ function initialize(iter::BlockLanczosIterator; verbosity::Int=KrylovDefaults.ve
     copyto!.(X₁_view, x₀_vec)
 
     abstract_qr!(X₁_view,S)
-
-    Ax₀ = [apply(A, x) for x in X₁_view]
+    Ax₁ = [apply(A, x) for x in X₁_view]
     M₁_view = view(TDB, 1:bs_now, 1:bs_now)
-    inner!(M₁_view, X₁_view, Ax₀)
-    
-    symmetrize!(M₁_view)
+    inner!(M₁_view, X₁_view, Ax₁)
+    M₁_view = (M₁_view + M₁_view') / 2
 
     # We have to write it as a form of matrix multiplication. Get R1  
-    residual = mul!(Ax₀, X₁_view, - M₁_view)
+    residual = mul!(Ax₁, X₁_view, - M₁_view)
 
     # QR decomposition of residual to get the next basis. Get X2 and B1
     B₁, good_idx = abstract_qr!(residual,S)
@@ -512,7 +512,7 @@ function initialize(iter::BlockLanczosIterator; verbosity::Int=KrylovDefaults.ve
     M₂_view = view(TDB, bs_now+1:bs_now+bs_next, bs_now+1:bs_now+bs_next)
     inner!(M₂_view, X₂_view, Ax₂)
     
-    symmetrize!(M₂_view)
+    M₂_view = (M₂_view + M₂_view') / 2
 
     # Calculate the new residual. Get R2
     compute_residual!(R, Ax₂, X₂_view, M₂_view, X₁_view, B₁_view)
@@ -526,7 +526,6 @@ function initialize(iter::BlockLanczosIterator; verbosity::Int=KrylovDefaults.ve
         @info "Block Lanczos initiation at dimension 2: subspace normres = $(normres2string(normR))"
     end
 
-
     return BlockLanczosFactorization(bs_now+bs_next,
                                     OrthonormalBasis(V_basis),
                                     TDB,
@@ -539,7 +538,6 @@ end
 function expand!(iter::BlockLanczosIterator, state::BlockLanczosFactorization;
                  verbosity::Int=KrylovDefaults.verbosity[])
     all_size = state.all_size
-    @show all_size
     Rₖ = view(state.R.basis, 1:state.R_size)
     S = iter.num_field
     bs_now = length(Rₖ)
@@ -549,6 +547,7 @@ function expand!(iter::BlockLanczosIterator, state::BlockLanczosFactorization;
     bs_next = length(good_idx)
     Xnext_view = view(state.V.basis, all_size+1:all_size+bs_next)
     copyto!.(Xnext_view, Rₖ[good_idx])
+
     # Calculate the connection matrix
     Bₖ_view = view(state.TDB, all_size+1:all_size+bs_next, all_size-bs_now+1:all_size)
     copyto!(Bₖ_view, Bₖ)
@@ -558,7 +557,7 @@ function expand!(iter::BlockLanczosIterator, state::BlockLanczosFactorization;
     Axₖnext = [apply(iter.operator, x) for x in Xnext_view]
     Mnext_view = view(state.TDB, all_size+1:all_size+bs_next, all_size+1:all_size+bs_next)
     inner!(Mnext_view, Xnext_view, Axₖnext)
-    symmetrize!(Mnext_view)
+    Mnext_view = (Mnext_view + Mnext_view') / 2
 
     # Calculate the new residual. Get Rnext
     Xnow_view = view(state.V.basis, all_size-bs_now+1:all_size)
@@ -600,14 +599,3 @@ function ortho_basis!(basis_new::AbstractVector{T}, basis_sofar::AbstractVector{
     return basis_new
 end
 
-function symmetrize!(A::AbstractMatrix)
-    n = size(A, 1)
-    @inbounds for j in 1:n
-        A[j,j] = real(A[j,j])
-        @simd for i in j+1:n
-            avg = (A[i,j] + A[j,i]) / 2
-            A[i,j] = A[j,i] = avg
-        end
-    end
-    return A
-end
