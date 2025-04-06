@@ -67,7 +67,7 @@ const BLOCKSIZE = 4096
 # this uses functionality beyond VectorInterface, but can be faster
 _use_multithreaded_array_kernel(y) = _use_multithreaded_array_kernel(typeof(y))
 _use_multithreaded_array_kernel(::Type) = false
-function _use_multithreaded_array_kernel(::Type{<:Array{T}}) where {T <: Number}
+function _use_multithreaded_array_kernel(::Type{<:Array{T}}) where {T<:Number}
     return isbitstype(T) && get_num_threads() > 1
 end
 function _use_multithreaded_array_kernel(::Type{<:OrthonormalBasis{T}}) where {T}
@@ -88,11 +88,11 @@ projecting the vector `x` onto the subspace spanned by `b`; more specifically th
 for all ``j ∈ r``.
 """
 function project!!(y::AbstractVector,
-    b::OrthonormalBasis,
-    x,
-    α::Number = true,
-    β::Number = false,
-    r = Base.OneTo(length(b)))
+                   b::OrthonormalBasis,
+                   x,
+                   α::Number = true,
+                   β::Number = false,
+                   r = Base.OneTo(length(b)))
     # no specialized routine for IndexLinear x because reduction dimension is large dimension
     length(y) == length(r) || throw(DimensionMismatch())
     if get_num_threads() > 1
@@ -134,11 +134,11 @@ this computes
 ```
 """
 function unproject!!(y,
-    b::OrthonormalBasis,
-    x::AbstractVector,
-    α::Number = true,
-    β::Number = false,
-    r = Base.OneTo(length(b)))
+                     b::OrthonormalBasis,
+                     x::AbstractVector,
+                     α::Number = true,
+                     β::Number = false,
+                     r = Base.OneTo(length(b)))
     if _use_multithreaded_array_kernel(y)
         return unproject_linear_multithreaded!(y, b, x, α, β, r)
     end
@@ -155,11 +155,12 @@ function unproject!!(y,
     return y
 end
 function unproject_linear_multithreaded!(y::AbstractArray,
-    b::OrthonormalBasis{<:AbstractArray},
-    x::AbstractVector,
-    α::Number = true,
-    β::Number = false,
-    r = Base.OneTo(length(b)))
+                                         
+b::OrthonormalBasis{<:AbstractArray},
+                                         x::AbstractVector,
+                                         α::Number = true,
+                                         β::Number = false,
+                                         r = Base.OneTo(length(b)))
     # multi-threaded implementation, similar to BLAS level 2 matrix vector multiplication
     m = length(y)
     n = length(r)
@@ -180,12 +181,13 @@ function unproject_linear_multithreaded!(y::AbstractArray,
     return y
 end
 function unproject_linear_kernel!(y::AbstractArray,
-    b::OrthonormalBasis{<:AbstractArray},
-    x::AbstractVector,
-    I,
-    α::Number,
-    β::Number,
-    r)
+                                  
+b::OrthonormalBasis{<:AbstractArray},
+                                  x::AbstractVector,
+                                  I,
+                                  α::Number,
+                                  β::Number,
+                                  r)
     @inbounds begin
         if β == 0
             @simd for i in I
@@ -219,11 +221,11 @@ Perform a rank 1 update of a basis `b`, i.e. update the basis vectors as
 It is the user's responsibility to make sure that the result is still an orthonormal basis.
 """
 @fastmath function rank1update!(b::OrthonormalBasis,
-    y,
-    x::AbstractVector,
-    α::Number = true,
-    β::Number = true,
-    r = Base.OneTo(length(b)))
+                                y,
+x::AbstractVector,
+                                α::Number=true,
+                                β::Number=true,
+                                r = Base.OneTo(length(b)))
     if _use_multithreaded_array_kernel(y)
         return rank1update_linear_multithreaded!(b, y, x, α, β, r)
     end
@@ -241,11 +243,11 @@ It is the user's responsibility to make sure that the result is still an orthono
     return b
 end
 @fastmath function rank1update_linear_multithreaded!(b::OrthonormalBasis{<:AbstractArray},
-    y::AbstractArray,
-    x::AbstractVector,
-    α::Number,
-    β::Number,
-    r)
+                                                     y::AbstractArray,
+x::AbstractVector,
+                                                     α::Number,
+                                                     β::Number,
+                                                     r)
     # multi-threaded implementation, similar to BLAS level 2 matrix vector multiplication
     m = length(y)
     n = length(r)
@@ -274,7 +276,7 @@ end
                         end
                         if I + blocksize - 1 <= m
                             @simd for i in Base.OneTo(blocksize)
-                                Vj[I-1+i] += y[I-1+i] * xj
+                                Vj[I - 1 + i] += y[I - 1 + i] * xj
                             end
                         else
                             @simd for i in I:m

@@ -67,15 +67,15 @@ function Base.copy!(w::InnerProductVec{F}, v::InnerProductVec{F}) where {F}
 end
 
 function LinearAlgebra.mul!(w::InnerProductVec{F},
-    a::Number,
-    v::InnerProductVec{F}) where {F}
+                            a::Number,
+                            v::InnerProductVec{F}) where {F}
     mul!(w.vec, a, v.vec)
     return w
 end
 
 function LinearAlgebra.mul!(w::InnerProductVec{F},
-    v::InnerProductVec{F},
-    a::Number) where {F}
+                            v::InnerProductVec{F},
+                            a::Number) where {F}
     mul!(w.vec, v.vec, a)
     return w
 end
@@ -94,15 +94,15 @@ function LinearAlgebra.mul!(A::AbstractVector{T},B::AbstractVector{T},M::Abstrac
 end
 
 function LinearAlgebra.axpy!(a::Number,
-    v::InnerProductVec{F},
-    w::InnerProductVec{F}) where {F}
+                             v::InnerProductVec{F},
+                             w::InnerProductVec{F}) where {F}
     axpy!(a, v.vec, w.vec)
     return w
 end
 function LinearAlgebra.axpby!(a::Number,
-    v::InnerProductVec{F},
-    b,
-    w::InnerProductVec{F}) where {F}
+                              v::InnerProductVec{F},
+                              b,
+                              w::InnerProductVec{F}) where {F}
     axpby!(a, v.vec, b, w.vec)
     return w
 end
@@ -128,25 +128,25 @@ function VectorInterface.scale!(v::InnerProductVec, a::Number)
     return v
 end
 function VectorInterface.scale!!(w::InnerProductVec{F}, v::InnerProductVec{F},
-    a::Number) where {F}
+                                 a::Number) where {F}
     return InnerProductVec(scale!!(w.vec, v.vec, a), w.dotf)
 end
 function VectorInterface.scale!(w::InnerProductVec{F}, v::InnerProductVec{F},
-    a::Number) where {F}
+                                a::Number) where {F}
     scale!(w.vec, v.vec, a)
     return w
 end
 
 function VectorInterface.add(v::InnerProductVec{F}, w::InnerProductVec{F}, a::Number,
-    b::Number) where {F}
+                             b::Number) where {F}
     return InnerProductVec(add(v.vec, w.vec, a, b), v.dotf)
 end
 function VectorInterface.add!!(v::InnerProductVec{F}, w::InnerProductVec{F}, a::Number,
-    b::Number) where {F}
+                               b::Number) where {F}
     return InnerProductVec(add!!(v.vec, w.vec, a, b), v.dotf)
 end
 function VectorInterface.add!(v::InnerProductVec{F}, w::InnerProductVec{F}, a::Number,
-    b::Number) where {F}
+                              b::Number) where {F}
     add!(v.vec, w.vec, a, b)
     return v
 end
