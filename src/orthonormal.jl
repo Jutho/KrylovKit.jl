@@ -154,7 +154,7 @@ function unproject!!(y,
     end
     return y
 end
-function unproject_linear_multithreaded!(y::AbstractArray,                                     
+function unproject_linear_multithreaded!(y::AbstractArray,
                                          b::OrthonormalBasis{<:AbstractArray},
                                          x::AbstractVector,
                                          α::Number=true,
@@ -179,7 +179,7 @@ function unproject_linear_multithreaded!(y::AbstractArray,
     end
     return y
 end
-function unproject_linear_kernel!(y::AbstractArray,                        
+function unproject_linear_kernel!(y::AbstractArray,
                                   b::OrthonormalBasis{<:AbstractArray},
                                   x::AbstractVector,
                                   I,
@@ -479,14 +479,14 @@ orthogonalize!!(v::T, q::T, alg::Orthogonalizer) where {T} = _orthogonalize!!(v,
 
 function _orthogonalize!!(v::T,
                           q::T,
-                          alg::Union{ClassicalGramSchmidt, ModifiedGramSchmidt}) where {T}
+                          alg::Union{ClassicalGramSchmidt,ModifiedGramSchmidt}) where {T}
     s = inner(q, v)
     v = add!!(v, q, -s)
     return (v, s)
 end
 function _orthogonalize!!(v::T,
                           q::T,
-                          alg::Union{ClassicalGramSchmidt2, ModifiedGramSchmidt2}) where {T}
+                          alg::Union{ClassicalGramSchmidt2,ModifiedGramSchmidt2}) where {T}
     s = inner(q, v)
     v = add!!(v, q, -s)
     ds = inner(q, v)
@@ -495,7 +495,7 @@ function _orthogonalize!!(v::T,
 end
 function _orthogonalize!!(v::T,
                           q::T,
-                          alg::Union{ClassicalGramSchmidtIR, ModifiedGramSchmidtIR}) where {T}
+                          alg::Union{ClassicalGramSchmidtIR,ModifiedGramSchmidtIR}) where {T}
     nold = norm(v)
     s = inner(q, v)
     v = add!!(v, q, -s)
