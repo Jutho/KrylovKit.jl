@@ -4,9 +4,6 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos;
                                     maxiter=alg.maxiter,
                                     eager=alg.eager,
                                     orth=alg.orth))
-    if alg.blockmode
-        return block_lanczos_reortho(A, x₀, howmany, which, alg)
-    end
     krylovdim = alg.krylovdim
     maxiter = alg.maxiter
     if howmany > krylovdim
@@ -154,9 +151,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos;
            ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end
 
-function block_lanczos_reortho(A, x₀, howmany::Int, which::Selector,
-                               alg::Lanczos)
-    @assert alg.blockmode == true
+function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
     maxiter = alg.maxiter
     tol = alg.tol
     verbosity = alg.verbosity
