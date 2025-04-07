@@ -33,8 +33,6 @@ Base.IteratorSize(::Type{<:OrthonormalBasis}) = Base.HasLength()
 Base.IteratorEltype(::Type{<:OrthonormalBasis}) = Base.HasEltype()
 
 Base.length(b::OrthonormalBasis) = length(b.basis)
-# blocksize(b::OrthonormalBasis) does have the same logic with Base.length(b::OrthonormalBasis), but I make sense for block lanczos.
-blocksize(b::OrthonormalBasis) = length(b.basis)
 Base.eltype(b::OrthonormalBasis{T}) where {T} = T
 
 Base.iterate(b::OrthonormalBasis) = Base.iterate(b.basis)

@@ -24,14 +24,11 @@ Base.:-(v::InnerProductVec) = InnerProductVec(-v.vec, v.dotf)
 function Base.:+(v::InnerProductVec{F}, w::InnerProductVec{F}) where {F}
     return InnerProductVec(v.vec + w.vec, v.dotf)
 end
-
 function Base.:-(v::InnerProductVec{F}, w::InnerProductVec{F}) where {F}
     return InnerProductVec(v.vec - w.vec, v.dotf)
 end
-
 Base.:*(v::InnerProductVec, a::Number) = InnerProductVec(v.vec * a, v.dotf)
 Base.:*(a::Number, v::InnerProductVec) = InnerProductVec(a * v.vec, v.dotf)
-
 Base.:/(v::InnerProductVec, a::Number) = InnerProductVec(v.vec / a, v.dotf)
 Base.:\(a::Number, v::InnerProductVec) = InnerProductVec(a \ v.vec, v.dotf)
 
@@ -135,7 +132,6 @@ function VectorInterface.inner(v::InnerProductVec{F}, w::InnerProductVec{F}) whe
     return v.dotf(v.vec, w.vec)
 end
 
-# TODO: Add tests
 function inner!(M::AbstractMatrix,
     x::AbstractVector,
     y::AbstractVector)
@@ -148,8 +144,8 @@ function inner!(M::AbstractMatrix,
     end
     return M
 end
-VectorInterface.norm(v::InnerProductVec) = sqrt(real(inner(v, v)))
 
+VectorInterface.norm(v::InnerProductVec) = sqrt(real(inner(v, v)))
 
 # used for debugging
 function blockinner(v::AbstractVector, w::AbstractVector;S::Type = Float64)
