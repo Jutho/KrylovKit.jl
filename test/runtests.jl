@@ -65,6 +65,9 @@ end
 @testset "Orthonormal" verbose = true begin
     include("orthonormal.jl")
 end
+@testset "Inner product vector" verbose = true begin
+    include("innerproductvec.jl")
+end
 t = time() - t
 
 # Issues

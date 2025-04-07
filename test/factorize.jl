@@ -79,11 +79,11 @@ end
             fact = @constinferred initialize(iter)
             @constinferred expand!(iter, fact)
             @test_logs initialize(iter; verbosity=EACHITERATION_LEVEL)
-            @test_logs (:info,) initialize(iter; verbosity = EACHITERATION_LEVEL + 1)
+            @test_logs (:info,) initialize(iter; verbosity=EACHITERATION_LEVEL + 1)
             verbosity = EACHITERATION_LEVEL + 1
             while length(fact) < n
                 if verbosity == EACHITERATION_LEVEL + 1
-                    @test_logs (:info,) expand!(iter, fact; verbosity = verbosity)
+                    @test_logs (:info,) expand!(iter, fact; verbosity=verbosity)
                     verbosity = EACHITERATION_LEVEL
                 else
                     @test_logs expand!(iter, fact; verbosity=verbosity)
@@ -243,7 +243,7 @@ end
             @constinferred initialize!(iter, deepcopy(fact))
             @test_logs initialize!(iter, deepcopy(fact); verbosity=EACHITERATION_LEVEL)
             @test_logs (:info,) initialize!(iter, deepcopy(fact);
-                                            verbosity = EACHITERATION_LEVEL + 1)
+                                            verbosity=EACHITERATION_LEVEL + 1)
         end
     end
 end

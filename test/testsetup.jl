@@ -2,6 +2,7 @@ module TestSetup
 
 export tolerance, ≊, MinimalVec, isinplace, stack
 export wrapop, wrapvec, unwrapvec, buildrealmap
+export mul_test
 
 import VectorInterface as VI
 using VectorInterface
