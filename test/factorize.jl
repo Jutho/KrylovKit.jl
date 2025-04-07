@@ -13,15 +13,15 @@
             iter = LanczosIterator(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), orth)
             fact = @constinferred initialize(iter)
             @constinferred expand!(iter, fact)
-            @test_logs initialize(iter; verbosity=EACHITERATION_LEVEL)
-            @test_logs (:info,) initialize(iter; verbosity=EACHITERATION_LEVEL + 1)
+            @test_logs initialize(iter; verbosity = EACHITERATION_LEVEL)
+            @test_logs (:info,) initialize(iter; verbosity = EACHITERATION_LEVEL + 1)
             verbosity = EACHITERATION_LEVEL + 1
             while length(fact) < n
                 if verbosity == EACHITERATION_LEVEL + 1
-                    @test_logs (:info,) expand!(iter, fact; verbosity=verbosity)
+                    @test_logs (:info,) expand!(iter, fact; verbosity = verbosity)
                     verbosity = EACHITERATION_LEVEL
                 else
-                    @test_logs expand!(iter, fact; verbosity=verbosity)
+                    @test_logs expand!(iter, fact; verbosity = verbosity)
                     verbosity = EACHITERATION_LEVEL + 1
                 end
             end
@@ -35,28 +35,28 @@
             @test rayleighquotient(last(states)) ≈ H
 
             @constinferred shrink!(fact, n - 1)
-            @test_logs (:info,) shrink!(fact, n - 2; verbosity=EACHITERATION_LEVEL + 1)
-            @test_logs shrink!(fact, n - 3; verbosity=EACHITERATION_LEVEL)
+            @test_logs (:info,) shrink!(fact, n - 2; verbosity = EACHITERATION_LEVEL + 1)
+            @test_logs shrink!(fact, n - 3; verbosity = EACHITERATION_LEVEL)
             @constinferred initialize!(iter, deepcopy(fact))
-            @test_logs initialize!(iter, deepcopy(fact); verbosity=EACHITERATION_LEVEL)
+            @test_logs initialize!(iter, deepcopy(fact); verbosity = EACHITERATION_LEVEL)
             @test_logs (:info,) initialize!(iter, deepcopy(fact);
-                                            verbosity=EACHITERATION_LEVEL + 1)
+                verbosity = EACHITERATION_LEVEL + 1)
 
             if T <: Complex
                 A = rand(T, (n, n)) # test warnings for non-hermitian matrices
                 v = rand(T, (n,))
                 iter = LanczosIterator(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), orth)
-                fact = @constinferred initialize(iter; verbosity=0)
-                @constinferred expand!(iter, fact; verbosity=0)
-                @test_logs initialize(iter; verbosity=0)
+                fact = @constinferred initialize(iter; verbosity = 0)
+                @constinferred expand!(iter, fact; verbosity = 0)
+                @test_logs initialize(iter; verbosity = 0)
                 @test_logs (:warn,) initialize(iter)
                 verbosity = 1
                 while length(fact) < n
                     if verbosity == 1
-                        @test_logs (:warn,) expand!(iter, fact; verbosity=verbosity)
+                        @test_logs (:warn,) expand!(iter, fact; verbosity = verbosity)
                         verbosity = 0
                     else
-                        @test_logs expand!(iter, fact; verbosity=verbosity)
+                        @test_logs expand!(iter, fact; verbosity = verbosity)
                         verbosity = 1
                     end
                 end
@@ -78,15 +78,15 @@ end
             iter = ArnoldiIterator(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), orth)
             fact = @constinferred initialize(iter)
             @constinferred expand!(iter, fact)
-            @test_logs initialize(iter; verbosity=EACHITERATION_LEVEL)
-            @test_logs (:info,) initialize(iter; verbosity=EACHITERATION_LEVEL + 1)
+            @test_logs initialize(iter; verbosity = EACHITERATION_LEVEL)
+            @test_logs (:info,) initialize(iter; verbosity = EACHITERATION_LEVEL + 1)
             verbosity = EACHITERATION_LEVEL + 1
             while length(fact) < n
                 if verbosity == EACHITERATION_LEVEL + 1
-                    @test_logs (:info,) expand!(iter, fact; verbosity=verbosity)
+                    @test_logs (:info,) expand!(iter, fact; verbosity = verbosity)
                     verbosity = EACHITERATION_LEVEL
                 else
-                    @test_logs expand!(iter, fact; verbosity=verbosity)
+                    @test_logs expand!(iter, fact; verbosity = verbosity)
                     verbosity = EACHITERATION_LEVEL + 1
                 end
             end
@@ -101,12 +101,12 @@ end
             @test rayleighquotient(last(states)) ≈ H
 
             @constinferred shrink!(fact, n - 1)
-            @test_logs (:info,) shrink!(fact, n - 2; verbosity=EACHITERATION_LEVEL + 1)
-            @test_logs shrink!(fact, n - 3; verbosity=EACHITERATION_LEVEL)
+            @test_logs (:info,) shrink!(fact, n - 2; verbosity = EACHITERATION_LEVEL + 1)
+            @test_logs shrink!(fact, n - 3; verbosity = EACHITERATION_LEVEL)
             @constinferred initialize!(iter, deepcopy(fact))
-            @test_logs initialize!(iter, deepcopy(fact); verbosity=EACHITERATION_LEVEL)
+            @test_logs initialize!(iter, deepcopy(fact); verbosity = EACHITERATION_LEVEL)
             @test_logs (:info,) initialize!(iter, deepcopy(fact);
-                                            verbosity=EACHITERATION_LEVEL + 1)
+                verbosity = EACHITERATION_LEVEL + 1)
         end
     end
 end
@@ -129,8 +129,8 @@ end
             end
             A = (A + A')
             iter = @constinferred LanczosIterator(wrapop(A, Val(mode)),
-                                                  wrapvec(v, Val(mode)),
-                                                  orth)
+                wrapvec(v, Val(mode)),
+                orth)
             krylovdim = n
             fact = @constinferred initialize(iter)
             while normres(fact) > eps(float(real(T))) && length(fact) < krylovdim
@@ -173,7 +173,7 @@ end
                 v = rand(T, (N,))
             end
             iter = @constinferred ArnoldiIterator(wrapop(A, Val(mode)),
-                                                  wrapvec(v, Val(mode)), orth)
+                wrapvec(v, Val(mode)), orth)
             krylovdim = 3 * n
             fact = @constinferred initialize(iter)
             while normres(fact) > eps(float(real(T))) && length(fact) < krylovdim
@@ -202,7 +202,7 @@ end
 # Test complete Golub-Kahan-Lanczos factorization
 @testset "Complete Golub-Kahan-Lanczos factorization ($mode)" for mode in
                                                                   (:vector, :inplace,
-                                                                   :outplace, :mixed)
+    :outplace, :mixed)
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
                   (ComplexF64,)
     orths = mode === :vector ? (cgs2, mgs2, cgsr, mgsr) : (mgsr,)
@@ -213,15 +213,15 @@ end
             iter = GKLIterator(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), orth)
             fact = @constinferred initialize(iter)
             @constinferred expand!(iter, fact)
-            @test_logs initialize(iter; verbosity=EACHITERATION_LEVEL)
-            @test_logs (:info,) initialize(iter; verbosity=EACHITERATION_LEVEL + 1)
+            @test_logs initialize(iter; verbosity = EACHITERATION_LEVEL)
+            @test_logs (:info,) initialize(iter; verbosity = EACHITERATION_LEVEL + 1)
             verbosity = EACHITERATION_LEVEL + 1
             while length(fact) < n
                 if verbosity == EACHITERATION_LEVEL + 1
-                    @test_logs (:info,) expand!(iter, fact; verbosity=verbosity)
+                    @test_logs (:info,) expand!(iter, fact; verbosity = verbosity)
                     verbosity = EACHITERATION_LEVEL
                 else
-                    @test_logs expand!(iter, fact; verbosity=verbosity)
+                    @test_logs expand!(iter, fact; verbosity = verbosity)
                     verbosity = EACHITERATION_LEVEL + 1
                 end
             end
@@ -238,12 +238,12 @@ end
             @test rayleighquotient(last(states)) ≈ B
 
             @constinferred shrink!(fact, n - 1)
-            @test_logs (:info,) shrink!(fact, n - 2; verbosity=EACHITERATION_LEVEL + 1)
-            @test_logs shrink!(fact, n - 3; verbosity=EACHITERATION_LEVEL)
+            @test_logs (:info,) shrink!(fact, n - 2; verbosity = EACHITERATION_LEVEL + 1)
+            @test_logs shrink!(fact, n - 3; verbosity = EACHITERATION_LEVEL)
             @constinferred initialize!(iter, deepcopy(fact))
-            @test_logs initialize!(iter, deepcopy(fact); verbosity=EACHITERATION_LEVEL)
+            @test_logs initialize!(iter, deepcopy(fact); verbosity = EACHITERATION_LEVEL)
             @test_logs (:info,) initialize!(iter, deepcopy(fact);
-                                            verbosity=EACHITERATION_LEVEL + 1)
+                verbosity = EACHITERATION_LEVEL + 1)
         end
     end
 end
@@ -251,7 +251,7 @@ end
 # Test incomplete Golub-Kahan-Lanczos factorization
 @testset "Incomplete Golub-Kahan-Lanczos factorization ($mode)" for mode in
                                                                     (:vector, :inplace,
-                                                                     :outplace, :mixed)
+    :outplace, :mixed)
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
                   (ComplexF64,)
     orths = mode === :vector ? (cgs2, mgs2, cgsr, mgsr) : (mgsr,)
@@ -265,7 +265,7 @@ end
                 v = rand(T, (N,))
             end
             iter = @constinferred GKLIterator(wrapop(A, Val(mode)), wrapvec(v, Val(mode)),
-                                              orth)
+                orth)
             krylovdim = 3 * n
             fact = @constinferred initialize(iter)
             while normres(fact) > eps(float(real(T))) && length(fact) < krylovdim
@@ -297,5 +297,89 @@ end
     end
 end
 
-# TODO: add more tests for block lanczos
+# Test complete Lanczos factorization
+@testset "Complete Block Lanczos factorization " begin
+    using KrylovKit: EACHITERATION_LEVEL
+    @testset for T in [Float32, Float64, ComplexF32, ComplexF64]
+        A0 = rand(T, (N, N)) .- one(T) / 2
+        A0 = (A0 + A0') / 2
+        block_size = 5
+        x₀m = Matrix(qr(rand(T, N, block_size)).Q)
+        x₀ = [x₀m[:, i] for i in 1:block_size]
+        eigvalsA = eigvals(A0)
+        @testset for A in [A0, x -> A0 * x]
+            iter = KrylovKit.BlockLanczosIterator(A, x₀, 4)
+            # TODO: Why type unstable?
+            # fact = @constinferred initialize(iter)
+            fact = initialize(iter)
+            @constinferred expand!(iter, fact)
+            @test_logs initialize(iter; verbosity = EACHITERATION_LEVEL)
+            @test_logs (:info,) initialize(iter; verbosity = EACHITERATION_LEVEL + 1)
+            verbosity = EACHITERATION_LEVEL + 1
+            while fact.all_size < n
+                if verbosity == EACHITERATION_LEVEL + 1
+                    @test_logs (:info,) expand!(iter, fact; verbosity = verbosity)
+                    verbosity = EACHITERATION_LEVEL
+                else
+                    @test_logs expand!(iter, fact; verbosity = verbosity)
+                    verbosity = EACHITERATION_LEVEL + 1
+                end
+            end
+            # Information about V has been tested in eigsolve.jl
+            # And Block Lanczos has no "rayleighquotient" function
+
+            # Block Lanczos has no "shrink!" function, as well as "initialize!(iter, fact)"
+        end
+
+        if T <: Complex
+            B = rand(T, (n, n)) # test warnings for non-hermitian matrices
+            bs = 2
+            v₀m = Matrix(qr(rand(T, n, bs)).Q)
+            v₀ = [v₀m[:, i] for i in 1:bs]
+            iter = KrylovKit.BlockLanczosIterator(B, v₀, 4)
+            fact = initialize(iter)
+            @constinferred expand!(iter, fact; verbosity = 0)
+            @test_logs initialize(iter; verbosity = 0)
+            @test_logs (:warn,) initialize(iter)
+            verbosity = 1
+            while fact.all_size < n
+                if verbosity == 1
+                    @test_logs (:warn,) expand!(iter, fact; verbosity = verbosity)
+                    verbosity = 0
+                else
+                    @test_logs expand!(iter, fact; verbosity = verbosity)
+                    verbosity = 1
+                end
+            end
+        end
+    end
+end
+
+# Test incomplete Lanczos factorization
+@testset "Incomplete Lanczos factorization " begin
+    @testset for T in [Float32, Float64, ComplexF32, ComplexF64]
+        A0 = rand(T, (N, N))
+        A0 = (A0 + A0') / 2
+        block_size = 5
+        x₀m = Matrix(qr(rand(T, N, block_size)).Q)
+        x₀ = [x₀m[:, i] for i in 1:block_size]
+        @testset for A in [A0, x -> A0 * x]
+        iter = @constinferred KrylovKit.BlockLanczosIterator(A, x₀, 4)
+            krylovdim = n
+            fact = initialize(iter)
+            while fact.normR > eps(float(real(T))) && fact.all_size < krylovdim
+                @constinferred expand!(iter, fact)
+                Ṽ, H, r̃, β, e = fact
+                V = stack(unwrapvec, Ṽ)
+                r = unwrapvec(r̃)
+                @test V' * V ≈ I
+                @test norm(r) ≈ β
+                @test A * V ≈ V * H + r * e'
+            end
+
+            # Block Lanczos has no "shrink!" function
+            # The V and residual have been tested in eigsolve.jl
+        end
+    end
+end
 

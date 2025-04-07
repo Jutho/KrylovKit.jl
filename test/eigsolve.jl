@@ -506,14 +506,14 @@ As a result, I’ve decided to postpone dealing with the in-place test issue for
 end
 
 # krylovdim is not used in block Lanczos so I don't add eager mode.
-@testset "Block Lanczos - eigsolve iteratively ($mode)" for mode in (:vector, :inplace, :outplace)
+@testset "Block Lanczos - eigsolve iteratively" begin
     @testset for T in [Float32, Float64, ComplexF32, ComplexF64]
-        T = ComplexF32
         A0 = rand(T, (N, N)) .- one(T) / 2
         A0 = (A0 + A0') / 2
         block_size = 5
         x₀m = Matrix(qr(rand(T, N, block_size)).Q)
         x₀ = [x₀m[:, i] for i in 1:block_size]
+        eigvalsA = eigvals(A0)
         @testset for A in [A0, x -> A0 * x]
             A = copy(A0)
 
@@ -526,13 +526,13 @@ end
 
             @test l1 > 0
             @test l2 > 0
-            @test D1[1:l1] ≈ eigvals(A)[1:l1]
-            @test D2[1:l2] ≈ eigvals(A)[N:-1:(N-l2+1)]
+            @test D1[1:l1] ≈ eigvalsA[1:l1]
+            @test D2[1:l2] ≈ eigvalsA[N:-1:(N-l2+1)]
 
-            U1 = hcat(V1[1:l1]...)
-            U2 = hcat(V2[1:l2]...)
-            R1 = hcat(info1.residual[1:l1]...)
-            R2 = hcat(info2.residual[1:l2]...)
+            U1 = hcat(V1[1:l1]...);
+            U2 = hcat(V2[1:l2]...);
+            R1 = hcat(info1.residual[1:l1]...);
+            R2 = hcat(info2.residual[1:l2]...);
 
             @test U1' * U1 ≈ I
             @test U2' * U2 ≈ I

@@ -602,8 +602,3 @@ function abstract_qr!(block::AbstractVector{T}, S::Type;
     good_idx = findall(idx .> 0)
     return R[good_idx,:], good_idx
 end
-
-
-
-
-

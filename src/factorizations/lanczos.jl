@@ -385,7 +385,7 @@ What ever, mutable block size is at least undoubtedly useful for non-hermitian o
 https://www.netlib.org/utk/people/JackDongarra/etemplates/node252.html#ABLEsection
 =#
 
-mutable struct BlockLanczosFactorization{T,S,SR<:Real} <: BlockKrylovFactorization{T,S,SR}
+mutable struct BlockLanczosFactorization{T,S<:Number,SR<:Real} <: BlockKrylovFactorization{T,S,SR}
     all_size::Int
     const V::OrthonormalBasis{T}            # Block Lanczos Basis
     const TDB::AbstractMatrix{S}            # TDB matrix, S is the matrix type
@@ -395,16 +395,6 @@ mutable struct BlockLanczosFactorization{T,S,SR<:Real} <: BlockKrylovFactorizati
 
     const tmp:: AbstractMatrix{S}           # temporary matrix for ortho_basis!
 end
-
-#= I don't use these functions. But to keep the style, I keep them temporarily.
-Base.length(F::BlockLanczosFactorization) = F.all_size
-Base.eltype(F::BlockLanczosFactorization) = eltype(typeof(F))
-Base.eltype(::Type{<:BlockLanczosFactorization{T,<:Any}}) where {T} = T
-basis(F::BlockLanczosFactorization) = F.V
-residual(F::BlockLanczosFactorization) = F.R
-normres(F::BlockLanczosFactorization) = F.normR
-=#
-
 
 #= 
 Now our orthogonalizer is only ModifiedGramSchmidt2.
@@ -449,26 +439,7 @@ function BlockLanczosIterator(operator::F,
                               orth::O=ModifiedGramSchmidt2()) where {F,T,O<:Orthogonalizer}
     S = typeof(inner(x₀[1], x₀[1]))
     return BlockLanczosIterator{F,T,O}(operator, x₀, maxiter, S, orth)
-end
-
-
-#=
-I save these 2 functions for future use. But I have not tested them.
-function Base.iterate(iter::BlockLanczosIterator)
-    state = initialize(iter)
-    return state, state
-end
-
-function Base.iterate(iter::BlockLanczosIterator, state::BlockLanczosFactorization)
-    nr = normres(state)
-    if nr < eps(typeof(nr))
-        return nothing
-    else
-        state = expand!(iter, deepcopy(state))
-        return state, state
-    end
-end
-=#  
+end 
 
 function initialize(iter::BlockLanczosIterator; verbosity::Int=KrylovDefaults.verbosity[])
     x₀_vec = iter.x₀
@@ -493,6 +464,7 @@ function initialize(iter::BlockLanczosIterator; verbosity::Int=KrylovDefaults.ve
     Ax₁ = [apply(A, x) for x in X₁_view]
     M₁_view = view(TDB, 1:bs_now, 1:bs_now)
     inner!(M₁_view, X₁_view, Ax₁)
+    verbosity >= WARN_LEVEL && warn_nonhermitian(M₁_view)
     M₁_view = (M₁_view + M₁_view') / 2
 
     # We have to write it as a form of matrix multiplication. Get R1  
@@ -511,7 +483,6 @@ function initialize(iter::BlockLanczosIterator; verbosity::Int=KrylovDefaults.ve
     Ax₂ = [apply(A, x) for x in X₂_view]
     M₂_view = view(TDB, bs_now+1:bs_now+bs_next, bs_now+1:bs_now+bs_next)
     inner!(M₂_view, X₂_view, Ax₂)
-    
     M₂_view = (M₂_view + M₂_view') / 2
 
     # Calculate the new residual. Get R2
@@ -557,6 +528,7 @@ function expand!(iter::BlockLanczosIterator, state::BlockLanczosFactorization;
     Axₖnext = [apply(iter.operator, x) for x in Xnext_view]
     Mnext_view = view(state.TDB, all_size+1:all_size+bs_next, all_size+1:all_size+bs_next)
     inner!(Mnext_view, Xnext_view, Axₖnext)
+    verbosity >= WARN_LEVEL && warn_nonhermitian(Mnext_view)
     Mnext_view = (Mnext_view + Mnext_view') / 2
 
     # Calculate the new residual. Get Rnext
@@ -599,3 +571,8 @@ function ortho_basis!(basis_new::AbstractVector{T}, basis_sofar::AbstractVector{
     return basis_new
 end
 
+function warn_nonhermitian(M::AbstractMatrix)
+    if norm(M - M') > eps(real(eltype(M)))*1e4
+        @warn "Enforce Hermiticity on the triangular diagonal blocks matrix, even though the operator may not be Hermitian."
+    end
+end

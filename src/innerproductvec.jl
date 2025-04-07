@@ -24,15 +24,6 @@ Base.:-(v::InnerProductVec) = InnerProductVec(-v.vec, v.dotf)
 function Base.:+(v::InnerProductVec{F}, w::InnerProductVec{F}) where {F}
     return InnerProductVec(v.vec + w.vec, v.dotf)
 end
-# TODO: 
-function Base.sum(v::AbstractVector{InnerProductVec})
-    @assert length(v) > 0
-    res = copy(v[1])
-    @inbounds for i in 2:length(v)
-        res += v[i]
-    end
-    return res
-end
 
 function Base.:-(v::InnerProductVec{F}, w::InnerProductVec{F}) where {F}
     return InnerProductVec(v.vec - w.vec, v.dotf)
@@ -41,19 +32,8 @@ end
 Base.:*(v::InnerProductVec, a::Number) = InnerProductVec(v.vec * a, v.dotf)
 Base.:*(a::Number, v::InnerProductVec) = InnerProductVec(a * v.vec, v.dotf)
 
-# TODO:
-Base.:*(v::AbstractVector{InnerProductVec}, a::Number) = [v[i] * a for i in 1:length(v)]
-Base.:*(a::Number, v::AbstractVector{InnerProductVec}) = [a * v[i] for i in 1:length(v)]
-function Base.:*(v::AbstractVector, V::AbstractVector)
-    return sum(v .* V)
-end
-# It's in fact a kind of Linear map
-
 Base.:/(v::InnerProductVec, a::Number) = InnerProductVec(v.vec / a, v.dotf)
-# TODO:
-Base.:/(v::AbstractVector{InnerProductVec}, a::Number) = [v[i] / a for i in 1:length(v)]
 Base.:\(a::Number, v::InnerProductVec) = InnerProductVec(a \ v.vec, v.dotf)
-# I can't understand well why the last function exists so I don't implement it's block version.
 
 function Base.similar(v::InnerProductVec, ::Type{T}=scalartype(v)) where {T}
     return InnerProductVec(similar(v.vec), v.dotf)
