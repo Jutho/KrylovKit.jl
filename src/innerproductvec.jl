@@ -36,6 +36,39 @@ function Base.similar(v::InnerProductVec, ::Type{T}=scalartype(v)) where {T}
     return InnerProductVec(similar(v.vec), v.dotf)
 end
 
+function similar_rand(v::InnerProductVec, n::Int)
+    @assert n >0
+    k = length(v.vec)
+    res = [similar(v) for _ in 1:n]
+    T = eltype(v.vec)
+    try
+        res[1].vec .+= rand(T,k)
+    catch
+        error("Please make sure you have implemented rand operation for your abstract vector type")
+    end
+    for i in 2:n
+        res[i].vec .+= rand(T, k)
+    end
+    return res
+end
+
+function similar_rand(v::AbstractVector,n::Int)
+    @assert n >0
+    k = length(v)
+    res = [similar(v) for _ in 1:n]
+    T = eltype(v)
+    try
+        res[1] .+= rand(T,k)
+    catch
+        error("Please make sure you have implemented rand operation for your abstract vector type")
+    end
+    for i in 2:n
+        res[i] .+= rand(T, k)
+    end
+    return res
+end
+
+
 Base.getindex(v::InnerProductVec) = v.vec
 
 function Base.copy!(w::InnerProductVec{F}, v::InnerProductVec{F}) where {F}
@@ -132,7 +165,7 @@ function VectorInterface.inner(v::InnerProductVec{F}, w::InnerProductVec{F}) whe
     return v.dotf(v.vec, w.vec)
 end
 
-function inner!(M::AbstractMatrix,
+function blockinner!(M::AbstractMatrix,
     x::AbstractVector,
     y::AbstractVector)
     @assert size(M) == (length(x), length(y)) "Matrix dimensions must match"
@@ -150,7 +183,7 @@ VectorInterface.norm(v::InnerProductVec) = sqrt(real(inner(v, v)))
 # used for debugging
 function blockinner(v::AbstractVector, w::AbstractVector;S::Type = Float64)
     M = Matrix{S}(undef, length(v), length(w))
-    inner!(M, v, w)
+    blockinner!(M, v, w)
     return M
 end
 

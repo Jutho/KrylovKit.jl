@@ -463,7 +463,7 @@ function initialize(iter::BlockLanczosIterator; verbosity::Int=KrylovDefaults.ve
     abstract_qr!(X₁_view,S)
     Ax₁ = [apply(A, x) for x in X₁_view]
     M₁_view = view(TDB, 1:bs_now, 1:bs_now)
-    inner!(M₁_view, X₁_view, Ax₁)
+    blockinner!(M₁_view, X₁_view, Ax₁)
     verbosity >= WARN_LEVEL && warn_nonhermitian(M₁_view)
     M₁_view = (M₁_view + M₁_view') / 2
 
@@ -482,7 +482,7 @@ function initialize(iter::BlockLanczosIterator; verbosity::Int=KrylovDefaults.ve
     # Calculate the next block
     Ax₂ = [apply(A, x) for x in X₂_view]
     M₂_view = view(TDB, bs_now+1:bs_now+bs_next, bs_now+1:bs_now+bs_next)
-    inner!(M₂_view, X₂_view, Ax₂)
+    blockinner!(M₂_view, X₂_view, Ax₂)
     M₂_view = (M₂_view + M₂_view') / 2
 
     # Calculate the new residual. Get R2
@@ -527,7 +527,7 @@ function expand!(iter::BlockLanczosIterator, state::BlockLanczosFactorization;
     # Apply the operator and calculate the M. Get Mnext
     Axₖnext = [apply(iter.operator, x) for x in Xnext_view]
     Mnext_view = view(state.TDB, all_size+1:all_size+bs_next, all_size+1:all_size+bs_next)
-    inner!(Mnext_view, Xnext_view, Axₖnext)
+    blockinner!(Mnext_view, Xnext_view, Axₖnext)
     verbosity >= WARN_LEVEL && warn_nonhermitian(Mnext_view)
     Mnext_view = (Mnext_view + Mnext_view') / 2
 
@@ -566,7 +566,7 @@ function compute_residual!(R::AbstractVector{T}, A_X::AbstractVector{T}, X::Abst
 end
 
 function ortho_basis!(basis_new::AbstractVector{T}, basis_sofar::AbstractVector{T}, tmp::AbstractMatrix) where T
-    inner!(tmp, basis_sofar, basis_new)
+    blockinner!(tmp, basis_sofar, basis_new)
     mul!(basis_new, basis_sofar, - tmp)
     return basis_new
 end
