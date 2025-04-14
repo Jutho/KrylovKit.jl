@@ -183,6 +183,10 @@ EigSorter(f::F; rev=false) where {F} = EigSorter{F}(f, rev)
 
 const Selector = Union{Symbol,EigSorter}
 
+function eigsolve(f, howmany::Int, which::Selector=:LM; kwargs...)
+    x₀ = initialize_vector(eigsolve, f)
+    return eigsolve(f, x₀, howmany, which; kwargs...)
+end
 function eigsolve(f, x₀=initialize_vector(eigsolve, f), howmany::Int=1, which::Selector=:LM;
                   kwargs...)
     Tx = typeof(x₀)
