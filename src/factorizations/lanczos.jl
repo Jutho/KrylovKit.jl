@@ -382,9 +382,6 @@ For vectors in F^d I believe it's right. But in a abstract inner product space, 
 
 What ever, mutable block size is at least undoubtedly useful for non-hermitian operator so I implement it.
 https://www.netlib.org/utk/people/JackDongarra/etemplates/node252.html#ABLEsection
-
-I would like to thank Professor Jinguo Liu for his insightful discussions, which greatly helped me understand and implement the Block Lanczos method. 
-I am also grateful to Dr. Jutho for his patience with my messy code and for his valuable suggestions for improvement.
 =#
 
 mutable struct BlockLanczosFactorization{T,S<:Number,SR<:Real} <: BlockKrylovFactorization{T,S,SR}
