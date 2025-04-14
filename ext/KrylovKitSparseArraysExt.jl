@@ -2,9 +2,8 @@ module KrylovKitSparseArraysExt
 
 using SparseArrays
 using KrylovKit
+using VectorInterface: scalartype
 
-function KrylovKit.eigsolve_init(A::SparseMatrixCSC, ::Type{T}=eltype(A)) where {T<:Number}
-    return rand(T, size(A, 1))
-end
+KrylovKit.initialize_vector(A::SparseMatrixCSC) = rand(scalartype(A), size(A, 1))
 
 end

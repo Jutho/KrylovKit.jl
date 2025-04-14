@@ -183,53 +183,8 @@ EigSorter(f::F; rev=false) where {F} = EigSorter{F}(f, rev)
 
 const Selector = Union{Symbol,EigSorter}
 
-"""
-    eigsolve_init(A, ::Type{T}) where {T<:Number}
-    eigsolve_init(f, ::Type{T}, [n::Int]) where {T<:Number}
-
-Construct a starting vector for the Krylov subspace. For `A::AbstractMatrix`, the default is
-a random vector of the same size as the number of rows of `A`. For a function `f`, you can
-either provide a size `n`, in which case a random vector of size `n` is returned, or you can
-overload this function to return a suitable starting vector.
-"""
-function eigsolve_init(A::AbstractMatrix, ::Type{T}=eltype(A)) where {T<:Number}
-    return Random.rand!(similar(A, T, size(A, 1)))
-end
-function eigsolve_init(f, ::Type{T}) where {T<:Number}
-    error("""
-          Cannot construct a starting vector for the Krylov subspace from a function.
-          Either provide a starting vector `x₀`, or implement [`eigsolve_init`](@ref) for `$(typeof(f))`.
-          """)
-    return nothing
-end
-function eigsolve_init(f, ::Type{T}, n::Int) where {T<:Number}
-    return Random.rand(T, n)
-end
-
-function eigsolve(A::AbstractMatrix, howmany::Int=1, which::Selector=:LM; kwargs...)
-    x₀ = eigsolve_init(A)
-    return eigsolve(A, x₀, howmany, which; kwargs...)
-end
-function eigsolve(A::AbstractMatrix, howmany::Int, which::Selector, T::Type;
+function eigsolve(f, x₀=initialize_vector(eigsolve, f), howmany::Int=1, which::Selector=:LM;
                   kwargs...)
-    x₀ = eigsolve_init(A, T)
-    return eigsolve(A, x₀, howmany, which; kwargs...)
-end
-
-function eigsolve(f, howmany::Int, which::Selector; kwargs...)
-    x₀ = eigsolve_init(f)
-    return eigsolve(f, x₀, howmany, which; kwargs...)
-end
-function eigsolve(f, n::Int, howmany::Int=1, which::Selector=:LM; kwargs...)
-    x₀ = eigsolve_init(f, n)
-    return eigsolve(f, x₀, howmany, which; kwargs...)
-end
-function eigsolve(f, n::Int, howmany::Int, which::Selector, T::Type; kwargs...)
-    x₀ = eigsolve_init(f, T, n)
-    return eigsolve(f, x₀, howmany, which; kwargs...)
-end
-
-function eigsolve(f, x₀, howmany::Int=1, which::Selector=:LM; kwargs...)
     Tx = typeof(x₀)
     Tfx = Core.Compiler.return_type(apply, Tuple{typeof(f),Tx})
     T = Core.Compiler.return_type(dot, Tuple{Tx,Tfx})
