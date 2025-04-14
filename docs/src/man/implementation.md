@@ -1,5 +1,43 @@
 # Implementation details
 
+## Linear map interface
+
+KrylovKit.jl aims to support a large variety of linear maps. By default, you can use any
+`AbstractMatrix`, in which case `A * x` is used to compute the action of the linear map on
+a vector `x`. Alternatively, you can use any callable object, for which the action is
+encoded as `A(x)`. For custom objects that do not which to implement the callable interface,
+you may finally implement `KrylovKit.apply(A, x)` to specify the action.
+
+```@docs
+KrylovKit.apply
+```
+
+For some algorithms, the adjoint of the linear map is also required. In these cases, again
+the `AbstractMatrix` inputs will use `A * x` and `A' * x`. For callable objects, the
+required signature is `f(x, ::Val{true})` for the adjoint, and `f(x, ::Val{false})` for the
+regular action. Alternatively, you may specify a tuple of callable objects `(f, fadjoint)`,
+which will be used for the action and adjoint, respectively. Finally, you may implement
+`KrylovKit.apply_normal(A, x)` and `KrylovKit.apply_adjoint(A, x)` for the action and adjoint.
+
+```@docs
+KrylovKit.apply_normal
+KrylovKit.apply_adjoint
+```
+
+## Initial vector interface
+
+Some algorithms require an initial vector to start the Krylov expansion. This is best
+specified directly as an argument `x0`, which often serves as an initial guess. For
+convenience, linear maps that are `AbstractMatrix` will generate an initial vector through
+`Random.rand!(similar(A, scalartype(A), size(A, 1)))`. For function handles it is usually
+not possible to deduce the type of the initial vector, so you have to specify the initial
+vector explicitly. For specific custom structs, you can enable support for generating
+initial vectors by extending [`initialize_vector`](@ref).
+
+```@docs
+KrylovKit.initialize_vector
+```
+
 ## Orthogonalization
 To denote a basis of vectors, e.g. to represent a given Krylov subspace, there is an
 abstract type `Basis{T}`

@@ -58,7 +58,8 @@ is a keyword argument `verbosity` that determines how much information is printe
 `verbosity = 1`, a single message at the end of the algorithm will be displayed, which is a
 warning if the algorithm did not succeed in finding the solution, or some information if it
 did. For `verbosity = 2`, information about the current state is displayed after every
-iteration of the algorithm. Finally, for `verbosity > 2`, information about the individual Krylov expansion steps is displayed.
+iteration of the algorithm. Finally, for `verbosity > 2`, information about the individual
+Krylov expansion steps is displayed.
 
 The return value contains one or more entries that define the solution, and a final
 entry `info` of type `ConvergeInfo` that encodes information about the solution, i.e.
