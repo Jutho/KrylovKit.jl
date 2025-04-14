@@ -155,6 +155,9 @@ end
 # apply operators
 include("apply.jl")
 
+# initialization
+include("initialize.jl")
+
 # Verbosity levels
 const WARN_LEVEL = 1
 const STARTSTOP_LEVEL = 2
