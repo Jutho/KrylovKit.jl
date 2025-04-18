@@ -36,38 +36,7 @@ function Base.similar(v::InnerProductVec, ::Type{T}=scalartype(v)) where {T}
     return InnerProductVec(similar(v.vec), v.dotf)
 end
 
-function similar_rand(v::InnerProductVec, n::Int)
-    @assert n >0
-    k = length(v.vec)
-    res = [similar(v) for _ in 1:n]
-    T = eltype(v.vec)
-    try
-        res[1].vec .+= rand(T,k)
-    catch
-        error("Please make sure you have implemented rand operation for your abstract vector type")
-    end
-    for i in 2:n
-        res[i].vec .+= rand(T, k)
-    end
-    return res
-end
-
-function similar_rand(v::AbstractVector,n::Int)
-    @assert n >0
-    k = length(v)
-    res = [similar(v) for _ in 1:n]
-    T = eltype(v)
-    try
-        res[1] .+= rand(T,k)
-    catch
-        error("Please make sure you have implemented rand operation for your abstract vector type")
-    end
-    for i in 2:n
-        res[i] .+= rand(T, k)
-    end
-    return res
-end
-
+Random.randn!(v::InnerProductVec) = (randn!(v.vec); v)
 
 Base.getindex(v::InnerProductVec) = v.vec
 
@@ -93,14 +62,6 @@ end
 function LinearAlgebra.rmul!(v::InnerProductVec, a::Number)
     rmul!(v.vec, a)
     return v
-end
-function LinearAlgebra.mul!(A::AbstractVector{T},B::AbstractVector{T},M::AbstractMatrix) where T
-    @inbounds for i in eachindex(A)
-        @simd for j in eachindex(B)
-            A[i] += B[j] * M[j,i]
-        end
-    end
-    return A
 end
 
 function LinearAlgebra.axpy!(a::Number,
@@ -165,7 +126,9 @@ function VectorInterface.inner(v::InnerProductVec{F}, w::InnerProductVec{F}) whe
     return v.dotf(v.vec, w.vec)
 end
 
-function blockinner!(M::AbstractMatrix,
+VectorInterface.norm(v::InnerProductVec) = sqrt(real(inner(v, v)))
+
+function block_inner!(M::AbstractMatrix,
     x::AbstractVector,
     y::AbstractVector)
     @assert size(M) == (length(x), length(y)) "Matrix dimensions must match"
@@ -178,19 +141,30 @@ function blockinner!(M::AbstractMatrix,
     return M
 end
 
-VectorInterface.norm(v::InnerProductVec) = sqrt(real(inner(v, v)))
-
-# used for debugging
-function blockinner(v::AbstractVector, w::AbstractVector;S::Type = Float64)
-    M = Matrix{S}(undef, length(v), length(w))
-    blockinner!(M, v, w)
-    return M
-end
-
 function Base.copyto!(x::InnerProductVec, y::InnerProductVec)
     @assert x.dotf == y.dotf "Dot functions must match"
     copyto!(x.vec, y.vec)
     return x
+end
+
+block_randn_like(v, n::Int) = [randn!(similar(v)) for _ in 1:n]
+
+function block_mul!(A::AbstractVector, B::AbstractVector, M::AbstractMatrix, alpha::Number, beta::Number)
+    @assert (length(B) == size(M, 1)) && (length(A) == size(M, 2)) "Matrix dimensions must match"
+    @inbounds for i in 1:length(A)
+        A[i] = beta * A[i]
+        for j in 1:length(B)
+            A[i] += alpha * B[j] * M[j, i]
+        end
+    end
+    return A
+end
+
+# used for debugging
+function block_inner(v::AbstractVector, w::AbstractVector;S::Type = Float64)
+    M = Matrix{S}(undef, length(v), length(w))
+    block_inner!(M, v, w)
+    return M
 end
 
 

@@ -155,14 +155,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
     maxiter = alg.maxiter
     tol = alg.tol
     verbosity = alg.verbosity
-    
-    if alg.init_generator
-        x₀_vec = push!(similar_rand(x₀, alg.blocksize-1), x₀)
-    elseif typeof(x₀) <: AbstractMatrix
-        x₀_vec = [x₀[:,i] for i in 1:size(x₀,2)]
-    else
-        x₀_vec = x₀
-    end
+    x₀_vec = push!(block_randn_like(x₀, alg.blocksize-1), x₀)
     bs_now = length(x₀_vec)
 
     iter = BlockLanczosIterator(A, x₀_vec, maxiter, alg.orth)

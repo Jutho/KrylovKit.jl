@@ -574,29 +574,3 @@ and its concrete subtypes [`ClassicalGramSchmidt`](@ref), [`ModifiedGramSchmidt`
 [`ClassicalGramSchmidtIR`](@ref) and [`ModifiedGramSchmidtIR`](@ref).
 """
 orthonormalize, orthonormalize!!
-
-function abstract_qr!(block::AbstractVector{T}, S::Type;
-                      tol::Real = 1e4 * eps(real(S))) where {T}
-    n = length(block)
-    rank_shrink = false
-    idx = ones(Int64,n)
-    R = zeros(S, n, n)
-    @inbounds for j in 1:n
-        αⱼ = block[j]
-        for i in 1:j-1
-            R[i, j] = inner(block[i], αⱼ)
-            αⱼ -= R[i, j] * block[i]
-        end
-        β = norm(αⱼ)
-        if !(β ≤ tol)
-            R[j, j] = β
-            block[j] = αⱼ / β
-        else
-            block[j] *= S(0)
-            rank_shrink = true
-            idx[j] = 0
-        end
-    end
-    good_idx = findall(idx .> 0)
-    return R[good_idx,:], good_idx
-end

@@ -126,7 +126,6 @@ struct BlockLanczos{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     eager::Bool
     verbosity::Int
     blocksize::Int
-    init_generator::Bool
 end
 function Lanczos(;
                  krylovdim::Int=KrylovDefaults.krylovdim[],
@@ -136,11 +135,10 @@ function Lanczos(;
                  eager::Bool=false,
                  verbosity::Int=KrylovDefaults.verbosity[],
                  blockmode::Bool=false,
-                 blocksize::Int=-1,
-                 init_generator::Bool=false)
+                 blocksize::Int=-1)
     if blockmode
-        init_generator && blocksize < 1 && error("blocksize must be greater than 1")
-        return BlockLanczos(orth, krylovdim, maxiter, tol, eager, verbosity, blocksize, init_generator)
+        blocksize <= 1 && error("blocksize must be greater than 1")
+        return BlockLanczos(orth, krylovdim, maxiter, tol, eager, verbosity, blocksize)
     else
         return Lanczos(orth, krylovdim, maxiter, tol, eager, verbosity)
     end

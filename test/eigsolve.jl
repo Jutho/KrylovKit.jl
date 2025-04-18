@@ -425,21 +425,20 @@ end
     Random.seed!(4)
     sites_num = 3
     p = 5 # block size
-    X1 = Matrix(qr(rand(2^(2 * sites_num^2), p)).Q)
+    x₀ = rand(2^(2 * sites_num^2))
     get_value_num = 10
     tol = 1e-6
     h_mat = toric_code_hamiltonian_matrix(sites_num, sites_num)
 
     # matrix input
-    D, U, info = eigsolve(-h_mat, X1, get_value_num, :SR,
-        Lanczos(; maxiter = 20, tol = tol, blockmode = true))
+    alg = Lanczos(; maxiter = 20, tol = tol, blockmode = true, blocksize = p)
+    D, U, info = eigsolve(-h_mat, x₀, get_value_num, :SR, alg)
     @show D[1:get_value_num]
     @test count(x -> abs(x + 16.0) < 2.0 - tol, D[1:get_value_num]) == 4
     @test count(x -> abs(x + 16.0) < tol, D[1:get_value_num]) == 4
 
     # map input
-    D, U, info = eigsolve(x -> -h_mat * x, X1, get_value_num, :SR,
-        Lanczos(; maxiter = 20, tol = tol, blockmode = true))
+    D, U, info = eigsolve(x -> -h_mat * x, x₀, get_value_num, :SR, alg)
     @show D[1:get_value_num]
     @test count(x -> abs(x + 16.0) < 1.9, D[1:get_value_num]) == 4
     @test count(x -> abs(x + 16.0) < 1e-8, D[1:get_value_num]) == 4
@@ -460,33 +459,33 @@ In the future, I plan to add a non-Hermitian eigenvalue solver and implement mor
 As a result, I’ve decided to postpone dealing with the in-place test issue for now.
 =#
 
+# For user interface, we should give one vector input block lanczos method.
 @testset "Block Lanczos - eigsolve full" begin
     @testset for T in [Float32, Float64, ComplexF32, ComplexF64]
-        Random.seed!(1234)
+        Random.seed!(6)
         A0 = rand(T, (n, n)) .- one(T) / 2
         A0 = (A0 + A0') / 2
         block_size = 2
-        x₀m = Matrix(qr(rand(T, n, block_size)).Q)
-        x₀ = [x₀m[:, i] for i in 1:block_size]
+        x₀ = rand(T, n)
         n1 = div(n, 2)  # eigenvalues to solve
         eigvalsA = eigvals(A0)
         # Different from Lanczos, we don't set maxiter =1 here because the iteration times in Lanczos
         # in in fact in the control of deminsion of Krylov subspace. And we Don't use it.
-        @testset for A in [A0, x -> A0 * x]
-            alg = Lanczos(; krylovdim = n, maxiter = 4, tol = tolerance(T), verbosity = 2, blockmode = true)
+        for A in [A0, x -> A0 * x]
+            alg = Lanczos(; krylovdim = n, maxiter = 4, tol = tolerance(T), verbosity = 2, blockmode = true, blocksize = block_size)
             D1, V1, info = @test_logs (:info,) eigsolve(A, x₀, n1, :SR, alg)
-            alg = Lanczos(; krylovdim = n, maxiter = 4, tol = tolerance(T), verbosity = 1, blockmode = true)
+            alg = Lanczos(; krylovdim = n, maxiter = 4, tol = tolerance(T), verbosity = 1, blockmode = true, blocksize = block_size)
             @test_logs eigsolve(A, x₀, n1, :SR, alg)
-            alg = Lanczos(; krylovdim = n1 + 1, maxiter = 4, tol = tolerance(T), verbosity = 1, blockmode = true)
+            alg = Lanczos(; krylovdim = n1 + 1, maxiter = 4, tol = tolerance(T), verbosity = 1, blockmode = true, blocksize = block_size)
             @test_logs (:warn,) eigsolve(A, x₀, n1, :SR, alg)
-            alg = Lanczos(; krylovdim = n, maxiter = 4, tol = tolerance(T), verbosity = 2, blockmode = true)
+            alg = Lanczos(; krylovdim = n, maxiter = 4, tol = tolerance(T), verbosity = 2, blockmode = true, blocksize = block_size)
             @test_logs (:info,) eigsolve(A, x₀, n1, :SR, alg)
-            alg = Lanczos(; krylovdim = n1, maxiter = 4, tol = tolerance(T), verbosity = 3, blockmode = true)
+            alg = Lanczos(; krylovdim = n1, maxiter = 4, tol = tolerance(T), verbosity = 3, blockmode = true, blocksize = block_size)
             @test_logs((:info,), (:warn,), (:info,), eigsolve(A, x₀, 1, :SR, alg))
             # Because of the _residual! function, I can't make sure the stability of types temporarily. 
             # So I ignore the test of @constinferred
             n2 = n - n1
-            alg = Lanczos(; krylovdim = 2 * n, maxiter = 4, tol = tolerance(T), blockmode = true)
+            alg = Lanczos(; krylovdim = 2 * n, maxiter = 4, tol = tolerance(T), blockmode = true, blocksize = block_size)
             D2, V2, info = eigsolve(A, x₀, n2, :LR, alg)
             D2[1:n2]
             @test vcat(D1[1:n1], reverse(D2[1:n2])) ≊ eigvalsA
@@ -500,7 +499,7 @@ As a result, I’ve decided to postpone dealing with the in-place test issue for
             @test (x -> KrylovKit.apply(A, x)).(V1) ≈ D1 .* V1
             @test (x -> KrylovKit.apply(A, x)).(V2) ≈ D2 .* V2
 
-            alg = Lanczos(; krylovdim = 2n, maxiter = 5, tol = tolerance(T), verbosity = 1, blockmode = true)
+            alg = Lanczos(; krylovdim = 2n, maxiter = 5, tol = tolerance(T), verbosity = 1, blockmode = true, blocksize = block_size)
             @test_logs (:warn,) (:warn,) eigsolve(A, x₀, n + 1, :LM, alg)
         end
     end
@@ -509,16 +508,14 @@ end
 # krylovdim is not used in block Lanczos so I don't add eager mode.
 @testset "Block Lanczos - eigsolve iteratively" begin
     @testset for T in [Float32, Float64, ComplexF32, ComplexF64]
+        Random.seed!(6)
         A0 = rand(T, (N, N)) .- one(T) / 2
         A0 = (A0 + A0') / 2
         block_size = 5
-        x₀m = Matrix(qr(rand(T, N, block_size)).Q)
-        x₀ = [x₀m[:, i] for i in 1:block_size]
+        x₀ = rand(T, N)
         eigvalsA = eigvals(A0)
-        @testset for A in [A0, x -> A0 * x]
-            A = copy(A0)
-
-            alg = Lanczos(; maxiter = 20, tol = tolerance(T), blockmode = true)
+        for A in [A0, x -> A0 * x]
+            alg = Lanczos(; maxiter = 20, tol = tolerance(T), blockmode = true, blocksize = block_size)
             D1, V1, info1 = eigsolve(A, x₀, n, :SR, alg)
             D2, V2, info2 = eigsolve(A, x₀, n, :LR, alg)
 
@@ -544,80 +541,7 @@ end
     end
 end
 
-# linear operator A must satisfies that A'H = HA. it means it's a self-adjoint operator.
 @testset "Block Lanczos - eigsolve for abstract type" begin
-    T = ComplexF64
-    H = rand(T, (n, n))
-    H = H' * H + I
-    block_size = 2
-    eig_num = 2
-    Hip(x::Vector, y::Vector) = x' * H * y
-    x₀ = [InnerProductVec(rand(T, n), Hip) for i in 1:block_size]
-    Aip(x::InnerProductVec) = InnerProductVec(H * x.vec, Hip)
-    D, V, info = eigsolve(Aip, x₀, eig_num, :SR, Lanczos(; krylovdim = n, maxiter = 10, tol = tolerance(T),
-        verbosity = 0, blockmode = true))
-    D_true = eigvals(H)
-    @test D ≈ D_true[1:eig_num]
-    @test KrylovKit.blockinner(V, V; S = T) ≈ I
-    @test findmax([norm(Aip(V[i]) - D[i] * V[i]) for i in 1:eig_num])[1] < tolerance(T)
-end
-
-# For user interface, we should give one vector input block lanczos method.
-@testset "Block Lanczos for init_generator - eigsolve full" begin
-    @testset for T in [Float32, Float64, ComplexF32, ComplexF64]
-        T = ComplexF64
-        Random.seed!(1234)
-        A0 = rand(T, (n, n)) .- one(T) / 2
-        A0 = (A0 + A0') / 2
-        block_size = 2
-        x₀ = rand(T, n)
-        n1 = div(n, 2)  # eigenvalues to solve
-        eigvalsA = eigvals(A0)
-        # Different from Lanczos, we don't set maxiter =1 here because the iteration times in Lanczos
-        # in in fact in the control of deminsion of Krylov subspace. And we Don't use it.
-        @testset for A in [A0, x -> A0 * x]
-            A = copy(A0)
-            alg = Lanczos(; krylovdim = n, maxiter = 4, tol = tolerance(T), verbosity = 2, blockmode = true, 
-                            init_generator = true, blocksize = block_size)
-            D1, V1, info = @test_logs (:info,) eigsolve(A, x₀, n1, :SR, alg)
-            alg = Lanczos(; krylovdim = n, maxiter = 4, tol = tolerance(T), verbosity = 1, blockmode = true, 
-                            init_generator = true, blocksize = block_size)
-            @test_logs eigsolve(A, x₀, n1, :SR, alg)
-            alg = Lanczos(; krylovdim = n1 + 1, maxiter = 4, tol = tolerance(T), verbosity = 1, blockmode = true, 
-                            init_generator = true, blocksize = block_size)
-            @test_logs (:warn,) eigsolve(A, x₀, n1, :SR, alg)
-            alg = Lanczos(; krylovdim = n, maxiter = 4, tol = tolerance(T), verbosity = 2, blockmode = true, 
-                            init_generator = true, blocksize = block_size)
-            @test_logs (:info,) eigsolve(A, x₀, n1, :SR, alg)
-            alg = Lanczos(; krylovdim = n1, maxiter = 4, tol = tolerance(T), verbosity = 3, blockmode = true, 
-                            init_generator = true, blocksize = block_size)
-            @test_logs((:info,), (:warn,), (:info,), eigsolve(A, x₀, 1, :SR, alg))
-            # Because of the _residual! function, I can't make sure the stability of types temporarily. 
-            # So I ignore the test of @constinferred
-            n2 = n - n1
-            alg = Lanczos(; krylovdim = 2 * n, maxiter = 4, tol = tolerance(T), blockmode = true, 
-                            init_generator = true, blocksize = block_size)
-            D2, V2, info = eigsolve(A, x₀, n2, :LR, alg)
-            D2[1:n2]
-            @test vcat(D1[1:n1], reverse(D2[1:n2])) ≊ eigvalsA
-
-            U1 = hcat(V1...)
-            U2 = hcat(V2...)
-
-            @test U1' * U1 ≈ I
-            @test U2' * U2 ≈ I
-
-            @test (x -> KrylovKit.apply(A, x)).(V1) ≈ D1 .* V1
-            @test (x -> KrylovKit.apply(A, x)).(V2) ≈ D2 .* V2
-
-            alg = Lanczos(; krylovdim = 2n, maxiter = 5, tol = tolerance(T), verbosity = 1, blockmode = true, 
-                            init_generator = true, blocksize = block_size)
-            @test_logs (:warn,) (:warn,) eigsolve(A, x₀, n + 1, :LM, alg)
-        end
-    end
-end
-
-@testset "Block Lanczos for init_generator - eigsolve for abstract type" begin
     T = ComplexF64
     H = rand(T, (n, n))
     H = H' * H + I
@@ -627,9 +551,9 @@ end
     x₀ = InnerProductVec(rand(T, n), Hip)
     Aip(x::InnerProductVec) = InnerProductVec(H * x.vec, Hip)
     D, V, info = eigsolve(Aip, x₀, eig_num, :SR, Lanczos(; krylovdim = n, maxiter = 10, tol = tolerance(T),
-        verbosity = 0, blockmode = true, init_generator = true, blocksize = block_size))
+        verbosity = 0, blockmode = true, blocksize = block_size))
     D_true = eigvals(H)
     @test D ≈ D_true[1:eig_num]
-    @test KrylovKit.blockinner(V, V; S = T) ≈ I
+    @test KrylovKit.block_inner(V, V; S = T) ≈ I
     @test findmax([norm(Aip(V[i]) - D[i] * V[i]) for i in 1:eig_num])[1] < tolerance(T)
 end
