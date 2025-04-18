@@ -10,7 +10,7 @@ KrylovKit.Basis
 Many Krylov based algorithms use an orthogonal basis to parameterize the Krylov subspace. In
 that case, the specific implementation `OrthonormalBasis{T}` can be used:
 ```@docs
-KrylovKit.Orthonormal
+KrylovKit.OrthonormalBasis
 ```
 
 We can orthogonalize or orthonormalize a given vector to another vector (assumed normalized)

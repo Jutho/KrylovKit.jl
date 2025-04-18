@@ -573,4 +573,4 @@ and its concrete subtypes [`ClassicalGramSchmidt`](@ref), [`ModifiedGramSchmidt`
 [`ClassicalGramSchmidt2`](@ref), [`ModifiedGramSchmidt2`](@ref),
 [`ClassicalGramSchmidtIR`](@ref) and [`ModifiedGramSchmidtIR`](@ref).
 """
-orthonormalize, orthonormalize!!
+orthonormalize, orthonormalize!! 
