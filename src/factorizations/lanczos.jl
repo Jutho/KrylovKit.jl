@@ -408,22 +408,22 @@ provide "keepvecs" because we have to reverse all krylove vectors.
 struct BlockLanczosIterator{F,T,O<:Orthogonalizer} <: KrylovIterator{F,T}
     operator::F
     x₀::Vector{T}
-    maxiter::Int
+    maxdim::Int
     num_field::Type
     orth::O
     qr_tol::Real
     function BlockLanczosIterator{F,T,O}(operator::F,
                                          x₀::Vector{T},
-                                         maxiter::Int,
+                                         maxdim::Int,
                                          num_field::Type,
                                          orth::O,
                                          qr_tol::Real) where {F,T,O<:Orthogonalizer}
-        return new{F,T,O}(operator, x₀, maxiter, num_field, orth, qr_tol)
+        return new{F,T,O}(operator, x₀, maxdim, num_field, orth, qr_tol)
     end
 end
 function BlockLanczosIterator(operator::F,
                               x₀::AbstractVector{T},
-                              maxiter::Int,
+                              maxdim::Int,
                               qr_tol::Real,
                               orth::O=ModifiedGramSchmidt2()) where {F,T,O<:Orthogonalizer}
     S = typeof(inner(x₀[1], x₀[1]))
@@ -431,21 +431,19 @@ function BlockLanczosIterator(operator::F,
     length(x₀) < 2 && @error "initial vector should not have norm zero"
     norm(x₀) < qr_tol && @error "initial vector should not have norm zero"
     orth != ModifiedGramSchmidt2() && @error "BlockLanczosIterator only supports ModifiedGramSchmidt2 orthogonalizer"
-    return BlockLanczosIterator{F,T,O}(operator, x₀, maxiter, S, orth, qr_tol)
+    return BlockLanczosIterator{F,T,O}(operator, x₀, maxdim, S, orth, qr_tol)
 end 
 
 function initialize(iter::BlockLanczosIterator; verbosity::Int=KrylovDefaults.verbosity[])
     x₀_vec = iter.x₀
-    iszero(norm(x₀_vec)) && throw(ArgumentError("initial vector should not have norm zero"))
-
-    maxiter = iter.maxiter
+    maxdim = iter.maxdim
     bs_now = length(x₀_vec) # block size now
     A = iter.operator
     S = iter.num_field
 
-    V_basis = [similar(x₀_vec[1]) for i in 1:bs_now * (maxiter + 1)]
+    V_basis = [similar(x₀_vec[1]) for i in 1:bs_now * (maxdim + 1)]
     r = [similar(x₀_vec[i]) for i in 1:bs_now]
-    TDB = zeros(S, bs_now * (maxiter + 1), bs_now * (maxiter + 1))
+    TDB = zeros(S, bs_now * (maxdim + 1), bs_now * (maxdim + 1))
 
     X₁_view = view(V_basis, 1:bs_now)
     copy!.(X₁_view, x₀_vec)
@@ -528,11 +526,7 @@ function expand!(iter::BlockLanczosIterator, state::BlockLanczosFactorization;
     state.r_size = bs_next
 
     if verbosity > EACHITERATION_LEVEL
-        orthogonality_error = maximum(abs(inner(u,v)-(i==j)) 
-                                    for (i,u) in enumerate(state.V.basis[1:(all_size+bs_next)]),
-                                        (j,v) in enumerate(state.V.basis[1:(all_size+bs_next)]))
-        
-        @info "Block Lanczos expansion to dimension $(state.all_size): orthogonality error = $orthogonality_error, normres = $(normres2string(state.norm_r))"
+        @info "Block Lanczos expansion to dimension $(state.all_size): subspace normres = $(normres2string(state.norm_r))"
     end
 end
 
@@ -591,4 +585,19 @@ function abstract_qr!(Block::BlockVec{T,S}, tol::Real) where {T,S}
     end
     good_idx = findall(idx .> 0)
     return R[good_idx,:], good_idx
+end
+
+function shrink!(state::BlockLanczosFactorization, k; verbosity::Int=KrylovDefaults.verbosity[])
+    @show "shrink!"
+    V = state.V
+    all_size = state.all_size
+    V[1:k] = V[all_size-k+1:all_size]
+    newTDB = zero(state.TDB)
+    newTDB[1:k,1:k] = state.TDB[all_size-k+1:all_size,all_size-k+1:all_size]
+    state.all_size = k
+    state.TDB .= newTDB
+    if verbosity > EACHITERATION_LEVEL
+        @info "Lanczos reduction to dimension $k"
+    end
+    return state
 end

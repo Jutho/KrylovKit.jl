@@ -123,7 +123,6 @@ struct BlockLanczos{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     krylovdim::Int
     maxiter::Int
     tol::S
-    eager::Bool
     verbosity::Int
     blocksize::Int
     qr_tol::Real
@@ -131,18 +130,20 @@ end
 # qr_tol is the tolerance that we think a vector is non-zero in abstract_qr!
 # This qr_tol will also be used in other zero_chcking in block Lanczos.
 function Lanczos(;
-                 krylovdim::Int=KrylovDefaults.krylovdim[],
-                 maxiter::Int=KrylovDefaults.maxiter[],
+                 krylovdim::Int= -1,
+                 maxiter::Int= -1,
                  tol::Real=KrylovDefaults.tol[],
                  orth::Orthogonalizer=KrylovDefaults.orth,
                  eager::Bool=false,
                  verbosity::Int=KrylovDefaults.verbosity[],
                  blockmode::Bool=false,
                  blocksize::Int=-1,
-                 qr_tol::Real=-1.0)    
+                 qr_tol::Real=-1.0)
+    krylovdim < 0 && (blockmode ? (krylovdim = KrylovDefaults.blockkrylovdim[]) : (krylovdim = KrylovDefaults.krylovdim[]))
+    maxiter < 0 && (blockmode ? (maxiter = KrylovDefaults.blockmaxiter[]) : (maxiter = KrylovDefaults.maxiter[]))
     if blockmode
         blocksize <= 1 && error("blocksize must be greater than 1")
-        return BlockLanczos(orth, krylovdim, maxiter, tol, eager, verbosity, blocksize, qr_tol)
+        return BlockLanczos(orth, krylovdim, maxiter, tol, verbosity, blocksize, qr_tol)
     else
         return Lanczos(orth, krylovdim, maxiter, tol, eager, verbosity)
     end
@@ -486,6 +487,8 @@ using ..KrylovKit
 const orth = KrylovKit.ModifiedGramSchmidt2() # conservative choice
 const krylovdim = Ref(30)
 const maxiter = Ref(100)
+const blockkrylovdim = Ref(100)
+const blockmaxiter = Ref(2)
 const tol = Ref(1e-12)
 const verbosity = Ref(KrylovKit.WARN_LEVEL)
 end

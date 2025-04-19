@@ -431,7 +431,7 @@ end
     h_mat = toric_code_hamiltonian_matrix(sites_num, sites_num)
 
     # matrix input
-    alg = Lanczos(; maxiter = 20, tol = tol, blockmode = true, blocksize = p)
+    alg = Lanczos(;tol = tol, blockmode = true, blocksize = p)
     D, U, info = eigsolve(-h_mat, x₀, get_value_num, :SR, alg)
     @show D[1:get_value_num]
     @test count(x -> abs(x + 16.0) < 2.0 - tol, D[1:get_value_num]) == 4
@@ -442,7 +442,6 @@ end
     @show D[1:get_value_num]
     @test count(x -> abs(x + 16.0) < 1.9, D[1:get_value_num]) == 4
     @test count(x -> abs(x + 16.0) < 1e-8, D[1:get_value_num]) == 4
-
 end
 
 #= 
@@ -505,7 +504,6 @@ As a result, I’ve decided to postpone dealing with the in-place test issue for
     end
 end
 
-# krylovdim is not used in block Lanczos so I don't add eager mode.
 @testset "Block Lanczos - eigsolve iteratively" begin
     @testset for T in [Float32, Float64, ComplexF32, ComplexF64]
         Random.seed!(6)
@@ -558,3 +556,27 @@ end
     @test KrylovKit.block_inner(BlockV, BlockV) ≈ I
     @test findmax([norm(Aip(V[i]) - D[i] * V[i]) for i in 1:eig_num])[1] < tolerance(T)
 end
+
+#=
+# TODO: improve shrink
+using KrylovKit,LinearAlgebra,Random,Test
+Random.seed!(6)
+n = 10
+N = 100
+A = rand(N,N);
+A = A' * A + I;
+alg = Lanczos(;krylovdim = 10,maxiter = 10,tol = 1e-12);
+values,vectors,info = eigsolve(A,rand(N),10,:SR,alg)
+=#
+
+#=
+using KrylovKit,LinearAlgebra,Random,Test
+Random.seed!(6)
+n = 10
+N = 100
+A = rand(N,N);
+A = A' * A + I;
+x₀ = rand(N);
+alg = Lanczos(;tol = 1e-8,blockmode = true,blocksize = 5);
+values,vectors,info = eigsolve(A,x₀,10,:SR,alg)
+=#

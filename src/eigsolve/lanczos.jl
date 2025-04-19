@@ -153,52 +153,56 @@ end
 
 function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
     maxiter = alg.maxiter
+    krylovdim = alg.krylovdim
+    if howmany > krylovdim
+        error("krylov dimension $(krylovdim) too small to compute $howmany eigenvalues")
+    end
     tol = alg.tol
     verbosity = alg.verbosity
     x₀_vec = push!(block_randn_like(x₀, alg.blocksize-1), x₀)
     bs_now = length(x₀_vec)
 
-    iter = BlockLanczosIterator(A, x₀_vec, maxiter, alg.qr_tol, alg.orth)
+    iter = BlockLanczosIterator(A, x₀_vec, krylovdim + bs_now, alg.qr_tol, alg.orth)
     fact = initialize(iter; verbosity=verbosity)
     numops = 2 # how many times we apply A
-
-    converge_check = max(1, 100 ÷ bs_now) # Periodic check for convergence
-
+    numiter = 1
     vectors = [similar(x₀_vec[1]) for _ in 1:howmany]
     values = Vector{real(eltype(fact.TDB))}(undef, howmany)
     converged = false
+    num_converged = 0
+    local howmany_actual, residuals, normresiduals
 
-    for numiter in 2:maxiter
+    while true
         expand!(iter, fact; verbosity=verbosity)
         numops += 1
 
-        # Although norm(Rk) is not our convergence condition, when norm(Rk) is to small, we may lose too much precision and orthogonalization.
-        if (numiter % converge_check == 0) || (fact.norm_r < tol) || (fact.r_size < 2)
-            values, vectors, howmany_actual, residuals, normresiduals, num_converged = _residual!(fact, A,
-                                                                            howmany, tol,
-                                                                            which,vectors, values)
-
-            if verbosity >= EACHITERATION_LEVEL
-                @info "Block Lanczos eigsolve in iteration $numiter: $num_converged values converged, normres = $(normres2string(normresiduals[1:min(howmany, length(normresiduals))]))"
+        # When norm(Rk) is to small, we may lose too much precision and orthogonalization.
+        if fact.all_size > krylovdim || (fact.norm_r < tol) || (fact.r_size < 2)
+            if fact.norm_r < tol && fact.all_size < howmany && verbosity >= WARN_LEVEL
+                msg = "Invariant subspace of dimension $(fact.all_size) (up to requested tolerance `tol = $tol`), "
+                msg *= "which is smaller than the number of requested eigenvalues (i.e. `howmany == $howmany`)."
+                @warn msg
             end
-
+            values, vectors, howmany_actual, residuals, normresiduals, num_converged = _residual!(fact, A,
+                                                                            howmany, tol, which,vectors, values)
             # This convergence condition refers to https://www.netlib.org/utk/people/JackDongarra/etemplates/node251.html
             if num_converged >= howmany || fact.norm_r < tol
                 converged = true
                 break
+            elseif verbosity >= EACHITERATION_LEVEL
+                @info "Block Lanczos eigsolve in iteration $numiter: $num_converged values converged, normres = $(normres2string(normresiduals[1:howmany]))"
+            end
+            if fact.all_size > alg.krylovdim
+                numiter >= maxiter && break
+                shrink!(fact, div(3*fact.all_size + 2*num_converged, 5); verbosity=verbosity)
+                numiter += 1
             end
         end
     end
 
-    if !converged
+    if !converged && numiter < maxiter
         values, vectors, howmany_actual, residuals, normresiduals, num_converged = _residual!(fact, A, howmany,
                                                                             tol, which, vectors, values)
-    end
-
-    if (fact.all_size > alg.krylovdim)
-        @warn "The real Krylov dimension is $(fact.all_size), which is larger than the maximum allowed dimension $(alg.krylovdim)."
-        # In this version we don't shrink the factorization because it might cause issues, different from the ordinary Lanczos.
-        # Why it happens remains to be investigated.
     end
 
     if (num_converged < howmany) && verbosity >= WARN_LEVEL
@@ -213,8 +217,8 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
         * number of operations = $numops"""
     end
 
-    return values[1:howmany],
-           vectors[1:howmany],
+    return values[1:howmany_actual],
+           vectors[1:howmany_actual],
            ConvergenceInfo(num_converged, residuals, normresiduals, fact.all_size, numops)
 end
 
@@ -231,9 +235,6 @@ function _residual!(fact::BlockLanczosFactorization, A, howmany::Int, tol::Real,
     S = eltype(TDB)
 
     howmany_actual = min(howmany, length(D))
-    if howmany_actual < howmany
-        @warn "The number of converged eigenvalues is less than the requested number of eigenvalues."
-    end
     copyto!(values, D[1:howmany_actual])
 
     @inbounds for i in 1:howmany_actual
