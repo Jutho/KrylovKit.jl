@@ -553,7 +553,8 @@ end
     D, V, info = eigsolve(Aip, x₀, eig_num, :SR, Lanczos(; krylovdim = n, maxiter = 10, tol = tolerance(T),
         verbosity = 0, blockmode = true, blocksize = block_size))
     D_true = eigvals(H)
+    BlockV = KrylovKit.BlockVec(V, T)
     @test D ≈ D_true[1:eig_num]
-    @test KrylovKit.block_inner(V, V; S = T) ≈ I
+    @test KrylovKit.block_inner(BlockV, BlockV) ≈ I
     @test findmax([norm(Aip(V[i]) - D[i] * V[i]) for i in 1:eig_num])[1] < tolerance(T)
 end

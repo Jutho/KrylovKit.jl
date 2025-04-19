@@ -158,7 +158,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
     x₀_vec = push!(block_randn_like(x₀, alg.blocksize-1), x₀)
     bs_now = length(x₀_vec)
 
-    iter = BlockLanczosIterator(A, x₀_vec, maxiter, alg.orth)
+    iter = BlockLanczosIterator(A, x₀_vec, maxiter, alg.qr_tol, alg.orth)
     fact = initialize(iter; verbosity=verbosity)
     numops = 2 # how many times we apply A
 
@@ -173,7 +173,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
         numops += 1
 
         # Although norm(Rk) is not our convergence condition, when norm(Rk) is to small, we may lose too much precision and orthogonalization.
-        if (numiter % converge_check == 0) || (fact.normR < tol) || (fact.R_size < 2)
+        if (numiter % converge_check == 0) || (fact.norm_r < tol) || (fact.r_size < 2)
             values, vectors, howmany_actual, residuals, normresiduals, num_converged = _residual!(fact, A,
                                                                             howmany, tol,
                                                                             which,vectors, values)
@@ -183,7 +183,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
             end
 
             # This convergence condition refers to https://www.netlib.org/utk/people/JackDongarra/etemplates/node251.html
-            if num_converged >= howmany || fact.normR < tol
+            if num_converged >= howmany || fact.norm_r < tol
                 converged = true
                 break
             end
@@ -237,7 +237,7 @@ function _residual!(fact::BlockLanczosFactorization, A, howmany::Int, tol::Real,
     copyto!(values, D[1:howmany_actual])
 
     @inbounds for i in 1:howmany_actual
-        copyto!(vectors[i], basis_sofar_view[1]*U[1,i])
+        copy!(vectors[i], basis_sofar_view[1]*U[1,i])
         for j in 2:all_size
             axpy!(U[j,i], basis_sofar_view[j], vectors[i])
         end

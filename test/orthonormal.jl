@@ -5,11 +5,11 @@
     # A is a non-full rank matrix
     Av[n÷2] = sum(Av[n÷2+1:end] .* rand(T, n - n ÷ 2))
     Bv = copy(Av)
-    R, gi = KrylovKit.abstract_qr!(T, Av; tol = 1e4 * eps(real(T)))
+    R, gi = KrylovKit.abstract_qr!(KrylovKit.BlockVec(Av, T), qr_tol(T))
     @test length(gi) < n
     @test eltype(R) == eltype(eltype(A)) == T
-    @test isapprox(hcat(Av[gi]...) * R, hcat(Bv...); atol = 1e4 * eps(real(T)))
-    @test isapprox(hcat(Av[gi]...)' * hcat(Av[gi]...), I; atol = 1e4 * eps(real(T)))
+    @test isapprox(hcat(Av[gi]...) * R, hcat(Bv...); atol = tolerance(T))
+    @test isapprox(hcat(Av[gi]...)' * hcat(Av[gi]...), I; atol = tolerance(T))
 end
 
 @testset "abstract_qr! for abstract inner product" begin
@@ -28,13 +28,14 @@ end
     # Make sure X is not full rank
     X[end] = sum(X[1:end-1] .* rand(T, n-1))
     Xcopy = deepcopy(X)
-    R, gi = KrylovKit.abstract_qr!(T, X; tol = 1e4 * eps(real(T)))
+    R, gi = KrylovKit.abstract_qr!(KrylovKit.BlockVec(X, T), qr_tol(T))
 
     @test length(gi) < n
     @test eltype(R) == T
-    @test isapprox(KrylovKit.block_inner(X[gi],X[gi],S = T), I; atol=1e4*eps(real(T)))
+    BlockX = KrylovKit.BlockVec(X[gi], T)
+    @test isapprox(KrylovKit.block_inner(BlockX,BlockX), I; atol=tolerance(T))
     ΔX = norm.(mul_test(X[gi],R) - Xcopy)
-    @test isapprox(norm(ΔX), T(0); atol=1e4*eps(real(T)))
+    @test isapprox(norm(ΔX), T(0); atol=tolerance(T))
 end
 
 @testset "ortho_basis! for abstract inner product" begin
@@ -45,9 +46,10 @@ end
     ip(x,y) = x'*H*y
     x₀ = [InnerProductVec(rand(T, N), ip) for i in 1:n]
     x₁ = [InnerProductVec(rand(T, N), ip) for i in 1:2*n]
-    tmp = zeros(T, 2*n, n)
-    KrylovKit.abstract_qr!(T, x₁; tol = 1e4 * eps(real(T)))
-    KrylovKit.ortho_basis!(x₀, x₁, tmp)
-    @test norm(KrylovKit.block_inner(x₀, x₁; S = T)) < eps(real(T))^0.5
+    Blockx₀ = KrylovKit.BlockVec(x₀, T)
+    Blockx₁ = KrylovKit.BlockVec(x₁, T)
+    KrylovKit.abstract_qr!(Blockx₁, qr_tol(T))
+    KrylovKit.ortho_basis!(Blockx₀, Blockx₁)
+    @test norm(KrylovKit.block_inner(Blockx₀, Blockx₁)) < 2* tolerance(T)
 end
 

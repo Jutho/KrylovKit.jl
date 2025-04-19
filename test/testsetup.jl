@@ -2,7 +2,7 @@ module TestSetup
 
 export tolerance, ≊, MinimalVec, isinplace, stack
 export wrapop, wrapvec, unwrapvec, buildrealmap
-export mul_test
+export mul_test, qr_tol, relax_tol
 
 import VectorInterface as VI
 using VectorInterface
@@ -12,6 +12,8 @@ using LinearAlgebra: LinearAlgebra
 # -----------------
 "function for determining the precision of a type"
 tolerance(T::Type{<:Number}) = eps(real(T))^(2 // 3)
+qr_tol(T::Type{<:Number}) = 1e4 * eps(real(T))
+relax_tol(T::Type{<:Number}) = eps(real(T))^(0.5)
 
 "function for comparing sets of eigenvalues"
 function ≊(list1::AbstractVector, list2::AbstractVector)

@@ -388,11 +388,9 @@ mutable struct BlockLanczosFactorization{T,S<:Number,SR<:Real} <: BlockKrylovFac
     all_size::Int
     const V::OrthonormalBasis{T}            # Block Lanczos Basis
     const TDB::AbstractMatrix{S}            # TDB matrix, S is the matrix type
-    const R::OrthonormalBasis{T}            # residual block
-    R_size::Int
-    normR::SR
-
-    const tmp:: AbstractMatrix{S}           # temporary matrix for ortho_basis!
+    const r::OrthonormalBasis{T}            # residual block
+    r_size::Int
+    norm_r::SR
 end
 
 #= 
@@ -403,41 +401,37 @@ I don't add IR orthogonalizer because I find it sometimes unstable and I am stud
 Householder reorthogonalization is theoretically stable and saves memory, but the algorithm I implemented is not stable.
 In the future, I will add IR and Householder orthogonalizer.
 =#
+
+#= The only orthogonalization method we use in block lanczos is ModifiedGramSchmidt2. So we don't need to
+provide "keepvecs" because we have to reverse all krylove vectors.
+=#
 struct BlockLanczosIterator{F,T,O<:Orthogonalizer} <: KrylovIterator{F,T}
     operator::F
     x₀::Vector{T}
     maxiter::Int
     num_field::Type
     orth::O
+    qr_tol::Real
     function BlockLanczosIterator{F,T,O}(operator::F,
                                          x₀::Vector{T},
                                          maxiter::Int,
                                          num_field::Type,
-                                         orth::O) where {F,T,O<:Orthogonalizer}
-        if length(x₀) < 2 || norm(x₀) < 1e4 * eps(real(num_field))
-            error("initial vector should not have norm zero")
-        end
-        return new{F,T,O}(operator, x₀, maxiter, num_field, orth)
+                                         orth::O,
+                                         qr_tol::Real) where {F,T,O<:Orthogonalizer}
+        return new{F,T,O}(operator, x₀, maxiter, num_field, orth, qr_tol)
     end
-end
-
-# Is there a better way to get the type of the output of inner product? What about global variable?
-function BlockLanczosIterator(operator::F,
-                              x₀::AbstractVector{T},
-                              maxiter::Int,
-                              num_field::Type,
-                              orth::O=ModifiedGramSchmidt2()) where {F,T,O<:Orthogonalizer}
-    if orth != ModifiedGramSchmidt2()
-        @error "BlockLanczosIterator only supports ModifiedGramSchmidt2 orthogonalizer"
-    end
-    return BlockLanczosIterator{F,T,O}(operator, x₀, maxiter, num_field, orth)
 end
 function BlockLanczosIterator(operator::F,
                               x₀::AbstractVector{T},
                               maxiter::Int,
+                              qr_tol::Real,
                               orth::O=ModifiedGramSchmidt2()) where {F,T,O<:Orthogonalizer}
     S = typeof(inner(x₀[1], x₀[1]))
-    return BlockLanczosIterator{F,T,O}(operator, x₀, maxiter, S, orth)
+    qr_tol < 0 && (qr_tol = 1e4 * eps(real(S)))
+    length(x₀) < 2 && @error "initial vector should not have norm zero"
+    norm(x₀) < qr_tol && @error "initial vector should not have norm zero"
+    orth != ModifiedGramSchmidt2() && @error "BlockLanczosIterator only supports ModifiedGramSchmidt2 orthogonalizer"
+    return BlockLanczosIterator{F,T,O}(operator, x₀, maxiter, S, orth, qr_tol)
 end 
 
 function initialize(iter::BlockLanczosIterator; verbosity::Int=KrylovDefaults.verbosity[])
@@ -449,31 +443,27 @@ function initialize(iter::BlockLanczosIterator; verbosity::Int=KrylovDefaults.ve
     A = iter.operator
     S = iter.num_field
 
-    V_basis = similar(x₀_vec, bs_now * (maxiter + 1))
-    for i in 1:length(V_basis)
-        V_basis[i] = similar(x₀_vec[1])
-    end
-    R = [similar(x₀_vec[i]) for i in 1:bs_now]
+    V_basis = [similar(x₀_vec[1]) for i in 1:bs_now * (maxiter + 1)]
+    r = [similar(x₀_vec[i]) for i in 1:bs_now]
     TDB = zeros(S, bs_now * (maxiter + 1), bs_now * (maxiter + 1))
 
     X₁_view = view(V_basis, 1:bs_now)
-    copyto!.(X₁_view, x₀_vec)
-
-    abstract_qr!(S, X₁_view; tol = 1e4 * eps(real(S)))
+    copy!.(X₁_view, x₀_vec)
+    # Orthogonalization of the initial block
+    abstract_qr!(BlockVec(X₁_view, S), iter.qr_tol)
     Ax₁ = [apply(A, x) for x in X₁_view]
     M₁_view = view(TDB, 1:bs_now, 1:bs_now)
-    block_inner!(M₁_view, X₁_view, Ax₁)
-    verbosity >= WARN_LEVEL && warn_nonhermitian(M₁_view)
+    block_inner!(M₁_view, BlockVec(X₁_view, S), BlockVec(Ax₁, S))
+    verbosity >= WARN_LEVEL && warn_nonhermitian(M₁_view, iter.qr_tol)
     M₁_view = (M₁_view + M₁_view') / 2
-
-    # We have to write it as a form of matrix multiplication. Get R1  
-    residual = block_mul!(Ax₁, X₁_view, - M₁_view, 1.0, 1.0)
+ 
+    residual = block_mul!(BlockVec(Ax₁, S), BlockVec(X₁_view, S), - M₁_view, 1.0, 1.0).vec
 
     # QR decomposition of residual to get the next basis. Get X2 and B1
-    B₁, good_idx = abstract_qr!(S, residual; tol = 1e4 * eps(real(S)))
+    B₁, good_idx = abstract_qr!(BlockVec(residual, S), iter.qr_tol)
     bs_next = length(good_idx)
     X₂_view = view(V_basis, bs_now+1:bs_now+bs_next)
-    copyto!.(X₂_view, residual[good_idx])
+    copy!.(X₂_view, residual[good_idx])
     B₁_view = view(TDB, bs_now+1:bs_now+bs_next, 1:bs_now)
     copyto!(B₁_view, B₁)
     copyto!(view(TDB, 1:bs_now, bs_now+1:bs_now+bs_next), B₁_view')
@@ -481,42 +471,39 @@ function initialize(iter::BlockLanczosIterator; verbosity::Int=KrylovDefaults.ve
     # Calculate the next block
     Ax₂ = [apply(A, x) for x in X₂_view]
     M₂_view = view(TDB, bs_now+1:bs_now+bs_next, bs_now+1:bs_now+bs_next)
-    block_inner!(M₂_view, X₂_view, Ax₂)
+    block_inner!(M₂_view, BlockVec(X₂_view, S), BlockVec(Ax₂, S))
     M₂_view = (M₂_view + M₂_view') / 2
 
-    # Calculate the new residual. Get R2
-    compute_residual!(R, Ax₂, X₂_view, M₂_view, X₁_view, B₁_view)
-    tmp = Matrix{S}(undef, (maxiter+1)*bs_now, bs_next)
-    tmp_view = view(tmp, 1:bs_now+bs_next, 1:bs_next)
-    ortho_basis!(R, view(V_basis, 1:bs_now+bs_next), tmp_view)
+    # Calculate the new residual. Get r₂
+    compute_residual!(BlockVec(r, S), BlockVec(Ax₂, S), BlockVec(X₂_view, S), M₂_view, BlockVec(X₁_view, S), B₁_view)
+    ortho_basis!(BlockVec(r, S), BlockVec(view(V_basis, 1:bs_now+bs_next), S))
 
-    normR = norm(R)
+    norm_r = norm(r)
 
     if verbosity > EACHITERATION_LEVEL
-        @info "Block Lanczos initiation at dimension 2: subspace normres = $(normres2string(normR))"
+        @info "Block Lanczos initiation at dimension 2: subspace normres = $(normres2string(norm_r))"
     end
 
     return BlockLanczosFactorization(bs_now+bs_next,
                                     OrthonormalBasis(V_basis),
                                     TDB,
-                                    OrthonormalBasis(R),
+                                    OrthonormalBasis(r),
                                     bs_next,
-                                    normR,
-                                    tmp)
+                                    norm_r)
 end
 
 function expand!(iter::BlockLanczosIterator, state::BlockLanczosFactorization;
                  verbosity::Int=KrylovDefaults.verbosity[])
     all_size = state.all_size
-    Rₖ = view(state.R.basis, 1:state.R_size)
+    rₖ = view(state.r.basis, 1:state.r_size)
     S = iter.num_field
-    bs_now = length(Rₖ)
+    bs_now = length(rₖ)
 
     # Get the current residual as the initial value of the new basis. Get Xnext
-    Bₖ, good_idx = abstract_qr!(S, Rₖ; tol = 1e4 * eps(real(S)))
+    Bₖ, good_idx = abstract_qr!(BlockVec(rₖ, S), iter.qr_tol)
     bs_next = length(good_idx)
     Xnext_view = view(state.V.basis, all_size+1:all_size+bs_next)
-    copyto!.(Xnext_view, Rₖ[good_idx])
+    copy!.(Xnext_view, rₖ[good_idx])
 
     # Calculate the connection matrix
     Bₖ_view = view(state.TDB, all_size+1:all_size+bs_next, all_size-bs_now+1:all_size)
@@ -526,57 +513,62 @@ function expand!(iter::BlockLanczosIterator, state::BlockLanczosFactorization;
     # Apply the operator and calculate the M. Get Mnext
     Axₖnext = [apply(iter.operator, x) for x in Xnext_view]
     Mnext_view = view(state.TDB, all_size+1:all_size+bs_next, all_size+1:all_size+bs_next)
-    block_inner!(Mnext_view, Xnext_view, Axₖnext)
-    verbosity >= WARN_LEVEL && warn_nonhermitian(Mnext_view)
+    block_inner!(Mnext_view, BlockVec(Xnext_view, S), BlockVec(Axₖnext, S))
+    verbosity >= WARN_LEVEL && warn_nonhermitian(Mnext_view, iter.qr_tol)
     Mnext_view = (Mnext_view + Mnext_view') / 2
 
     # Calculate the new residual. Get Rnext
     Xnow_view = view(state.V.basis, all_size-bs_now+1:all_size)
-    Rₖ[1:bs_next] = Rₖ[good_idx]
-    Rₖnext_view = view(state.R.basis, 1:bs_next)
-    compute_residual!(Rₖnext_view, Axₖnext, Xnext_view, Mnext_view, Xnow_view, Bₖ_view)
-    tmp_view = view(state.tmp, 1:(all_size+bs_next), 1:bs_next)
-    ortho_basis!(Rₖnext_view, view(state.V.basis, 1:all_size+bs_next), tmp_view)
-    state.normR = norm(Rₖnext_view)
+    rₖ[1:bs_next] = rₖ[good_idx]
+    rₖnext_view = view(state.r.basis, 1:bs_next)
+    compute_residual!(BlockVec(rₖnext_view, S), BlockVec(Axₖnext, S), BlockVec(Xnext_view, S), Mnext_view, BlockVec(Xnow_view, S), Bₖ_view)
+    ortho_basis!(BlockVec(rₖnext_view, S), BlockVec(view(state.V.basis, 1:all_size+bs_next), S))
+    state.norm_r = norm(rₖnext_view)
     state.all_size += bs_next
-    state.R_size = bs_next
+    state.r_size = bs_next
 
     if verbosity > EACHITERATION_LEVEL
         orthogonality_error = maximum(abs(inner(u,v)-(i==j)) 
                                     for (i,u) in enumerate(state.V.basis[1:(all_size+bs_next)]),
                                         (j,v) in enumerate(state.V.basis[1:(all_size+bs_next)]))
         
-        @info "Block Lanczos expansion to dimension $(state.all_size): orthogonality error = $orthogonality_error, normres = $(normres2string(state.normR))"
+        @info "Block Lanczos expansion to dimension $(state.all_size): orthogonality error = $orthogonality_error, normres = $(normres2string(state.norm_r))"
     end
 end
 
-function compute_residual!(R::AbstractVector{T}, A_X::AbstractVector{T}, X::AbstractVector{T}, M::AbstractMatrix, X_prev::AbstractVector{T}, B_prev::AbstractMatrix) where T
+function compute_residual!(Block_r::BlockVec{T,S}, Block_A_X::BlockVec{T,S}, Block_X::BlockVec{T,S}, M::AbstractMatrix, Block_X_prev::BlockVec{T,S}, B_prev::AbstractMatrix) where {T,S}
+    r = Block_r.vec
+    A_X = Block_A_X.vec
+    X = Block_X.vec
+    X_prev = Block_X_prev.vec
     @inbounds for j in 1:length(X)
-        r_j = R[j] 
-        copyto!(r_j, A_X[j])
-        @simd for i in 1:length(X)
+        r_j = r[j] 
+        copy!(r_j, A_X[j])
+        for i in 1:length(X)
             axpy!(- M[i,j], X[i], r_j)
         end
-        @simd for i in 1:length(X_prev)
+        for i in 1:length(X_prev)
             axpy!(- B_prev[i,j], X_prev[i], r_j)
         end
     end
-    return R
+    return Block_r
 end
 
-function ortho_basis!(basis_new::AbstractVector{T}, basis_sofar::AbstractVector{T}, tmp::AbstractMatrix) where T
+function ortho_basis!(basis_new::BlockVec{T,S}, basis_sofar::BlockVec{T,S}) where {T,S}
+    tmp = Matrix{S}(undef, length(basis_sofar), length(basis_new))
     block_inner!(tmp, basis_sofar, basis_new)
     block_mul!(basis_new, basis_sofar, - tmp, 1.0, 1.0)
     return basis_new
 end
 
-function warn_nonhermitian(M::AbstractMatrix)
-    if norm(M - M') > eps(real(eltype(M)))*1e4
+function warn_nonhermitian(M::AbstractMatrix, tol::Real)
+    if norm(M - M') > tol
         @warn "Enforce Hermiticity on the triangular diagonal blocks matrix, even though the operator may not be Hermitian."
     end
 end
 
-function abstract_qr!(::Type{S}, block::AbstractVector{T}; tol::Real) where {T,S}
+function abstract_qr!(Block::BlockVec{T,S}, tol::Real) where {T,S}
+    block = Block.vec
     n = length(block)
     rank_shrink = false
     idx = ones(Int64,n)

@@ -297,6 +297,7 @@ end
     end
 end
 
+# TODO : Add more tests for warn in BlockLanczosIterator
 # Test complete Lanczos factorization
 @testset "Complete Block Lanczos factorization " begin
     using KrylovKit: EACHITERATION_LEVEL
@@ -307,8 +308,8 @@ end
         x₀m = Matrix(qr(rand(T, N, block_size)).Q)
         x₀ = [x₀m[:, i] for i in 1:block_size]
         eigvalsA = eigvals(A0)
-        @testset for A in [A0, x -> A0 * x]
-            iter = KrylovKit.BlockLanczosIterator(A, x₀, 4)
+        for A in [A0, x -> A0 * x]
+            iter = KrylovKit.BlockLanczosIterator(A, x₀, 4, qr_tol(T))
             # TODO: Why type unstable?
             # fact = @constinferred initialize(iter)
             fact = initialize(iter)
@@ -336,7 +337,7 @@ end
             bs = 2
             v₀m = Matrix(qr(rand(T, n, bs)).Q)
             v₀ = [v₀m[:, i] for i in 1:bs]
-            iter = KrylovKit.BlockLanczosIterator(B, v₀, 4)
+            iter = KrylovKit.BlockLanczosIterator(B, v₀, 4, qr_tol(T))
             fact = initialize(iter)
             @constinferred expand!(iter, fact; verbosity = 0)
             @test_logs initialize(iter; verbosity = 0)
@@ -363,11 +364,11 @@ end
         block_size = 5
         x₀m = Matrix(qr(rand(T, N, block_size)).Q)
         x₀ = [x₀m[:, i] for i in 1:block_size]
-        @testset for A in [A0, x -> A0 * x]
-        iter = @constinferred KrylovKit.BlockLanczosIterator(A, x₀, 4)
+        for A in [A0, x -> A0 * x]
+            iter = @constinferred KrylovKit.BlockLanczosIterator(A, x₀, 4, qr_tol(T))
             krylovdim = n
             fact = initialize(iter)
-            while fact.normR > eps(float(real(T))) && fact.all_size < krylovdim
+            while fact.norm_r > eps(float(real(T))) && fact.all_size < krylovdim
                 @constinferred expand!(iter, fact)
                 Ṽ, H, r̃, β, e = fact
                 V = stack(unwrapvec, Ṽ)

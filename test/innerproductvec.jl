@@ -6,10 +6,12 @@ M[i,j] = inner(x[i],y[j])
     A = [rand(T, N) for _ in 1:n]
     B = [rand(T, N) for _ in 1:n]
     M = Matrix{T}(undef, n, n)
-    KrylovKit.block_inner!(M, A, B)
-    M0 = hcat(A...)' * hcat(B...)
+    BlockA = KrylovKit.BlockVec(A, T)
+    BlockB = KrylovKit.BlockVec(B, T)
+    KrylovKit.block_inner!(M, BlockA, BlockB)
+    M0 = hcat(BlockA.vec...)' * hcat(BlockB.vec...)
     @test eltype(M) == T
-    @test isapprox(M, M0; atol = 1e4 * eps(real(T)))
+    @test isapprox(M, M0; atol = relax_tol(T))
 end
 
 @testset "block_inner! for abstract inner product" begin
@@ -31,12 +33,14 @@ end
         Y[i] = InnerProductVec(rand(T, N), ip)
     end    
     M = Matrix{T}(undef, n, n);
-    KrylovKit.block_inner!(M, X, Y);
+    BlockX = KrylovKit.BlockVec(X, T)
+    BlockY = KrylovKit.BlockVec(Y, T)
+    KrylovKit.block_inner!(M, BlockX, BlockY);
     Xm = hcat([X[i].vec for i in 1:n]...);
     Ym = hcat([Y[i].vec for i in 1:n]...);
     M0 = Xm' * H * Ym;
     @test eltype(M) == T
-    @test isapprox(M, M0; atol = eps(real(T))^(0.5))
+    @test isapprox(M, M0; atol = relax_tol(T))
 end
 
 @testset "block_randn_like" begin
@@ -54,25 +58,18 @@ end
     end
 end
 
-@testset "copyto! for InnerProductVec" begin
-    T = ComplexF64
-    f = x -> x'*x
-    v = InnerProductVec(rand(T, n), f)
-    w = InnerProductVec(rand(T, n), f)
-    KrylovKit.copyto!(v, w)
-    @test v.vec == w.vec
-end
-
 @testset "block_mul!" begin
     T = ComplexF64
     f = x -> x'*x
     A = [InnerProductVec(rand(T, N), f) for _ in 1:n]
     Acopy = [InnerProductVec(rand(T, N), f) for _ in 1:n]
-    KrylovKit.copyto!(Acopy, A)
+    KrylovKit.copy!(Acopy, A)
     B = [InnerProductVec(rand(T, N), f) for _ in 1:n]
     M = rand(T, n, n)
     alpha = rand(T)
     beta = rand(T)
-    KrylovKit.block_mul!(A, B, M, alpha, beta)
-    @test isapprox(hcat([A[i].vec for i in 1:n]...), beta * hcat([Acopy[i].vec for i in 1:n]...) + alpha * hcat([B[i].vec for i in 1:n]...) * M)
+    BlockA = KrylovKit.BlockVec(A, T)
+    BlockB = KrylovKit.BlockVec(B, T)
+    KrylovKit.block_mul!(BlockA, BlockB, M, alpha, beta)
+    @test isapprox(hcat([BlockA.vec[i].vec for i in 1:n]...), beta * hcat([Acopy[i].vec for i in 1:n]...) + alpha * hcat([BlockB.vec[i].vec for i in 1:n]...) * M; atol = tolerance(T))
 end

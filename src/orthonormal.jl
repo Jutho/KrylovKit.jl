@@ -28,6 +28,15 @@ struct OrthonormalBasis{T} <: Basis{T}
 end
 OrthonormalBasis{T}() where {T} = OrthonormalBasis{T}(Vector{T}(undef, 0))
 
+# We use this to store vectors as a block. Although now its fields are same to OrthonormalBasis,
+# I plan to develop BlockVec a abstract of vector of number and inner product space, 
+# and process the block in the latter as a matrix with higher efficiency.
+struct BlockVec{T,S}
+    vec::AbstractVector{T}
+    S::Type{S}
+end
+Base.length(b::BlockVec) = length(b.vec)
+
 # Iterator methods for OrthonormalBasis
 Base.IteratorSize(::Type{<:OrthonormalBasis}) = Base.HasLength()
 Base.IteratorEltype(::Type{<:OrthonormalBasis}) = Base.HasEltype()
@@ -573,4 +582,4 @@ and its concrete subtypes [`ClassicalGramSchmidt`](@ref), [`ModifiedGramSchmidt`
 [`ClassicalGramSchmidt2`](@ref), [`ModifiedGramSchmidt2`](@ref),
 [`ClassicalGramSchmidtIR`](@ref) and [`ModifiedGramSchmidtIR`](@ref).
 """
-orthonormalize, orthonormalize!! 
+orthonormalize, orthonormalize!!

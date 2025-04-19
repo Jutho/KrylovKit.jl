@@ -129,8 +129,10 @@ end
 VectorInterface.norm(v::InnerProductVec) = sqrt(real(inner(v, v)))
 
 function block_inner!(M::AbstractMatrix,
-    x::AbstractVector,
-    y::AbstractVector)
+    B₁::BlockVec{T,S},
+    B₂::BlockVec{T,S}) where {T,S}
+    x = B₁.vec
+    y = B₂.vec
     @assert size(M) == (length(x), length(y)) "Matrix dimensions must match"
     @inbounds for j in eachindex(y)
         yj = y[j]
@@ -141,15 +143,11 @@ function block_inner!(M::AbstractMatrix,
     return M
 end
 
-function Base.copyto!(x::InnerProductVec, y::InnerProductVec)
-    @assert x.dotf == y.dotf "Dot functions must match"
-    copyto!(x.vec, y.vec)
-    return x
-end
-
 block_randn_like(v, n::Int) = [randn!(similar(v)) for _ in 1:n]
 
-function block_mul!(A::AbstractVector, B::AbstractVector, M::AbstractMatrix, alpha::Number, beta::Number)
+function block_mul!(B₁::BlockVec{T,S}, B₂::BlockVec{T,S}, M::AbstractMatrix, alpha::Number, beta::Number) where {T,S}
+    A = B₁.vec
+    B = B₂.vec
     @assert (length(B) == size(M, 1)) && (length(A) == size(M, 2)) "Matrix dimensions must match"
     @inbounds for i in 1:length(A)
         A[i] = beta * A[i]
@@ -157,13 +155,13 @@ function block_mul!(A::AbstractVector, B::AbstractVector, M::AbstractMatrix, alp
             A[i] += alpha * B[j] * M[j, i]
         end
     end
-    return A
+    return B₁
 end
 
 # used for debugging
-function block_inner(v::AbstractVector, w::AbstractVector;S::Type = Float64)
-    M = Matrix{S}(undef, length(v), length(w))
-    block_inner!(M, v, w)
+function block_inner(B₁::BlockVec{T,S}, B₂::BlockVec{T,S}) where {T,S}
+    M = Matrix{S}(undef, length(B₁.vec), length(B₂.vec))
+    block_inner!(M, B₁, B₂)
     return M
 end
 
