@@ -297,8 +297,7 @@ end
     end
 end
 
-# TODO : Add more tests for warn in BlockLanczosIterator
-# Test complete Lanczos factorization
+# Test complete Block Lanczos factorization
 @testset "Complete Block Lanczos factorization " begin
     using KrylovKit: EACHITERATION_LEVEL
     @testset for T in [Float32, Float64, ComplexF32, ComplexF64]
@@ -328,8 +327,10 @@ end
             end
             # Information about V has been tested in eigsolve.jl
             # And Block Lanczos has no "rayleighquotient" function
-
-            # Block Lanczos has no "shrink!" function, as well as "initialize!(iter, fact)"
+            # We also don't have "initialize!(iter, fact)" function
+            @constinferred shrink!(fact, n - 1)
+            @test_logs (:info,) shrink!(fact, n - 2; verbosity=EACHITERATION_LEVEL + 1)
+            @test_logs shrink!(fact, n - 3; verbosity=EACHITERATION_LEVEL)
         end
 
         if T <: Complex
@@ -356,8 +357,8 @@ end
     end
 end
 
-# Test incomplete Lanczos factorization
-@testset "Incomplete Lanczos factorization " begin
+# Test incomplete Block Lanczos factorization
+@testset "Incomplete Block Lanczos factorization " begin
     @testset for T in [Float32, Float64, ComplexF32, ComplexF64]
         A0 = rand(T, (N, N))
         A0 = (A0 + A0') / 2
@@ -370,16 +371,14 @@ end
             fact = initialize(iter)
             while fact.norm_r > eps(float(real(T))) && fact.all_size < krylovdim
                 @constinferred expand!(iter, fact)
-                Ṽ, H, r̃, β, e = fact
-                V = stack(unwrapvec, Ṽ)
-                r = unwrapvec(r̃)
+                V, H, r, β, e = fact
                 @test V' * V ≈ I
                 @test norm(r) ≈ β
                 @test A * V ≈ V * H + r * e'
             end
+            # The V and residual have been tested in eigsolve.jl, and we don't need some functions tested in Lanczos
+            fact = @constinferred shrink!(fact, div(n, 2))
 
-            # Block Lanczos has no "shrink!" function
-            # The V and residual have been tested in eigsolve.jl
         end
     end
 end

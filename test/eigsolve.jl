@@ -471,16 +471,19 @@ As a result, I’ve decided to postpone dealing with the in-place test issue for
         # Different from Lanczos, we don't set maxiter =1 here because the iteration times in Lanczos
         # in in fact in the control of deminsion of Krylov subspace. And we Don't use it.
         for A in [A0, x -> A0 * x]
-            alg = Lanczos(; krylovdim = n, maxiter = 4, tol = tolerance(T), verbosity = 2, blockmode = true, blocksize = block_size)
+            alg = Lanczos(; krylovdim = n, maxiter = 1, tol = tolerance(T), verbosity = 2, blockmode = true, blocksize = block_size)
             D1, V1, info = @test_logs (:info,) eigsolve(A, x₀, n1, :SR, alg)
-            alg = Lanczos(; krylovdim = n, maxiter = 4, tol = tolerance(T), verbosity = 1, blockmode = true, blocksize = block_size)
+            alg = Lanczos(; krylovdim = n, maxiter = 1, tol = tolerance(T), verbosity = 1, blockmode = true, blocksize = block_size)
             @test_logs eigsolve(A, x₀, n1, :SR, alg)
-            alg = Lanczos(; krylovdim = n1 + 1, maxiter = 4, tol = tolerance(T), verbosity = 1, blockmode = true, blocksize = block_size)
+            alg = Lanczos(; krylovdim = n1 + 1, maxiter = 1, tol = tolerance(T), verbosity = 1, blockmode = true, blocksize = block_size)
             @test_logs (:warn,) eigsolve(A, x₀, n1, :SR, alg)
-            alg = Lanczos(; krylovdim = n, maxiter = 4, tol = tolerance(T), verbosity = 2, blockmode = true, blocksize = block_size)
+            alg = Lanczos(; krylovdim = n, maxiter = 1, tol = tolerance(T), verbosity = 2, blockmode = true, blocksize = block_size)
             @test_logs (:info,) eigsolve(A, x₀, n1, :SR, alg)
-            alg = Lanczos(; krylovdim = n1, maxiter = 4, tol = tolerance(T), verbosity = 3, blockmode = true, blocksize = block_size)
-            @test_logs((:info,), (:warn,), (:info,), eigsolve(A, x₀, 1, :SR, alg))
+            alg = Lanczos(; krylovdim = n1, maxiter = 3, tol = tolerance(T), verbosity = 3, blockmode = true, blocksize = block_size)
+            @test_logs((:info,), (:info,), (:info,), (:warn,), eigsolve(A, x₀, 1, :SR, alg))
+            alg = Lanczos(; krylovdim=4, maxiter=1, tol=tolerance(T), verbosity=4, blockmode=true, blocksize=block_size)
+            @test_logs((:info,), (:info,), (:info,), (:warn,), eigsolve(A, x₀, 1, :SR, alg))
+            # To use blockmode, users have to explicitly set blockmode = true, we don't allow them to use eigselector.
             # Because of the _residual! function, I can't make sure the stability of types temporarily. 
             # So I ignore the test of @constinferred
             n2 = n - n1
@@ -498,7 +501,7 @@ As a result, I’ve decided to postpone dealing with the in-place test issue for
             @test (x -> KrylovKit.apply(A, x)).(V1) ≈ D1 .* V1
             @test (x -> KrylovKit.apply(A, x)).(V2) ≈ D2 .* V2
 
-            alg = Lanczos(; krylovdim = 2n, maxiter = 5, tol = tolerance(T), verbosity = 1, blockmode = true, blocksize = block_size)
+            alg = Lanczos(; krylovdim = 2n, maxiter = 1, tol = tolerance(T), verbosity = 1, blockmode = true, blocksize = block_size)
             @test_logs (:warn,) (:warn,) eigsolve(A, x₀, n + 1, :LM, alg)
         end
     end

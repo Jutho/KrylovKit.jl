@@ -588,7 +588,6 @@ function abstract_qr!(Block::BlockVec{T,S}, tol::Real) where {T,S}
 end
 
 function shrink!(state::BlockLanczosFactorization, k; verbosity::Int=KrylovDefaults.verbosity[])
-    @show "shrink!"
     V = state.V
     all_size = state.all_size
     V[1:k] = V[all_size-k+1:all_size]
