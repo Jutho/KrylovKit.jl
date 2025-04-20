@@ -560,6 +560,36 @@ end
     @test findmax([norm(Aip(V[i]) - D[i] * V[i]) for i in 1:eig_num])[1] < tolerance(T)
 end
 
+using KrylovKit,LinearAlgebra,Random,Test,BenchmarkTools
+n = 10
+N = 100
+@testset "Compare Block Lanczos and Lanczos" begin
+    @testset for T in [Float64, ComplexF64]
+        Random.seed!(6)
+        A0 = rand(T, (N,N))
+        A = A0' * A0 + I
+        x₀ = rand(T, N)
+        krydim = 100
+        maxiter = 10
+        block_size = 5
+        eig_num = 10
+        Atype = [A0, x -> A0 * x]
+        Atypename = ["Matrix", "LinearOperator"]
+        for i in eachindex(Atype)
+            A = Atype[i]
+            Aname = Atypename[i]
+            lanczos_alg = Lanczos(; krylovdim = krydim, maxiter = maxiter, tol = tolerance(T), verbosity = 0)
+            block_alg = Lanczos(; krylovdim = krydim, maxiter = maxiter, tol = tolerance(T), verbosity = 0, blockmode = true, blocksize = block_size)
+            t1 = time()
+            eigsolve(A, x₀, eig_num, :SR, lanczos_alg)
+            t1 = time() - t1
+            t2 = time()
+            eigsolve(A, x₀, eig_num, :SR, block_alg)
+            t2 = time() - t2
+            println("When T = $T, time of $Aname lanczos_alg: $t1, time of $Aname block_alg: $t2")
+        end
+    end
+end
 #=
 # TODO: improve shrink
 using KrylovKit,LinearAlgebra,Random,Test
