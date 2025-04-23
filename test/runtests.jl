@@ -68,6 +68,9 @@ end
 @testset "Inner product vector" verbose = true begin
     include("innerproductvec.jl")
 end
+@testset "BlockVec" verbose = true begin
+    include("BlockVec.jl")
+end
 t = time() - t
 
 # Issues

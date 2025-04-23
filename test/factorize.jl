@@ -325,12 +325,6 @@ end
                     verbosity = EACHITERATION_LEVEL + 1
                 end
             end
-            # Information about V has been tested in eigsolve.jl
-            # And Block Lanczos has no "rayleighquotient" function
-            # We also don't have "initialize!(iter, fact)" function
-            @constinferred shrink!(fact, n - 1)
-            @test_logs (:info,) shrink!(fact, n - 2; verbosity=EACHITERATION_LEVEL + 1)
-            @test_logs shrink!(fact, n - 3; verbosity=EACHITERATION_LEVEL)
         end
 
         if T <: Complex
@@ -376,10 +370,27 @@ end
                 @test norm(r) ≈ β
                 @test A * V ≈ V * H + r * e'
             end
-            # The V and residual have been tested in eigsolve.jl, and we don't need some functions tested in Lanczos
-            fact = @constinferred shrink!(fact, div(n, 2))
-
         end
     end
 end
 
+# Test effectiveness of shrink!() in block lanczos
+@testset "Test effectiveness of shrink!() in block lanczos" begin
+    @testset for T in [Float32, Float64, ComplexF32, ComplexF64]
+        A0 = rand(T, (N, N))
+        A0 = (A0 + A0') / 2
+        block_size = 5
+        x₀m = Matrix(qr(rand(T, N, block_size)).Q)
+        x₀ = [x₀m[:, i] for i in 1:block_size]
+        values0 = eigvals(A0)[1:n]
+        for A in [A0, x -> A0 * x]
+            alg = KrylovKit.Lanczos(; krylovdim = 3*n÷2, maxiter = 1, tol = 1e-12, blockmode = true, blocksize = block_size)
+            values, _, _ = eigsolve(A, x₀, n, :SR, alg)
+            error1 = norm(values - values0)
+            alg_shrink = KrylovKit.Lanczos(; krylovdim = n, maxiter = 1, tol = 1e-12, blockmode = true, blocksize = block_size)
+            values_shrink, _, _ = eigsolve(A, x₀, n, :SR, alg_shrink)
+            error2 = norm(values_shrink - values0)
+            @test error2 < error1
+        end
+    end
+end

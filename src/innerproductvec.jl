@@ -128,26 +128,7 @@ end
 
 VectorInterface.norm(v::InnerProductVec) = sqrt(real(inner(v, v)))
 
-function block_inner!(M::AbstractMatrix,
-    B₁::BlockVec{T,S},
-    B₂::BlockVec{T,S}) where {T,S}
-    x = B₁.vec
-    y = B₂.vec
-    @assert size(M) == (length(x), length(y)) "Matrix dimensions must match"
-    @inbounds for j in eachindex(y)
-        yj = y[j]
-        for i in eachindex(x)
-            M[i, j] = inner(x[i], yj)
-        end
-    end
-    return M
-end
-
-block_randn_like(v, n::Int) = [randn!(similar(v)) for _ in 1:n]
-
-function block_mul!(B₁::BlockVec{T,S}, B₂::BlockVec{T,S}, M::AbstractMatrix, alpha::Number, beta::Number) where {T,S}
-    A = B₁.vec
-    B = B₂.vec
+function block_mul!(A::BlockVec{T,S}, B::BlockVec{T,S}, M::AbstractMatrix, alpha::Number, beta::Number) where {T,S}
     @assert (length(B) == size(M, 1)) && (length(A) == size(M, 2)) "Matrix dimensions must match"
     @inbounds for i in 1:length(A)
         A[i] = beta * A[i]
@@ -155,7 +136,20 @@ function block_mul!(B₁::BlockVec{T,S}, B₂::BlockVec{T,S}, M::AbstractMatrix,
             A[i] += alpha * B[j] * M[j, i]
         end
     end
-    return B₁
+    return A
+end
+
+function block_inner!(M::AbstractMatrix,
+    x::BlockVec{T,S},
+    y::BlockVec{T,S}) where {T,S}
+    @assert size(M) == (length(x), length(y)) "Matrix dimensions must match"
+    @inbounds for j in 1:length(y)
+        yj = y[j]
+        for i in 1:length(x)
+            M[i, j] = inner(x[i], yj)
+        end
+    end
+    return M
 end
 
 # used for debugging

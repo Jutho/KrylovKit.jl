@@ -43,21 +43,6 @@ end
     @test isapprox(M, M0; atol = relax_tol(T))
 end
 
-@testset "block_randn_like" begin
-    @testset for T in [Float32,Float64,ComplexF32,ComplexF64]
-        v = InnerProductVec(rand(T, n), x -> x'*x)
-        sv = KrylovKit.block_randn_like(v, n)
-        @test length(sv) == n
-        @test eltype(sv[2].vec) == T
-        @test sv[2].dotf == v.dotf
-
-        u = rand(T, n)
-        su = KrylovKit.block_randn_like(u, n)
-        @test length(su) == n
-        @test eltype(su[2]) == T
-    end
-end
-
 @testset "block_mul!" begin
     T = ComplexF64
     f = x -> x'*x

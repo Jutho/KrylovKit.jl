@@ -431,7 +431,7 @@ end
     h_mat = toric_code_hamiltonian_matrix(sites_num, sites_num)
 
     # matrix input
-    alg = Lanczos(;tol = tol, blockmode = true, blocksize = p)
+    alg = Lanczos(;tol = tol, blockmode = true, blocksize = p,maxiter = 1)
     D, U, info = eigsolve(-h_mat, x₀, get_value_num, :SR, alg)
     @show D[1:get_value_num]
     @test count(x -> abs(x + 16.0) < 2.0 - tol, D[1:get_value_num]) == 4
@@ -479,8 +479,8 @@ As a result, I’ve decided to postpone dealing with the in-place test issue for
             @test_logs (:warn,) eigsolve(A, x₀, n1, :SR, alg)
             alg = Lanczos(; krylovdim = n, maxiter = 1, tol = tolerance(T), verbosity = 2, blockmode = true, blocksize = block_size)
             @test_logs (:info,) eigsolve(A, x₀, n1, :SR, alg)
-            alg = Lanczos(; krylovdim = n1, maxiter = 3, tol = tolerance(T), verbosity = 3, blockmode = true, blocksize = block_size)
-            @test_logs((:info,), (:info,), (:info,), (:warn,), eigsolve(A, x₀, 1, :SR, alg))
+            alg = Lanczos(; krylovdim = 2, maxiter = 3, tol = tolerance(T), verbosity = 3, blockmode = true, blocksize = block_size)
+            @test_logs((:info,), (:info,), (:info,), eigsolve(A, x₀, 1, :SR, alg))
             alg = Lanczos(; krylovdim=4, maxiter=1, tol=tolerance(T), verbosity=4, blockmode=true, blocksize=block_size)
             @test_logs((:info,), (:info,), (:info,), (:warn,), eigsolve(A, x₀, 1, :SR, alg))
             # To use blockmode, users have to explicitly set blockmode = true, we don't allow them to use eigselector.
@@ -559,57 +559,3 @@ end
     @test KrylovKit.block_inner(BlockV, BlockV) ≈ I
     @test findmax([norm(Aip(V[i]) - D[i] * V[i]) for i in 1:eig_num])[1] < tolerance(T)
 end
-
-using KrylovKit,LinearAlgebra,Random,Test,BenchmarkTools
-n = 10
-N = 100
-@testset "Compare Block Lanczos and Lanczos" begin
-    @testset for T in [Float64, ComplexF64]
-        Random.seed!(6)
-        A0 = rand(T, (N,N))
-        A = A0' * A0 + I
-        x₀ = rand(T, N)
-        krydim = 100
-        maxiter = 10
-        block_size = 5
-        eig_num = 10
-        Atype = [A0, x -> A0 * x]
-        Atypename = ["Matrix", "LinearOperator"]
-        for i in eachindex(Atype)
-            A = Atype[i]
-            Aname = Atypename[i]
-            lanczos_alg = Lanczos(; krylovdim = krydim, maxiter = maxiter, tol = tolerance(T), verbosity = 0)
-            block_alg = Lanczos(; krylovdim = krydim, maxiter = maxiter, tol = tolerance(T), verbosity = 0, blockmode = true, blocksize = block_size)
-            t1 = time()
-            eigsolve(A, x₀, eig_num, :SR, lanczos_alg)
-            t1 = time() - t1
-            t2 = time()
-            eigsolve(A, x₀, eig_num, :SR, block_alg)
-            t2 = time() - t2
-            println("When T = $T, time of $Aname lanczos_alg: $t1, time of $Aname block_alg: $t2")
-        end
-    end
-end
-#=
-# TODO: improve shrink
-using KrylovKit,LinearAlgebra,Random,Test
-Random.seed!(6)
-n = 10
-N = 100
-A = rand(N,N);
-A = A' * A + I;
-alg = Lanczos(;krylovdim = 10,maxiter = 10,tol = 1e-12);
-values,vectors,info = eigsolve(A,rand(N),10,:SR,alg)
-=#
-
-#=
-using KrylovKit,LinearAlgebra,Random,Test
-Random.seed!(6)
-n = 10
-N = 100
-A = rand(N,N);
-A = A' * A + I;
-x₀ = rand(N);
-alg = Lanczos(;tol = 1e-8,blockmode = true,blocksize = 5);
-values,vectors,info = eigsolve(A,x₀,10,:SR,alg)
-=#

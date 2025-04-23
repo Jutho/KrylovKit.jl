@@ -159,21 +159,22 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
     end
     tol = alg.tol
     verbosity = alg.verbosity
-    x₀_vec = push!(block_randn_like(x₀, alg.blocksize-1), x₀)
-    bs_now = length(x₀_vec)
+    x₀_vec = [randn!(similar(x₀)) for _ in 1:alg.blocksize-1]
+    pushfirst!(x₀_vec, x₀)
+    bs = length(x₀_vec)
 
-    iter = BlockLanczosIterator(A, x₀_vec, krylovdim + bs_now, alg.qr_tol, alg.orth)
-    fact = initialize(iter; verbosity=verbosity)
+    iter = BlockLanczosIterator(A, x₀_vec, krylovdim + bs, alg.qr_tol, alg.orth)
+    fact = initialize(iter; verbosity = verbosity)
     numops = 2 # how many times we apply A
     numiter = 1
     vectors = [similar(x₀_vec[1]) for _ in 1:howmany]
     values = Vector{real(eltype(fact.TDB))}(undef, howmany)
     converged = false
     num_converged = 0
-    local howmany_actual, residuals, normresiduals
+    local howmany_actual, residuals, normresiduals, D, U
 
     while true
-        expand!(iter, fact; verbosity=verbosity)
+        expand!(iter, fact; verbosity = verbosity)
         numops += 1
 
         # When norm(Rk) is to small, we may lose too much precision and orthogonalization.
@@ -183,26 +184,79 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
                 msg *= "which is smaller than the number of requested eigenvalues (i.e. `howmany == $howmany`)."
                 @warn msg
             end
-            values, vectors, howmany_actual, residuals, normresiduals, num_converged = _residual!(fact, A,
-                                                                            howmany, tol, which,vectors, values)
-            # This convergence condition refers to https://www.netlib.org/utk/people/JackDongarra/etemplates/node251.html
+
+            all_size = fact.all_size
+            TDB = view(fact.TDB, 1:all_size, 1:all_size)
+            D, U = eigen(Hermitian((TDB + TDB') / 2))
+            by, rev = eigsort(which)
+            p = sortperm(D; by = by, rev = rev)
+            D = D[p]
+            U = U[:, p]
+            T = eltype(fact.V.basis)
+            S = eltype(TDB)
+        
+            howmany_actual = min(howmany, length(D))
+            copyto!(values, D[1:howmany_actual])
+        
+            residuals = Vector{T}(undef, howmany_actual)
+            normresiduals = Vector{real(S)}(undef, howmany_actual)
+            bs_r = fact.r_size
+            r = fact.r[1:bs_r]
+            UU = U[end-bs_r+1:end, :]
+            for i in 1:howmany_actual
+                residuals[i] = r[1] * UU[1, i]
+                for j in 2:bs_r
+                    axpy!(UU[j, i], r[j], residuals[i])
+                end
+                normresiduals[i] = norm(residuals[i])
+            end
+            num_converged = count(nr -> nr <= tol, normresiduals)
+
             if num_converged >= howmany || fact.norm_r < tol
                 converged = true
                 break
             elseif verbosity >= EACHITERATION_LEVEL
                 @info "Block Lanczos eigsolve in iteration $numiter: $num_converged values converged, normres = $(normres2string(normresiduals[1:howmany]))"
             end
-            if fact.all_size > alg.krylovdim
+            if fact.all_size > krylovdim # begin to shrink dimension
                 numiter >= maxiter && break
-                shrink!(fact, div(3*fact.all_size + 2*num_converged, 5); verbosity=verbosity)
+                bsn = max(div(3 * krylovdim + 2 * num_converged, 5) ÷ bs, 1)
+                if (bsn + 1) * bs > fact.all_size # make sure that we can fetch next block after shrinked dimension as residual
+                    warning("shrinked dimesion is too small and there is no need to shrink")
+                    break
+                end
+                keep = bs * bsn
+                H = zeros(S, (bsn + 1) * bs, bsn * bs)
+                @inbounds for j in 1:keep
+                    H[j, j] = fact.TDB[j, j]
+                    H[bsn * bs + 1:end, j] = U[bsn * bs + 1:(bsn + 1) * bs, j]
+                end
+                @inbounds for j in keep:-1:1
+                    h, ν = householder(H, j + bs, 1:j, j)
+                    H[j + bs, j] = ν
+                    H[j + bs, 1:(j - 1)] .= zero(eltype(H))
+                    lmul!(h, H)
+                    rmul!(view(H, 1:j, :), h')
+                    rmul!(U, h')
+                end
+                TDB .= S(0)
+                TDB[1:keep, 1:keep] .= H[1:keep, 1:keep]
+                
+                V = fact.V
+                V = basistransform!(V, view(U, :, 1:keep))
+                r_new = OrthonormalBasis(fact.r.vec[1:bs_r])
+                basistransform!(r_new, view(U, all_size - bs_r + 1:all_size, keep - bs_r + 1:keep))
+                fact.all_size = keep
                 numiter += 1
             end
         end
     end
-
-    if !converged && numiter < maxiter
-        values, vectors, howmany_actual, residuals, normresiduals, num_converged = _residual!(fact, A, howmany,
-                                                                            tol, which, vectors, values)
+    V = view(fact.V.basis, 1:fact.all_size)
+    @inbounds for i in 1:howmany_actual
+        copy!(vectors[i], V[1] * U[1, i])
+        for j in 2:fact.all_size
+            axpy!(U[j, i], V[j], vectors[i])
+        end
     end
 
     if (num_converged < howmany) && verbosity >= WARN_LEVEL
@@ -218,41 +272,6 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
     end
 
     return values[1:howmany_actual],
-           vectors[1:howmany_actual],
-           ConvergenceInfo(num_converged, residuals, normresiduals, fact.all_size, numops)
-end
-
-function _residual!(fact::BlockLanczosFactorization, A, howmany::Int, tol::Real, which::Selector, vectors::AbstractVector, values::AbstractVector{<:Number})
-    all_size = fact.all_size
-    TDB = view(fact.TDB, 1:all_size, 1:all_size)
-    D, U = eigen(Hermitian((TDB + TDB') / 2))  
-    by, rev = eigsort(which)
-    p = sortperm(D; by=by, rev=rev)
-    D = D[p]
-    U = U[:, p]
-    basis_sofar_view = view(fact.V.basis, 1:all_size)
-    T = eltype(basis_sofar_view)
-    S = eltype(TDB)
-
-    howmany_actual = min(howmany, length(D))
-    copyto!(values, D[1:howmany_actual])
-
-    @inbounds for i in 1:howmany_actual
-        copy!(vectors[i], basis_sofar_view[1]*U[1,i])
-        for j in 2:all_size
-            axpy!(U[j,i], basis_sofar_view[j], vectors[i])
-        end
-    end
-
-    residuals = Vector{T}(undef, howmany_actual)
-    normresiduals = Vector{real(S)}(undef, howmany_actual)
-
-    for i in 1:howmany_actual
-        residuals[i] = apply(A, vectors[i])
-        axpy!(-values[i], vectors[i], residuals[i])  # residuals[i] -= values[i] * vectors[i]
-        #TODO: Does norm need to be modified when residuals is complex?
-        normresiduals[i] = norm(residuals[i])
-    end
-    num_converged = count(nr -> nr <= tol, normresiduals)
-    return values, vectors, howmany_actual, residuals, normresiduals, num_converged
+    vectors[1:howmany_actual],
+    ConvergenceInfo(num_converged, residuals, normresiduals, fact.all_size, numops)
 end
