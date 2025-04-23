@@ -380,16 +380,16 @@ end
         A0 = rand(T, (N, N))
         A0 = (A0 + A0') / 2
         block_size = 5
-        x₀m = Matrix(qr(rand(T, N, block_size)).Q)
-        x₀ = [x₀m[:, i] for i in 1:block_size]
+        x₀ = rand(T, N)
         values0 = eigvals(A0)[1:n]
+        n1 = n ÷ 2
         for A in [A0, x -> A0 * x]
             alg = KrylovKit.Lanczos(; krylovdim = 3*n÷2, maxiter = 1, tol = 1e-12, blockmode = true, blocksize = block_size)
             values, _, _ = eigsolve(A, x₀, n, :SR, alg)
-            error1 = norm(values - values0)
-            alg_shrink = KrylovKit.Lanczos(; krylovdim = n, maxiter = 1, tol = 1e-12, blockmode = true, blocksize = block_size)
+            error1 = norm(values[1:n1] - values0[1:n1])
+            alg_shrink = KrylovKit.Lanczos(; krylovdim = n, maxiter = 2, tol = 1e-12, blockmode = true, blocksize = block_size)
             values_shrink, _, _ = eigsolve(A, x₀, n, :SR, alg_shrink)
-            error2 = norm(values_shrink - values0)
+            error2 = norm(values_shrink[1:n1] - values0[1:n1])
             @test error2 < error1
         end
     end

@@ -468,8 +468,6 @@ As a result, I’ve decided to postpone dealing with the in-place test issue for
         x₀ = rand(T, n)
         n1 = div(n, 2)  # eigenvalues to solve
         eigvalsA = eigvals(A0)
-        # Different from Lanczos, we don't set maxiter =1 here because the iteration times in Lanczos
-        # in in fact in the control of deminsion of Krylov subspace. And we Don't use it.
         for A in [A0, x -> A0 * x]
             alg = Lanczos(; krylovdim = n, maxiter = 1, tol = tolerance(T), verbosity = 2, blockmode = true, blocksize = block_size)
             D1, V1, info = @test_logs (:info,) eigsolve(A, x₀, n1, :SR, alg)
@@ -480,7 +478,7 @@ As a result, I’ve decided to postpone dealing with the in-place test issue for
             alg = Lanczos(; krylovdim = n, maxiter = 1, tol = tolerance(T), verbosity = 2, blockmode = true, blocksize = block_size)
             @test_logs (:info,) eigsolve(A, x₀, n1, :SR, alg)
             alg = Lanczos(; krylovdim = 2, maxiter = 3, tol = tolerance(T), verbosity = 3, blockmode = true, blocksize = block_size)
-            @test_logs((:info,), (:info,), (:info,), eigsolve(A, x₀, 1, :SR, alg))
+            @test_logs((:info,), (:info,), (:info,), (:warn,), eigsolve(A, x₀, 1, :SR, alg))
             alg = Lanczos(; krylovdim=4, maxiter=1, tol=tolerance(T), verbosity=4, blockmode=true, blocksize=block_size)
             @test_logs((:info,), (:info,), (:info,), (:warn,), eigsolve(A, x₀, 1, :SR, alg))
             # To use blockmode, users have to explicitly set blockmode = true, we don't allow them to use eigselector.
@@ -558,4 +556,26 @@ end
     @test D ≈ D_true[1:eig_num]
     @test KrylovKit.block_inner(BlockV, BlockV) ≈ I
     @test findmax([norm(Aip(V[i]) - D[i] * V[i]) for i in 1:eig_num])[1] < tolerance(T)
+end
+
+@testset "Complete Lanczos and Block Lanczos" begin
+    @testset for T in [Float32, Float64, ComplexF32, ComplexF64]
+        Random.seed!(6)
+        A0 = rand(T, (2N, 2N)) 
+        A0 = (A0 + A0') / 2
+        block_size = 2
+        x₀ = rand(T, 2N)
+        alg1 = Lanczos(;krylovdim = N, maxiter = 10, tol = tolerance(T), verbosity = 1)
+        alg2 = Lanczos(;krylovdim = N, maxiter = 10, tol = tolerance(T), verbosity = 1, blockmode = true, blocksize = block_size)
+        for A in [A0, x -> A0 * x]
+            t1 = time()
+            _, _, info1 = eigsolve(A, x₀, n, :SR, alg1)
+            t1 = time() - t1
+            t2 = time()
+            _, _, info2 = eigsolve(A, x₀, n, :SR, alg2)
+            t2 = time() - t2
+            @test t2 < 10 * t1
+            @test min(info1.converged, n) <= info2.converged
+        end
+    end
 end

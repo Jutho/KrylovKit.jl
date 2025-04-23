@@ -34,6 +34,7 @@ end
     @test isapprox([y.vec[i].vec for i in 1:n], [x.vec[i].vec for i in 1:n]; atol=tolerance(T))
 end
 
+#=
 using KrylovKit,Random,Test,LinearAlgebra
 N =10
 n = 5
@@ -65,3 +66,4 @@ vlues2, vectors2, info2 = eigsolve(A, x₀, 10, :SR, alg)
 
 norm(vlues1 - vlues2)
 norm(vectors1 - vectors2)
+=#

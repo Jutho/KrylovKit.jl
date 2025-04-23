@@ -228,24 +228,29 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
                 keep = bs * bsn
                 H = zeros(S, (bsn + 1) * bs, bsn * bs)
                 @inbounds for j in 1:keep
-                    H[j, j] = fact.TDB[j, j]
-                    H[bsn * bs + 1:end, j] = U[bsn * bs + 1:(bsn + 1) * bs, j]
+                    H[j, j] = D[j]
+                    H[bsn * bs + 1:end, j] = U[all_size - bs + 1:all_size, j]
                 end
                 @inbounds for j in keep:-1:1
                     h, ν = householder(H, j + bs, 1:j, j)
                     H[j + bs, j] = ν
                     H[j + bs, 1:(j - 1)] .= zero(eltype(H))
                     lmul!(h, H)
-                    rmul!(view(H, 1:j, :), h')
+                    rmul!(view(H, 1:j + bs -1, :), h')
                     rmul!(U, h')
                 end
                 TDB .= S(0)
                 TDB[1:keep, 1:keep] .= H[1:keep, 1:keep]
-                
-                V = fact.V
-                V = basistransform!(V, view(U, :, 1:keep))
+
+                V = OrthonormalBasis(fact.V.basis[1:all_size])
+                basistransform!(V, view(U, :, 1:keep))
+                fact.V[1:keep] = V[1:keep]
+
                 r_new = OrthonormalBasis(fact.r.vec[1:bs_r])
-                basistransform!(r_new, view(U, all_size - bs_r + 1:all_size, keep - bs_r + 1:keep))
+                view_U = view(U, all_size - bs_r + 1:all_size, keep - bs_r + 1:keep)
+                basistransform!(r_new, view_U)
+                fact.r.vec[1:bs_r] = r_new[1:bs_r]
+
                 fact.all_size = keep
                 numiter += 1
             end
@@ -273,5 +278,5 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
 
     return values[1:howmany_actual],
     vectors[1:howmany_actual],
-    ConvergenceInfo(num_converged, residuals, normresiduals, fact.all_size, numops)
+    ConvergenceInfo(num_converged, residuals, normresiduals, numiter, numops)
 end
