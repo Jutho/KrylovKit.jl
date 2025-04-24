@@ -458,9 +458,9 @@ function initialize(iter::BlockLanczosIterator; verbosity::Int=KrylovDefaults.ve
     A = iter.operator
     S = iter.num_field
 
-    V_basis = similar(X₀.vec, bs_now * (maxdim + 1))
+    V_basis = similar(X₀.vec, maxdim)
     r = BlockVec([similar(X₀[i]) for i in 1:bs_now], S)
-    TDB = zeros(S, bs_now * (maxdim + 1), bs_now * (maxdim + 1))
+    TDB = zeros(S, maxdim, maxdim)
 
     # Orthogonalization of the initial block
     X₁ = deepcopy(X₀)

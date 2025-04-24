@@ -34,36 +34,4 @@ end
     @test isapprox([y.vec[i].vec for i in 1:n], [x.vec[i].vec for i in 1:n]; atol=tolerance(T))
 end
 
-#=
-using KrylovKit,Random,Test,LinearAlgebra
-N =10
-n = 5
-Random.seed!(1234)
-T = ComplexF64;
-A = rand(T,N,N);
-A = A' * A;
-x₀ = rand(T,N);
-alg = Lanczos(; krylovdim = n, maxiter = 10, tol = 1e-10)
-eigsolve(A, x₀, n, :SR, alg)
 
-using KrylovKit,Random,Test,LinearAlgebra
-N =100
-Random.seed!(1234)
-T = ComplexF64;
-A = rand(T,N,N);
-A = A' * A;
-x₀ = rand(T,N);
-alg = Lanczos(; maxiter = 3, tol = 1e-10,blockmode=true, blocksize = 5)
-vlues1, vectors1, info1 = eigsolve(A, x₀, 10, :SR, alg)
-
-Random.seed!(1234)
-T = ComplexF64;
-A = rand(T,N,N);
-A = A' * A;
-x₀ = rand(T,N);
-alg = Lanczos(; maxiter = 3, tol = 1e-10,blockmode=true, blocksize = 5)
-vlues2, vectors2, info2 = eigsolve(A, x₀, 10, :SR, alg)
-
-norm(vlues1 - vlues2)
-norm(vectors1 - vectors2)
-=#
