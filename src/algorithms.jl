@@ -123,9 +123,10 @@ struct BlockLanczos{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     krylovdim::Int
     maxiter::Int
     tol::S
-    verbosity::Int
     blocksize::Int
     qr_tol::Real
+    eager::Bool
+    verbosity::Int
 end
 # qr_tol is the tolerance that we think a vector is non-zero in abstract_qr!
 # This qr_tol will also be used in other zero_chcking in block Lanczos.
@@ -143,7 +144,7 @@ function Lanczos(;
     maxiter < 0 && (blockmode ? (maxiter = KrylovDefaults.blockmaxiter[]) : (maxiter = KrylovDefaults.maxiter[]))
     if blockmode
         blocksize < 1 && error("blocksize must be greater than 0")
-        return BlockLanczos(orth, krylovdim, maxiter, tol, verbosity, blocksize, qr_tol)
+        return BlockLanczos(orth, krylovdim, maxiter, tol, blocksize, qr_tol, eager, verbosity)
     else
         return Lanczos(orth, krylovdim, maxiter, tol, eager, verbosity)
     end

@@ -307,9 +307,9 @@ function schur2eigvecs(T::AbstractMatrix{<:BlasReal}, which::AbstractVector{Int}
     return _normalizevecs!(VR)
 end
 
-function permuteeig!(D::AbstractVector{S},
-                     V::AbstractMatrix{S},
-                     perm::AbstractVector{Int}) where {S}
+function permuteeig!(D::AbstractVector,
+                     V::AbstractMatrix,
+                     perm::AbstractVector{Int})
     n = checksquare(V)
     p = collect(perm) # makes copy cause will be overwritten
     isperm(p) && length(p) == n ||

@@ -151,7 +151,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos;
            ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end
 
-function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
+function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) where T
     maxiter = alg.maxiter
     krylovdim = alg.krylovdim
     if howmany > krylovdim
@@ -168,20 +168,20 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
 
     iter = BlockLanczosIterator(A, x₀_vec, krylovdim + bs, alg.qr_tol, alg.orth)
     fact = initialize(iter; verbosity = verbosity)  # Returns a BlockLanczosFactorization
+    S = eltype(fact.TDB)  # The element type (Note: can be Complex) of the block tridiagonal matrix
     numops = 2    # Number of matrix-vector multiplications (for logging)
     numiter = 1
 
     # Preallocate space for eigenvectors and eigenvalues
     vectors = [similar(x₀_vec[1]) for _ in 1:howmany]
-    values = Vector{real(eltype(fact.TDB))}(undef, howmany)  # TODO: fix
+    values = Vector{real(S)}(undef, howmany)  # TODO: fix
+    residuals = [similar(x₀_vec[1]) for _ in 1:howmany]
 
     converged = false
     num_converged = 0
     local howmany_actual, residuals, normresiduals, D, U
 
     while true
-        expand!(iter, fact; verbosity = verbosity)
-        numops += 1
         K = length(fact)
         β = normres(fact)
 
@@ -190,74 +190,75 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
             msg *= "which is smaller than the number of requested eigenvalues (i.e. `howmany == $howmany`)."
             @warn msg
         end
-        if K > krylovdim || β < tol
+        if K >= krylovdim || β < tol || (alg.eager && K >= howmany)
+            # compute eigenvalues
+            # Note: Fast eigen solver for block tridiagonal matrices is not implemented yet.
             TDB = view(fact.TDB, 1:K, 1:K)
-            D, U = eigen(Hermitian((TDB + TDB') / 2))
+            D, U = eigen(Hermitian(TDB))
             by, rev = eigsort(which)
             p = sortperm(D; by = by, rev = rev)
-            D = D[p]
-            U = U[:, p]
-            T = eltype(fact.V.basis)
-            S = eltype(TDB)
+            D, U = permuteeig!(D, U, p)
         
             howmany_actual = min(howmany, length(D))
             copyto!(values, D[1:howmany_actual])
         
-            residuals = Vector{T}(undef, howmany_actual)
-            normresiduals = Vector{real(S)}(undef, howmany_actual)
-            bs_r = fact.r_size
+            # detect convergence by computing the residuals
+            bs_r = fact.r_size   # the block size of the residual (decreases as the iteration goes)
             r = fact.r[1:bs_r]
-            UU = U[end-bs_r+1:end, :]
-            for i in 1:howmany_actual
-                residuals[i] = r[1] * UU[1, i]
+            UU = U[end-bs_r+1:end, :]  # the last bs_r rows of U, used to compute the residuals
+            normresiduals = map(1:howmany_actual) do i
+                mul!(residuals[i], r[1], UU[1, i])
                 for j in 2:bs_r
                     axpy!(UU[j, i], r[j], residuals[i])
                 end
-                normresiduals[i] = norm(residuals[i])
+                norm(residuals[i])
             end
             num_converged = count(nr -> nr <= tol, normresiduals)
-
-            if num_converged >= howmany || β < tol
+            if num_converged >= howmany || β < tol  # successfully find enough eigenvalues
                 converged = true
                 break
             elseif verbosity >= EACHITERATION_LEVEL
-                @info "Block Lanczos eigsolve in iteration $numiter: $num_converged values converged, normres = $(normres2string(normresiduals[1:howmany]))"
+                @info "Block Lanczos eigsolve in iteration $numiter: $num_converged values converged, normres = $(normres2string(normresiduals))"
             end
-            if K > krylovdim # begin to shrink dimension
-                numiter >= maxiter && break
-                bsn = max(div(3 * krylovdim + 2 * num_converged, 5) ÷ bs, 1)
-                if (bsn + 1) * bs > K # make sure that we can fetch next block after shrinked dimension as residual
-                    warning("shrinked dimesion is too small and there is no need to shrink")
-                    break
-                end
-                keep = bs * bsn
-                H = zeros(S, (bsn + 1) * bs, bsn * bs)
-                @inbounds for j in 1:keep
-                    H[j, j] = D[j]
-                    H[bsn * bs + 1:end, j] = U[K - bs + 1:K, j]
-                end
-                @inbounds for j in keep:-1:1
-                    h, ν = householder(H, j + bs, 1:j, j)
-                    H[j + bs, j] = ν
-                    H[j + bs, 1:(j - 1)] .= zero(eltype(H))
-                    lmul!(h, H)
-                    rmul!(view(H, 1:j + bs -1, :), h')
-                    rmul!(U, h')
-                end
-                TDB .= S(0)
-                TDB[1:keep, 1:keep] .= H[1:keep, 1:keep]
-                V = OrthonormalBasis(fact.V.basis[1:K])
-                basistransform!(V, view(U, :, 1:keep))
-                fact.V[1:keep] = V[1:keep]
-                
-                r_new = OrthonormalBasis(fact.r.vec[1:bs_r])
-                view_U = view(U, K - bs_r + 1:K, keep - bs_r + 1:keep)
-                basistransform!(r_new, view_U)
-                fact.r.vec[1:bs_r] = r_new[1:bs_r]
+        end
 
-                fact.all_size = keep
-                numiter += 1
+        if K < krylovdim
+            expand!(iter, fact; verbosity = verbosity)
+            numops += 1
+        else # shrink and restart
+            numiter >= maxiter && break
+            bsn = max(div(3 * krylovdim + 2 * num_converged, 5) ÷ bs, 1)
+            if (bsn + 1) * bs > K # make sure that we can fetch next block after shrinked dimension as residual
+                @warn "shrinked dimesion is too small and there is no need to shrink"
+                break
             end
+            keep = bs * bsn
+            H = zeros(S, (bsn + 1) * bs, bsn * bs)
+            @inbounds for j in 1:keep
+                H[j, j] = D[j]
+                H[bsn * bs + 1:end, j] = U[K - bs + 1:K, j]
+            end
+            @inbounds for j in keep:-1:1
+                h, ν = householder(H, j + bs, 1:j, j)
+                H[j + bs, j] = ν
+                H[j + bs, 1:(j - 1)] .= zero(eltype(H))
+                lmul!(h, H)
+                rmul!(view(H, 1:j + bs -1, :), h')
+                rmul!(U, h')
+            end
+            TDB .= S(0)
+            TDB[1:keep, 1:keep] .= H[1:keep, 1:keep]
+            V = OrthonormalBasis(fact.V.basis[1:K])
+            basistransform!(V, view(U, :, 1:keep))
+            fact.V[1:keep] = V[1:keep]
+            
+            r_new = OrthonormalBasis(fact.r.vec[1:bs_r])
+            view_U = view(U, K - bs_r + 1:K, keep - bs_r + 1:keep)
+            basistransform!(r_new, view_U)
+            fact.r.vec[1:bs_r] = r_new[1:bs_r]
+
+            fact.all_size = keep
+            numiter += 1
         end
     end
 

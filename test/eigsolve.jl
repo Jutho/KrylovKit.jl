@@ -558,7 +558,7 @@ end
     @test findmax([norm(Aip(V[i]) - D[i] * V[i]) for i in 1:eig_num])[1] < tolerance(T)
 end
 
-using KrylovKit, Random
+using KrylovKit, Random, Test, LinearAlgebra
 @testset "Complete Lanczos and Block Lanczos" begin
     N = 100
     tolerance(T) = sqrt(eps(real(oneunit(T))))
@@ -583,6 +583,7 @@ end
 
 using Profile
 Random.seed!(6)
+N = 100
 M = 10N
 T = ComplexF64
         A = rand(T, (M, M)) 
@@ -595,8 +596,9 @@ T = ComplexF64
         @profile _, _, info2 = eigsolve(A, x₀, block_size, :SR, alg)
         Profile.print(mincount = 10)
 
-
+tolerance(T) = sqrt(eps(real(oneunit(T))))
         alg1 = Lanczos(;krylovdim = N, maxiter = 10, tol = tolerance(T), verbosity = 1)
+        E,V,info1 = eigsolve(A, x₀, block_size, :SR, alg1)
         Profile.clear()
         @profile _, _, info1 = eigsolve(A, x₀, block_size, :SR, alg1)
         Profile.print(mincount = 10)

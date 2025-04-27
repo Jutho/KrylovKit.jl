@@ -376,6 +376,8 @@ end
 
 # Test effectiveness of shrink!() in block lanczos
 @testset "Test effectiveness of shrink!() in block lanczos" begin
+    n = 10
+    N = 100
     @testset for T in [Float32, Float64, ComplexF32, ComplexF64]
         A0 = rand(T, (N, N))
         A0 = (A0 + A0') / 2
