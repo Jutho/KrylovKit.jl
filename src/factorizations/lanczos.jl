@@ -389,26 +389,29 @@ https://www.netlib.org/utk/people/JackDongarra/etemplates/node252.html#ABLEsecti
 # and process the block in the latter as a matrix with higher efficiency.
 struct BlockVec{T,S<:Number}
     vec::Vector{T}
-    num_field::Type{S}
+    function BlockVec{S}(vec::Vector{T}) where {T,S<:Number}
+        return new{T,S}(vec)
+    end
 end
-BlockVec(T::Type, S::Type) = BlockVec(Vector{T}(undef, 0), S)
 Base.length(b::BlockVec) = length(b.vec)
 Base.getindex(b::BlockVec, i::Int) = b.vec[i]
-Base.getindex(b::BlockVec, idxs::AbstractVector{Int}) = BlockVec([b.vec[i] for i in idxs], b.num_field)
+Base.getindex(b::BlockVec{T, S}, idxs::AbstractVector{Int}) where {T, S} = BlockVec{S}([b.vec[i] for i in idxs])
 Base.setindex!(b::BlockVec{T}, v::T, i::Int) where {T} = (b.vec[i] = v)
 Base.setindex!(b₁::BlockVec{T}, b₂::BlockVec{T}, idxs::AbstractVector{Int}) where {T} = (b₁.vec[idxs] = b₂.vec; b₁)
 Base.copy!(b₁::BlockVec{T,S}, b₂::BlockVec{T,S}) where {T,S} = (copy!.(b₁.vec, b₂.vec); b₁)
 LinearAlgebra.norm(b::BlockVec) = norm(b.vec)
-apply(f, block::BlockVec) = BlockVec([apply(f, x) for x in block.vec], block.num_field)
+apply(f, block::BlockVec{T, S}) where {T, S} = BlockVec{S}([apply(f, x) for x in block.vec])
 
 mutable struct BlockLanczosFactorization{T,S<:Number,SR<:Real} <: BlockKrylovFactorization{T,S,SR}
     all_size::Int
-    const V::OrthonormalBasis{T}            # Block Lanczos Basis
-    const TDB::AbstractMatrix{S}            # TDB matrix, S is the matrix type
+    const V::OrthonormalBasis{T}      # Block Lanczos Basis
+    const TDB::AbstractMatrix{S}      # TDB matrix, S is the matrix type
     const r::BlockVec{T,S}            # residual block
-    r_size::Int
-    norm_r::SR
+    r_size::Int # size of the residual block
+    norm_r::SR  # norm of the residual block
 end
+Base.length(fact::BlockLanczosFactorization) = fact.all_size
+normres(fact::BlockLanczosFactorization) = fact.norm_r
 
 #= 
 Now our orthogonalizer is only ModifiedGramSchmidt2.
@@ -426,16 +429,14 @@ struct BlockLanczosIterator{F,T,S,O<:Orthogonalizer} <: KrylovIterator{F,T}
     operator::F
     x₀::BlockVec{T,S}
     maxdim::Int
-    num_field::Type{S}
     orth::O
     qr_tol::Real
     function BlockLanczosIterator{F,T,S,O}(operator::F,
                                          x₀::Vector{T},
                                          maxdim::Int,
-                                         num_field::Type{S},
                                          orth::O,
                                          qr_tol::Real) where {F,T,S,O<:Orthogonalizer}
-        return new{F,T,S,O}(operator, BlockVec(x₀, num_field), maxdim, num_field, orth, qr_tol)
+        return new{F,T,S,O}(operator, BlockVec{S}(x₀), maxdim, orth, qr_tol)
     end
 end
 function BlockLanczosIterator(operator::F,
@@ -445,21 +446,19 @@ function BlockLanczosIterator(operator::F,
                               orth::O=ModifiedGramSchmidt2()) where {F,T,O<:Orthogonalizer}
     S = typeof(inner(x₀[1], x₀[1]))
     qr_tol < 0 && (qr_tol = 1e4 * eps(real(S)))
-    length(x₀) < 2 && @error "initial vector should not have norm zero"
     norm(x₀) < qr_tol && @error "initial vector should not have norm zero"
     orth != ModifiedGramSchmidt2() && @error "BlockLanczosIterator only supports ModifiedGramSchmidt2 orthogonalizer"
-    return BlockLanczosIterator{F,T,S,O}(operator, x₀, maxdim, S, orth, qr_tol)
+    return BlockLanczosIterator{F,T,S,O}(operator, x₀, maxdim, orth, qr_tol)
 end 
 
-function initialize(iter::BlockLanczosIterator; verbosity::Int=KrylovDefaults.verbosity[])
+function initialize(iter::BlockLanczosIterator{F,T,S}; verbosity::Int=KrylovDefaults.verbosity[]) where {F,T,S}
     X₀ = iter.x₀
     maxdim = iter.maxdim
     bs_now = length(X₀) # block size now
     A = iter.operator
-    S = iter.num_field
 
     V_basis = similar(X₀.vec, maxdim)
-    r = BlockVec([similar(X₀[i]) for i in 1:bs_now], S)
+    r = BlockVec{S}([similar(X₀[i]) for i in 1:bs_now])
     TDB = zeros(S, maxdim, maxdim)
 
     # Orthogonalization of the initial block
@@ -491,7 +490,7 @@ function initialize(iter::BlockLanczosIterator; verbosity::Int=KrylovDefaults.ve
 
     # Calculate the new residual. Get r₂
     compute_residual!(r, AX₂, X₂, M₂_view, X₁, B₁)
-    ortho_basis!(r, BlockVec(V_basis[1:bs_now+bs_next], S))
+    ortho_basis!(r, BlockVec{S}(V_basis[1:bs_now+bs_next]))
     norm_r = norm(r)
 
     if verbosity > EACHITERATION_LEVEL
@@ -506,10 +505,9 @@ function initialize(iter::BlockLanczosIterator; verbosity::Int=KrylovDefaults.ve
                                     norm_r)
 end
 
-function expand!(iter::BlockLanczosIterator, state::BlockLanczosFactorization;
-                 verbosity::Int=KrylovDefaults.verbosity[])
+function expand!(iter::BlockLanczosIterator{F,T,S}, state::BlockLanczosFactorization{T,S,SR};
+                 verbosity::Int=KrylovDefaults.verbosity[]) where {F,T,S,SR}
     all_size = state.all_size
-    S = iter.num_field
     rₖ = state.r[1:state.r_size]
     bs_now = length(rₖ)
     V_basis = state.V.basis
@@ -533,10 +531,10 @@ function expand!(iter::BlockLanczosIterator, state::BlockLanczosFactorization;
     Mnext_view = (Mnext_view + Mnext_view') / 2
 
     # Calculate the new residual. Get Rnext
-    Xnow = BlockVec(V_basis[all_size-bs_now+1:all_size], S)
-    rₖnext = BlockVec([similar(V_basis[1]) for _ in 1:bs_next], S)
+    Xnow = BlockVec{S}(V_basis[all_size-bs_now+1:all_size])
+    rₖnext = BlockVec{S}([similar(V_basis[1]) for _ in 1:bs_next])
     compute_residual!(rₖnext, AXₖnext, Xnext, Mnext_view, Xnow, Bₖ_view)
-    ortho_basis!(rₖnext, BlockVec(V_basis[1:all_size+bs_next], S))
+    ortho_basis!(rₖnext, BlockVec{S}(V_basis[1:all_size+bs_next]))
     state.r.vec[1:bs_next] .= rₖnext.vec
     state.norm_r = norm(rₖnext)
     state.all_size += bs_next

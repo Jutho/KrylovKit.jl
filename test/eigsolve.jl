@@ -558,20 +558,45 @@ end
     @test findmax([norm(Aip(V[i]) - D[i] * V[i]) for i in 1:eig_num])[1] < tolerance(T)
 end
 
+using KrylovKit, Random
 @testset "Complete Lanczos and Block Lanczos" begin
+    N = 100
+    tolerance(T) = sqrt(eps(real(oneunit(T))))
     @testset for T in [Float32, Float64, ComplexF32, ComplexF64]
         Random.seed!(6)
         A0 = rand(T, (2N, 2N)) 
         A0 = (A0 + A0') / 2
-        block_size = 4
+        block_size = 1
         x₀ = rand(T, 2N)
         alg1 = Lanczos(;krylovdim = N, maxiter = 10, tol = tolerance(T), verbosity = 1)
         alg2 = Lanczos(;krylovdim = N, maxiter = 10, tol = tolerance(T), verbosity = 1, blockmode = true, blocksize = block_size)
         for A in [A0, x -> A0 * x]
-            t1 = @elapsed _, _, info1 = eigsolve(A, x₀, block_size, :SR, alg1)
-            t2 = @elapsed _, _, info2 = eigsolve(A, x₀, block_size, :SR, alg2)
-            println("When input type is $T, the time of lanczos and block lanczos is $t1, $t2")
+            t1 = @elapsed evals1, _, info1 = eigsolve(A, x₀, block_size, :SR, alg1)
+            t2 = @elapsed evals2, _, info2 = eigsolve(A, x₀, block_size, :SR, alg2)
+            println("When input type is $T, the time of lanczos and block lanczos is $t1, $t2, the rate is $(t2/t1)")
             @test min(info1.converged, block_size) <= info2.converged
+            @test evals1[1] ≈ evals2[1] atol = tolerance(T)
         end
     end
 end
+
+
+using Profile
+Random.seed!(6)
+M = 10N
+T = ComplexF64
+        A = rand(T, (M, M)) 
+        A = (A + A') / 2
+        block_size = 1
+        x₀ = normalize(rand(T, M))
+
+        alg = Lanczos(;krylovdim = N, maxiter = 10, tol = tolerance(T), verbosity = 1, blockmode = true, blocksize = block_size)
+        Profile.clear()
+        @profile _, _, info2 = eigsolve(A, x₀, block_size, :SR, alg)
+        Profile.print(mincount = 10)
+
+
+        alg1 = Lanczos(;krylovdim = N, maxiter = 10, tol = tolerance(T), verbosity = 1)
+        Profile.clear()
+        @profile _, _, info1 = eigsolve(A, x₀, block_size, :SR, alg1)
+        Profile.print(mincount = 10)

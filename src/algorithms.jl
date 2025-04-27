@@ -142,7 +142,7 @@ function Lanczos(;
     krylovdim < 0 && (blockmode ? (krylovdim = KrylovDefaults.blockkrylovdim[]) : (krylovdim = KrylovDefaults.krylovdim[]))
     maxiter < 0 && (blockmode ? (maxiter = KrylovDefaults.blockmaxiter[]) : (maxiter = KrylovDefaults.maxiter[]))
     if blockmode
-        blocksize <= 1 && error("blocksize must be greater than 1")
+        blocksize < 1 && error("blocksize must be greater than 0")
         return BlockLanczos(orth, krylovdim, maxiter, tol, verbosity, blocksize, qr_tol)
     else
         return Lanczos(orth, krylovdim, maxiter, tol, eager, verbosity)

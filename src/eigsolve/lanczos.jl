@@ -159,16 +159,22 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
     end
     tol = alg.tol
     verbosity = alg.verbosity
+
+    # Initialize a block of vectors from the initial vector, randomly generated
+    # TODO: add a more flexible initialization
     x₀_vec = [randn!(similar(x₀)) for _ in 1:alg.blocksize-1]
     pushfirst!(x₀_vec, x₀)
     bs = length(x₀_vec)
 
     iter = BlockLanczosIterator(A, x₀_vec, krylovdim + bs, alg.qr_tol, alg.orth)
-    fact = initialize(iter; verbosity = verbosity)
-    numops = 2 # how many times we apply A
+    fact = initialize(iter; verbosity = verbosity)  # Returns a BlockLanczosFactorization
+    numops = 2    # Number of matrix-vector multiplications (for logging)
     numiter = 1
+
+    # Preallocate space for eigenvectors and eigenvalues
     vectors = [similar(x₀_vec[1]) for _ in 1:howmany]
-    values = Vector{real(eltype(fact.TDB))}(undef, howmany)
+    values = Vector{real(eltype(fact.TDB))}(undef, howmany)  # TODO: fix
+
     converged = false
     num_converged = 0
     local howmany_actual, residuals, normresiduals, D, U
@@ -176,17 +182,16 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
     while true
         expand!(iter, fact; verbosity = verbosity)
         numops += 1
+        K = length(fact)
+        β = normres(fact)
 
-        # When norm(Rk) is to small, we may lose too much precision and orthogonalization.
-        if fact.all_size > krylovdim || (fact.norm_r < tol) || (fact.r_size < 2)
-            if fact.norm_r < tol && fact.all_size < howmany && verbosity >= WARN_LEVEL
-                msg = "Invariant subspace of dimension $(fact.all_size) (up to requested tolerance `tol = $tol`), "
-                msg *= "which is smaller than the number of requested eigenvalues (i.e. `howmany == $howmany`)."
-                @warn msg
-            end
-
-            all_size = fact.all_size
-            TDB = view(fact.TDB, 1:all_size, 1:all_size)
+        if β < tol && K < howmany && verbosity >= WARN_LEVEL
+            msg = "Invariant subspace of dimension $(K) (up to requested tolerance `tol = $tol`), "
+            msg *= "which is smaller than the number of requested eigenvalues (i.e. `howmany == $howmany`)."
+            @warn msg
+        end
+        if K > krylovdim || β < tol
+            TDB = view(fact.TDB, 1:K, 1:K)
             D, U = eigen(Hermitian((TDB + TDB') / 2))
             by, rev = eigsort(which)
             p = sortperm(D; by = by, rev = rev)
@@ -212,16 +217,16 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
             end
             num_converged = count(nr -> nr <= tol, normresiduals)
 
-            if num_converged >= howmany || fact.norm_r < tol
+            if num_converged >= howmany || β < tol
                 converged = true
                 break
             elseif verbosity >= EACHITERATION_LEVEL
                 @info "Block Lanczos eigsolve in iteration $numiter: $num_converged values converged, normres = $(normres2string(normresiduals[1:howmany]))"
             end
-            if fact.all_size > krylovdim # begin to shrink dimension
+            if K > krylovdim # begin to shrink dimension
                 numiter >= maxiter && break
                 bsn = max(div(3 * krylovdim + 2 * num_converged, 5) ÷ bs, 1)
-                if (bsn + 1) * bs > fact.all_size # make sure that we can fetch next block after shrinked dimension as residual
+                if (bsn + 1) * bs > K # make sure that we can fetch next block after shrinked dimension as residual
                     warning("shrinked dimesion is too small and there is no need to shrink")
                     break
                 end
@@ -229,7 +234,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
                 H = zeros(S, (bsn + 1) * bs, bsn * bs)
                 @inbounds for j in 1:keep
                     H[j, j] = D[j]
-                    H[bsn * bs + 1:end, j] = U[all_size - bs + 1:all_size, j]
+                    H[bsn * bs + 1:end, j] = U[K - bs + 1:K, j]
                 end
                 @inbounds for j in keep:-1:1
                     h, ν = householder(H, j + bs, 1:j, j)
@@ -241,12 +246,12 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
                 end
                 TDB .= S(0)
                 TDB[1:keep, 1:keep] .= H[1:keep, 1:keep]
-                V = OrthonormalBasis(fact.V.basis[1:all_size])
+                V = OrthonormalBasis(fact.V.basis[1:K])
                 basistransform!(V, view(U, :, 1:keep))
                 fact.V[1:keep] = V[1:keep]
                 
                 r_new = OrthonormalBasis(fact.r.vec[1:bs_r])
-                view_U = view(U, all_size - bs_r + 1:all_size, keep - bs_r + 1:keep)
+                view_U = view(U, K - bs_r + 1:K, keep - bs_r + 1:keep)
                 basistransform!(r_new, view_U)
                 fact.r.vec[1:bs_r] = r_new[1:bs_r]
 
@@ -255,21 +260,23 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
             end
         end
     end
-    V = view(fact.V.basis, 1:fact.all_size)
+
+    K = length(fact)
+    V = view(fact.V.basis, 1:K)
     @inbounds for i in 1:howmany_actual
         copy!(vectors[i], V[1] * U[1, i])
-        for j in 2:fact.all_size
+        for j in 2:K
             axpy!(U[j, i], V[j], vectors[i])
         end
     end
 
     if (num_converged < howmany) && verbosity >= WARN_LEVEL
-        @warn """Block Lanczos eigsolve stopped without full convergence after $(fact.all_size) iterations:
+        @warn """Block Lanczos eigsolve stopped without full convergence after $(K) iterations:
         * $num_converged eigenvalues converged
         * norm of residuals = $(normres2string(normresiduals))
         * number of operations = $numops"""
     elseif verbosity >= STARTSTOP_LEVEL
-        @info """Block Lanczos eigsolve finished after $(fact.all_size) iterations:
+        @info """Block Lanczos eigsolve finished after $(K) iterations:
         * $num_converged eigenvalues converged
         * norm of residuals = $(normres2string(normresiduals))
         * number of operations = $numops"""
