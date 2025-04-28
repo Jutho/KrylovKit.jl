@@ -162,23 +162,20 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
 
     # Initialize a block of vectors from the initial vector, randomly generated
     # TODO: add a more flexible initialization
-    x₀_vec = [randn!(similar(x₀)) for _ in 1:alg.blocksize-1]
-    pushfirst!(x₀_vec, x₀)
-    bs = length(x₀_vec)
+    block0 = initialize(x₀, alg.blocksize)
+    bs = length(block0)
 
-    iter = BlockLanczosIterator(A, x₀_vec, krylovdim + bs, alg.qr_tol, alg.orth)
+    iter = BlockLanczosIterator(A, block0, krylovdim + bs, alg.qr_tol, alg.orth)
     fact = initialize(iter; verbosity = verbosity)  # Returns a BlockLanczosFactorization
     S = eltype(fact.TDB)  # The element type (Note: can be Complex) of the block tridiagonal matrix
-    numops = 2    # Number of matrix-vector multiplications (for logging)
+    numops = 1    # Number of matrix-vector multiplications (for logging)
     numiter = 1
 
     # Preallocate space for eigenvectors and eigenvalues
-    vectors = [similar(x₀_vec[1]) for _ in 1:howmany]
-    values = Vector{real(S)}(undef, howmany)  # TODO: fix
-    residuals = [similar(x₀_vec[1]) for _ in 1:howmany]
+    vectors = [similar(x₀) for _ in 1:howmany]
+    residuals = [similar(x₀) for _ in 1:howmany]
 
-    converged = false
-    num_converged = 0
+    converged = 0
     local howmany_actual, residuals, normresiduals, D, U
 
     while true
@@ -190,17 +187,16 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
             msg *= "which is smaller than the number of requested eigenvalues (i.e. `howmany == $howmany`)."
             @warn msg
         end
-        if K >= krylovdim || β < tol || (alg.eager && K >= howmany)
+        # BlockLanczos can access the case of K = 1 and doesn't need extra processing
+        if K >= krylovdim || β <= tol || (alg.eager && K >= howmany)
             # compute eigenvalues
             # Note: Fast eigen solver for block tridiagonal matrices is not implemented yet.
             TDB = view(fact.TDB, 1:K, 1:K)
             D, U = eigen(Hermitian(TDB))
             by, rev = eigsort(which)
             p = sortperm(D; by = by, rev = rev)
-            D, U = permuteeig!(D, U, p)
-        
+            D, U = permuteeig!(D, U, p)   
             howmany_actual = min(howmany, length(D))
-            copyto!(values, D[1:howmany_actual])
         
             # detect convergence by computing the residuals
             bs_r = fact.r_size   # the block size of the residual (decreases as the iteration goes)
@@ -213,12 +209,11 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
                 end
                 norm(residuals[i])
             end
-            num_converged = count(nr -> nr <= tol, normresiduals)
-            if num_converged >= howmany || β < tol  # successfully find enough eigenvalues
-                converged = true
+            converged = count(nr -> nr <= tol, normresiduals)
+            if converged >= howmany || β <= tol  # successfully find enough eigenvalues
                 break
             elseif verbosity >= EACHITERATION_LEVEL
-                @info "Block Lanczos eigsolve in iteration $numiter: $num_converged values converged, normres = $(normres2string(normresiduals))"
+                @info "Block Lanczos eigsolve in iteration $numiter: $converged values converged, normres = $(normres2string(normresiduals))"
             end
         end
 
@@ -227,7 +222,7 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
             numops += 1
         else # shrink and restart
             numiter >= maxiter && break
-            bsn = max(div(3 * krylovdim + 2 * num_converged, 5) ÷ bs, 1)
+            bsn = max(div(3 * krylovdim + 2 * converged, 5) ÷ bs, 1)
             if (bsn + 1) * bs > K # make sure that we can fetch next block after shrinked dimension as residual
                 @warn "shrinked dimesion is too small and there is no need to shrink"
                 break
@@ -257,7 +252,7 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
             basistransform!(r_new, view_U)
             fact.r.vec[1:bs_r] = r_new[1:bs_r]
 
-            fact.all_size = keep
+            fact.total_size = keep
             numiter += 1
         end
     end
@@ -271,19 +266,19 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
         end
     end
 
-    if (num_converged < howmany) && verbosity >= WARN_LEVEL
+    if (converged < howmany) && verbosity >= WARN_LEVEL
         @warn """Block Lanczos eigsolve stopped without full convergence after $(K) iterations:
-        * $num_converged eigenvalues converged
+        * $converged eigenvalues converged
         * norm of residuals = $(normres2string(normresiduals))
         * number of operations = $numops"""
     elseif verbosity >= STARTSTOP_LEVEL
         @info """Block Lanczos eigsolve finished after $(K) iterations:
-        * $num_converged eigenvalues converged
+        * $converged eigenvalues converged
         * norm of residuals = $(normres2string(normresiduals))
         * number of operations = $numops"""
     end
 
-    return values[1:howmany_actual],
+    return D[1:howmany_actual],
     vectors[1:howmany_actual],
-    ConvergenceInfo(num_converged, residuals, normresiduals, numiter, numops)
+    ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end

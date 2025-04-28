@@ -1,9 +1,4 @@
-using KrylovKit, LinearAlgebra, Random, Test
-
 @testset "apply on BlockVec" begin
-    N = 100
-    n = 10
-    tolerance(T) = sqrt(eps(real(oneunit(T))))
     for T in [Float32, Float64, ComplexF64]
         A0 = rand(T,N,N);
         A0 = A0' * A0;
@@ -24,9 +19,6 @@ using KrylovKit, LinearAlgebra, Random, Test
 end
 
 @testset "copy! for BlockVec" begin
-    N = 100
-    n = 10
-    tolerance(T) = sqrt(eps(real(oneunit(T))))
     for T in [Float32, Float64, ComplexF32, ComplexF64]
         x = KrylovKit.BlockVec{T}([rand(T,N) for _ in 1:n])
         y = KrylovKit.BlockVec{T}([rand(T,N) for _ in 1:n])
@@ -41,4 +33,20 @@ end
     @test isapprox([y.vec[i].vec for i in 1:n], [x.vec[i].vec for i in 1:n]; atol=tolerance(T))
 end
 
+@testset "initialize for BlockVec" begin
+    for T in [Float32, Float64, ComplexF32, ComplexF64]
+        block0 = KrylovKit.initialize(rand(T,N), n)
+        @test block0 isa KrylovKit.BlockVec
+        @test length(block0) == n
+        @test Tuple(typeof(block0).parameters) == (Vector{T},T)
+    end
 
+    # test for abtract type
+    T = ComplexF64
+    f(x,y) = x' * y
+    x0 = InnerProductVec(rand(T,N), f)
+    block0 = KrylovKit.initialize(x0, n)
+    @test block0 isa KrylovKit.BlockVec
+    @test length(block0) == n
+    @test Tuple(typeof(block0).parameters) == (typeof(x0),T)
+end

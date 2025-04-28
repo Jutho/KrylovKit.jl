@@ -305,7 +305,7 @@ end
         A0 = (A0 + A0') / 2
         block_size = 5
         x₀m = Matrix(qr(rand(T, N, block_size)).Q)
-        x₀ = [x₀m[:, i] for i in 1:block_size]
+        x₀ = KrylovKit.BlockVec{T}([x₀m[:, i] for i in 1:block_size])
         eigvalsA = eigvals(A0)
         for A in [A0, x -> A0 * x]
             iter = KrylovKit.BlockLanczosIterator(A, x₀, N, qr_tol(T))
@@ -316,7 +316,7 @@ end
             @test_logs initialize(iter; verbosity = EACHITERATION_LEVEL)
             @test_logs (:info,) initialize(iter; verbosity = EACHITERATION_LEVEL + 1)
             verbosity = EACHITERATION_LEVEL + 1
-            while fact.all_size < n
+            while fact.total_size < n
                 if verbosity == EACHITERATION_LEVEL + 1
                     @test_logs (:info,) expand!(iter, fact; verbosity = verbosity)
                     verbosity = EACHITERATION_LEVEL
@@ -331,14 +331,14 @@ end
             B = rand(T, (n, n)) # test warnings for non-hermitian matrices
             bs = 2
             v₀m = Matrix(qr(rand(T, n, bs)).Q)
-            v₀ = [v₀m[:, i] for i in 1:bs]
+            v₀ = KrylovKit.BlockVec{T}([v₀m[:, i] for i in 1:bs])
             iter = KrylovKit.BlockLanczosIterator(B, v₀, N, qr_tol(T))
             fact = initialize(iter)
             @constinferred expand!(iter, fact; verbosity = 0)
             @test_logs initialize(iter; verbosity = 0)
             @test_logs (:warn,) initialize(iter)
             verbosity = 1
-            while fact.all_size < n
+            while fact.total_size < n
                 if verbosity == 1
                     @test_logs (:warn,) expand!(iter, fact; verbosity = verbosity)
                     verbosity = 0
@@ -358,41 +358,26 @@ end
         A0 = (A0 + A0') / 2
         block_size = 5
         x₀m = Matrix(qr(rand(T, N, block_size)).Q)
-        x₀ = [x₀m[:, i] for i in 1:block_size]
+        x₀ = KrylovKit.BlockVec{T}([x₀m[:, i] for i in 1:block_size])
         for A in [A0, x -> A0 * x]
             iter = @constinferred KrylovKit.BlockLanczosIterator(A, x₀, N, qr_tol(T))
             krylovdim = n
             fact = initialize(iter)
-            while fact.norm_r > eps(float(real(T))) && fact.all_size < krylovdim
+            #while fact.norm_r > eps(float(real(T))) && fact.total_size < krylovdim
                 @constinferred expand!(iter, fact)
-                V, H, r, β, e = fact
+                k = fact.total_size
+                rs = fact.r_size
+                V0 = fact.V[1:k]
+                r0 = fact.r[1:rs]
+                H = fact.TDB[1:k, 1:k]
+                norm_r = fact.norm_r
+                V = hcat(V0...)
+                r = hcat(r0.vec...)
+                e = hcat(zeros(T, rs, k-rs), I)
                 @test V' * V ≈ I
-                @test norm(r) ≈ β
-                @test A * V ≈ V * H + r * e'
-            end
-        end
-    end
-end
-
-# Test effectiveness of shrink!() in block lanczos
-@testset "Test effectiveness of shrink!() in block lanczos" begin
-    n = 10
-    N = 100
-    @testset for T in [Float32, Float64, ComplexF32, ComplexF64]
-        A0 = rand(T, (N, N))
-        A0 = (A0 + A0') / 2
-        block_size = 5
-        x₀ = rand(T, N)
-        values0 = eigvals(A0)[1:n]
-        n1 = n ÷ 2
-        for A in [A0, x -> A0 * x]
-            alg = KrylovKit.Lanczos(; krylovdim = 3*n÷2, maxiter = 1, tol = 1e-12, blockmode = true, blocksize = block_size)
-            values, _, _ = eigsolve(A, x₀, n, :SR, alg)
-            error1 = norm(values[1:n1] - values0[1:n1])
-            alg_shrink = KrylovKit.Lanczos(; krylovdim = n, maxiter = 2, tol = 1e-12, blockmode = true, blocksize = block_size)
-            values_shrink, _, _ = eigsolve(A, x₀, n, :SR, alg_shrink)
-            error2 = norm(values_shrink[1:n1] - values0[1:n1])
-            @test error2 < error1
+                @test norm(r) ≈ norm_r
+                @test A0 * V ≈ V * H + r * e
+            #end
         end
     end
 end

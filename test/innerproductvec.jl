@@ -6,8 +6,8 @@ M[i,j] = inner(x[i],y[j])
     A = [rand(T, N) for _ in 1:n]
     B = [rand(T, N) for _ in 1:n]
     M = Matrix{T}(undef, n, n)
-    BlockA = KrylovKit.BlockVec(A, T)
-    BlockB = KrylovKit.BlockVec(B, T)
+    BlockA = KrylovKit.BlockVec{T}(A)
+    BlockB = KrylovKit.BlockVec{T}(B)
     KrylovKit.block_inner!(M, BlockA, BlockB)
     M0 = hcat(BlockA.vec...)' * hcat(BlockB.vec...)
     @test eltype(M) == T
@@ -33,8 +33,8 @@ end
         Y[i] = InnerProductVec(rand(T, N), ip)
     end    
     M = Matrix{T}(undef, n, n);
-    BlockX = KrylovKit.BlockVec(X, T)
-    BlockY = KrylovKit.BlockVec(Y, T)
+    BlockX = KrylovKit.BlockVec{T}(X)
+    BlockY = KrylovKit.BlockVec{T}(Y)
     KrylovKit.block_inner!(M, BlockX, BlockY);
     Xm = hcat([X[i].vec for i in 1:n]...);
     Ym = hcat([Y[i].vec for i in 1:n]...);
@@ -53,8 +53,8 @@ end
     M = rand(T, n, n)
     alpha = rand(T)
     beta = rand(T)
-    BlockA = KrylovKit.BlockVec(A, T)
-    BlockB = KrylovKit.BlockVec(B, T)
+    BlockA = KrylovKit.BlockVec{T}(A)
+    BlockB = KrylovKit.BlockVec{T}(B)
     KrylovKit.block_mul!(BlockA, BlockB, M, alpha, beta)
     @test isapprox(hcat([BlockA.vec[i].vec for i in 1:n]...), beta * hcat([Acopy[i].vec for i in 1:n]...) + alpha * hcat([BlockB.vec[i].vec for i in 1:n]...) * M; atol = tolerance(T))
 end

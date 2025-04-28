@@ -477,10 +477,10 @@ As a result, I’ve decided to postpone dealing with the in-place test issue for
             @test_logs (:warn,) eigsolve(A, x₀, n1, :SR, alg)
             alg = Lanczos(; krylovdim = n, maxiter = 1, tol = tolerance(T), verbosity = 2, blockmode = true, blocksize = block_size)
             @test_logs (:info,) eigsolve(A, x₀, n1, :SR, alg)
-            alg = Lanczos(; krylovdim = 4, maxiter = 3, tol = tolerance(T), verbosity = 3, blockmode = true, blocksize = block_size)
+            alg = Lanczos(; krylovdim = 3, maxiter = 3, tol = tolerance(T), verbosity = 3, blockmode = true, blocksize = block_size)
             @test_logs((:info,), (:info,), (:info,), (:warn,), eigsolve(A, x₀, 1, :SR, alg))
             alg = Lanczos(; krylovdim = 4, maxiter=1, tol=tolerance(T), verbosity=4, blockmode=true, blocksize=block_size)
-            @test_logs((:info,), (:info,), (:info,), (:warn,), eigsolve(A, x₀, 1, :SR, alg))
+            @test_logs((:info,), (:info,),(:info,),(:warn,), eigsolve(A, x₀, 1, :SR, alg))
             # To use blockmode, users have to explicitly set blockmode = true, we don't allow them to use eigselector.
             # Because of the _residual! function, I can't make sure the stability of types temporarily. 
             # So I ignore the test of @constinferred
@@ -552,16 +552,13 @@ end
     D, V, info = eigsolve(Aip, x₀, eig_num, :SR, Lanczos(; krylovdim = n, maxiter = 1, tol = tolerance(T),
         verbosity = 0, blockmode = true, blocksize = block_size))
     D_true = eigvals(H)
-    BlockV = KrylovKit.BlockVec(V, T)
+    BlockV = KrylovKit.BlockVec{T}(V)
     @test D ≈ D_true[1:eig_num]
     @test KrylovKit.block_inner(BlockV, BlockV) ≈ I
     @test findmax([norm(Aip(V[i]) - D[i] * V[i]) for i in 1:eig_num])[1] < tolerance(T)
 end
 
-using KrylovKit, Random, Test, LinearAlgebra
 @testset "Complete Lanczos and Block Lanczos" begin
-    N = 100
-    tolerance(T) = sqrt(eps(real(oneunit(T))))
     @testset for T in [Float32, Float64, ComplexF32, ComplexF64]
         Random.seed!(6)
         A0 = rand(T, (2N, 2N)) 
@@ -580,9 +577,30 @@ using KrylovKit, Random, Test, LinearAlgebra
     end
 end
 
+# Test effectiveness of shrink!() in block lanczos
+@testset "Test effectiveness of shrink!() in block lanczos" begin
+    @testset for T in [Float32, Float64, ComplexF32, ComplexF64]
+        A0 = rand(T, (N, N))
+        A0 = (A0 + A0') / 2
+        block_size = 5
+        x₀ = rand(T, N)
+        values0 = eigvals(A0)[1:n]
+        n1 = n ÷ 2
+        for A in [A0, x -> A0 * x]
+            alg = KrylovKit.Lanczos(; krylovdim = 3*n÷2, maxiter = 1, tol = 1e-12, blockmode = true, blocksize = block_size)
+            values, _, _ = eigsolve(A, x₀, n, :SR, alg)
+            error1 = norm(values[1:n1] - values0[1:n1])
+            alg_shrink = KrylovKit.Lanczos(; krylovdim = 3*n÷2, maxiter = 2, tol = 1e-12, blockmode = true, blocksize = block_size)
+            values_shrink, _, _ = eigsolve(A, x₀, n, :SR, alg_shrink)
+            error2 = norm(values_shrink[1:n1] - values0[1:n1])
+            @test error2 < error1
+        end
+    end
+end
 
+#=
 using Profile
-Random.seed!(6)
+Randomeed!(6)
 N = 100
 M = 10N
 T = ComplexF64
@@ -602,3 +620,4 @@ tolerance(T) = sqrt(eps(real(oneunit(T))))
         Profile.clear()
         @profile _, _, info1 = eigsolve(A, x₀, block_size, :SR, alg1)
         Profile.print(mincount = 10)
+        =#
