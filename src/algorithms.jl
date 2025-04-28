@@ -108,8 +108,7 @@ Use `Arnoldi` for non-symmetric or non-Hermitian linear operators.
 See also: `factorize`, `eigsolve`, `exponentiate`, `Arnoldi`, `Orthogonalizer`
 """
 
-# Add BlockLanczos may seem ugly, but to keep the type stable to pass
-# tests in test/eigsolve.jl, I have to do this.
+# Add BlockLanczos to keep the type stable to pass
 struct Lanczos{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     orth::O
     krylovdim::Int
@@ -492,4 +491,5 @@ const blockkrylovdim = Ref(100)
 const blockmaxiter = Ref(2)
 const tol = Ref(1e-12)
 const verbosity = Ref(KrylovKit.WARN_LEVEL)
+const qr_tol(S::Type) = 1e4 * eps(real(S))
 end

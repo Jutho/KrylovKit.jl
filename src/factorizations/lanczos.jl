@@ -450,7 +450,7 @@ function BlockLanczosIterator(operator::F,
                               maxdim::Int,
                               qr_tol::Real,
                               orth::O=ModifiedGramSchmidt2()) where {F,T,S,O<:Orthogonalizer}
-    qr_tol < 0 && (qr_tol = 1e4 * eps(real(S)))
+    qr_tol < 0 && (qr_tol = KrylovDefaults.qr_tol(S))
     norm(x₀) < qr_tol && @error "initial vector should not have norm zero"
     orth != ModifiedGramSchmidt2() && @error "BlockLanczosIterator only supports ModifiedGramSchmidt2 orthogonalizer"
     return BlockLanczosIterator{F,T,S,O}(operator, x₀, maxdim, orth, qr_tol)

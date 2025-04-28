@@ -510,11 +510,13 @@ end
         Random.seed!(6)
         A0 = rand(T, (N, N)) .- one(T) / 2
         A0 = (A0 + A0') / 2
-        block_size = 5
-        x₀ = rand(T, N)
+        block_size = 2
+        x₀ = normalize(rand(T, N))
         eigvalsA = eigvals(A0)
         for A in [A0, x -> A0 * x]
-            alg = Lanczos(; maxiter = 1, tol = tolerance(T), blockmode = true, blocksize = block_size)
+            alg = Lanczos(; krylovdim = N, maxiter = 10, tol = tolerance(T),
+                          eager = true, verbosity = 0, 
+                          blockmode = true, blocksize = block_size)
             D1, V1, info1 = eigsolve(A, x₀, n, :SR, alg)
             D2, V2, info2 = eigsolve(A, x₀, n, :LR, alg)
 
@@ -563,16 +565,15 @@ end
         Random.seed!(6)
         A0 = rand(T, (2N, 2N)) 
         A0 = (A0 + A0') / 2
-        block_size = 1
+        block_size = 5
         x₀ = rand(T, 2N)
         alg1 = Lanczos(;krylovdim = N, maxiter = 10, tol = tolerance(T), verbosity = 1)
         alg2 = Lanczos(;krylovdim = N, maxiter = 10, tol = tolerance(T), verbosity = 1, blockmode = true, blocksize = block_size)
         for A in [A0, x -> A0 * x]
-            t1 = @elapsed evals1, _, info1 = eigsolve(A, x₀, block_size, :SR, alg1)
-            t2 = @elapsed evals2, _, info2 = eigsolve(A, x₀, block_size, :SR, alg2)
-            println("When input type is $T, the time of lanczos and block lanczos is $t1, $t2, the rate is $(t2/t1)")
+            evals1, _, info1 = eigsolve(A, x₀, block_size, :SR, alg1)
+            evals2, _, info2 = eigsolve(A, x₀, block_size, :SR, alg2)
             @test min(info1.converged, block_size) <= info2.converged
-            @test evals1[1] ≈ evals2[1] atol = tolerance(T)
+            @test norm(evals1[1:block_size] - evals2[1:block_size]) < tolerance(T)
         end
     end
 end
@@ -597,27 +598,3 @@ end
         end
     end
 end
-
-#=
-using Profile
-Randomeed!(6)
-N = 100
-M = 10N
-T = ComplexF64
-        A = rand(T, (M, M)) 
-        A = (A + A') / 2
-        block_size = 1
-        x₀ = normalize(rand(T, M))
-
-        alg = Lanczos(;krylovdim = N, maxiter = 10, tol = tolerance(T), verbosity = 1, blockmode = true, blocksize = block_size)
-        Profile.clear()
-        @profile _, _, info2 = eigsolve(A, x₀, block_size, :SR, alg)
-        Profile.print(mincount = 10)
-
-tolerance(T) = sqrt(eps(real(oneunit(T))))
-        alg1 = Lanczos(;krylovdim = N, maxiter = 10, tol = tolerance(T), verbosity = 1)
-        E,V,info1 = eigsolve(A, x₀, block_size, :SR, alg1)
-        Profile.clear()
-        @profile _, _, info1 = eigsolve(A, x₀, block_size, :SR, alg1)
-        Profile.print(mincount = 10)
-        =#
