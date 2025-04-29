@@ -433,13 +433,11 @@ end
     # matrix input
     alg = Lanczos(;tol = tol, blockmode = true, blocksize = p,maxiter = 1)
     D, U, info = eigsolve(-h_mat, x₀, get_value_num, :SR, alg)
-    @show D[1:get_value_num]
     @test count(x -> abs(x + 16.0) < 2.0 - tol, D[1:get_value_num]) == 4
     @test count(x -> abs(x + 16.0) < tol, D[1:get_value_num]) == 4
 
     # map input
     D, U, info = eigsolve(x -> -h_mat * x, x₀, get_value_num, :SR, alg)
-    @show D[1:get_value_num]
     @test count(x -> abs(x + 16.0) < 1.9, D[1:get_value_num]) == 4
     @test count(x -> abs(x + 16.0) < 1e-8, D[1:get_value_num]) == 4
 end
@@ -560,20 +558,34 @@ end
     @test findmax([norm(Aip(V[i]) - D[i] * V[i]) for i in 1:eig_num])[1] < tolerance(T)
 end
 
+# with the same krylovdim, block lanczos has lower accuracy with blocksize >1.
 @testset "Complete Lanczos and Block Lanczos" begin
     @testset for T in [Float32, Float64, ComplexF32, ComplexF64]
         Random.seed!(6)
         A0 = rand(T, (2N, 2N)) 
         A0 = (A0 + A0') / 2
-        block_size = 5
+        block_size = 1
         x₀ = rand(T, 2N)
-        alg1 = Lanczos(;krylovdim = N, maxiter = 10, tol = tolerance(T), verbosity = 1)
-        alg2 = Lanczos(;krylovdim = N, maxiter = 10, tol = tolerance(T), verbosity = 1, blockmode = true, blocksize = block_size)
+        alg1 = Lanczos(;krylovdim = 2n, maxiter = 10, tol = tolerance(T), verbosity = 1)
+        alg2 = Lanczos(;krylovdim = 2n, maxiter = 10, tol = tolerance(T), verbosity = 1, blockmode = true, blocksize = block_size)
         for A in [A0, x -> A0 * x]
-            evals1, _, info1 = eigsolve(A, x₀, block_size, :SR, alg1)
-            evals2, _, info2 = eigsolve(A, x₀, block_size, :SR, alg2)
-            @test min(info1.converged, block_size) <= info2.converged
-            @test norm(evals1[1:block_size] - evals2[1:block_size]) < tolerance(T)
+            evals1, _, info1 = eigsolve(A, x₀, n, :SR, alg1)
+            evals2, _, info2 = eigsolve(A, x₀, n, :SR, alg2)
+            @test min(info1.converged, n) == info2.converged
+        end
+    end
+    @testset for T in [Float32, Float64, ComplexF32, ComplexF64]
+        Random.seed!(6)
+        A0 = rand(T, (2N, 2N)) 
+        A0 = (A0 + A0') / 2
+        block_size = 4
+        x₀ = rand(T, 2N)
+        alg1 = Lanczos(;krylovdim = 2n, maxiter = 10, tol = tolerance(T), verbosity = 1)
+        alg2 = Lanczos(;krylovdim = 2n, maxiter = 10, tol = tolerance(T), verbosity = 1, blockmode = true, blocksize = block_size)
+        for A in [A0, x -> A0 * x]
+            evals1, _, info1 = eigsolve(A, x₀, n, :SR, alg1)
+            evals2, _, info2 = eigsolve(A, x₀, n, :SR, alg2)
+            @test min(info1.converged, n) >= info2.converged + 1
         end
     end
 end

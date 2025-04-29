@@ -243,16 +243,18 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
             end
             TDB .= S(0)
             TDB[1:keep, 1:keep] .= H[1:keep, 1:keep]
-            V = OrthonormalBasis(fact.V.basis[1:K])
-            basistransform!(V, view(U, :, 1:keep))
-            fact.V[1:keep] = V[1:keep]
+            B = basis(fact)
+            basistransform!(B, view(U, :, 1:keep))
             
             r_new = OrthonormalBasis(fact.r.vec[1:bs_r])
             view_U = view(U, K - bs_r + 1:K, keep - bs_r + 1:keep)
             basistransform!(r_new, view_U)
             fact.r.vec[1:bs_r] = r_new[1:bs_r]
 
-            fact.total_size = keep
+            while length(fact) > keep
+                pop!(fact.V)
+                fact.total_size -= 1
+            end
             numiter += 1
         end
     end

@@ -44,12 +44,14 @@ end
     H = H'*H + I;
     H = (H + H')/2;
     ip(x,y) = x'*H*y
+    
     x₀ = [InnerProductVec(rand(T, N), ip) for i in 1:n]
     x₁ = [InnerProductVec(rand(T, N), ip) for i in 1:2*n]
-    Blockx₀ = KrylovKit.BlockVec{T}(x₀)
-    Blockx₁ = KrylovKit.BlockVec{T}(x₁)
-    KrylovKit.abstract_qr!(Blockx₁, qr_tol(T))
-    KrylovKit.ortho_basis!(Blockx₀, Blockx₁)
-    @test norm(KrylovKit.block_inner(Blockx₀, Blockx₁)) < 2* tolerance(T)
-end
+    b₀ = KrylovKit.BlockVec{T}(x₀)
+    b₁ = KrylovKit.BlockVec{T}(x₁)
+    KrylovKit.abstract_qr!(b₁, qr_tol(T))
 
+    orthobasis_x₁ = KrylovKit.OrthonormalBasis(b₁.vec)
+    KrylovKit.ortho_basis!(b₀, orthobasis_x₁)
+    @test norm(KrylovKit.block_inner(b₀, b₁)) < tolerance(T)
+end
