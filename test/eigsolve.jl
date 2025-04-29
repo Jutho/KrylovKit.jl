@@ -431,7 +431,7 @@ end
     h_mat = toric_code_hamiltonian_matrix(sites_num, sites_num)
 
     # matrix input
-    alg = Lanczos(;tol = tol, blockmode = true, blocksize = p,maxiter = 1)
+    alg = BlockLanczos(;tol = tol, blocksize = p,maxiter = 1)
     D, U, info = eigsolve(-h_mat, x₀, get_value_num, :SR, alg)
     @test count(x -> abs(x + 16.0) < 2.0 - tol, D[1:get_value_num]) == 4
     @test count(x -> abs(x + 16.0) < tol, D[1:get_value_num]) == 4
@@ -467,23 +467,23 @@ As a result, I’ve decided to postpone dealing with the in-place test issue for
         n1 = div(n, 2)  # eigenvalues to solve
         eigvalsA = eigvals(A0)
         for A in [A0, x -> A0 * x]
-            alg = Lanczos(; krylovdim = n, maxiter = 1, tol = tolerance(T), verbosity = 2, blockmode = true, blocksize = block_size)
+            alg = BlockLanczos(; krylovdim = n, maxiter = 1, tol = tolerance(T), verbosity = 2, blocksize = block_size)
             D1, V1, info = @test_logs (:info,) eigsolve(A, x₀, n1, :SR, alg)
-            alg = Lanczos(; krylovdim = n, maxiter = 1, tol = tolerance(T), verbosity = 1, blockmode = true, blocksize = block_size)
+            alg = BlockLanczos(; krylovdim = n, maxiter = 1, tol = tolerance(T), verbosity = 1, blocksize = block_size)
             @test_logs eigsolve(A, x₀, n1, :SR, alg)
-            alg = Lanczos(; krylovdim = n1 + 1, maxiter = 1, tol = tolerance(T), verbosity = 1, blockmode = true, blocksize = block_size)
+            alg = BlockLanczos(; krylovdim = n1 + 1, maxiter = 1, tol = tolerance(T), verbosity = 1, blocksize = block_size)
             @test_logs (:warn,) eigsolve(A, x₀, n1, :SR, alg)
-            alg = Lanczos(; krylovdim = n, maxiter = 1, tol = tolerance(T), verbosity = 2, blockmode = true, blocksize = block_size)
+            alg = BlockLanczos(; krylovdim = n, maxiter = 1, tol = tolerance(T), verbosity = 2, blocksize = block_size)
             @test_logs (:info,) eigsolve(A, x₀, n1, :SR, alg)
-            alg = Lanczos(; krylovdim = 3, maxiter = 3, tol = tolerance(T), verbosity = 3, blockmode = true, blocksize = block_size)
+            alg = BlockLanczos(; krylovdim = 3, maxiter = 3, tol = tolerance(T), verbosity = 3, blocksize = block_size)
             @test_logs((:info,), (:info,), (:info,), (:warn,), eigsolve(A, x₀, 1, :SR, alg))
-            alg = Lanczos(; krylovdim = 4, maxiter=1, tol=tolerance(T), verbosity=4, blockmode=true, blocksize=block_size)
+            alg = BlockLanczos(; krylovdim = 4, maxiter=1, tol=tolerance(T), verbosity=4, blocksize=block_size)
             @test_logs((:info,), (:info,),(:info,),(:warn,), eigsolve(A, x₀, 1, :SR, alg))
             # To use blockmode, users have to explicitly set blockmode = true, we don't allow them to use eigselector.
             # Because of the _residual! function, I can't make sure the stability of types temporarily. 
             # So I ignore the test of @constinferred
             n2 = n - n1
-            alg = Lanczos(; krylovdim = 2 * n, maxiter = 4, tol = tolerance(T), blockmode = true, blocksize = block_size)
+            alg = BlockLanczos(; krylovdim = 2 * n, maxiter = 4, tol = tolerance(T), blocksize = block_size)
             D2, V2, info = eigsolve(A, x₀, n2, :LR, alg)
             D2[1:n2]
             @test vcat(D1[1:n1], reverse(D2[1:n2])) ≊ eigvalsA
@@ -497,7 +497,7 @@ As a result, I’ve decided to postpone dealing with the in-place test issue for
             @test (x -> KrylovKit.apply(A, x)).(V1) ≈ D1 .* V1
             @test (x -> KrylovKit.apply(A, x)).(V2) ≈ D2 .* V2
 
-            alg = Lanczos(; krylovdim = 2n, maxiter = 1, tol = tolerance(T), verbosity = 1, blockmode = true, blocksize = block_size)
+            alg = BlockLanczos(; krylovdim = 2n, maxiter = 1, tol = tolerance(T), verbosity = 1, blocksize = block_size)
             @test_logs (:warn,) (:warn,) eigsolve(A, x₀, n + 1, :LM, alg)
         end
     end
@@ -512,9 +512,9 @@ end
         x₀ = normalize(rand(T, N))
         eigvalsA = eigvals(A0)
         for A in [A0, x -> A0 * x]
-            alg = Lanczos(; krylovdim = N, maxiter = 10, tol = tolerance(T),
+            alg = BlockLanczos(; krylovdim = N, maxiter = 10, tol = tolerance(T),
                           eager = true, verbosity = 0, 
-                          blockmode = true, blocksize = block_size)
+                          blocksize = block_size)
             D1, V1, info1 = eigsolve(A, x₀, n, :SR, alg)
             D2, V2, info2 = eigsolve(A, x₀, n, :LR, alg)
 
@@ -549,8 +549,8 @@ end
     Hip(x::Vector, y::Vector) = x' * H * y
     x₀ = InnerProductVec(rand(T, n), Hip)
     Aip(x::InnerProductVec) = InnerProductVec(H * x.vec, Hip)
-    D, V, info = eigsolve(Aip, x₀, eig_num, :SR, Lanczos(; krylovdim = n, maxiter = 1, tol = tolerance(T),
-        verbosity = 0, blockmode = true, blocksize = block_size))
+    D, V, info = eigsolve(Aip, x₀, eig_num, :SR, BlockLanczos(; krylovdim = n, maxiter = 1, tol = tolerance(T),
+        verbosity = 0, blocksize = block_size))
     D_true = eigvals(H)
     BlockV = KrylovKit.BlockVec{T}(V)
     @test D ≈ D_true[1:eig_num]
@@ -567,7 +567,7 @@ end
         block_size = 1
         x₀ = rand(T, 2N)
         alg1 = Lanczos(;krylovdim = 2n, maxiter = 10, tol = tolerance(T), verbosity = 1)
-        alg2 = Lanczos(;krylovdim = 2n, maxiter = 10, tol = tolerance(T), verbosity = 1, blockmode = true, blocksize = block_size)
+        alg2 = BlockLanczos(;krylovdim = 2n, maxiter = 10, tol = tolerance(T), verbosity = 1, blocksize = block_size)
         for A in [A0, x -> A0 * x]
             evals1, _, info1 = eigsolve(A, x₀, n, :SR, alg1)
             evals2, _, info2 = eigsolve(A, x₀, n, :SR, alg2)
@@ -581,7 +581,7 @@ end
         block_size = 4
         x₀ = rand(T, 2N)
         alg1 = Lanczos(;krylovdim = 2n, maxiter = 10, tol = tolerance(T), verbosity = 1)
-        alg2 = Lanczos(;krylovdim = 2n, maxiter = 10, tol = tolerance(T), verbosity = 1, blockmode = true, blocksize = block_size)
+        alg2 = BlockLanczos(;krylovdim = 2n, maxiter = 10, tol = tolerance(T), verbosity = 1, blocksize = block_size)
         for A in [A0, x -> A0 * x]
             evals1, _, info1 = eigsolve(A, x₀, n, :SR, alg1)
             evals2, _, info2 = eigsolve(A, x₀, n, :SR, alg2)
@@ -600,10 +600,10 @@ end
         values0 = eigvals(A0)[1:n]
         n1 = n ÷ 2
         for A in [A0, x -> A0 * x]
-            alg = KrylovKit.Lanczos(; krylovdim = 3*n÷2, maxiter = 1, tol = 1e-12, blockmode = true, blocksize = block_size)
+            alg = KrylovKit.BlockLanczos(; krylovdim = 3*n÷2, maxiter = 1, tol = 1e-12, blocksize = block_size)
             values, _, _ = eigsolve(A, x₀, n, :SR, alg)
             error1 = norm(values[1:n1] - values0[1:n1])
-            alg_shrink = KrylovKit.Lanczos(; krylovdim = 3*n÷2, maxiter = 2, tol = 1e-12, blockmode = true, blocksize = block_size)
+            alg_shrink = KrylovKit.BlockLanczos(; krylovdim = 3*n÷2, maxiter = 2, tol = 1e-12, blocksize = block_size)
             values_shrink, _, _ = eigsolve(A, x₀, n, :SR, alg_shrink)
             error2 = norm(values_shrink[1:n1] - values0[1:n1])
             @test error2 < error1

@@ -369,22 +369,9 @@ end
 
 # block lanczos
 
-#= 
-The basic theory of the Block Lanczos algorithm can be referred to : 
-Golub, G. H., & Van Loan, C. F. (2013). Matrix computations (4th ed., pp. 566–569). Johns Hopkins University Press.
+# The basic theory of the Block Lanczos algorithm can be referred to : Golub, G. H., & Van Loan, C. F. (2013). Matrix computations (4th ed., pp. 566–569). Johns Hopkins University Press.
 
-Now what I implement is block lanczos with mutable block size. But I'm still confused is it neccesary. That is to say, Can we asseert 
-the iteration would end with size shrink? 
-Mathematically: for a set of initial abstract vectors X₀ = {x₁,..,xₚ}, where A is a hermitian operator, if 
-Sₖ = {x ∈ AʲX₀:j=0,..,k-1}
-is linear dependent, can we assert that Rₖ ∈ span(A^{k-2}X₀,A^{k-1}X₀) or at least in span(Sₖ)?
-For vectors in F^d I believe it's right. But in a abstract inner product space, it's obviouly much more complicated.
-
-What ever, mutable block size is at least undoubtedly useful for non-hermitian operator so I implement it.
-https://www.netlib.org/utk/people/JackDongarra/etemplates/node252.html#ABLEsection
-=#
-
-# We use this to store vectors as a block. Although now its fields are same to OrthonormalBasis,
+# We use BlockVec to store vectors as a block. Although now its fields are same to OrthonormalBasis,
 # I plan to develop BlockVec a abstract of vector of number and inner product space, 
 # and process the block in the latter as a matrix with higher efficiency.
 struct BlockVec{T,S<:Number}
@@ -414,6 +401,29 @@ function Base.push!(V::OrthonormalBasis{T}, b::BlockVec{T}) where {T}
     return V
 end
 
+"""
+    mutable struct BlockLanczosFactorization{T,S<:Number,SR<:Real} <: BlockKrylovFactorization{T,S,SR}
+
+Structure to store a block lanczos factorization of a real symmetric or complex hermitian linear
+map `A` of the form
+
+```julia
+A * V = V * B + r * b'
+```
+
+For a given BlockLanczos factorization `fact` of length `k = length(fact)`, the basis `V` is
+obtained via [`basis(fact)`](@ref basis) and is an instance of [`OrthonormalBasis{T}`](@ref
+Basis), with also `length(V) == k` and where `T` denotes the type of vector like objects
+used in the problem. The block tridiagonal matrix `B` is preallocated in BlockLanczosFactorization
+and is of type `Hermitian{S<:Number}` with `size(B) == (k,k)`. The residual `r` is of type `T`.
+One can also query [`normres(fact)`](@ref) to obtain `norm(r)`, the norm of the residual. The vector
+`b` takes the default value ``e_k``, i.e. the matrix of size `(k,bs)` and an unit matrix in the last
+`bs` rows and all zeros in the other rows. `bs` is the size of the last block.
+
+`BlockLanczosFactorization` is mutable because it can [`expand!`](@ref) or [`shrink!`](@ref).
+See also [`BlockLanczosIterator`](@ref) for an iterator that constructs a progressively expanding
+BlockLanczos factorizations of a given linear map and a starting vector.
+"""
 mutable struct BlockLanczosFactorization{T,S<:Number,SR<:Real} <: BlockKrylovFactorization{T,S,SR}
     total_size::Int
     const V::OrthonormalBasis{T}      # Block Lanczos Basis
@@ -426,18 +436,53 @@ Base.length(fact::BlockLanczosFactorization) = fact.total_size
 normres(fact::BlockLanczosFactorization) = fact.norm_r
 basis(fact::BlockLanczosFactorization) = fact.V
 
-#= 
-Now our orthogonalizer is only ModifiedGramSchmidt2.
-Dimension of Krylov subspace in BlockLanczosIterator is usually much bigger than lanczos.
-So ClassicalGramSchmidt and ModifiedGramSchmidt1 is numerically unstable.
-I don't add IR orthogonalizer because I find it sometimes unstable and I am studying it.
+"""
+    struct BlockLanczosIterator{F,T,O<:Orthogonalizer} <: KrylovIterator{F,T}
+    BlockLanczosIterator(f, x₀, [orth::Orthogonalizer = KrylovDefaults.orth, keepvecs::Bool = true])
+
+Iterator that takes a linear map `f::F` (supposed to be real symmetric or complex hermitian)
+and an initial block `x₀::Vector{T}` and generates an expanding `BlockLanczosFactorization` thereof. In
+particular, `BlockLanczosIterator` uses the
+[Block Lanczos iteration](https://en.wikipedia.org/wiki/Block_Lanczos_algorithm) scheme to build a
+successively expanding BlockLanczos factorization. While `f` cannot be tested to be symmetric or
+hermitian directly when the linear map is encoded as a general callable object or function,
+it is tested whether  `block_inner(X, f.(X))` is sufficiently small to be
+neglected.
+
+The argument `f` can be a matrix, or a function accepting a single argument `x`, so that
+`f(x)` implements the action of the linear map on the block `x`.
+
+The optional argument `orth` specifies which [`Orthogonalizer`](@ref) to be used. The
+default value in [`KrylovDefaults`](@ref) is to use [`ModifiedGramSchmidt2`](@ref), which
+uses reorthogonalization steps in every iteration.
+Now our orthogonalizer is only ModifiedGramSchmidt2. So we don't need to provide "keepvecs" because we have to reverse all krylove vectors.
+Dimension of Krylov subspace in BlockLanczosIterator is usually much bigger than lanczos.So ClassicalGramSchmidt 
+and ModifiedGramSchmidt1 is numerically unstable. I don't add IR orthogonalizer because I find it sometimes unstable.
 Householder reorthogonalization is theoretically stable and saves memory, but the algorithm I implemented is not stable.
 In the future, I will add IR and Householder orthogonalizer.
-=#
 
-#= The only orthogonalization method we use in block lanczos is ModifiedGramSchmidt2. So we don't need to
-provide "keepvecs" because we have to reverse all krylove vectors.
-=#
+When iterating over an instance of `BlockLanczosIterator`, the values being generated are
+instances of [`BlockLanczosFactorization`](@ref), which can be destructured. For example as
+
+```julia
+for (V, B, r, nr, b) in BlockLanczosIterator(f, x₀)
+    # do something
+    nr < tol && break # a typical stopping criterion
+end
+```
+
+Since the iterator does not know the dimension of the underlying vector space of
+objects of type `T`, it keeps expanding the Krylov subspace until the residual norm `nr`
+falls below machine precision `eps(typeof(nr))`.
+
+The internal state of `BlockLanczosIterator` is the same as the return value, i.e. the
+corresponding `BlockLanczosFactorization`.
+
+Here, [`initialize(::KrylovIterator)`](@ref) produces the first Krylov factorization,
+and `expand!(::KrylovIterator, ::KrylovFactorization)`(@ref) expands the
+factorization in place. See also [`shrink!(::KrylovFactorization, k)`](@ref) to shrink an
+existing factorization down to length `k`.
+"""
 struct BlockLanczosIterator{F,T,S,O<:Orthogonalizer} <: KrylovIterator{F,T}
     operator::F
     x₀::BlockVec{T,S}
@@ -457,7 +502,6 @@ function BlockLanczosIterator(operator::F,
                               maxdim::Int,
                               qr_tol::Real,
                               orth::O=ModifiedGramSchmidt2()) where {F,T,S,O<:Orthogonalizer}
-    qr_tol < 0 && (qr_tol = KrylovDefaults.qr_tol(S))
     norm(x₀) < qr_tol && @error "initial vector should not have norm zero"
     orth != ModifiedGramSchmidt2() && @error "BlockLanczosIterator only supports ModifiedGramSchmidt2 orthogonalizer"
     return BlockLanczosIterator{F,T,S,O}(operator, x₀, maxdim, orth, qr_tol)
@@ -476,12 +520,11 @@ function initialize(iter::BlockLanczosIterator{F,T,S}; verbosity::Int=KrylovDefa
     V = OrthonormalBasis(X₁.vec)
 
     AX₁ = apply(A, X₁)
-    M₁_view = view(TDB, 1:bs, 1:bs)
-    block_inner!(M₁_view, X₁, AX₁)
-    verbosity >= WARN_LEVEL && warn_nonhermitian(M₁_view, iter.qr_tol)
-    M₁_view = (M₁_view + M₁_view') / 2
+    M₁ = block_inner(X₁, AX₁)
+    TDB[1:bs, 1:bs] .= M₁
+    verbosity >= WARN_LEVEL && warn_nonhermitian(M₁)
  
-    residual = block_mul!(AX₁, X₁, - M₁_view, S(1), S(1))
+    residual = block_mul!(AX₁, X₁, - M₁, S(1), S(1))
     norm_r = norm(residual)
     if verbosity > EACHITERATION_LEVEL
         @info "Block Lanczos initiation at dimension $bs: subspace normres = $(normres2string(norm_r))"
@@ -510,7 +553,7 @@ function expand!(iter::BlockLanczosIterator{F,T,S}, state::BlockLanczosFactoriza
 
     # Calculate the new residual and orthogonalize the new basis
     rₖnext, Mnext = blocklanczosrecurrence(iter.operator, V, Bₖ, iter.orth)
-    verbosity >= WARN_LEVEL && warn_nonhermitian(Mnext, iter.qr_tol)
+    verbosity >= WARN_LEVEL && warn_nonhermitian(Mnext)
 
     state.TDB[k+1:k+bs_next, k+1:k+bs_next] .= Mnext
     state.r.vec[1:bs_next] .= rₖnext.vec
@@ -565,8 +608,8 @@ function ortho_basis!(basis::BlockVec{T,S}, basis_sofar::OrthonormalBasis{T}) wh
     return basis
 end
 
-function warn_nonhermitian(M::AbstractMatrix, tol::Real)
-    if norm(M - M') > tol
+function warn_nonhermitian(M::AbstractMatrix)
+    if norm(M - M') > eps(real(eltype(M)))^(2/5)
         @warn "Enforce Hermiticity on the triangular diagonal blocks matrix, even though the operator may not be Hermitian."
     end
 end

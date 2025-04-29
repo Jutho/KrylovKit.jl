@@ -1,20 +1,20 @@
 #=
-block_inner!(M,x,y):
+block_inner(x,y):
 M[i,j] = inner(x[i],y[j])
 =#
-@testset "block_inner! for non-full vectors $T" for T in (Float32, Float64, ComplexF32, ComplexF64)
+@testset "block_inner for non-full vectors $T" for T in (Float32, Float64, ComplexF32, ComplexF64)
     A = [rand(T, N) for _ in 1:n]
     B = [rand(T, N) for _ in 1:n]
     M = Matrix{T}(undef, n, n)
     BlockA = KrylovKit.BlockVec{T}(A)
     BlockB = KrylovKit.BlockVec{T}(B)
-    KrylovKit.block_inner!(M, BlockA, BlockB)
+    M = KrylovKit.block_inner(BlockA, BlockB)
     M0 = hcat(BlockA.vec...)' * hcat(BlockB.vec...)
     @test eltype(M) == T
     @test isapprox(M, M0; atol = relax_tol(T))
 end
 
-@testset "block_inner! for abstract inner product" begin
+@testset "block_inner for abstract inner product" begin
     T = ComplexF64
     H = rand(T, N, N);
     H = H'*H + I;
@@ -32,10 +32,9 @@ end
     for i in 2:n
         Y[i] = InnerProductVec(rand(T, N), ip)
     end    
-    M = Matrix{T}(undef, n, n);
     BlockX = KrylovKit.BlockVec{T}(X)
     BlockY = KrylovKit.BlockVec{T}(Y)
-    KrylovKit.block_inner!(M, BlockX, BlockY);
+    M = KrylovKit.block_inner(BlockX, BlockY);
     Xm = hcat([X[i].vec for i in 1:n]...);
     Ym = hcat([Y[i].vec for i in 1:n]...);
     M0 = Xm' * H * Ym;

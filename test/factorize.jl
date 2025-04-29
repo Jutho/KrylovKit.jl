@@ -308,7 +308,7 @@ end
         x₀ = KrylovKit.BlockVec{T}([x₀m[:, i] for i in 1:block_size])
         eigvalsA = eigvals(A0)
         for A in [A0, x -> A0 * x]
-            iter = KrylovKit.BlockLanczosIterator(A, x₀, N, qr_tol(T))
+            iter = BlockLanczosIterator(A, x₀, N, qr_tol(T))
             # TODO: Why type unstable?
             # fact = @constinferred initialize(iter)
             fact = initialize(iter)
@@ -331,7 +331,7 @@ end
         bs = 2
         v₀m = Matrix(qr(rand(T, n, bs)).Q)
         v₀ = KrylovKit.BlockVec{T}([v₀m[:, i] for i in 1:bs])
-        iter = KrylovKit.BlockLanczosIterator(B, v₀, N, qr_tol(T))
+        iter = BlockLanczosIterator(B, v₀, N, qr_tol(T))
         fact = initialize(iter)
         @constinferred expand!(iter, fact; verbosity = 0)
         @test_logs initialize(iter; verbosity = 0)
@@ -358,7 +358,7 @@ end
         x₀m = Matrix(qr(rand(T, N, block_size)).Q)
         x₀ = KrylovKit.BlockVec{T}([x₀m[:, i] for i in 1:block_size])
         for A in [A0, x -> A0 * x]
-            iter = @constinferred KrylovKit.BlockLanczosIterator(A, x₀, N, qr_tol(T))
+            iter = @constinferred BlockLanczosIterator(A, x₀, N, qr_tol(T))
             krylovdim = n
             fact = initialize(iter)
             while fact.norm_r > eps(float(real(T))) && fact.total_size < krylovdim

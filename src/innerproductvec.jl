@@ -139,23 +139,14 @@ function block_mul!(A::BlockVec{T,S}, B::BlockVec{T,S}, M::AbstractMatrix, alpha
     return A
 end
 
-function block_inner!(M::AbstractMatrix,
-    x::BlockVec{T,S},
-    y::BlockVec{T,S}) where {T,S}
-    @assert size(M) == (length(x), length(y)) "Matrix dimensions must match"
-    @inbounds for j in 1:length(y)
-        yj = y[j]
-        for i in 1:length(x)
-            M[i, j] = inner(x[i], yj)
-        end
-    end
-    return M
-end
-
-# used for debugging
 function block_inner(B₁::BlockVec{T,S}, B₂::BlockVec{T,S}) where {T,S}
     M = Matrix{S}(undef, length(B₁.vec), length(B₂.vec))
-    block_inner!(M, B₁, B₂)
+    @inbounds for j in 1:length(B₂)
+        yj = B₂[j]
+        for i in 1:length(B₁)
+            M[i, j] = inner(B₁[i], yj)
+        end
+    end
     return M
 end
 

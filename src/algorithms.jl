@@ -107,8 +107,6 @@ Use `Arnoldi` for non-symmetric or non-Hermitian linear operators.
 
 See also: `factorize`, `eigsolve`, `exponentiate`, `Arnoldi`, `Orthogonalizer`
 """
-
-# Add BlockLanczos to keep the type stable to pass
 struct Lanczos{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     orth::O
     krylovdim::Int
@@ -117,6 +115,18 @@ struct Lanczos{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     eager::Bool
     verbosity::Int
 end
+function Lanczos(;
+                 krylovdim::Int=KrylovDefaults.krylovdim[],
+                 maxiter::Int=KrylovDefaults.maxiter[],
+                 tol::Real=KrylovDefaults.tol[],
+                 orth::Orthogonalizer=KrylovDefaults.orth,
+                 eager::Bool=false,
+                 verbosity::Int=KrylovDefaults.verbosity[])
+    return Lanczos(orth, krylovdim, maxiter, tol, eager, verbosity)
+end
+
+# qr_tol is the tolerance that we think a vector is non-zero in abstract_qr!
+# This qr_tol will also be used in other zero_chcking in block Lanczos.
 struct BlockLanczos{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     orth::O
     krylovdim::Int
@@ -127,26 +137,17 @@ struct BlockLanczos{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     eager::Bool
     verbosity::Int
 end
-# qr_tol is the tolerance that we think a vector is non-zero in abstract_qr!
-# This qr_tol will also be used in other zero_chcking in block Lanczos.
-function Lanczos(;
-                 krylovdim::Int= -1,
-                 maxiter::Int= -1,
-                 tol::Real=KrylovDefaults.tol[],
-                 orth::Orthogonalizer=KrylovDefaults.orth,
-                 eager::Bool=false,
-                 verbosity::Int=KrylovDefaults.verbosity[],
-                 blockmode::Bool=false,
-                 blocksize::Int=-1,
-                 qr_tol::Real=-1.0)
-    krylovdim < 0 && (blockmode ? (krylovdim = KrylovDefaults.blockkrylovdim[]) : (krylovdim = KrylovDefaults.krylovdim[]))
-    maxiter < 0 && (blockmode ? (maxiter = KrylovDefaults.blockmaxiter[]) : (maxiter = KrylovDefaults.maxiter[]))
-    if blockmode
-        blocksize < 1 && error("blocksize must be greater than 0")
-        return BlockLanczos(orth, krylovdim, maxiter, tol, blocksize, qr_tol, eager, verbosity)
-    else
-        return Lanczos(orth, krylovdim, maxiter, tol, eager, verbosity)
-    end
+function BlockLanczos(;
+    krylovdim::Int=KrylovDefaults.blockkrylovdim[],
+    maxiter::Int=KrylovDefaults.blockmaxiter[],
+    tol::Real=KrylovDefaults.tol[],
+    orth::Orthogonalizer=KrylovDefaults.orth,
+    eager::Bool=false,
+    verbosity::Int=KrylovDefaults.verbosity[],
+    blocksize::Int=1,
+    qr_tol::Real=KrylovDefaults.tol[])
+    blocksize < 1 && error("blocksize must be greater than 0")
+    return BlockLanczos(orth, krylovdim, maxiter, tol, blocksize, qr_tol, eager, verbosity)
 end
 
 """
@@ -491,5 +492,4 @@ const blockkrylovdim = Ref(100)
 const blockmaxiter = Ref(2)
 const tol = Ref(1e-12)
 const verbosity = Ref(KrylovKit.WARN_LEVEL)
-const qr_tol(S::Type) = 1e4 * eps(real(S))
 end

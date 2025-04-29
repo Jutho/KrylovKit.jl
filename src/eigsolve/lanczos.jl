@@ -161,7 +161,6 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
     verbosity = alg.verbosity
 
     # Initialize a block of vectors from the initial vector, randomly generated
-    # TODO: add a more flexible initialization
     block0 = initialize(x₀, alg.blocksize)
     bs = length(block0)
 
@@ -222,17 +221,16 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
             numops += 1
         else # shrink and restart
             numiter >= maxiter && break
-            bsn = max(div(3 * krylovdim + 2 * converged, 5) ÷ bs, 1)
-            if (bsn + 1) * bs > K # make sure that we can fetch next block after shrinked dimension as residual
-                @warn "shrinked dimesion is too small and there is no need to shrink"
-                break
-            end
+            bsn = max(div(3 * krylovdim + 2 * converged, 5) ÷ bs, 1) # Divide basis into blocks with the same size
             keep = bs * bsn
             H = zeros(S, (bsn + 1) * bs, bsn * bs)
+            # The last bs rows of U contribute to calculate errors of Ritz values.
             @inbounds for j in 1:keep
                 H[j, j] = D[j]
                 H[bsn * bs + 1:end, j] = U[K - bs + 1:K, j]
             end
+            # Turn diagonal matrix D into a block tridiagonal matrix, and make sure 
+            # the residual of krylov subspace keeps the form of [0,..,0,R]
             @inbounds for j in keep:-1:1
                 h, ν = householder(H, j + bs, 1:j, j)
                 H[j + bs, j] = ν
@@ -241,6 +239,7 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
                 rmul!(view(H, 1:j + bs -1, :), h')
                 rmul!(U, h')
             end
+            # transform the basis and update the residual and update the TDB.
             TDB .= S(0)
             TDB[1:keep, 1:keep] .= H[1:keep, 1:keep]
             B = basis(fact)
@@ -281,6 +280,6 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
     end
 
     return D[1:howmany_actual],
-    vectors[1:howmany_actual],
-    ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
+           vectors[1:howmany_actual],
+           ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end
