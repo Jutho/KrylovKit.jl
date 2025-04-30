@@ -442,6 +442,7 @@ end
 Base.length(fact::BlockLanczosFactorization) = fact.total_size
 normres(fact::BlockLanczosFactorization) = fact.norm_r
 basis(fact::BlockLanczosFactorization) = fact.V
+residual(fact::BlockLanczosFactorization) = fact.r[1:fact.r_size]
 
 """
     struct BlockLanczosIterator{F,T,O<:Orthogonalizer} <: KrylovIterator{F,T}

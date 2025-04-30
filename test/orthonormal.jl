@@ -15,7 +15,7 @@
     @test isapprox(hcat(Av[gi]...)' * hcat(Av[gi]...), I; atol=tolerance(T))
 end
 
-#@testset "abstract_qr! for abstract inner product" begin
+@testset "abstract_qr! for abstract inner product" begin
     T = ComplexF64
     H = rand(T, N, N)
     H = H' * H + I

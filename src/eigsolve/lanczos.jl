@@ -170,12 +170,8 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
     numops = 1    # Number of matrix-vector multiplications (for logging)
     numiter = 1
 
-    # Preallocate space for eigenvectors and eigenvalues
-    vectors = [similar(x₀) for _ in 1:howmany]
-    residuals = [similar(x₀) for _ in 1:howmany]
-
     converged = 0
-    local howmany_actual, residuals, normresiduals, D, U
+    local  normresiduals, D, U
 
     while true
         K = length(fact)
@@ -195,19 +191,13 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
             by, rev = eigsort(which)
             p = sortperm(D; by=by, rev=rev)
             D, U = permuteeig!(D, U, p)
-            howmany_actual = min(howmany, length(D))
 
             # detect convergence by computing the residuals
             bs_r = fact.r_size   # the block size of the residual (decreases as the iteration goes)
-            r = fact.r[1:bs_r]
+            r = residual(fact)
             UU = U[(end - bs_r + 1):end, :]  # the last bs_r rows of U, used to compute the residuals
-            normresiduals = map(1:howmany_actual) do i
-                mul!(residuals[i], r[1], UU[1, i])
-                for j in 2:bs_r
-                    axpy!(UU[j, i], r[j], residuals[i])
-                end
-                return norm(residuals[i])
-            end
+            normresiduals = diag(UU' * block_inner(r,r) * UU)
+            normresiduals = sqrt.(real.(normresiduals))
             converged = count(nr -> nr <= tol, normresiduals)
             if converged >= howmany || β <= tol  # successfully find enough eigenvalues
                 break
@@ -258,12 +248,21 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
         end
     end
 
-    K = length(fact)
-    V = view(fact.V.basis, 1:K)
+    howmany_actual = howmany
+    if converged > howmany
+        howmany_actual = howmany
+    elseif length(D) < howmany
+        howmany_actual = length(D)
+    end
+    UU = view(U, :, 1:howmany_actual)
+    vectors = let V = basis(fact)
+        [V * u for u in cols(UU)]
+    end
+    residuals = [zerovector(x₀) for _ in 1:howmany_actual]
+    V = basis(fact)
     @inbounds for i in 1:howmany_actual
-        copy!(vectors[i], V[1] * U[1, i])
-        for j in 2:K
-            axpy!(U[j, i], V[j], vectors[i])
+        for j in 1:length(fact)
+            add!!(residuals[i], V[j], U[j, i])
         end
     end
 

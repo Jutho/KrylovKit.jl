@@ -618,14 +618,3 @@ end
         end
     end
 end
-
-
-A = rand(ComplexF64, (10, 10))
-A = (A + A') / 2
-x = rand(ComplexF64, 10)
-mode = :inplace
-alg = BlockLanczos(2; krylovdim=10, maxiter=1, tol=1e-12)
-eigsolve(wrapop(A,Val(mode)), wrapvec(x,Val(mode)), 1, :SR, alg)
-wx = wrapvec(x,Val(mode))
-similar(wx)
-randn!(wx)
