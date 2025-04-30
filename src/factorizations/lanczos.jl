@@ -393,7 +393,7 @@ end
 Base.copy!(b₁::BlockVec{T,S}, b₂::BlockVec{T,S}) where {T,S} = (copy!.(b₁.vec, b₂.vec);
                                                                 b₁)
 LinearAlgebra.norm(b::BlockVec) = norm(b.vec)
-apply(f, block::BlockVec{T,S}) where {T,S} = BlockVec{S}([apply(f, x) for x in block.vec])
+apply(f, block::BlockVec{T,S}) where {T,S} = BlockVec{S}([apply(f, block[i]) for i in 1:length(block)])
 function initialize(x₀, size::Int)
     S = typeof(inner(x₀, x₀))
     x₀_vec = [randn!(similar(x₀)) for _ in 1:(size - 1)]
@@ -534,15 +534,20 @@ function initialize(iter::BlockLanczosIterator{F,T,S};
     TDB[1:bs, 1:bs] .= M₁
     verbosity >= WARN_LEVEL && warn_nonhermitian(M₁)
 
-    residual = block_mul!(AX₁, X₁, -M₁, S(1), S(1))
-    norm_r = norm(residual)
+    # Get the first residual
+    for j in 1:length(X₁)
+        for i in 1:length(X₁)
+            add!!(AX₁[j], X₁[i], -M₁[i, j])
+        end
+    end
+    norm_r = norm(AX₁)
     if verbosity > EACHITERATION_LEVEL
         @info "Block Lanczos initiation at dimension $bs: subspace normres = $(normres2string(norm_r))"
     end
     return BlockLanczosFactorization(bs,
                                      V,
                                      TDB,
-                                     residual,
+                                     AX₁,
                                      bs,
                                      norm_r)
 end
@@ -588,26 +593,23 @@ function blocklanczosrecurrence(operator, V::OrthonormalBasis, Bₖ::AbstractMat
     M = block_inner(X, AX)
     # Calculate the new residual. Get Rnext
     Xlast = BlockVec{S}(V[(k - bs_last - bs + 1):(k - bs)])
-    rₖnext = BlockVec{S}([similar(X[1]) for _ in 1:bs])
-    compute_residual!(rₖnext, AX, X, M, Xlast, Bₖ)
+    rₖnext = compute_residual!(AX, X, M, Xlast, Bₖ)
     ortho_basis!(rₖnext, V)
     return rₖnext, M
 end
 
-function compute_residual!(r::BlockVec{T,S}, AX::BlockVec{T,S}, X::BlockVec{T,S},
+function compute_residual!(AX::BlockVec{T,S}, X::BlockVec{T,S},
                            M::AbstractMatrix,
                            X_prev::BlockVec{T,S}, B_prev::AbstractMatrix) where {T,S}
     @inbounds for j in 1:length(X)
-        r_j = r[j]
-        copy!(r_j, AX[j])
         for i in 1:length(X)
-            axpy!(-M[i, j], X[i], r_j)
+            add!!(AX[j], X[i], -M[i, j])
         end
         for i in 1:length(X_prev)
-            axpy!(-B_prev[i, j], X_prev[i], r_j)
+            add!!(AX[j], X_prev[i], -B_prev[i, j])
         end
     end
-    return r
+    return AX
 end
 
 # This function is reserved for further improvement on case of vector of number input.
@@ -637,12 +639,12 @@ function abstract_qr!(block::BlockVec{T,S}, tol::Real) where {T,S}
         αⱼ = block[j]
         for i in 1:(j - 1)
             R[i, j] = inner(block[i], αⱼ)
-            αⱼ -= R[i, j] * block[i]
+            add!!(αⱼ, block[i], -R[i, j])
         end
         β = norm(αⱼ)
         if !(β ≤ tol)
             R[j, j] = β
-            block[j] = αⱼ / β
+            block[j] = scale(αⱼ, 1 / β)
         else
             block[j] *= S(0)
             rank_shrink = true

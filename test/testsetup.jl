@@ -7,6 +7,7 @@ export mul_test, qr_tol, relax_tol
 import VectorInterface as VI
 using VectorInterface
 using LinearAlgebra: LinearAlgebra
+using Random
 
 # Utility functions
 # -----------------
@@ -55,6 +56,9 @@ function wrapvec(v, ::Val{mode}) where {mode}
            mode === :mixed ? MinimalSVec(v) :
            throw(ArgumentError("invalid mode ($mode)"))
 end
+Base.copy!(v::MinimalVec{M}, w::MinimalVec{M}) where {M} = (copy!(v.vec, w.vec); v)
+Base.similar(v::MinimalVec{M}) where {M} = MinimalVec{M}(similar(v.vec))
+Random.randn!(v::MinimalVec) = (randn!(v.vec); v) # For tests of block lanczos
 function wrapvec2(v, ::Val{mode}) where {mode}
     return mode === :mixed ? MinimalMVec(v) : wrapvec(v, mode)
 end

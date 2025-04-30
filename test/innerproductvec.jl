@@ -43,20 +43,25 @@ end
     @test isapprox(M, M0; atol=relax_tol(T))
 end
 
-@testset "block_mul!" begin
+#@testset "compute_residual! for abstract inner product" begin
     T = ComplexF64
-    f = x -> x' * x
-    A = [InnerProductVec(rand(T, N), f) for _ in 1:n]
-    Acopy = [InnerProductVec(rand(T, N), f) for _ in 1:n]
-    KrylovKit.copy!(Acopy, A)
-    B = [InnerProductVec(rand(T, N), f) for _ in 1:n]
+    A = rand(T, N, N)
+    A = A * A' + I
+    ip(x,y) = x' * A * y
     M = rand(T, n, n)
-    alpha = rand(T)
-    beta = rand(T)
-    BlockA = KrylovKit.BlockVec{T}(A)
-    BlockB = KrylovKit.BlockVec{T}(B)
-    KrylovKit.block_mul!(BlockA, BlockB, M, alpha, beta)
-    @test isapprox(hcat([BlockA.vec[i].vec for i in 1:n]...),
-                   beta * hcat([Acopy[i].vec for i in 1:n]...) +
-                   alpha * hcat([BlockB.vec[i].vec for i in 1:n]...) * M; atol=tolerance(T))
+    M = M' + M
+    B = qr(rand(T, n, n)).R
+    X0 = KrylovKit.BlockVec{T}([InnerProductVec(rand(T, N), ip) for _ in 1:n])
+    X1 = KrylovKit.BlockVec{T}([InnerProductVec(rand(T, N), ip) for _ in 1:n])
+    AX1 = KrylovKit.apply(A, X1)
+    AX1copy = deepcopy(AX1)
+    KrylovKit.compute_residual!(AX1, X1, M, X0, B)
+    @test isapprox(hcat([AX1.vec[i] for i in 1:n]...),
+                   hcat([AX1copy.vec[i] for i in 1:n]...) -
+                   M * hcat([X1.vec[i] for i in 1:n]...) -
+                   B * hcat([X0.vec[i] for i in 1:n]...); atol=tolerance(T))
 end
+
+x = InnerProductVec(rand(T, N), ip)
+A
+KrylovKit.apply(A, x)

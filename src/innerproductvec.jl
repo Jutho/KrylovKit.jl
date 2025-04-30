@@ -128,18 +128,6 @@ end
 
 VectorInterface.norm(v::InnerProductVec) = sqrt(real(inner(v, v)))
 
-function block_mul!(A::BlockVec{T,S}, B::BlockVec{T,S}, M::AbstractMatrix, alpha::Number,
-                    beta::Number) where {T,S}
-    @assert (length(B) == size(M, 1)) && (length(A) == size(M, 2)) "Matrix dimensions must match"
-    @inbounds for i in 1:length(A)
-        A[i] = beta * A[i]
-        for j in 1:length(B)
-            A[i] += alpha * B[j] * M[j, i]
-        end
-    end
-    return A
-end
-
 function block_inner(B₁::BlockVec{T,S}, B₂::BlockVec{T,S}) where {T,S}
     M = Matrix{S}(undef, length(B₁.vec), length(B₂.vec))
     @inbounds for j in 1:length(B₂)
