@@ -250,21 +250,34 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
 
     howmany_actual = howmany
     if converged > howmany
-        howmany_actual = howmany
+        howmany_actual = converged
     elseif length(D) < howmany
         howmany_actual = length(D)
     end
-    UU = view(U, :, 1:howmany_actual)
+    U1 = view(U, :, 1:howmany_actual)
     vectors = let V = basis(fact)
-        [V * u for u in cols(UU)]
+        [V * u for u in cols(U1)]
     end
+    bs_r = fact.r_size
+    K = length(fact)
+    U2 = view(U, K-bs_r+1:K, 1:howmany_actual)
+    R = fact.r
     residuals = [zerovector(x₀) for _ in 1:howmany_actual]
-    V = basis(fact)
     @inbounds for i in 1:howmany_actual
-        for j in 1:length(fact)
-            add!!(residuals[i], V[j], U[j, i])
+        for j in 1:bs_r
+            add!(residuals[i], R[j], U2[j,i])
         end
     end
+
+    r = fact.r[1:bs_r]
+            UU = U[(end - bs_r + 1):end, :]  # the last bs_r rows of U, used to compute the residuals
+            normresiduals = map(1:howmany_actual) do i
+                mul!(residuals[i], r[1], UU[1, i])
+                for j in 2:bs_r
+                    axpy!(UU[j, i], r[j], residuals[i])
+                end
+                return norm(residuals[i])
+            end
 
     if (converged < howmany) && verbosity >= WARN_LEVEL
         @warn """Block Lanczos eigsolve stopped without full convergence after $(K) iterations:

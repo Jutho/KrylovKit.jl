@@ -440,20 +440,6 @@ end
     @test count(x -> abs(x + 16.0) < 1e-8, D[1:get_value_num]) == 4
 end
 
-#= 
-Why don’t I use the "vector", "inplace", or "outplace" modes here?
-In the ordinary Lanczos algorithm, each iteration generates a single Lanczos vector, which is then added to the Lanczos basis. 
-However, in the block version, I can’t pre-allocate arrays when using the WrapOp type. If I stick with the WrapOp approach, 
-I would need to wrap each vector in a block individually as [v], which is significantly slower compared to pre-allocating.
-
-Therefore, instead of using the "vector", "inplace", or "outplace" modes defined in testsetup.jl, 
-I directly use matrices and define the map function manually for better performance.
-
-Currently, I only test the out-of-place map because testing the in-place version requires solving the pre-allocation issue. 
-In the future, I plan to add a non-Hermitian eigenvalue solver and implement more abstract types to improve efficiency. 
-As a result, I’ve decided to postpone dealing with the in-place test issue for now.
-=#
-
 # For user interface, we should give one vector input block lanczos method.
 @testset "Block Lanczos - eigsolve full" begin
     @testset for T in [Float32, Float64, ComplexF32, ComplexF64]
@@ -527,8 +513,8 @@ end
 
             @test l1 > 0
             @test l2 > 0
-            @test D1[1:l1] ≈ eigvalsA[1:l1]
-            @test D2[1:l2] ≈ eigvalsA[N:-1:(N - l2 + 1)]
+            @test D1[1:n] ≈ eigvalsA[1:n]
+            @test D2[1:n] ≈ eigvalsA[N:-1:(N - n + 1)]
 
             U1 = hcat(V1[1:l1]...)
             U2 = hcat(V2[1:l2]...)
@@ -559,7 +545,7 @@ end
                                        verbosity=0))
     D_true = eigvals(H)
     BlockV = KrylovKit.BlockVec{T}(V)
-    @test D ≈ D_true[1:eig_num]
+    @test D[1:eig_num] ≈ D_true[1:eig_num]
     @test KrylovKit.block_inner(BlockV, BlockV) ≈ I
     @test findmax([norm(Aip(V[i]) - D[i] * V[i]) for i in 1:eig_num])[1] < tolerance(T)
 end
@@ -578,7 +564,7 @@ end
         for A in [A0, x -> A0 * x]
             evals1, _, info1 = eigsolve(A, x₀, n, :SR, alg1)
             evals2, _, info2 = eigsolve(A, x₀, n, :SR, alg2)
-            @test min(info1.converged, n) == info2.converged
+            @test info1.converged == info2.converged
         end
     end
     @testset for T in [Float32, Float64, ComplexF32, ComplexF64]
@@ -593,7 +579,7 @@ end
         for A in [A0, x -> A0 * x]
             evals1, _, info1 = eigsolve(A, x₀, n, :SR, alg1)
             evals2, _, info2 = eigsolve(A, x₀, n, :SR, alg2)
-            @test min(info1.converged, n) >= info2.converged + 1
+            @test info1.converged >= info2.converged + 1
         end
     end
 end
