@@ -151,7 +151,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos;
            ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end
 
-function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) where T
+function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) where {T}
     maxiter = alg.maxiter
     krylovdim = alg.krylovdim
     if howmany > krylovdim
@@ -165,7 +165,7 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
     bs = length(block0)
 
     iter = BlockLanczosIterator(A, block0, krylovdim + bs, alg.qr_tol, alg.orth)
-    fact = initialize(iter; verbosity = verbosity)  # Returns a BlockLanczosFactorization
+    fact = initialize(iter; verbosity=verbosity)  # Returns a BlockLanczosFactorization
     S = eltype(fact.TDB)  # The element type (Note: can be Complex) of the block tridiagonal matrix
     numops = 1    # Number of matrix-vector multiplications (for logging)
     numiter = 1
@@ -193,20 +193,20 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
             TDB = view(fact.TDB, 1:K, 1:K)
             D, U = eigen(Hermitian(TDB))
             by, rev = eigsort(which)
-            p = sortperm(D; by = by, rev = rev)
-            D, U = permuteeig!(D, U, p)   
+            p = sortperm(D; by=by, rev=rev)
+            D, U = permuteeig!(D, U, p)
             howmany_actual = min(howmany, length(D))
-        
+
             # detect convergence by computing the residuals
             bs_r = fact.r_size   # the block size of the residual (decreases as the iteration goes)
             r = fact.r[1:bs_r]
-            UU = U[end-bs_r+1:end, :]  # the last bs_r rows of U, used to compute the residuals
+            UU = U[(end - bs_r + 1):end, :]  # the last bs_r rows of U, used to compute the residuals
             normresiduals = map(1:howmany_actual) do i
                 mul!(residuals[i], r[1], UU[1, i])
                 for j in 2:bs_r
                     axpy!(UU[j, i], r[j], residuals[i])
                 end
-                norm(residuals[i])
+                return norm(residuals[i])
             end
             converged = count(nr -> nr <= tol, normresiduals)
             if converged >= howmany || β <= tol  # successfully find enough eigenvalues
@@ -217,7 +217,7 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
         end
 
         if K < krylovdim
-            expand!(iter, fact; verbosity = verbosity)
+            expand!(iter, fact; verbosity=verbosity)
             numops += 1
         else # shrink and restart
             numiter >= maxiter && break
@@ -227,7 +227,7 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
             # The last bs rows of U contribute to calculate errors of Ritz values.
             @inbounds for j in 1:keep
                 H[j, j] = D[j]
-                H[bsn * bs + 1:end, j] = U[K - bs + 1:K, j]
+                H[(bsn * bs + 1):end, j] = U[(K - bs + 1):K, j]
             end
             # Turn diagonal matrix D into a block tridiagonal matrix, and make sure 
             # the residual of krylov subspace keeps the form of [0,..,0,R]
@@ -236,7 +236,7 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
                 H[j + bs, j] = ν
                 H[j + bs, 1:(j - 1)] .= zero(eltype(H))
                 lmul!(h, H)
-                rmul!(view(H, 1:j + bs -1, :), h')
+                rmul!(view(H, 1:(j + bs - 1), :), h')
                 rmul!(U, h')
             end
             # transform the basis and update the residual and update the TDB.
@@ -244,9 +244,9 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
             TDB[1:keep, 1:keep] .= H[1:keep, 1:keep]
             B = basis(fact)
             basistransform!(B, view(U, :, 1:keep))
-            
+
             r_new = OrthonormalBasis(fact.r.vec[1:bs_r])
-            view_U = view(U, K - bs_r + 1:K, keep - bs_r + 1:keep)
+            view_U = view(U, (K - bs_r + 1):K, (keep - bs_r + 1):keep)
             basistransform!(r_new, view_U)
             fact.r.vec[1:bs_r] = r_new[1:bs_r]
 

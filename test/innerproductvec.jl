@@ -2,7 +2,8 @@
 block_inner(x,y):
 M[i,j] = inner(x[i],y[j])
 =#
-@testset "block_inner for non-full vectors $T" for T in (Float32, Float64, ComplexF32, ComplexF64)
+@testset "block_inner for non-full vectors $T" for T in (Float32, Float64, ComplexF32,
+                                                         ComplexF64)
     A = [rand(T, N) for _ in 1:n]
     B = [rand(T, N) for _ in 1:n]
     M = Matrix{T}(undef, n, n)
@@ -11,40 +12,40 @@ M[i,j] = inner(x[i],y[j])
     M = KrylovKit.block_inner(BlockA, BlockB)
     M0 = hcat(BlockA.vec...)' * hcat(BlockB.vec...)
     @test eltype(M) == T
-    @test isapprox(M, M0; atol = relax_tol(T))
+    @test isapprox(M, M0; atol=relax_tol(T))
 end
 
 @testset "block_inner for abstract inner product" begin
     T = ComplexF64
-    H = rand(T, N, N);
-    H = H'*H + I;
-    H = (H + H')/2;
-    ip(x,y) = x'*H*y
-    X₁ = InnerProductVec(rand(T, N), ip);
-    X = [similar(X₁) for _ in 1:n];
-    X[1] = X₁;
+    H = rand(T, N, N)
+    H = H' * H + I
+    H = (H + H') / 2
+    ip(x, y) = x' * H * y
+    X₁ = InnerProductVec(rand(T, N), ip)
+    X = [similar(X₁) for _ in 1:n]
+    X[1] = X₁
     for i in 2:n
         X[i] = InnerProductVec(rand(T, N), ip)
     end
-    Y₁ = InnerProductVec(rand(T, N), ip);
-    Y = [similar(Y₁) for _ in 1:n];
-    Y[1] = Y₁;
+    Y₁ = InnerProductVec(rand(T, N), ip)
+    Y = [similar(Y₁) for _ in 1:n]
+    Y[1] = Y₁
     for i in 2:n
         Y[i] = InnerProductVec(rand(T, N), ip)
-    end    
+    end
     BlockX = KrylovKit.BlockVec{T}(X)
     BlockY = KrylovKit.BlockVec{T}(Y)
-    M = KrylovKit.block_inner(BlockX, BlockY);
-    Xm = hcat([X[i].vec for i in 1:n]...);
-    Ym = hcat([Y[i].vec for i in 1:n]...);
-    M0 = Xm' * H * Ym;
+    M = KrylovKit.block_inner(BlockX, BlockY)
+    Xm = hcat([X[i].vec for i in 1:n]...)
+    Ym = hcat([Y[i].vec for i in 1:n]...)
+    M0 = Xm' * H * Ym
     @test eltype(M) == T
-    @test isapprox(M, M0; atol = relax_tol(T))
+    @test isapprox(M, M0; atol=relax_tol(T))
 end
 
 @testset "block_mul!" begin
     T = ComplexF64
-    f = x -> x'*x
+    f = x -> x' * x
     A = [InnerProductVec(rand(T, N), f) for _ in 1:n]
     Acopy = [InnerProductVec(rand(T, N), f) for _ in 1:n]
     KrylovKit.copy!(Acopy, A)
@@ -55,5 +56,7 @@ end
     BlockA = KrylovKit.BlockVec{T}(A)
     BlockB = KrylovKit.BlockVec{T}(B)
     KrylovKit.block_mul!(BlockA, BlockB, M, alpha, beta)
-    @test isapprox(hcat([BlockA.vec[i].vec for i in 1:n]...), beta * hcat([Acopy[i].vec for i in 1:n]...) + alpha * hcat([BlockB.vec[i].vec for i in 1:n]...) * M; atol = tolerance(T))
+    @test isapprox(hcat([BlockA.vec[i].vec for i in 1:n]...),
+                   beta * hcat([Acopy[i].vec for i in 1:n]...) +
+                   alpha * hcat([BlockB.vec[i].vec for i in 1:n]...) * M; atol=tolerance(T))
 end

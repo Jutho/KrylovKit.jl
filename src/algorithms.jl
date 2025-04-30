@@ -137,15 +137,14 @@ struct BlockLanczos{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     eager::Bool
     verbosity::Int
 end
-function BlockLanczos(;
-    krylovdim::Int=KrylovDefaults.blockkrylovdim[],
-    maxiter::Int=KrylovDefaults.blockmaxiter[],
-    tol::Real=KrylovDefaults.tol[],
-    orth::Orthogonalizer=KrylovDefaults.orth,
-    eager::Bool=false,
-    verbosity::Int=KrylovDefaults.verbosity[],
-    blocksize::Int=1,
-    qr_tol::Real=KrylovDefaults.tol[])
+function BlockLanczos(blocksize::Int;
+                      krylovdim::Int=KrylovDefaults.blockkrylovdim[],
+                      maxiter::Int=KrylovDefaults.blockmaxiter[],
+                      tol::Real=KrylovDefaults.tol[],
+                      orth::Orthogonalizer=KrylovDefaults.orth,
+                      eager::Bool=false,
+                      verbosity::Int=KrylovDefaults.verbosity[],
+                      qr_tol::Real=KrylovDefaults.tol[])
     blocksize < 1 && error("blocksize must be greater than 0")
     return BlockLanczos(orth, krylovdim, maxiter, tol, blocksize, qr_tol, eager, verbosity)
 end

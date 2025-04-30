@@ -84,7 +84,7 @@ end
 # block operations
 # ----------------
 function mul_test(v::AbstractVector, A::AbstractMatrix)
-    return [sum(v .* A[:,i]) for i in axes(A,2)]
+    return [sum(v .* A[:, i]) for i in axes(A, 2)]
 end
 
 if VERSION < v"1.9"

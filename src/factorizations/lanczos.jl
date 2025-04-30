@@ -366,7 +366,6 @@ function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ModifiedGram
     return w, α, β
 end
 
-
 # block lanczos
 
 # The basic theory of the Block Lanczos algorithm can be referred to : Golub, G. H., & Van Loan, C. F. (2013). Matrix computations (4th ed., pp. 566–569). Johns Hopkins University Press.
@@ -382,15 +381,22 @@ struct BlockVec{T,S<:Number}
 end
 Base.length(b::BlockVec) = length(b.vec)
 Base.getindex(b::BlockVec, i::Int) = b.vec[i]
-Base.getindex(b::BlockVec{T, S}, idxs::AbstractVector{Int}) where {T, S} = BlockVec{S}([b.vec[i] for i in idxs])
+function Base.getindex(b::BlockVec{T,S}, idxs::AbstractVector{Int}) where {T,S}
+    return BlockVec{S}([b.vec[i] for i in idxs])
+end
 Base.setindex!(b::BlockVec{T}, v::T, i::Int) where {T} = (b.vec[i] = v)
-Base.setindex!(b₁::BlockVec{T}, b₂::BlockVec{T}, idxs::AbstractVector{Int}) where {T} = (b₁.vec[idxs] = b₂.vec; b₁)
-Base.copy!(b₁::BlockVec{T,S}, b₂::BlockVec{T,S}) where {T,S} = (copy!.(b₁.vec, b₂.vec); b₁)
+function Base.setindex!(b₁::BlockVec{T}, b₂::BlockVec{T},
+                        idxs::AbstractVector{Int}) where {T}
+    (b₁.vec[idxs] = b₂.vec;
+     b₁)
+end
+Base.copy!(b₁::BlockVec{T,S}, b₂::BlockVec{T,S}) where {T,S} = (copy!.(b₁.vec, b₂.vec);
+                                                                b₁)
 LinearAlgebra.norm(b::BlockVec) = norm(b.vec)
-apply(f, block::BlockVec{T, S}) where {T, S} = BlockVec{S}([apply(f, x) for x in block.vec])
+apply(f, block::BlockVec{T,S}) where {T,S} = BlockVec{S}([apply(f, x) for x in block.vec])
 function initialize(x₀, size::Int)
     S = typeof(inner(x₀, x₀))
-    x₀_vec = [randn!(similar(x₀)) for _ in 1:size-1]
+    x₀_vec = [randn!(similar(x₀)) for _ in 1:(size - 1)]
     pushfirst!(x₀_vec, x₀)
     return BlockVec{S}(x₀_vec)
 end
@@ -424,7 +430,8 @@ One can also query [`normres(fact)`](@ref) to obtain `norm(r)`, the norm of the 
 See also [`BlockLanczosIterator`](@ref) for an iterator that constructs a progressively expanding
 BlockLanczos factorizations of a given linear map and a starting vector.
 """
-mutable struct BlockLanczosFactorization{T,S<:Number,SR<:Real} <: BlockKrylovFactorization{T,S,SR}
+mutable struct BlockLanczosFactorization{T,S<:Number,SR<:Real} <:
+               BlockKrylovFactorization{T,S,SR}
     total_size::Int
     const V::OrthonormalBasis{T}      # Block Lanczos Basis
     const TDB::AbstractMatrix{S}      # TDB matrix, S is the matrix type
@@ -490,10 +497,10 @@ struct BlockLanczosIterator{F,T,S,O<:Orthogonalizer} <: KrylovIterator{F,T}
     orth::O
     qr_tol::Real
     function BlockLanczosIterator{F,T,S,O}(operator::F,
-                                         x₀::BlockVec{T,S},
-                                         maxdim::Int,
-                                         orth::O,
-                                         qr_tol::Real) where {F,T,S,O<:Orthogonalizer}
+                                           x₀::BlockVec{T,S},
+                                           maxdim::Int,
+                                           orth::O,
+                                           qr_tol::Real) where {F,T,S,O<:Orthogonalizer}
         return new{F,T,S,O}(operator, x₀, maxdim, orth, qr_tol)
     end
 end
@@ -501,13 +508,16 @@ function BlockLanczosIterator(operator::F,
                               x₀::BlockVec{T,S},
                               maxdim::Int,
                               qr_tol::Real,
-                              orth::O=ModifiedGramSchmidt2()) where {F,T,S,O<:Orthogonalizer}
+                              orth::O=ModifiedGramSchmidt2()) where {F,T,S,
+                                                                     O<:Orthogonalizer}
     norm(x₀) < qr_tol && @error "initial vector should not have norm zero"
-    orth != ModifiedGramSchmidt2() && @error "BlockLanczosIterator only supports ModifiedGramSchmidt2 orthogonalizer"
+    orth != ModifiedGramSchmidt2() &&
+        @error "BlockLanczosIterator only supports ModifiedGramSchmidt2 orthogonalizer"
     return BlockLanczosIterator{F,T,S,O}(operator, x₀, maxdim, orth, qr_tol)
-end 
+end
 
-function initialize(iter::BlockLanczosIterator{F,T,S}; verbosity::Int=KrylovDefaults.verbosity[]) where {F,T,S}
+function initialize(iter::BlockLanczosIterator{F,T,S};
+                    verbosity::Int=KrylovDefaults.verbosity[]) where {F,T,S}
     X₀ = iter.x₀
     maxdim = iter.maxdim
     bs = length(X₀) # block size now
@@ -523,24 +533,25 @@ function initialize(iter::BlockLanczosIterator{F,T,S}; verbosity::Int=KrylovDefa
     M₁ = block_inner(X₁, AX₁)
     TDB[1:bs, 1:bs] .= M₁
     verbosity >= WARN_LEVEL && warn_nonhermitian(M₁)
- 
-    residual = block_mul!(AX₁, X₁, - M₁, S(1), S(1))
+
+    residual = block_mul!(AX₁, X₁, -M₁, S(1), S(1))
     norm_r = norm(residual)
     if verbosity > EACHITERATION_LEVEL
         @info "Block Lanczos initiation at dimension $bs: subspace normres = $(normres2string(norm_r))"
     end
     return BlockLanczosFactorization(bs,
-                                    V,
-                                    TDB,
-                                    residual,
-                                    bs,
-                                    norm_r)
+                                     V,
+                                     TDB,
+                                     residual,
+                                     bs,
+                                     norm_r)
 end
 
-function expand!(iter::BlockLanczosIterator{F,T,S}, state::BlockLanczosFactorization{T,S,SR};
+function expand!(iter::BlockLanczosIterator{F,T,S},
+                 state::BlockLanczosFactorization{T,S,SR};
                  verbosity::Int=KrylovDefaults.verbosity[]) where {F,T,S,SR}
     k = state.total_size
-    rₖ = state.r[1:state.r_size]
+    rₖ = state.r[1:(state.r_size)]
     bs_now = length(rₖ)
     V = state.V
 
@@ -548,14 +559,14 @@ function expand!(iter::BlockLanczosIterator{F,T,S}, state::BlockLanczosFactoriza
     Bₖ, good_idx = abstract_qr!(rₖ, iter.qr_tol)
     bs_next = length(good_idx)
     push!(V, rₖ[good_idx])
-    state.TDB[k+1:k+bs_next, k-bs_now+1:k] .= Bₖ
-    state.TDB[k-bs_now+1:k, k+1:k+bs_next] .= Bₖ'
+    state.TDB[(k + 1):(k + bs_next), (k - bs_now + 1):k] .= Bₖ
+    state.TDB[(k - bs_now + 1):k, (k + 1):(k + bs_next)] .= Bₖ'
 
     # Calculate the new residual and orthogonalize the new basis
     rₖnext, Mnext = blocklanczosrecurrence(iter.operator, V, Bₖ, iter.orth)
     verbosity >= WARN_LEVEL && warn_nonhermitian(Mnext)
 
-    state.TDB[k+1:k+bs_next, k+1:k+bs_next] .= Mnext
+    state.TDB[(k + 1):(k + bs_next), (k + 1):(k + bs_next)] .= Mnext
     state.r.vec[1:bs_next] .= rₖnext.vec
     state.norm_r = norm(rₖnext)
     state.total_size += bs_next
@@ -566,32 +577,34 @@ function expand!(iter::BlockLanczosIterator{F,T,S}, state::BlockLanczosFactoriza
     end
 end
 
-function blocklanczosrecurrence(operator, V::OrthonormalBasis, Bₖ::AbstractMatrix, orth::ModifiedGramSchmidt2)
-    # Apply the operator and calculate the M. Get Xnext and Mnext
-    bs,bs_last = size(Bₖ)
+function blocklanczosrecurrence(operator, V::OrthonormalBasis, Bₖ::AbstractMatrix,
+                                orth::ModifiedGramSchmidt2)
+    # Apply the operator and calculate the M. Get Xnext and Mnext.
+    bs, bs_last = size(Bₖ)
     S = eltype(Bₖ)
     k = length(V)
-    X = BlockVec{S}(V[k-bs+1:k])
+    X = BlockVec{S}(V[(k - bs + 1):k])
     AX = apply(operator, X)
     M = block_inner(X, AX)
     # Calculate the new residual. Get Rnext
-    Xlast = BlockVec{S}(V[k-bs_last-bs+1:k-bs])
+    Xlast = BlockVec{S}(V[(k - bs_last - bs + 1):(k - bs)])
     rₖnext = BlockVec{S}([similar(X[1]) for _ in 1:bs])
     compute_residual!(rₖnext, AX, X, M, Xlast, Bₖ)
     ortho_basis!(rₖnext, V)
     return rₖnext, M
 end
 
-function compute_residual!(r::BlockVec{T,S}, AX::BlockVec{T,S}, X::BlockVec{T,S}, M::AbstractMatrix, 
+function compute_residual!(r::BlockVec{T,S}, AX::BlockVec{T,S}, X::BlockVec{T,S},
+                           M::AbstractMatrix,
                            X_prev::BlockVec{T,S}, B_prev::AbstractMatrix) where {T,S}
     @inbounds for j in 1:length(X)
-        r_j = r[j] 
+        r_j = r[j]
         copy!(r_j, AX[j])
         for i in 1:length(X)
-            axpy!(- M[i,j], X[i], r_j)
+            axpy!(-M[i, j], X[i], r_j)
         end
         for i in 1:length(X_prev)
-            axpy!(- B_prev[i,j], X_prev[i], r_j)
+            axpy!(-B_prev[i, j], X_prev[i], r_j)
         end
     end
     return r
@@ -609,19 +622,20 @@ function ortho_basis!(basis::BlockVec{T,S}, basis_sofar::OrthonormalBasis{T}) wh
 end
 
 function warn_nonhermitian(M::AbstractMatrix)
-    if norm(M - M') > eps(real(eltype(M)))^(2/5)
+    if norm(M - M') > eps(real(eltype(M)))^(2 / 5)
         @warn "Enforce Hermiticity on the triangular diagonal blocks matrix, even though the operator may not be Hermitian."
     end
 end
 
+# This is for block of abstract vectors and resolving the rank in block lanczos.
 function abstract_qr!(block::BlockVec{T,S}, tol::Real) where {T,S}
     n = length(block)
     rank_shrink = false
-    idx = ones(Int64,n)
+    idx = ones(Int64, n)
     R = zeros(S, n, n)
     @inbounds for j in 1:n
         αⱼ = block[j]
-        for i in 1:j-1
+        for i in 1:(j - 1)
             R[i, j] = inner(block[i], αⱼ)
             αⱼ -= R[i, j] * block[i]
         end
@@ -636,5 +650,5 @@ function abstract_qr!(block::BlockVec{T,S}, tol::Real) where {T,S}
         end
     end
     good_idx = findall(idx .> 0)
-    return R[good_idx,:], good_idx
+    return R[good_idx, :], good_idx
 end
