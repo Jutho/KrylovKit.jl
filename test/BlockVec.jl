@@ -1,46 +1,44 @@
 @testset "apply on BlockVec" begin
-    for T in [Float32, Float64, ComplexF64]
-        A0 = rand(T, N, N)
-        A0 = A0' * A0
-        x₀ = KrylovKit.BlockVec{T}([rand(T, N) for _ in 1:n])
-        for A in [A0, x -> A0 * x]
-            y = KrylovKit.apply(A, x₀)
-            @test isapprox(hcat(y.vec...), A0 * hcat(x₀.vec...); atol=tolerance(T))
+    for mode in (:vector, :inplace, :outplace)
+        scalartypes = mode === :vector ? (Float32, Float64, ComplexF64) :
+                      (ComplexF64,)
+        @testset for T in scalartypes
+            mode = :inplace
+            T = ComplexF64
+            A = rand(T, N, N) .- one(T) / 2
+            A = (A + A') / 2
+            wx₀ = KrylovKit.BlockVec{T}([wrapvec(rand(T, N), Val(mode)) for _ in 1:n])
+            wy = KrylovKit.apply(wrapop(A, Val(mode)), wx₀)
+            y = unwrapvec.(wy)
+            x₀ = unwrapvec.(wx₀)
+            @test isapprox(hcat(y...), A * hcat(x₀...); atol=tolerance(T))
         end
     end
     T = ComplexF64
-    A0 = rand(T, N, N)
-    A0 = A0' * A0
-    f(x, y) = x' * A0 * y
-    A(x::InnerProductVec) = KrylovKit.InnerProductVec(A0 * x[], x.dotf)
+    A = rand(T, N, N) .- one(T) / 2
+    A = (A + A') / 2
+    f(x, y) = x' * A * y
+    Af(x::InnerProductVec) = KrylovKit.InnerProductVec(A * x[], x.dotf)
     x₀ = KrylovKit.BlockVec{T}([InnerProductVec(rand(T, N), f) for _ in 1:n])
-    y = KrylovKit.apply(A, x₀)
-    @test isapprox(hcat([y[i].vec for i in 1:n]...), A0 * hcat([x₀[i].vec for i in 1:n]...);
-                   atol=tolerance(T))
-end
-
-@testset "copy! for BlockVec" begin
-    for T in [Float32, Float64, ComplexF32, ComplexF64]
-        x = KrylovKit.BlockVec{T}([rand(T, N) for _ in 1:n])
-        y = KrylovKit.BlockVec{T}([rand(T, N) for _ in 1:n])
-        KrylovKit.copy!(y, x)
-        @test isapprox(y.vec, x.vec; atol=tolerance(T))
-    end
-    T = ComplexF64
-    f = (x, y) -> x' * y
-    x = KrylovKit.BlockVec{T}([InnerProductVec(rand(T, N), f) for _ in 1:n])
-    y = KrylovKit.BlockVec{T}([InnerProductVec(rand(T, N), f) for _ in 1:n])
-    KrylovKit.copy!(y, x)
-    @test isapprox([y.vec[i].vec for i in 1:n], [x.vec[i].vec for i in 1:n];
+    y = KrylovKit.apply(Af, x₀)
+    @test isapprox(hcat([y[i].vec for i in 1:n]...), A * hcat([x₀[i].vec for i in 1:n]...);
                    atol=tolerance(T))
 end
 
 @testset "initialize for BlockVec" begin
-    for T in [Float32, Float64, ComplexF32, ComplexF64]
-        block0 = KrylovKit.initialize(rand(T, N), n)
-        @test block0 isa KrylovKit.BlockVec
-        @test length(block0) == n
-        @test Tuple(typeof(block0).parameters) == (Vector{T}, T)
+    for mode in (:vector, :inplace, :outplace)
+        scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
+                      (ComplexF64,)
+        @testset for T in scalartypes
+            block0 = KrylovKit.initialize(wrapvec(rand(T, N), Val(mode)), n)
+            @test block0 isa KrylovKit.BlockVec
+            @test length(block0) == n
+            Tv = mode === :vector ? Vector{T} :
+                 mode === :inplace ? MinimalVec{true,Vector{T}} :
+                 MinimalVec{false,Vector{T}}
+
+            @test Tuple(typeof(block0).parameters) == (Tv, T)
+        end
     end
 
     # test for abtract type

@@ -2,7 +2,7 @@ module TestSetup
 
 export tolerance, ≊, MinimalVec, isinplace, stack
 export wrapop, wrapvec, unwrapvec, buildrealmap
-export mul_test, qr_tol, relax_tol
+export qr_tol, relax_tol
 
 import VectorInterface as VI
 using VectorInterface
@@ -56,7 +56,6 @@ function wrapvec(v, ::Val{mode}) where {mode}
            mode === :mixed ? MinimalSVec(v) :
            throw(ArgumentError("invalid mode ($mode)"))
 end
-Base.copy!(v::MinimalVec{M}, w::MinimalVec{M}) where {M} = (copy!(v.vec, w.vec); v)
 Base.similar(v::MinimalVec{M}) where {M} = MinimalVec{M}(similar(v.vec))
 Random.randn!(v::MinimalVec) = (randn!(v.vec); v) # For tests of block lanczos
 function wrapvec2(v, ::Val{mode}) where {mode}
@@ -87,10 +86,6 @@ end
 
 # block operations
 # ----------------
-function mul_test(v::AbstractVector, A::AbstractMatrix)
-    return [sum(v .* A[:, i]) for i in axes(A, 2)]
-end
-
 if VERSION < v"1.9"
     stack(f, itr) = mapreduce(f, hcat, itr)
     stack(itr) = reduce(hcat, itr)

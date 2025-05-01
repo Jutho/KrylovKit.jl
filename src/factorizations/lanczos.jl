@@ -390,8 +390,6 @@ function Base.setindex!(b₁::BlockVec{T}, b₂::BlockVec{T},
     (b₁.vec[idxs] = b₂.vec;
      b₁)
 end
-Base.copy!(b₁::BlockVec{T,S}, b₂::BlockVec{T,S}) where {T,S} = (copy!.(b₁.vec, b₂.vec);
-                                                                b₁)
 LinearAlgebra.norm(b::BlockVec) = norm(b.vec)
 apply(f, block::BlockVec{T,S}) where {T,S} = BlockVec{S}([apply(f, block[i]) for i in 1:length(block)])
 function initialize(x₀, size::Int)
@@ -406,6 +404,8 @@ function Base.push!(V::OrthonormalBasis{T}, b::BlockVec{T}) where {T}
     end
     return V
 end
+Base.iterate(b::BlockVec) = iterate(b.vec)
+Base.iterate(b::BlockVec, state) = iterate(b.vec, state)
 
 """
     mutable struct BlockLanczosFactorization{T,S<:Number,SR<:Real} <: BlockKrylovFactorization{T,S,SR}
@@ -538,7 +538,7 @@ function initialize(iter::BlockLanczosIterator{F,T,S};
     # Get the first residual
     for j in 1:length(X₁)
         for i in 1:length(X₁)
-            add!!(AX₁[j], X₁[i], -M₁[i, j])
+            AX₁[j] = add!!(AX₁[j], X₁[i], -M₁[i, j])
         end
     end
     norm_r = norm(AX₁)
@@ -604,10 +604,10 @@ function compute_residual!(AX::BlockVec{T,S}, X::BlockVec{T,S},
                            X_prev::BlockVec{T,S}, B_prev::AbstractMatrix) where {T,S}
     @inbounds for j in 1:length(X)
         for i in 1:length(X)
-            add!!(AX[j], X[i], -M[i, j])
+            AX[j] = add!!(AX[j], X[i], -M[i, j])
         end
         for i in 1:length(X_prev)
-            add!!(AX[j], X_prev[i], -B_prev[i, j])
+            AX[j] = add!!(AX[j], X_prev[i], -B_prev[i, j])
         end
     end
     return AX
@@ -616,9 +616,8 @@ end
 # This function is reserved for further improvement on case of vector of number input.
 function ortho_basis!(basis::BlockVec{T,S}, basis_sofar::OrthonormalBasis{T}) where {T,S}
     for i in 1:length(basis)
-        w = basis[i]
         for q in basis_sofar
-            orthogonalize!!(w, q, ModifiedGramSchmidt())
+            basis[i], _ = orthogonalize!!(basis[i], q, ModifiedGramSchmidt())
         end
     end
     return basis
@@ -637,17 +636,16 @@ function abstract_qr!(block::BlockVec{T,S}, tol::Real) where {T,S}
     idx = ones(Int64, n)
     R = zeros(S, n, n)
     @inbounds for j in 1:n
-        αⱼ = block[j]
         for i in 1:(j - 1)
-            R[i, j] = inner(block[i], αⱼ)
-            add!!(αⱼ, block[i], -R[i, j])
+            R[i, j] = inner(block[i], block[j])
+            block[j] = add!!(block[j], block[i], -R[i, j])
         end
-        β = norm(αⱼ)
+        β = norm(block[j])
         if !(β ≤ tol)
             R[j, j] = β
-            block[j] = scale(αⱼ, 1 / β)
+            block[j] = scale(block[j], 1 / β)
         else
-            block[j] *= S(0)
+            block[j] = scale!!(block[j], 0)
             rank_shrink = true
             idx[j] = 0
         end

@@ -298,84 +298,87 @@ end
 end
 
 # Test complete Block Lanczos factorization
-@testset "Complete Block Lanczos factorization " begin
+@testset "Complete Block Lanczos factorization " for mode in (:vector, :inplace, :outplace)
+    scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
+                  (ComplexF64,)
     using KrylovKit: EACHITERATION_LEVEL
-    @testset for T in [Float32, Float64, ComplexF32, ComplexF64]
-        A0 = rand(T, (N, N)) .- one(T) / 2
-        A0 = (A0 + A0') / 2
+    @testset for T in scalartypes
+        A = rand(T, (N, N))
+        A = (A + A') / 2
         block_size = 5
         x₀m = Matrix(qr(rand(T, N, block_size)).Q)
-        x₀ = KrylovKit.BlockVec{T}([x₀m[:, i] for i in 1:block_size])
-        eigvalsA = eigvals(A0)
-        for A in [A0, x -> A0 * x]
-            iter = BlockLanczosIterator(A, x₀, N, qr_tol(T))
-            # TODO: Why type unstable?
-            # fact = @constinferred initialize(iter)
-            fact = initialize(iter)
-            @constinferred expand!(iter, fact)
-            @test_logs initialize(iter; verbosity=EACHITERATION_LEVEL)
-            @test_logs (:info,) initialize(iter; verbosity=EACHITERATION_LEVEL + 1)
-            verbosity = EACHITERATION_LEVEL + 1
-            while fact.total_size < n
-                if verbosity == EACHITERATION_LEVEL + 1
-                    @test_logs (:info,) expand!(iter, fact; verbosity=verbosity)
-                    verbosity = EACHITERATION_LEVEL
-                else
-                    @test_logs expand!(iter, fact; verbosity=verbosity)
-                    verbosity = EACHITERATION_LEVEL + 1
-                end
+        x₀ = KrylovKit.BlockVec{T}([wrapvec(x₀m[:, i], Val(mode)) for i in 1:block_size])
+        eigvalsA = eigvals(A)
+        iter = BlockLanczosIterator(wrapop(A, Val(mode)), x₀, N, qr_tol(T))
+        # TODO: Why type unstable?
+        fact = @constinferred initialize(iter)
+        @constinferred expand!(iter, fact)
+        @test_logs initialize(iter; verbosity=EACHITERATION_LEVEL)
+        @test_logs (:info,) initialize(iter; verbosity=EACHITERATION_LEVEL + 1)
+        verbosity = EACHITERATION_LEVEL + 1
+        while fact.total_size < n
+            if verbosity == EACHITERATION_LEVEL + 1
+                @test_logs (:info,) expand!(iter, fact; verbosity=verbosity)
+                verbosity = EACHITERATION_LEVEL
+            else
+                @test_logs expand!(iter, fact; verbosity=verbosity)
+                verbosity = EACHITERATION_LEVEL + 1
             end
         end
 
-        B = rand(T, (n, n)) # test warnings for non-hermitian matrices
-        bs = 2
-        v₀m = Matrix(qr(rand(T, n, bs)).Q)
-        v₀ = KrylovKit.BlockVec{T}([v₀m[:, i] for i in 1:bs])
-        iter = BlockLanczosIterator(B, v₀, N, qr_tol(T))
-        fact = initialize(iter)
-        @constinferred expand!(iter, fact; verbosity=0)
-        @test_logs initialize(iter; verbosity=0)
-        @test_logs (:warn,) initialize(iter)
-        verbosity = 1
-        while fact.total_size < n
-            if verbosity == 1
-                @test_logs (:warn,) expand!(iter, fact; verbosity=verbosity)
-                verbosity = 0
-            else
-                @test_logs expand!(iter, fact; verbosity=verbosity)
-                verbosity = 1
+        if T <: Complex
+            B = rand(T, (n, n)) # test warnings for non-hermitian matrices
+            bs = 2
+            v₀m = Matrix(qr(rand(T, n, bs)).Q)
+            v₀ = KrylovKit.BlockVec{T}([wrapvec(v₀m[:, i], Val(mode)) for i in 1:bs])
+            iter = BlockLanczosIterator(wrapop(B, Val(mode)), v₀, N, qr_tol(T))
+            fact = initialize(iter)
+            @constinferred expand!(iter, fact; verbosity=0)
+            @test_logs initialize(iter; verbosity=0)
+            @test_logs (:warn,) initialize(iter)
+            verbosity = 1
+            while fact.total_size < n
+                if verbosity == 1
+                    @test_logs (:warn,) expand!(iter, fact; verbosity=verbosity)
+                    verbosity = 0
+                else
+                    @test_logs expand!(iter, fact; verbosity=verbosity)
+                    verbosity = 1
+                end
             end
         end
     end
 end
 
 # Test incomplete Block Lanczos factorization
-@testset "Incomplete Block Lanczos factorization " begin
-    @testset for T in [Float32, Float64, ComplexF32, ComplexF64]
-        A0 = rand(T, (N, N))
-        A0 = (A0 + A0') / 2
+@testset "Incomplete Block Lanczos factorization " for mode in
+                                                       (:vector, :inplace, :outplace)
+    scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
+                  (ComplexF64,)
+    @testset for T in scalartypes
+        A = rand(T, (N, N)) .- one(T) / 2
+        A = (A + A') / 2
         block_size = 5
         x₀m = Matrix(qr(rand(T, N, block_size)).Q)
-        x₀ = KrylovKit.BlockVec{T}([x₀m[:, i] for i in 1:block_size])
-        for A in [A0, x -> A0 * x]
-            iter = @constinferred BlockLanczosIterator(A, x₀, N, qr_tol(T))
-            krylovdim = n
-            fact = initialize(iter)
-            while fact.norm_r > eps(float(real(T))) && fact.total_size < krylovdim
-                @constinferred expand!(iter, fact)
-                k = fact.total_size
-                rs = fact.r_size
-                V0 = fact.V[1:k]
-                r0 = fact.r[1:rs]
-                H = fact.TDB[1:k, 1:k]
-                norm_r = fact.norm_r
-                V = hcat(V0...)
-                r = hcat(r0.vec...)
-                e = hcat(zeros(T, rs, k - rs), I)
-                @test V' * V ≈ I
-                @test norm(r) ≈ norm_r
-                @test A0 * V ≈ V * H + r * e
-            end
+        x₀ = KrylovKit.BlockVec{T}([wrapvec(x₀m[:, i], Val(mode)) for i in 1:block_size])
+        iter = @constinferred BlockLanczosIterator(wrapop(A, Val(mode)), x₀, N, qr_tol(T))
+        krylovdim = n
+        fact = initialize(iter)
+        while fact.norm_r > eps(float(real(T))) && fact.total_size < krylovdim
+            @constinferred expand!(iter, fact)
+            k = fact.total_size
+            rs = fact.r_size
+            V0 = fact.V[1:k]
+            r0 = fact.r[1:rs]
+            H = fact.TDB[1:k, 1:k]
+            norm_r = fact.norm_r
+            V = hcat([unwrapvec(v) for v in V0]...)
+            r = hcat([unwrapvec(r0[i]) for i in 1:rs]...)
+            e = hcat(zeros(T, rs, k - rs), I)
+            norm(V' * V - I)
+            @test V' * V ≈ I
+            @test norm(r) ≈ norm_r
+            @test A * V ≈ V * H + r * e
         end
     end
 end
