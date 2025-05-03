@@ -9,7 +9,7 @@ to vectors.
 | [![][docs-stable-img]][docs-stable-url] [![][docs-dev-img]][docs-dev-url] | [![][aqua-img]][aqua-url] [![CI][github-img]][github-url] [![][codecov-img]][codecov-url] | [![DOI][doi-img]][doi-url] | [![license][license-img]][license-url] |
 
 [docs-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
-[docs-dev-url]: https://yuiyuiui.github.io/KrylovKit.jl/latest
+[docs-dev-url]: https://jutho.github.io/KrylovKit.jl/latest
 
 [docs-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
 [docs-stable-url]: https://jutho.github.io/KrylovKit.jl/stable
