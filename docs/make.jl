@@ -16,4 +16,4 @@ makedocs(; modules=[KrylovKit],
                              "man/implementation.md"]],
          format=Documenter.HTML(; prettyurls=get(ENV, "CI", nothing) == "true"))
 
-deploydocs(; repo="github.com/Jutho/KrylovKit.jl.git")
+deploydocs(; repo="https://github.com/yuiyuiui/KrylovKit.jl")
