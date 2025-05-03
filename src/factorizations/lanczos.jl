@@ -387,11 +387,13 @@ end
 Base.setindex!(b::BlockVec{T}, v::T, i::Int) where {T} = (b.vec[i] = v)
 function Base.setindex!(b₁::BlockVec{T}, b₂::BlockVec{T},
                         idxs::AbstractVector{Int}) where {T}
-    (b₁.vec[idxs] = b₂.vec;
-     b₁)
+    return (b₁.vec[idxs] = b₂.vec;
+            b₁)
 end
 LinearAlgebra.norm(b::BlockVec) = norm(b.vec)
-apply(f, block::BlockVec{T,S}) where {T,S} = BlockVec{S}([apply(f, block[i]) for i in 1:length(block)])
+function apply(f, block::BlockVec{T,S}) where {T,S}
+    return BlockVec{S}([apply(f, block[i]) for i in 1:length(block)])
+end
 function initialize(x₀, size::Int)
     S = typeof(inner(x₀, x₀))
     x₀_vec = [randn!(similar(x₀)) for _ in 1:(size - 1)]
@@ -442,7 +444,7 @@ end
 Base.length(fact::BlockLanczosFactorization) = fact.total_size
 normres(fact::BlockLanczosFactorization) = fact.norm_r
 basis(fact::BlockLanczosFactorization) = fact.V
-residual(fact::BlockLanczosFactorization) = fact.r[1:fact.r_size]
+residual(fact::BlockLanczosFactorization) = fact.r[1:(fact.r_size)]
 
 """
     struct BlockLanczosIterator{F,T,O<:Orthogonalizer} <: KrylovIterator{F,T}

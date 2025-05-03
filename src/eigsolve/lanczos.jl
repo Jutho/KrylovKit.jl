@@ -171,7 +171,7 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
     numiter = 1
 
     converged = 0
-    local  normresiduals, D, U
+    local normresiduals, D, U
 
     while true
         K = length(fact)
@@ -196,7 +196,7 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
             bs_r = fact.r_size   # the block size of the residual (decreases as the iteration goes)
             r = residual(fact)
             UU = U[(end - bs_r + 1):end, :]  # the last bs_r rows of U, used to compute the residuals
-            normresiduals = diag(UU' * block_inner(r,r) * UU)
+            normresiduals = diag(UU' * block_inner(r, r) * UU)
             normresiduals = sqrt.(real.(normresiduals))
             converged = count(nr -> nr <= tol, normresiduals)
             if converged >= howmany || β <= tol  # successfully find enough eigenvalues
@@ -260,12 +260,12 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
     end
     bs_r = fact.r_size
     K = length(fact)
-    U2 = view(U, K-bs_r+1:K, 1:howmany_actual)
+    U2 = view(U, (K - bs_r + 1):K, 1:howmany_actual)
     R = fact.r
     residuals = [zerovector(x₀) for _ in 1:howmany_actual]
     @inbounds for i in 1:howmany_actual
         for j in 1:bs_r
-            residuals[i] = add!!(residuals[i], R[j], U2[j,i])
+            residuals[i] = add!!(residuals[i], R[j], U2[j, i])
         end
     end
     normresiduals = normresiduals[1:howmany_actual]

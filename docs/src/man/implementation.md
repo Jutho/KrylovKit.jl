@@ -60,6 +60,7 @@ concrete implementations:
 ```@docs
 KrylovKit.KrylovFactorization
 KrylovKit.LanczosFactorization
+KrylovKit.BlockLanczosFactorization
 KrylovKit.ArnoldiFactorization
 KrylovKit.GKLFactorization
 ```
@@ -98,6 +99,7 @@ respectively). These processes are represented as iterators in Julia:
 ```@docs
 KrylovKit.KrylovIterator
 KrylovKit.LanczosIterator
+KrylovKit.BlockLanczosIterator
 KrylovKit.ArnoldiIterator
 ```
 
