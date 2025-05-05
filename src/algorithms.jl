@@ -127,6 +127,28 @@ end
 
 # qr_tol is the tolerance that we think a vector is non-zero in abstract_qr!
 # This qr_tol will also be used in other zero_chcking in block Lanczos.
+"""
+    BlockLanczos(blocksize::Int;
+            krylovdim=KrylovDefaults.blockkrylovdim[],
+            maxiter=KrylovDefaults.blockmaxiter[],
+            tol=KrylovDefaults.tol[],
+            orth=KrylovDefaults.orth,
+            eager=false,
+            verbosity=KrylovDefaults.verbosity[],
+            qr_tol::Real=KrylovDefaults.tol[])
+
+Represents the BlockLanczos algorithm for building the Krylov subspace; assumes the linear
+operator is real symmetric or complex Hermitian. Can be used in `eigsolve`.
+`krylovdim, maxiter, tol, orth, eager, verbosity` are the same as `Lanczos`.
+`qr_tol` is the tolerance that we think a vector is non-zero, mainly used in abstract_qr!.
+`blocksize` must be specified by the user. The size of block shrinks during iteration. The folds of eigenvalues
+BlockLanczos can capture are not more than the initial block size `blocksize`.
+
+
+Use `Arnoldi` for non-symmetric or non-Hermitian linear operators.
+
+See also: `factorize`, `eigsolve`, `Arnoldi`, `Orthogonalizer`
+"""
 struct BlockLanczos{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     orth::O
     krylovdim::Int

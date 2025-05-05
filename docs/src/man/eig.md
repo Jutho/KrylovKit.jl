@@ -25,7 +25,7 @@ using `schursolve`, for which only an 'expert' method call is available
 schursolve
 ```
 Note that, for symmetric or hermitian linear maps, the eigenvalue and Schur factorization
-are equivalent, and one should only use `eigsolve`. There is no `schursolve` using the `Lanczos` algorithm.
+are equivalent, and one should only use `eigsolve`. There is no `schursolve` using the `Lanczos` or `BlockLanczos` algorithm.
 
 Another example of a possible use case of `schursolve` is if the linear map is known to have
 a unique eigenvalue of, e.g. largest magnitude. Then, if the linear map is real valued, that

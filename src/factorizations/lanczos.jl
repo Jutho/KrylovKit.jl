@@ -370,9 +370,15 @@ end
 
 # The basic theory of the Block Lanczos algorithm can be referred to : Golub, G. H., & Van Loan, C. F. (2013). Matrix computations (4th ed., pp. 566–569). Johns Hopkins University Press.
 
-# We use BlockVec to store vectors as a block. Although now its fields are same to OrthonormalBasis,
-# I plan to develop BlockVec a abstract of vector of number and inner product space, 
-# and process the block in the latter as a matrix with higher efficiency.
+"""
+    struct BlockVec{T,S<:Number}
+
+Structure for storing vectors in a block format. The type parameter `T` represents the type of vector elements,
+while `S` represents the type of inner products between vectors. Although the current implementation shares
+the same field structure as `OrthonormalBasis`, future development plans include abstracting `BlockVec` to handle
+both numerical vector blocks and `InnerProductVec` blocks, with optimized matrix-based
+processing for improved computational efficiency in the former case.
+"""
 struct BlockVec{T,S<:Number}
     vec::Vector{T}
     function BlockVec{S}(vec::Vector{T}) where {T,S<:Number}
@@ -419,21 +425,21 @@ map `A` of the form
 A * V = V * B + r * b'
 ```
 
-For a given BlockLanczos factorization `fact` of length `k = length(fact)`, the basis `V` is
-obtained via [`basis(fact)`](@ref basis) and is an instance of [`OrthonormalBasis{T}`](@ref
-Basis), with also `length(V) == k` and where `T` denotes the type of vector like objects
-used in the problem. The block tridiagonal matrix `B` is preallocated in BlockLanczosFactorization
-and is of type `Hermitian{S<:Number}` with `size(B) == (k,k)`. The residual `r` is of type `T`.
-One can also query [`normres(fact)`](@ref) to obtain `norm(r)`, the norm of the residual. The vector
-`b` takes the default value ``e_k``, i.e. the matrix of size `(k,bs)` and an unit matrix in the last
-`bs` rows and all zeros in the other rows. `bs` is the size of the last block.
+For a given BlockLanczos factorization `fact`, length `k = length(fact)` and basis `V = basis(fact)` are
+like Lanczos factorization. The block tridiagonal matrix `TDB` is preallocated in BlockLanczosFactorization
+and is of type `Hermitian{S<:Number}` with `size(TDB) == (k,k)`. The residuals `r` is of type `Vector{T}`.
+One can also query [`normres(fact)`](@ref) to obtain `norm(r)`, the norm of the residual. The matrix
+`b` takes the default value ``[0;I]``, i.e. the matrix of size `(k,bs)` and an unit matrix in the last
+`bs` rows and all zeros in the other rows. `bs` is the size of the last block. One can query [`r_size(fact)`] to obtain
+size of the last block and the residuals.
 
-`BlockLanczosFactorization` is mutable because it can [`expand!`](@ref) or [`shrink!`](@ref).
+`BlockLanczosFactorization` is mutable because it can [`expand!`](@ref). But it does not support `shrink!`
+because it is implemented in its `eigsolve`.
 See also [`BlockLanczosIterator`](@ref) for an iterator that constructs a progressively expanding
 BlockLanczos factorizations of a given linear map and a starting vector.
 """
 mutable struct BlockLanczosFactorization{T,S<:Number,SR<:Real} <:
-               BlockKrylovFactorization{T,S,SR}
+               KrylovFactorization{T,S}
     total_size::Int
     const V::OrthonormalBasis{T}      # Block Lanczos Basis
     const TDB::AbstractMatrix{S}      # TDB matrix, S is the matrix type
@@ -448,16 +454,15 @@ residual(fact::BlockLanczosFactorization) = fact.r[1:(fact.r_size)]
 
 """
     struct BlockLanczosIterator{F,T,O<:Orthogonalizer} <: KrylovIterator{F,T}
-    BlockLanczosIterator(f, x₀, [orth::Orthogonalizer = KrylovDefaults.orth, keepvecs::Bool = true])
+    BlockLanczosIterator(f, x₀, maxdim, qr_tol, [orth::Orthogonalizer = KrylovDefaults.orth])
 
 Iterator that takes a linear map `f::F` (supposed to be real symmetric or complex hermitian)
-and an initial block `x₀::Vector{T}` and generates an expanding `BlockLanczosFactorization` thereof. In
+and an initial block `x₀::BlockVec{T,S}` and generates an expanding `BlockLanczosFactorization` thereof. In
 particular, `BlockLanczosIterator` uses the
 [Block Lanczos iteration](https://en.wikipedia.org/wiki/Block_Lanczos_algorithm) scheme to build a
 successively expanding BlockLanczos factorization. While `f` cannot be tested to be symmetric or
-hermitian directly when the linear map is encoded as a general callable object or function,
-it is tested whether  `block_inner(X, f.(X))` is sufficiently small to be
-neglected.
+hermitian directly when the linear map is encoded as a general callable object or function, with `block_inner(X, f.(X))`,
+it is tested whether `norm(M-M')` is sufficiently small to be neglected.
 
 The argument `f` can be a matrix, or a function accepting a single argument `x`, so that
 `f(x)` implements the action of the linear map on the block `x`.
@@ -466,32 +471,18 @@ The optional argument `orth` specifies which [`Orthogonalizer`](@ref) to be used
 default value in [`KrylovDefaults`](@ref) is to use [`ModifiedGramSchmidt2`](@ref), which
 uses reorthogonalization steps in every iteration.
 Now our orthogonalizer is only ModifiedGramSchmidt2. So we don't need to provide "keepvecs" because we have to reverse all krylove vectors.
-Dimension of Krylov subspace in BlockLanczosIterator is usually much bigger than lanczos.So ClassicalGramSchmidt 
-and ModifiedGramSchmidt1 is numerically unstable. I don't add IR orthogonalizer because I find it sometimes unstable.
-Householder reorthogonalization is theoretically stable and saves memory, but the algorithm I implemented is not stable.
-In the future, I will add IR and Householder orthogonalizer.
+Dimension of Krylov subspace in BlockLanczosIterator is usually much bigger than lanczos and its Default value is 100.
+`qr_tol` is the tolerance with which we judge whether a vector is a zero vector. It's mainly used in `abstract_qr!`.
 
 When iterating over an instance of `BlockLanczosIterator`, the values being generated are
-instances of [`BlockLanczosFactorization`](@ref), which can be destructured. For example as
-
-```julia
-for (V, B, r, nr, b) in BlockLanczosIterator(f, x₀)
-    # do something
-    nr < tol && break # a typical stopping criterion
-end
-```
-
-Since the iterator does not know the dimension of the underlying vector space of
-objects of type `T`, it keeps expanding the Krylov subspace until the residual norm `nr`
-falls below machine precision `eps(typeof(nr))`.
+instances of [`BlockLanczosFactorization`](@ref). 
 
 The internal state of `BlockLanczosIterator` is the same as the return value, i.e. the
 corresponding `BlockLanczosFactorization`.
 
 Here, [`initialize(::KrylovIterator)`](@ref) produces the first Krylov factorization,
 and `expand!(::KrylovIterator, ::KrylovFactorization)`(@ref) expands the
-factorization in place. See also [`shrink!(::KrylovFactorization, k)`](@ref) to shrink an
-existing factorization down to length `k`.
+factorization in place.
 """
 struct BlockLanczosIterator{F,T,S,O<:Orthogonalizer} <: KrylovIterator{F,T}
     operator::F
