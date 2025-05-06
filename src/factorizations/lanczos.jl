@@ -119,7 +119,7 @@ end
 ```
 
 Here, [`initialize(::KrylovIterator)`](@ref) produces the first Krylov factorization of
-length 1, and `expand!(::KrylovIterator, ::KrylovFactorization)`(@ref) expands the
+length 1, and [`expand!(iter::KrylovIterator, fact::KrylovFactorization)`](@ref) expands the factorization in place. See also
 factorization in place. See also [`initialize!(::KrylovIterator,
 ::KrylovFactorization)`](@ref) to initialize in an already existing factorization (most
 information will be discarded) and [`shrink!(::KrylovFactorization, k)`](@ref) to shrink an
@@ -367,9 +367,6 @@ function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ModifiedGram
 end
 
 # block lanczos
-
-# The basic theory of the Block Lanczos algorithm can be referred to : Golub, G. H., & Van Loan, C. F. (2013). Matrix computations (4th ed., pp. 566–569). Johns Hopkins University Press.
-
 """
     struct BlockVec{T,S<:Number}
 
@@ -459,7 +456,7 @@ residual(fact::BlockLanczosFactorization) = fact.r[1:(fact.r_size)]
 Iterator that takes a linear map `f::F` (supposed to be real symmetric or complex hermitian)
 and an initial block `x₀::BlockVec{T,S}` and generates an expanding `BlockLanczosFactorization` thereof. In
 particular, `BlockLanczosIterator` uses the
-[Block Lanczos iteration](https://en.wikipedia.org/wiki/Block_Lanczos_algorithm) scheme to build a
+[BlockLanczos iteration](https://en.wikipedia.org/wiki/Block_Lanczos_algorithm) scheme to build a
 successively expanding BlockLanczos factorization. While `f` cannot be tested to be symmetric or
 hermitian directly when the linear map is encoded as a general callable object or function, with `block_inner(X, f.(X))`,
 it is tested whether `norm(M-M')` is sufficiently small to be neglected.
@@ -481,7 +478,7 @@ The internal state of `BlockLanczosIterator` is the same as the return value, i.
 corresponding `BlockLanczosFactorization`.
 
 Here, [`initialize(::KrylovIterator)`](@ref) produces the first Krylov factorization,
-and `expand!(::KrylovIterator, ::KrylovFactorization)`(@ref) expands the
+and [`expand!(iter::KrylovIterator, fact::KrylovFactorization)`](@ref) expands the
 factorization in place.
 """
 struct BlockLanczosIterator{F,T,S,O<:Orthogonalizer} <: KrylovIterator{F,T}
@@ -592,6 +589,22 @@ function blocklanczosrecurrence(operator, V::OrthonormalBasis, Bₖ::AbstractMat
     return rₖnext, M
 end
 
+"""
+    compute_residual!(AX::BlockVec{T,S}, X::BlockVec{T,S},
+                           M::AbstractMatrix,
+                           X_prev::BlockVec{T,S}, B_prev::AbstractMatrix) where {T,S}
+
+This function computes the residual vector `AX` by subtracting the operator applied to `X` from `AX`,
+and then subtracting the projection of `AX` onto the previously orthonormalized basis vectors in `X_prev`.
+The result is stored in place in `AX`.
+
+```
+    AX <- AX - X * M - X_prev * B_prev
+```
+
+Future versions of this function will incorporate optimized implementations tailored to different block types
+(e.g., blocks of numerical vectors versus InnerProductVec objects) in order to enhance computational efficiency.
+"""
 function compute_residual!(AX::BlockVec{T,S}, X::BlockVec{T,S},
                            M::AbstractMatrix,
                            X_prev::BlockVec{T,S}, B_prev::AbstractMatrix) where {T,S}
@@ -606,7 +619,21 @@ function compute_residual!(AX::BlockVec{T,S}, X::BlockVec{T,S},
     return AX
 end
 
-# This function is reserved for further improvement on case of vector of number input.
+"""
+    ortho_basis!(basis::BlockVec{T,S}, basis_sofar::OrthonormalBasis{T}) where {T,S}
+
+This function orthogonalizes the vectors in `basis` with respect to the previously orthonormalized set `basis_sofar`.
+Specifically, it modifies each vector `basis[i]` by projecting out its components along the directions spanned by `basis_sofar`, i.e.,
+
+```
+    basis[i] = basis[i] - sum(j=1:length(basis_sofar)) <basis[i], basis_sofar[j]> basis_sofar[j]
+```
+
+Here,`⟨·,·⟩` denotes the inner product. The function assumes that `basis_sofar` is already orthonormal.
+
+Future versions of this function will incorporate optimized implementations tailored to different block types
+(e.g., blocks of numerical vectors versus InnerProductVec objects) in order to enhance computational efficiency.
+"""
 function ortho_basis!(basis::BlockVec{T,S}, basis_sofar::OrthonormalBasis{T}) where {T,S}
     for i in 1:length(basis)
         for q in basis_sofar
@@ -622,7 +649,23 @@ function warn_nonhermitian(M::AbstractMatrix)
     end
 end
 
-# This is for block of abstract vectors and resolving the rank in block lanczos.
+"""
+    abstract_qr!(block::BlockVec{T,S}, tol::Real) where {T,S}
+
+This function performs a QR factorization of a block of abstract vectors using the modified Gram-Schmidt process.
+
+```
+    [v₁,..,vₚ] -> [u₁,..,uᵣ] * R
+```
+
+It takes as input a block of abstract vectors and a tolerance parameter, which is used to determine whether a vector is considered numerically zero.
+The operation is performed in-place, transforming the input block into a block of orthonormal vectors.
+
+The function returns a matrix of size `(r, p)` and a vector of indices goodidx. Here, `p` denotes the number of input vectors,
+and `r` is the numerical rank of the input block. The matrix represents the upper-triangular factor of the QR decomposition,
+restricted to the `r` linearly independent components. The vector `goodidx` contains the indices of the non-zero
+(i.e., numerically independent) vectors in the orthonormalized block.
+"""
 function abstract_qr!(block::BlockVec{T,S}, tol::Real) where {T,S}
     n = length(block)
     rank_shrink = false

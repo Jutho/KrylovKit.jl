@@ -52,6 +52,20 @@ KrylovKit.basistransform!
 KrylovKit.BlockVec
 ```
 
+A block of vectors can be orthonormalized using
+```@docs
+KrylovKit.abstract_qr!
+```
+This apply QR decomposition to a block of vectors using modified Gram-Schmidt process.
+
+Additional procedures applied to the block are as follows:
+```@docs
+KrylovKit.ortho_basis!
+KrylovKit.compute_residual!
+```
+
+
+
 ## Dense linear algebra
 
 KrylovKit relies on Julia's `LinearAlgebra` module from the standard library for most of its

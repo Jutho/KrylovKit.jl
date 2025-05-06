@@ -144,8 +144,12 @@ operator is real symmetric or complex Hermitian. Can be used in `eigsolve`.
 `blocksize` must be specified by the user. The size of block shrinks during iteration. The folds of eigenvalues
 BlockLanczos can capture are not more than the initial block size `blocksize`.
 
+In addition to utilizing `tol` as a convergence criterion, the Block Lanczos algorithm employs a supplementary convergence metric:
+monitoring the number of converged eigenvalues at regular iteration intervals.
+This metric refers to [Block Lanczos Method](https://www.netlib.org/utk/people/JackDongarra/etemplates/node250.html).
 
-Use `Arnoldi` for non-symmetric or non-Hermitian linear operators.
+Use `Arnoldi` for non-symmetric or non-Hermitian linear operators. A generalized Block Lanczos method for non-Hermitian linear operators,
+as described in [Block Lanczos Method](https://www.netlib.org/utk/people/JackDongarra/etemplates/node250.html), is planned for future implementation.
 
 See also: `factorize`, `eigsolve`, `Arnoldi`, `Orthogonalizer`
 """
@@ -484,6 +488,8 @@ struct JacobiDavidson <: EigenSolver end
         const orth = KrylovKit.ModifiedGramSchmidtIR()
         const krylovdim = Ref(30)
         const maxiter = Ref(100)
+        const blockkrylovdim = Ref(100)
+        const blockmaxiter = Ref(2)
         const tol = Ref(1e-12)
         const verbosity = Ref(KrylovKit.WARN_LEVEL)
     end
@@ -495,8 +501,10 @@ A module listing the default values for the typical parameters in Krylov based a
   - `krylovdim = 30`: the maximal dimension of the Krylov subspace that will be constructed
   - `maxiter = 100`: the maximal number of outer iterations, i.e. the maximum number of
     times the Krylov subspace may be rebuilt
+  - `blockkrylovdim = 100`: the maximal dimension of the Krylov subspace that will be constructed for block lanczos
+  - `blockmaxiter = 100`: the maximal number of outer iterations of block lanczos
   - `tol = 1e-12`: the tolerance to which the problem must be solved, based on a suitable
-    error measure, e.g. the norm of some residual.
+    error measure, e.g. the norm of some residual. It's also used as the default value of `qr_tol`
 
 !!! warning
 
