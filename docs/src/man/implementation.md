@@ -46,7 +46,10 @@ the subspace spanned by it, can be computed using
 KrylovKit.basistransform!
 ```
 
-## BlockVec
+## Block Krylov method
+The block version of the Krylov subspace algorithm is an approach to extending Krylov subspace techniques from single starting vectors to multiple starting vectors. It is mainly used for solving linear systems with degenerate dominant eigenvalues.
+
+In our implementation, the multiple-vector data structure is BlockVec, which implements the [`KrylovKit.abstract_qr!`](@ref), [`KrylovKit.ortho_basis!`](@ref), and [`KrylovKit.compute_residual!`](@ref) interfaces.
 
 ```@docs
 KrylovKit.BlockVec

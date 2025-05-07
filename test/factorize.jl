@@ -297,8 +297,8 @@ end
     end
 end
 
-# Test complete Block Lanczos factorization
-@testset "Complete Block Lanczos factorization " for mode in (:vector, :inplace, :outplace)
+# Test complete BlockLanczos factorization
+@testset "Complete BlockLanczos factorization " for mode in (:vector, :inplace, :outplace)
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
                   (ComplexF64,)
     using KrylovKit: EACHITERATION_LEVEL
@@ -350,8 +350,8 @@ end
     end
 end
 
-# Test incomplete Block Lanczos factorization
-@testset "Incomplete Block Lanczos factorization " for mode in
+# Test incomplete BlockLanczos factorization
+@testset "Incomplete BlockLanczos factorization " for mode in
                                                        (:vector, :inplace, :outplace)
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
                   (ComplexF64,)

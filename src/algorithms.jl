@@ -125,31 +125,27 @@ function Lanczos(;
     return Lanczos(orth, krylovdim, maxiter, tol, eager, verbosity)
 end
 
-# qr_tol is the tolerance that we think a vector is non-zero in abstract_qr!
-# This qr_tol will also be used in other zero_chcking in block Lanczos.
 """
     BlockLanczos(blocksize::Int;
             krylovdim=KrylovDefaults.blockkrylovdim[],
-            maxiter=KrylovDefaults.blockmaxiter[],
+            maxiter=KrylovDefaults.maxiter[],
             tol=KrylovDefaults.tol[],
             orth=KrylovDefaults.orth,
             eager=false,
             verbosity=KrylovDefaults.verbosity[],
             qr_tol::Real=KrylovDefaults.tol[])
 
-Represents the BlockLanczos algorithm for building the Krylov subspace; assumes the linear
-operator is real symmetric or complex Hermitian. Can be used in `eigsolve`.
-`krylovdim, maxiter, tol, orth, eager, verbosity` are the same as `Lanczos`.
-`qr_tol` is the tolerance that we think a vector is non-zero, mainly used in abstract_qr!.
-`blocksize` must be specified by the user. The size of block shrinks during iteration. The folds of eigenvalues
-BlockLanczos can capture are not more than the initial block size `blocksize`.
+The block version of [`Lanczos`](@ref) is suited for solving linear systems with degenerate dominant eigenvalues.
+Arguments `krylovdim`, `maxiter`, `tol`, `orth`, `eager` and `verbosity` are the same as `Lanczos`.
+`qr_tol` is the error tolerance for `abstract_qr!` - a subroutine used to orthorgonalize the vectors in the same block.
+`blocksize` is the size of block, which shrinks during iterations.
+The initial block size determines the maximum degeneracy of the target eigenvalue can be resolved.
 
-In addition to utilizing `tol` as a convergence criterion, the Block Lanczos algorithm employs a supplementary convergence metric:
+In addition to utilizing `tol` as a convergence criterion, the BlockLanczos algorithm employs a supplementary convergence metric:
 monitoring the number of converged eigenvalues at regular iteration intervals.
-This metric refers to [Block Lanczos Method](https://www.netlib.org/utk/people/JackDongarra/etemplates/node250.html).
+This metric refers to [BlockLanczos Method](https://www.netlib.org/utk/people/JackDongarra/etemplates/node250.html).
 
-Use `Arnoldi` for non-symmetric or non-Hermitian linear operators. A generalized Block Lanczos method for non-Hermitian linear operators,
-as described in [Block Lanczos Method](https://www.netlib.org/utk/people/JackDongarra/etemplates/node250.html), is planned for future implementation.
+Use `Arnoldi` for non-symmetric or non-Hermitian linear operators. 
 
 See also: `factorize`, `eigsolve`, `Arnoldi`, `Orthogonalizer`
 """
@@ -165,7 +161,7 @@ struct BlockLanczos{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
 end
 function BlockLanczos(blocksize::Int;
                       krylovdim::Int=KrylovDefaults.blockkrylovdim[],
-                      maxiter::Int=KrylovDefaults.blockmaxiter[],
+                      maxiter::Int=KrylovDefaults.maxiter[],
                       tol::Real=KrylovDefaults.tol[],
                       orth::Orthogonalizer=KrylovDefaults.orth,
                       eager::Bool=false,
@@ -489,7 +485,6 @@ struct JacobiDavidson <: EigenSolver end
         const krylovdim = Ref(30)
         const maxiter = Ref(100)
         const blockkrylovdim = Ref(100)
-        const blockmaxiter = Ref(2)
         const tol = Ref(1e-12)
         const verbosity = Ref(KrylovKit.WARN_LEVEL)
     end
@@ -501,8 +496,7 @@ A module listing the default values for the typical parameters in Krylov based a
   - `krylovdim = 30`: the maximal dimension of the Krylov subspace that will be constructed
   - `maxiter = 100`: the maximal number of outer iterations, i.e. the maximum number of
     times the Krylov subspace may be rebuilt
-  - `blockkrylovdim = 100`: the maximal dimension of the Krylov subspace that will be constructed for block lanczos
-  - `blockmaxiter = 100`: the maximal number of outer iterations of block lanczos
+  - `blockkrylovdim = 100`: the maximal dimension of the Krylov subspace that will be constructed for BlockLanczos
   - `tol = 1e-12`: the tolerance to which the problem must be solved, based on a suitable
     error measure, e.g. the norm of some residual. It's also used as the default value of `qr_tol`
 
@@ -518,7 +512,6 @@ const orth = KrylovKit.ModifiedGramSchmidt2() # conservative choice
 const krylovdim = Ref(30)
 const maxiter = Ref(100)
 const blockkrylovdim = Ref(100)
-const blockmaxiter = Ref(2)
 const tol = Ref(1e-12)
 const verbosity = Ref(KrylovKit.WARN_LEVEL)
 end

@@ -366,15 +366,12 @@ function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ModifiedGram
     return w, α, β
 end
 
-# block lanczos
+# BlockLanczos
 """
     struct BlockVec{T,S<:Number}
 
 Structure for storing vectors in a block format. The type parameter `T` represents the type of vector elements,
-while `S` represents the type of inner products between vectors. Although the current implementation shares
-the same field structure as `OrthonormalBasis`, future development plans include abstracting `BlockVec` to handle
-both numerical vector blocks and `InnerProductVec` blocks, with optimized matrix-based
-processing for improved computational efficiency in the former case.
+while `S` represents the type of inner products between vectors.
 """
 struct BlockVec{T,S<:Number}
     vec::Vector{T}
@@ -415,7 +412,7 @@ Base.iterate(b::BlockVec, state) = iterate(b.vec, state)
 """
     mutable struct BlockLanczosFactorization{T,S<:Number,SR<:Real} <: BlockKrylovFactorization{T,S,SR}
 
-Structure to store a block lanczos factorization of a real symmetric or complex hermitian linear
+Structure to store a BlockLanczos factorization of a real symmetric or complex hermitian linear
 map `A` of the form
 
 ```julia
@@ -423,7 +420,7 @@ A * V = V * B + r * b'
 ```
 
 For a given BlockLanczos factorization `fact`, length `k = length(fact)` and basis `V = basis(fact)` are
-like Lanczos factorization. The block tridiagonal matrix `TDB` is preallocated in BlockLanczosFactorization
+like [`LanczosFactorization`](@ref). The block tridiagonal matrix `TDB` is preallocated in `BlockLanczosFactorization`
 and is of type `Hermitian{S<:Number}` with `size(TDB) == (k,k)`. The residuals `r` is of type `Vector{T}`.
 One can also query [`normres(fact)`](@ref) to obtain `norm(r)`, the norm of the residual. The matrix
 `b` takes the default value ``[0;I]``, i.e. the matrix of size `(k,bs)` and an unit matrix in the last
@@ -438,7 +435,7 @@ BlockLanczos factorizations of a given linear map and a starting vector.
 mutable struct BlockLanczosFactorization{T,S<:Number,SR<:Real} <:
                KrylovFactorization{T,S}
     total_size::Int
-    const V::OrthonormalBasis{T}      # Block Lanczos Basis
+    const V::OrthonormalBasis{T}      # BlockLanczos Basis
     const TDB::AbstractMatrix{S}      # TDB matrix, S is the matrix type
     const r::BlockVec{T,S}            # residual block
     r_size::Int # size of the residual block
@@ -469,7 +466,7 @@ default value in [`KrylovDefaults`](@ref) is to use [`ModifiedGramSchmidt2`](@re
 uses reorthogonalization steps in every iteration.
 Now our orthogonalizer is only ModifiedGramSchmidt2. So we don't need to provide "keepvecs" because we have to reverse all krylove vectors.
 Dimension of Krylov subspace in BlockLanczosIterator is usually much bigger than lanczos and its Default value is 100.
-`qr_tol` is the tolerance with which we judge whether a vector is a zero vector. It's mainly used in `abstract_qr!`.
+`qr_tol` is the tolerance used in [`abstract_qr!`](@ref) to resolve the rank of a block of vectors.
 
 When iterating over an instance of `BlockLanczosIterator`, the values being generated are
 instances of [`BlockLanczosFactorization`](@ref). 
@@ -533,7 +530,7 @@ function initialize(iter::BlockLanczosIterator{F,T,S};
     end
     norm_r = norm(AX₁)
     if verbosity > EACHITERATION_LEVEL
-        @info "Block Lanczos initiation at dimension $bs: subspace normres = $(normres2string(norm_r))"
+        @info "BlockLanczos initiation at dimension $bs: subspace normres = $(normres2string(norm_r))"
     end
     return BlockLanczosFactorization(bs,
                                      V,
@@ -569,7 +566,7 @@ function expand!(iter::BlockLanczosIterator{F,T,S},
     state.r_size = bs_next
 
     if verbosity > EACHITERATION_LEVEL
-        @info "Block Lanczos expansion to dimension $(state.total_size): subspace normres = $(normres2string(state.norm_r))"
+        @info "BlockLanczos expansion to dimension $(state.total_size): subspace normres = $(normres2string(state.norm_r))"
     end
 end
 
@@ -602,8 +599,6 @@ The result is stored in place in `AX`.
     AX <- AX - X * M - X_prev * B_prev
 ```
 
-Future versions of this function will incorporate optimized implementations tailored to different block types
-(e.g., blocks of numerical vectors versus InnerProductVec objects) in order to enhance computational efficiency.
 """
 function compute_residual!(AX::BlockVec{T,S}, X::BlockVec{T,S},
                            M::AbstractMatrix,
@@ -622,7 +617,7 @@ end
 """
     ortho_basis!(basis::BlockVec{T,S}, basis_sofar::OrthonormalBasis{T}) where {T,S}
 
-This function orthogonalizes the vectors in `basis` with respect to the previously orthonormalized set `basis_sofar`.
+This function orthogonalizes the vectors in `basis` with respect to the previously orthonormalized set `basis_sofar` by using the modified Gram-Schmidt process.
 Specifically, it modifies each vector `basis[i]` by projecting out its components along the directions spanned by `basis_sofar`, i.e.,
 
 ```
@@ -630,9 +625,6 @@ Specifically, it modifies each vector `basis[i]` by projecting out its component
 ```
 
 Here,`⟨·,·⟩` denotes the inner product. The function assumes that `basis_sofar` is already orthonormal.
-
-Future versions of this function will incorporate optimized implementations tailored to different block types
-(e.g., blocks of numerical vectors versus InnerProductVec objects) in order to enhance computational efficiency.
 """
 function ortho_basis!(basis::BlockVec{T,S}, basis_sofar::OrthonormalBasis{T}) where {T,S}
     for i in 1:length(basis)

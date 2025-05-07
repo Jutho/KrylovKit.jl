@@ -202,7 +202,7 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
             if converged >= howmany || β <= tol  # successfully find enough eigenvalues
                 break
             elseif verbosity >= EACHITERATION_LEVEL
-                @info "Block Lanczos eigsolve in iteration $numiter: $converged values converged, normres = $(normres2string(normresiduals))"
+                @info "BlockLanczos eigsolve in iteration $numiter: $converged values converged, normres = $(normres2string(normresiduals))"
             end
         end
 
@@ -271,12 +271,12 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
     normresiduals = normresiduals[1:howmany_actual]
 
     if (converged < howmany) && verbosity >= WARN_LEVEL
-        @warn """Block Lanczos eigsolve stopped without full convergence after $(K) iterations:
+        @warn """BlockLanczos eigsolve stopped without full convergence after $(K) iterations:
         * $converged eigenvalues converged
         * norm of residuals = $(normres2string(normresiduals))
         * number of operations = $numops"""
     elseif verbosity >= STARTSTOP_LEVEL
-        @info """Block Lanczos eigsolve finished after $(K) iterations:
+        @info """BlockLanczos eigsolve finished after $(K) iterations:
         * $converged eigenvalues converged
         * norm of residuals = $(normres2string(normresiduals))
         * number of operations = $numops"""

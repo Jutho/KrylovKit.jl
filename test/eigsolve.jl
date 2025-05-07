@@ -360,7 +360,7 @@ end
     @test_logs (:info,) realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-12, verbosity=2))
 end
 
-@testset "Block Lanczos - eigsolve for large sparse matrix and map input" begin
+@testset "BlockLanczos - eigsolve for large sparse matrix and map input" begin
     function toric_code_strings(m::Int, n::Int)
         li = LinearIndices((m, n))
         bottom(i, j) = li[mod1(i, m), mod1(j, n)] + m * n
@@ -441,7 +441,7 @@ end
 end
 
 # For user interface, input is single vector.
-@testset "Block Lanczos - eigsolve full $mode" for mode in (:vector, :inplace, :outplace)
+@testset "BlockLanczos - eigsolve full $mode" for mode in (:vector, :inplace, :outplace)
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
                   (ComplexF64,)
     @testset for T in scalartypes
@@ -500,7 +500,7 @@ end
     end
 end
 
-@testset "Block Lanczos - eigsolve iteratively $mode" for mode in
+@testset "BlockLanczos - eigsolve iteratively $mode" for mode in
                                                           (:vector, :inplace, :outplace)
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
                   (ComplexF64,)
@@ -539,7 +539,7 @@ end
     end
 end
 
-@testset "Block Lanczos - eigsolve for abstract type" begin
+@testset "BlockLanczos - eigsolve for abstract type" begin
     T = ComplexF64
     H = rand(T, (n, n))
     H = H' * H + I
@@ -558,8 +558,8 @@ end
     @test findmax([norm(Aip(V[i]) - D[i] * V[i]) for i in 1:eig_num])[1] < tolerance(T)
 end
 
-# with the same krylovdim, block lanczos has lower accuracy with blocksize >1.
-@testset "Complete Lanczos and Block Lanczos $mode" for mode in
+# with the same krylovdim, BlockLanczos has lower accuracy with blocksize >1.
+@testset "Complete Lanczos and BlockLanczos $mode" for mode in
                                                         (:vector, :inplace, :outplace)
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
                   (ComplexF64,)
@@ -595,8 +595,8 @@ end
     end
 end
 
-# Test effectiveness of shrink!() in block lanczos
-@testset "Test effectiveness of shrink!() in block lanczos $mode" for mode in
+# Test effectiveness of shrink!() in BlockLanczos
+@testset "Test effectiveness of shrink!() in BlockLanczos $mode" for mode in
                                                                       (:vector, :inplace,
                                                                        :outplace)
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
