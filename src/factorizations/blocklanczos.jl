@@ -310,9 +310,9 @@ function abstract_qr!(block::BlockVec{T,S}, tol::Real) where {T,S}
         β = norm(block[j])
         if !(β ≤ tol)
             R[j, j] = β
-            block[j] = scale(block[j], 1 / β)
+            block[j] = scale!!(block[j], 1 / β)
         else
-            block[j] = scale!!(block[j], 0)
+            block[j] = zerovector!!(block[j])
             rank_shrink = true
             idx[j] = 0
         end
