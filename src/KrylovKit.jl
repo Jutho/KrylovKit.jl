@@ -175,6 +175,7 @@ include("dense/reflector.jl")
 # Krylov and related factorizations and their iterators
 include("factorizations/krylov.jl")
 include("factorizations/lanczos.jl")
+include("factorizations/blocklanczos.jl")
 include("factorizations/arnoldi.jl")
 include("factorizations/gkl.jl")
 

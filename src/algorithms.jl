@@ -135,13 +135,13 @@ end
             verbosity=KrylovDefaults.verbosity[],
             qr_tol::Real=KrylovDefaults.tol[])
 
-The block version of [`Lanczos`](@ref) is suited for solving linear systems with degenerate dominant eigenvalues.
+The block version of [`Lanczos`](@ref) is suited for solving eigenvalue problems with degenerate dominant eigenvalues.
 Arguments `krylovdim`, `maxiter`, `tol`, `orth`, `eager` and `verbosity` are the same as `Lanczos`.
 `qr_tol` is the error tolerance for `abstract_qr!` - a subroutine used to orthorgonalize the vectors in the same block.
 `blocksize` is the size of block, which shrinks during iterations.
-The initial block size determines the maximum degeneracy of the target eigenvalue can be resolved.
+The initial block size determines the maximum degeneracy of the target eigenvalue can that be resolved.
 
-The iteration stops when either the norm of residual is below tol or the enough eigenvectors are converged.[Reference](https://www.netlib.org/utk/people/JackDongarra/etemplates/node250.html)
+The iteration stops when either the norm of the residual is below `tol` or a sufficient number of eigenvectors have converged. [Reference](https://www.netlib.org/utk/people/JackDongarra/etemplates/node250.html)
 
 Use `Arnoldi` for non-symmetric or non-Hermitian linear operators. 
 
