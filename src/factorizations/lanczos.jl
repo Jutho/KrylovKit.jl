@@ -581,7 +581,7 @@ function blocklanczosrecurrence(operator, V::OrthonormalBasis, Bₖ::AbstractMat
     M = block_inner(X, AX)
     # Calculate the new residual. Get Rnext
     Xlast = BlockVec{S}(V[(k - bs_last - bs + 1):(k - bs)])
-    rₖnext = compute_residual!(AX, X, M, Xlast, Bₖ)
+    rₖnext = compute_residual!(AX, X, M, Xlast, Bₖ')
     ortho_basis!(rₖnext, V)
     return rₖnext, M
 end
