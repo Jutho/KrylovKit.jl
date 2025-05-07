@@ -105,7 +105,7 @@ lack of convergence.
 
 Use `Arnoldi` for non-symmetric or non-Hermitian linear operators.
 
-See also: `factorize`, `eigsolve`, `exponentiate`, `Arnoldi`, `Orthogonalizer`
+See also: [Factorization types](@ref), [`eigsolve`](@ref), [`exponentiate`](@ref), [`Arnoldi`](@ref), [`Orthogonalizer`](@ref)
 """
 struct Lanczos{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     orth::O
@@ -141,13 +141,11 @@ Arguments `krylovdim`, `maxiter`, `tol`, `orth`, `eager` and `verbosity` are the
 `blocksize` is the size of block, which shrinks during iterations.
 The initial block size determines the maximum degeneracy of the target eigenvalue can be resolved.
 
-In addition to utilizing `tol` as a convergence criterion, the BlockLanczos algorithm employs a supplementary convergence metric:
-monitoring the number of converged eigenvalues at regular iteration intervals.
-This metric refers to [BlockLanczos Method](https://www.netlib.org/utk/people/JackDongarra/etemplates/node250.html).
+The iteration stops when either the norm of residual is below tol or the enough eigenvectors are converged.[Reference](https://www.netlib.org/utk/people/JackDongarra/etemplates/node250.html)
 
 Use `Arnoldi` for non-symmetric or non-Hermitian linear operators. 
 
-See also: `factorize`, `eigsolve`, `Arnoldi`, `Orthogonalizer`
+See also: [Factorization types](@ref), [`eigsolve`](@ref), [`Arnoldi`](@ref), [`Orthogonalizer`](@ref)
 """
 struct BlockLanczos{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     orth::O

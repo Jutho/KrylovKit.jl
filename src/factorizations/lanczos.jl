@@ -453,8 +453,8 @@ residual(fact::BlockLanczosFactorization) = fact.r[1:(fact.r_size)]
 Iterator that takes a linear map `f::F` (supposed to be real symmetric or complex hermitian)
 and an initial block `x₀::BlockVec{T,S}` and generates an expanding `BlockLanczosFactorization` thereof. In
 particular, `BlockLanczosIterator` uses the
-[BlockLanczos iteration](https://en.wikipedia.org/wiki/Block_Lanczos_algorithm) scheme to build a
-successively expanding BlockLanczos factorization. While `f` cannot be tested to be symmetric or
+BlockLanczos iteration(@footnote "Golub, G. H., & Van Loan, C. F. (2013). Matrix computations (4th ed.). Johns Hopkins University Press.")
+scheme to build a successively expanding BlockLanczos factorization. While `f` cannot be tested to be symmetric or
 hermitian directly when the linear map is encoded as a general callable object or function, with `block_inner(X, f.(X))`,
 it is tested whether `norm(M-M')` is sufficiently small to be neglected.
 
@@ -591,13 +591,20 @@ end
                            M::AbstractMatrix,
                            X_prev::BlockVec{T,S}, B_prev::AbstractMatrix) where {T,S}
 
-This function computes the residual vector `AX` by subtracting the operator applied to `X` from `AX`,
-and then subtracting the projection of `AX` onto the previously orthonormalized basis vectors in `X_prev`.
-The result is stored in place in `AX`.
+Computes the residual block and stores the result in `AX`.
+
+This function orthogonalizes `AX` against the two most recent basis blocks, `X` and `X_prev`.  
+Here, `AX` represents the image of the current block `X` under the action of the linear operator `A`.  
+The matrix `M` contains the inner products between `X` and `AX`, i.e., the projection of `AX` onto `X`.  
+Similarly, `B_prev` represents the projection of `AX` onto `X_prev`.
+
+The residual is computed as:
 
 ```
-    AX <- AX - X * M - X_prev * B_prev
+    AX ← AX - X * M - X_prev * B_prev
 ```
+
+After this operation, `AX` is orthogonal (in the block inner product sense) to both `X` and `X_prev`.
 
 """
 function compute_residual!(AX::BlockVec{T,S}, X::BlockVec{T,S},

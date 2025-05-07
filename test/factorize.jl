@@ -352,7 +352,7 @@ end
 
 # Test incomplete BlockLanczos factorization
 @testset "Incomplete BlockLanczos factorization " for mode in
-                                                       (:vector, :inplace, :outplace)
+                                                      (:vector, :inplace, :outplace)
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
                   (ComplexF64,)
     @testset for T in scalartypes

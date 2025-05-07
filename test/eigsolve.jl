@@ -501,7 +501,7 @@ end
 end
 
 @testset "BlockLanczos - eigsolve iteratively $mode" for mode in
-                                                          (:vector, :inplace, :outplace)
+                                                         (:vector, :inplace, :outplace)
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
                   (ComplexF64,)
     @testset for T in scalartypes
@@ -560,7 +560,7 @@ end
 
 # with the same krylovdim, BlockLanczos has lower accuracy with blocksize >1.
 @testset "Complete Lanczos and BlockLanczos $mode" for mode in
-                                                        (:vector, :inplace, :outplace)
+                                                       (:vector, :inplace, :outplace)
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
                   (ComplexF64,)
     @testset for T in scalartypes
@@ -597,8 +597,8 @@ end
 
 # Test effectiveness of shrink!() in BlockLanczos
 @testset "Test effectiveness of shrink!() in BlockLanczos $mode" for mode in
-                                                                      (:vector, :inplace,
-                                                                       :outplace)
+                                                                     (:vector, :inplace,
+                                                                      :outplace)
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
                   (ComplexF64,)
     @testset for T in scalartypes
