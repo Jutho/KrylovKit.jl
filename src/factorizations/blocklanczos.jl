@@ -38,6 +38,9 @@ function Base.push!(V::OrthonormalBasis{T}, b::BlockVec{T}) where {T}
     end
     return V
 end
+function Base.copy(b::BlockVec)
+    return BlockVec{typeof(b).parameters[2]}(scale.(b.vec, 1))
+end
 Base.iterate(b::BlockVec) = iterate(b.vec)
 Base.iterate(b::BlockVec, state) = iterate(b.vec, state)
 
@@ -145,7 +148,7 @@ function initialize(iter::BlockLanczosIterator{F,T,S};
     TDB = zeros(S, maxdim, maxdim)
 
     # Orthogonalization of the initial block
-    X₁ = deepcopy(X₀)
+    X₁ = copy(X₀)
     abstract_qr!(X₁, iter.qr_tol)
     V = OrthonormalBasis(X₁.vec)
 
@@ -214,7 +217,7 @@ function blocklanczosrecurrence(operator, V::OrthonormalBasis, Bₖ::AbstractMat
     # Calculate the new residual. Get Rnext
     Xlast = BlockVec{S}(V[(k - bs_last - bs + 1):(k - bs)])
     rₖnext = compute_residual!(AX, X, M, Xlast, Bₖ')
-    ortho_basis!(rₖnext, V)
+    block_reorthogonalize!(rₖnext, V)
     return rₖnext, M
 end
 
@@ -254,7 +257,7 @@ function compute_residual!(AX::BlockVec{T,S}, X::BlockVec{T,S},
 end
 
 """
-    ortho_basis!(basis::BlockVec{T,S}, basis_sofar::OrthonormalBasis{T}) where {T,S}
+    block_reorthogonalize!(basis::BlockVec{T,S}, basis_sofar::OrthonormalBasis{T}) where {T,S}
 
 This function orthogonalizes the vectors in `basis` with respect to the previously orthonormalized set `basis_sofar` by using the modified Gram-Schmidt process.
 Specifically, it modifies each vector `basis[i]` by projecting out its components along the directions spanned by `basis_sofar`, i.e.,
@@ -265,7 +268,8 @@ Specifically, it modifies each vector `basis[i]` by projecting out its component
 
 Here,`⟨·,·⟩` denotes the inner product. The function assumes that `basis_sofar` is already orthonormal.
 """
-function ortho_basis!(basis::BlockVec{T,S}, basis_sofar::OrthonormalBasis{T}) where {T,S}
+function block_reorthogonalize!(basis::BlockVec{T,S},
+                                basis_sofar::OrthonormalBasis{T}) where {T,S}
     for i in 1:length(basis)
         for q in basis_sofar
             basis[i], _ = orthogonalize!!(basis[i], q, ModifiedGramSchmidt())

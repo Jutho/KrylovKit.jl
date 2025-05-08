@@ -47,8 +47,9 @@ end
     @test isapprox(norm(ΔX), T(0); atol=tolerance(T))
 end
 
-@testset "ortho_basis! for non-full vectors $mode" for mode in
-                                                       (:vector, :inplace, :outplace)
+@testset "block_reorthogonalize! for non-full vectors $mode" for mode in
+                                                                 (:vector, :inplace,
+                                                                  :outplace)
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
                   (ComplexF64,)
     @testset for T in scalartypes
@@ -60,12 +61,12 @@ end
         b₁ = KrylovKit.BlockVec{T}(x₁)
         KrylovKit.abstract_qr!(b₁, qr_tol(T))
         orthobasis_x₁ = KrylovKit.OrthonormalBasis(b₁.vec)
-        KrylovKit.ortho_basis!(b₀, orthobasis_x₁)
+        KrylovKit.block_reorthogonalize!(b₀, orthobasis_x₁)
         @test norm(KrylovKit.block_inner(b₀, b₁)) < tolerance(T)
     end
 end
 
-@testset "ortho_basis! for abstract inner product" begin
+@testset "block_reorthogonalize! for abstract inner product" begin
     T = ComplexF64
     H = rand(T, N, N)
     H = H' * H + I
@@ -78,6 +79,6 @@ end
     b₁ = KrylovKit.BlockVec{T}(x₁)
     KrylovKit.abstract_qr!(b₁, qr_tol(T))
     orthobasis_x₁ = KrylovKit.OrthonormalBasis(b₁.vec)
-    KrylovKit.ortho_basis!(b₀, orthobasis_x₁)
+    KrylovKit.block_reorthogonalize!(b₀, orthobasis_x₁)
     @test norm(KrylovKit.block_inner(b₀, b₁)) < tolerance(T)
 end

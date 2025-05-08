@@ -47,7 +47,7 @@ end
         X0 = KrylovKit.BlockVec{T}([wrapvec(rand(T, N), Val(mode)) for _ in 1:n])
         X1 = KrylovKit.BlockVec{T}([wrapvec(rand(T, N), Val(mode)) for _ in 1:n])
         AX1 = KrylovKit.BlockVec{T}([wrapvec(rand(T, N), Val(mode)) for _ in 1:n])
-        AX1copy = deepcopy(AX1)
+        AX1copy = copy(AX1)
         KrylovKit.compute_residual!(AX1, X1, M, X0, B)
         _bw2m(X) = hcat(unwrapvec.(X)...)
         @test isapprox(_bw2m(AX1), _bw2m(AX1copy) - _bw2m(X1) * M - _bw2m(X0) * B;
@@ -66,7 +66,7 @@ end
     X0 = KrylovKit.BlockVec{T}([InnerProductVec(rand(T, N), ip) for _ in 1:n])
     X1 = KrylovKit.BlockVec{T}([InnerProductVec(rand(T, N), ip) for _ in 1:n])
     AX1 = KrylovKit.BlockVec{T}([InnerProductVec(rand(T, N), ip) for _ in 1:n])
-    AX1copy = deepcopy(AX1)
+    AX1copy = copy(AX1)
     KrylovKit.compute_residual!(AX1, X1, M, X0, B)
 
     @test isapprox(hcat([AX1.vec[i].vec for i in 1:n]...),

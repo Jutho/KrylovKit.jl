@@ -50,3 +50,24 @@ end
     @test length(block0) == n
     @test Tuple(typeof(block0).parameters) == (typeof(x0), T)
 end
+
+@testset "copy for BlockVec" begin
+    for mode in (:vector, :inplace, :outplace)
+        scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
+                      (ComplexF64,)
+        @testset for T in scalartypes
+            block0 = KrylovKit.BlockVec{T}([wrapvec(rand(T, N), Val(mode)) for _ in 1:n])
+            block1 = copy(block0)
+            @test typeof(block0) == typeof(block1)
+            @test unwrapvec.(block0.vec) == unwrapvec.(block1.vec)
+        end
+    end
+
+    # test for abtract type
+    T = ComplexF64
+    f(x, y) = x' * y
+    block0 = KrylovKit.BlockVec{T}([InnerProductVec(rand(T, N), f) for _ in 1:n])
+    block1 = copy(block0)
+    @test typeof(block0) == typeof(block1)
+    @test [block0.vec[i].vec for i in 1:n] == [block1.vec[i].vec for i in 1:n]
+end
