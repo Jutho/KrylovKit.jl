@@ -441,7 +441,7 @@ end
     @test count(x -> abs(x + 16.0) < 1e-8, D[1:get_value_num]) == 4
 end
 
-# For user interface, input is single vector.
+# For user interface, input is a vector of starting vectors.
 @testset "BlockLanczos - eigsolve full $mode" for mode in (:vector, :inplace, :outplace)
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
                   (ComplexF64,)

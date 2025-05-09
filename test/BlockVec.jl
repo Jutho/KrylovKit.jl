@@ -45,13 +45,3 @@ end
     @test typeof(block0) == typeof(block1)
     @test [block0.vec[i].vec for i in 1:n] == [block1.vec[i].vec for i in 1:n]
 end
-
-
-struct ms{T,S}
-    x::Vector{T}
-    y::S
-    T::Matrix{S}
-end
-
-a = ms(rand(10), 1.0, rand(10, 10))
-a.T

@@ -198,7 +198,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
             r = residual(fact)
             UU = U[(end - bs_r + 1):end, :]  # the last bs_r rows of U, used to compute the residuals
             normresiduals = let R = block_inner(r, r)
-                map(u->sqrt(real(dot(u, R, u))), cols(UU))
+                map(u -> sqrt(real(dot(u, R, u))), cols(UU))
             end
             converged = count(<=(tol), normresiduals)
             if converged >= howmany || β <= tol  # successfully find enough eigenvalues

@@ -50,7 +50,8 @@ A * V = V * B + r * b'
 
 For a given BlockLanczos factorization `fact`, length `k = length(fact)` and basis `V = basis(fact)` are
 like [`LanczosFactorization`](@ref). The block tridiagonal matrix `T` is preallocated in `BlockLanczosFactorization`
-and is of type `Hermitian{S<:Number}` with `size(T) == (k,k)`. The residuals `r` is of type `Vector{T}`.
+and is of type `Hermitian{S<:Number}` with `size(T) == (krylovdim + bs₀, krylovdim + bs₀)` where `bs₀` is the size of the initial block
+and `krylovdim` is the maximum dimension of the Krylov subspace. The residuals `r` is of type `Vector{T}`.
 One can also query [`normres(fact)`](@ref) to obtain `norm(r)`, the norm of the residual. The matrix
 `b` takes the default value ``[0;I]``, i.e. the matrix of size `(k,bs)` and an unit matrix in the last
 `bs` rows and all zeros in the other rows. `bs` is the size of the last block. One can query [`r_size(fact)`] to obtain
@@ -87,8 +88,8 @@ scheme to build a successively expanding BlockLanczos factorization. While `f` c
 hermitian directly when the linear map is encoded as a general callable object or function, with `block_inner(X, f.(X))`,
 it is tested whether `norm(M-M')` is sufficiently small to be neglected.
 
-The argument `f` can be a matrix, or a function accepting a single argument `x`, so that
-`f(x)` implements the action of the linear map on the block `x`.
+The argument `f` can be a matrix, or a function accepting a single argument `v`, so that
+`f(v)` implements the action of the linear map on the vector `v`.
 
 The optional argument `orth` specifies which [`Orthogonalizer`](@ref) to be used. The
 default value in [`KrylovDefaults`](@ref) is to use [`ModifiedGramSchmidt2`](@ref), which
