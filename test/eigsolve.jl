@@ -423,13 +423,14 @@ end
     Random.seed!(4)
     sites_num = 3
     p = 5 # block size
-    x₀ = rand(2^(2 * sites_num^2))
+    M = 2^(2 * sites_num^2)
+    x₀ = [rand(M) for _ in 1:p]
     get_value_num = 10
     tol = 1e-6
     h_mat = toric_code_hamiltonian_matrix(sites_num, sites_num)
 
     # matrix input
-    alg = BlockLanczos(p; tol=tol, maxiter=1)
+    alg = BlockLanczos(; tol=tol, maxiter=1)
     D, U, info = eigsolve(-h_mat, x₀, get_value_num, :SR, alg)
     @test count(x -> abs(x + 16.0) < 2.0 - tol, D[1:get_value_num]) == 4
     @test count(x -> abs(x + 16.0) < tol, D[1:get_value_num]) == 4
@@ -449,38 +450,36 @@ end
         A = rand(T, (n, n)) .- one(T) / 2
         A = (A + A') / 2
         block_size = 2
-        x₀ = rand(T, n)
+        x₀ = [wrapvec(rand(T, n), Val(mode)) for _ in 1:block_size]
         n1 = div(n, 2)  # eigenvalues to solve
         eigvalsA = eigvals(A)
-        alg = BlockLanczos(block_size; krylovdim=n, maxiter=1, tol=tolerance(T),
+        alg = BlockLanczos(; krylovdim=n, maxiter=1, tol=tolerance(T),
                            verbosity=2)
         D1, V1, info = @test_logs (:info,) eigsolve(wrapop(A, Val(mode)),
-                                                    wrapvec(x₀, Val(mode)), n1, :SR, alg)
-        alg = BlockLanczos(block_size; krylovdim=n, maxiter=1, tol=tolerance(T),
+                                                    x₀, n1, :SR, alg)
+        alg = BlockLanczos(; krylovdim=n, maxiter=1, tol=tolerance(T),
                            verbosity=1)
-        @test_logs eigsolve(wrapop(A, Val(mode)), wrapvec(x₀, Val(mode)), n1, :SR, alg)
-        alg = BlockLanczos(block_size; krylovdim=n1 + 1, maxiter=1, tol=tolerance(T),
+        @test_logs eigsolve(wrapop(A, Val(mode)), x₀, n1, :SR, alg)
+        alg = BlockLanczos(; krylovdim=n1 + 1, maxiter=1, tol=tolerance(T),
                            verbosity=1)
-        @test_logs (:warn,) eigsolve(wrapop(A, Val(mode)), wrapvec(x₀, Val(mode)), n1, :SR,
-                                     alg)
-        alg = BlockLanczos(block_size; krylovdim=n, maxiter=1, tol=tolerance(T),
+        @test_logs (:warn,) eigsolve(wrapop(A, Val(mode)), x₀, n1, :SR, alg)
+        alg = BlockLanczos(; krylovdim=n, maxiter=1, tol=tolerance(T),
                            verbosity=2)
-        @test_logs (:info,) eigsolve(wrapop(A, Val(mode)), wrapvec(x₀, Val(mode)), n1, :SR,
-                                     alg)
-        alg = BlockLanczos(block_size; krylovdim=3, maxiter=3, tol=tolerance(T),
+        @test_logs (:info,) eigsolve(wrapop(A, Val(mode)), x₀, n1, :SR, alg)
+        alg = BlockLanczos(; krylovdim=3, maxiter=3, tol=tolerance(T),
                            verbosity=3)
         @test_logs((:info,), (:info,), (:info,), (:warn,),
-                   eigsolve(wrapop(A, Val(mode)), wrapvec(x₀, Val(mode)), 1, :SR, alg))
-        alg = BlockLanczos(block_size; krylovdim=4, maxiter=1, tol=tolerance(T),
+                   eigsolve(wrapop(A, Val(mode)), x₀, 1, :SR, alg))
+        alg = BlockLanczos(; krylovdim=4, maxiter=1, tol=tolerance(T),
                            verbosity=4)
         @test_logs((:info,), (:info,), (:info,), (:warn,),
-                   eigsolve(wrapop(A, Val(mode)), wrapvec(x₀, Val(mode)), 1, :SR, alg))
+                   eigsolve(wrapop(A, Val(mode)), x₀, 1, :SR, alg))
         # To use blockmode, users have to explicitly set blockmode = true, we don't allow them to use eigselector.
         # Because of the _residual! function, I can't make sure the stability of types temporarily. 
         # So I ignore the test of @constinferred
         n2 = n - n1
-        alg = BlockLanczos(block_size; krylovdim=2 * n, maxiter=4, tol=tolerance(T))
-        D2, V2, info = eigsolve(wrapop(A, Val(mode)), wrapvec(x₀, Val(mode)), n2, :LR, alg)
+        alg = BlockLanczos(; krylovdim=2 * n, maxiter=4, tol=tolerance(T))
+        D2, V2, info = eigsolve(wrapop(A, Val(mode)), x₀, n2, :LR, alg)
         D2[1:n2]
         @test vcat(D1[1:n1], reverse(D2[1:n2])) ≊ eigvalsA
 
@@ -493,10 +492,9 @@ end
         @test (x -> KrylovKit.apply(A, x)).(unwrapvec.(V1)) ≈ D1 .* unwrapvec.(V1)
         @test (x -> KrylovKit.apply(A, x)).(unwrapvec.(V2)) ≈ D2 .* unwrapvec.(V2)
 
-        alg = BlockLanczos(block_size; krylovdim=2n, maxiter=1, tol=tolerance(T),
+        alg = BlockLanczos(; krylovdim=2n, maxiter=1, tol=tolerance(T),
                            verbosity=1)
-        @test_logs (:warn,) (:warn,) eigsolve(wrapop(A, Val(mode)), wrapvec(x₀, Val(mode)),
-                                              n + 1, :LM, alg)
+        @test_logs (:warn,) (:warn,) eigsolve(wrapop(A, Val(mode)), x₀, n + 1, :LM, alg)
     end
 end
 
@@ -509,13 +507,13 @@ end
         A = rand(T, (N, N)) .- one(T) / 2
         A = (A + A') / 2
         block_size = 2
-        x₀ = normalize(rand(T, N))
+        x₀ = [wrapvec(rand(T, N), Val(mode)) for _ in 1:block_size]
         eigvalsA = eigvals(A)
 
-        alg = BlockLanczos(block_size; krylovdim=N, maxiter=10, tol=tolerance(T),
+        alg = BlockLanczos(; krylovdim=N, maxiter=10, tol=tolerance(T),
                            eager=true, verbosity=0)
-        D1, V1, info1 = eigsolve(wrapop(A, Val(mode)), wrapvec(x₀, Val(mode)), n, :SR, alg)
-        D2, V2, info2 = eigsolve(wrapop(A, Val(mode)), wrapvec(x₀, Val(mode)), n, :LR, alg)
+        D1, V1, info1 = eigsolve(wrapop(A, Val(mode)), x₀, n, :SR, alg)
+        D2, V2, info2 = eigsolve(wrapop(A, Val(mode)), x₀, n, :LR, alg)
 
         l1 = info1.converged
         l2 = info2.converged
@@ -546,10 +544,10 @@ end
     block_size = 2
     eig_num = 2
     Hip(x::Vector, y::Vector) = x' * H * y
-    x₀ = InnerProductVec(rand(T, n), Hip)
+    x₀ = [InnerProductVec(rand(T, n), Hip) for _ in 1:block_size]
     Aip(x::InnerProductVec) = InnerProductVec(H * x.vec, Hip)
     D, V, info = eigsolve(Aip, x₀, eig_num, :SR,
-                          BlockLanczos(block_size; krylovdim=n, maxiter=1, tol=tolerance(T),
+                          BlockLanczos(; krylovdim=n, maxiter=1, tol=tolerance(T),
                                        verbosity=0))
     D_true = eigvals(H)
     BlockV = KrylovKit.BlockVec{T}(V)
@@ -558,7 +556,7 @@ end
     @test findmax([norm(Aip(V[i]) - D[i] * V[i]) for i in 1:eig_num])[1] < tolerance(T)
 end
 
-# with the same krylovdim, BlockLanczos has lower accuracy with blocksize >1.
+# with the same krylovdim, BlockLanczos has lower accuracy with the size of block larger than 1.
 @testset "Complete Lanczos and BlockLanczos $mode" for mode in
                                                        (:vector, :inplace, :outplace)
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
@@ -568,14 +566,13 @@ end
         A = rand(T, (2N, 2N))
         A = (A + A') / 2
         block_size = 1
-        x₀ = rand(T, 2N)
+        x₀_block = [wrapvec(rand(T, 2N), Val(mode)) for _ in 1:block_size]
+        x₀_lanczos = x₀_block[1]
         alg1 = Lanczos(; krylovdim=2n, maxiter=10, tol=tolerance(T), verbosity=1)
-        alg2 = BlockLanczos(block_size; krylovdim=2n, maxiter=10, tol=tolerance(T),
+        alg2 = BlockLanczos(; krylovdim=2n, maxiter=10, tol=tolerance(T),
                             verbosity=1)
-        evals1, _, info1 = eigsolve(wrapop(A, Val(mode)), wrapvec(x₀, Val(mode)), n, :SR,
-                                    alg1)
-        evals2, _, info2 = eigsolve(wrapop(A, Val(mode)), wrapvec(x₀, Val(mode)), n, :SR,
-                                    alg2)
+        evals1, _, info1 = eigsolve(wrapop(A, Val(mode)), x₀_lanczos, n, :SR, alg1)
+        evals2, _, info2 = eigsolve(wrapop(A, Val(mode)), x₀_block, n, :SR, alg2)
         @test info1.converged == info2.converged
     end
     @testset for T in scalartypes
@@ -583,14 +580,13 @@ end
         A = rand(T, (2N, 2N))
         A = (A + A') / 2
         block_size = 4
-        x₀ = rand(T, 2N)
+        x₀_block = [wrapvec(rand(T, 2N), Val(mode)) for _ in 1:block_size]
+        x₀_lanczos = x₀_block[1]
         alg1 = Lanczos(; krylovdim=2n, maxiter=10, tol=tolerance(T), verbosity=1)
-        alg2 = BlockLanczos(block_size; krylovdim=2n, maxiter=10, tol=tolerance(T),
+        alg2 = BlockLanczos(; krylovdim=2n, maxiter=10, tol=tolerance(T),
                             verbosity=1)
-        evals1, _, info1 = eigsolve(wrapop(A, Val(mode)), wrapvec(x₀, Val(mode)), n, :SR,
-                                    alg1)
-        evals2, _, info2 = eigsolve(wrapop(A, Val(mode)), wrapvec(x₀, Val(mode)), n, :SR,
-                                    alg2)
+        evals1, _, info1 = eigsolve(wrapop(A, Val(mode)), x₀_lanczos, n, :SR, alg1)
+        evals2, _, info2 = eigsolve(wrapop(A, Val(mode)), x₀_block, n, :SR, alg2)
         @test info1.converged >= info2.converged + 1
     end
 end
@@ -606,15 +602,14 @@ end
         A = rand(T, (N, N)) .- one(T) / 2
         A = (A + A') / 2
         block_size = 5
-        x₀ = rand(T, N)
+        x₀ = [wrapvec(rand(T, N), Val(mode)) for _ in 1:block_size]
         values0 = eigvals(A)[1:n]
         n1 = n ÷ 2
-        alg = BlockLanczos(block_size; krylovdim=3 * n ÷ 2, maxiter=1, tol=1e-12)
-        values, _, _ = eigsolve(wrapop(A, Val(mode)), wrapvec(x₀, Val(mode)), n, :SR, alg)
+        alg = BlockLanczos(; krylovdim=3 * n ÷ 2, maxiter=1, tol=1e-12)
+        values, _, _ = eigsolve(wrapop(A, Val(mode)), x₀, n, :SR, alg)
         error1 = norm(values[1:n1] - values0[1:n1])
-        alg_shrink = BlockLanczos(block_size; krylovdim=3 * n ÷ 2, maxiter=2, tol=1e-12)
-        values_shrink, _, _ = eigsolve(wrapop(A, Val(mode)), wrapvec(x₀, Val(mode)), n, :SR,
-                                       alg_shrink)
+        alg_shrink = BlockLanczos(; krylovdim=3 * n ÷ 2, maxiter=2, tol=1e-12)
+        values_shrink, _, _ = eigsolve(wrapop(A, Val(mode)), x₀, n, :SR, alg_shrink)
         error2 = norm(values_shrink[1:n1] - values0[1:n1])
         @test error2 < error1
     end

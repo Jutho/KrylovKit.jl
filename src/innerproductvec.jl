@@ -36,8 +36,6 @@ function Base.similar(v::InnerProductVec, ::Type{T}=scalartype(v)) where {T}
     return InnerProductVec(similar(v.vec), v.dotf)
 end
 
-Random.randn!(v::InnerProductVec) = (randn!(v.vec); v)
-
 Base.getindex(v::InnerProductVec) = v.vec
 
 function Base.copy!(w::InnerProductVec{F}, v::InnerProductVec{F}) where {F}

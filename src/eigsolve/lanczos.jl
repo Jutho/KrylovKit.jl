@@ -151,7 +151,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos;
            ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end
 
-function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) where {T}
+function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
     maxiter = alg.maxiter
     krylovdim = alg.krylovdim
     if howmany > krylovdim
@@ -160,13 +160,14 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
     tol = alg.tol
     verbosity = alg.verbosity
 
-    # Initialize a block of vectors from the initial vector, randomly generated
-    block0 = initialize(x₀, alg.blocksize)
+    # The initial block size is determined by the number of the starting vectors provided by the user
+    S = typeof(inner(x₀[1], x₀[1])) # Scalar type of the inner product between vectors in x₀
+    block0 = BlockVec{S}(x₀)
     bs = length(block0)
+    bs < 1 && error("The length of the starting vector x₀ must be greater than 0")
 
     iter = BlockLanczosIterator(A, block0, krylovdim + bs, alg.qr_tol, alg.orth)
     fact = initialize(iter; verbosity=verbosity)  # Returns a BlockLanczosFactorization
-    S = eltype(fact.TDB)  # The element type (Note: can be Complex) of the block tridiagonal matrix
     numops = 1    # Number of matrix-vector multiplications (for logging)
     numiter = 1
 
@@ -186,8 +187,8 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
         if K >= krylovdim || β <= tol || (alg.eager && K >= howmany)
             # compute eigenvalues
             # Note: Fast eigen solver for block tridiagonal matrices is not implemented yet.
-            TDB = view(fact.TDB, 1:K, 1:K)
-            D, U = eigen(Hermitian(TDB))
+            BTD = view(fact.T, 1:K, 1:K)
+            D, U = eigen(Hermitian(BTD))
             by, rev = eigsort(which)
             p = sortperm(D; by=by, rev=rev)
             D, U = permuteeig!(D, U, p)
@@ -196,9 +197,10 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
             bs_r = fact.r_size   # the block size of the residual (decreases as the iteration goes)
             r = residual(fact)
             UU = U[(end - bs_r + 1):end, :]  # the last bs_r rows of U, used to compute the residuals
-            normresiduals = diag(UU' * block_inner(r, r) * UU)
-            normresiduals = sqrt.(real.(normresiduals))
-            converged = count(nr -> nr <= tol, normresiduals)
+            normresiduals = let R = block_inner(r, r)
+                map(u->sqrt(real(dot(u, R, u))), cols(UU))
+            end
+            converged = count(<=(tol), normresiduals)
             if converged >= howmany || β <= tol  # successfully find enough eigenvalues
                 break
             elseif verbosity >= EACHITERATION_LEVEL
@@ -229,9 +231,9 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
                 rmul!(view(H, 1:(j + bs - 1), :), h')
                 rmul!(U, h')
             end
-            # transform the basis and update the residual and update the TDB.
-            TDB .= S(0)
-            TDB[1:keep, 1:keep] .= H[1:keep, 1:keep]
+            # transform the basis and update the residual and update the BTD.
+            BTD .= S(0)
+            BTD[1:keep, 1:keep] .= H[1:keep, 1:keep]
             B = basis(fact)
             basistransform!(B, view(U, :, 1:keep))
 
@@ -242,7 +244,7 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
 
             while length(fact) > keep
                 pop!(fact.V)
-                fact.total_size -= 1
+                fact.k -= 1
             end
             numiter += 1
         end
@@ -262,7 +264,7 @@ function eigsolve(A, x₀::T, howmany::Int, which::Selector, alg::BlockLanczos) 
     K = length(fact)
     U2 = view(U, (K - bs_r + 1):K, 1:howmany_actual)
     R = fact.r
-    residuals = [zerovector(x₀) for _ in 1:howmany_actual]
+    residuals = [zerovector(x₀[1]) for _ in 1:howmany_actual]
     @inbounds for i in 1:howmany_actual
         for j in 1:bs_r
             residuals[i] = add!!(residuals[i], R[j], U2[j, i])

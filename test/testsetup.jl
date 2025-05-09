@@ -56,8 +56,6 @@ function wrapvec(v, ::Val{mode}) where {mode}
            mode === :mixed ? MinimalSVec(v) :
            throw(ArgumentError("invalid mode ($mode)"))
 end
-Base.similar(v::MinimalVec{M}) where {M} = MinimalVec{M}(similar(v.vec))
-Random.randn!(v::MinimalVec) = (randn!(v.vec); v) # For tests of BlockLanczos
 function wrapvec2(v, ::Val{mode}) where {mode}
     return mode === :mixed ? MinimalMVec(v) : wrapvec(v, mode)
 end
@@ -84,8 +82,6 @@ function wrapop(A, ::Val{mode}) where {mode}
     end
 end
 
-# block operations
-# ----------------
 if VERSION < v"1.9"
     stack(f, itr) = mapreduce(f, hcat, itr)
     stack(itr) = reduce(hcat, itr)

@@ -310,13 +310,12 @@ end
         x₀ = KrylovKit.BlockVec{T}([wrapvec(x₀m[:, i], Val(mode)) for i in 1:block_size])
         eigvalsA = eigvals(A)
         iter = BlockLanczosIterator(wrapop(A, Val(mode)), x₀, N, qr_tol(T))
-        # TODO: Why type unstable?
         fact = @constinferred initialize(iter)
         @constinferred expand!(iter, fact)
         @test_logs initialize(iter; verbosity=EACHITERATION_LEVEL)
         @test_logs (:info,) initialize(iter; verbosity=EACHITERATION_LEVEL + 1)
         verbosity = EACHITERATION_LEVEL + 1
-        while fact.total_size < n
+        while fact.k < n
             if verbosity == EACHITERATION_LEVEL + 1
                 @test_logs (:info,) expand!(iter, fact; verbosity=verbosity)
                 verbosity = EACHITERATION_LEVEL
@@ -337,7 +336,7 @@ end
             @test_logs initialize(iter; verbosity=0)
             @test_logs (:warn,) initialize(iter)
             verbosity = 1
-            while fact.total_size < n
+            while fact.k < n
                 if verbosity == 1
                     @test_logs (:warn,) expand!(iter, fact; verbosity=verbosity)
                     verbosity = 0
@@ -364,13 +363,13 @@ end
         iter = @constinferred BlockLanczosIterator(wrapop(A, Val(mode)), x₀, N, qr_tol(T))
         krylovdim = n
         fact = initialize(iter)
-        while fact.norm_r > eps(float(real(T))) && fact.total_size < krylovdim
+        while fact.norm_r > eps(float(real(T))) && fact.k < krylovdim
             @constinferred expand!(iter, fact)
-            k = fact.total_size
+            k = fact.k
             rs = fact.r_size
             V0 = fact.V[1:k]
             r0 = fact.r[1:rs]
-            H = fact.TDB[1:k, 1:k]
+            H = fact.T[1:k, 1:k]
             norm_r = fact.norm_r
             V = hcat([unwrapvec(v) for v in V0]...)
             r = hcat([unwrapvec(r0[i]) for i in 1:rs]...)

@@ -53,9 +53,9 @@ targeted. Valid specifications of `which` are given by
     iteration. Nonetheless, it is important to take this into account and to try not to
     depend on this potentially fragile behaviour, especially for smaller problems.
     The [`BlockLanczos`](@ref) method has been implemented to compute degenerate
-    eigenvalues and their corresponding eigenvectors. Given a block size parameter `p`, the
-    method can simultaneously determine `p`-fold degenerate eigenvalues and their
-    associated eigenvectors.
+    eigenvalues and their corresponding eigenvectors. Given a block size `p`,
+    which is the number of starting vectors, the method can at most simultaneously determine
+    `p`-fold degenerate eigenvalues and their associated eigenvectors.
 
 The argument `T` acts as a hint in which `Number` type the computation should be performed,
 but is not restrictive. If the linear map automatically produces complex values, complex

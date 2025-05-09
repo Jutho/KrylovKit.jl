@@ -126,8 +126,7 @@ function Lanczos(;
 end
 
 """
-    BlockLanczos(blocksize::Int;
-            krylovdim=KrylovDefaults.blockkrylovdim[],
+    BlockLanczos(; krylovdim=KrylovDefaults.blockkrylovdim[],
             maxiter=KrylovDefaults.maxiter[],
             tol=KrylovDefaults.tol[],
             orth=KrylovDefaults.orth,
@@ -136,9 +135,10 @@ end
             qr_tol::Real=KrylovDefaults.tol[])
 
 The block version of [`Lanczos`](@ref) is suited for solving eigenvalue problems with degenerate dominant eigenvalues.
+Its implementation is mainly based on *Golub, G. H., & Van Loan, C. F. (2013). Matrix Computations* (4th ed., pp. 566–569).
 Arguments `krylovdim`, `maxiter`, `tol`, `orth`, `eager` and `verbosity` are the same as `Lanczos`.
 `qr_tol` is the error tolerance for `abstract_qr!` - a subroutine used to orthorgonalize the vectors in the same block.
-`blocksize` is the size of block, which shrinks during iterations.
+The initial size of the block is determined by the number of start vectors that a user provides. And the size of the block shrinks during iterations.
 The initial block size determines the maximum degeneracy of the target eigenvalue can that be resolved.
 
 The iteration stops when either the norm of the residual is below `tol` or a sufficient number of eigenvectors have converged. [Reference](https://www.netlib.org/utk/people/JackDongarra/etemplates/node250.html)
@@ -152,12 +152,11 @@ struct BlockLanczos{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     krylovdim::Int
     maxiter::Int
     tol::S
-    blocksize::Int
     qr_tol::Real
     eager::Bool
     verbosity::Int
 end
-function BlockLanczos(blocksize::Int;
+function BlockLanczos(;
                       krylovdim::Int=KrylovDefaults.blockkrylovdim[],
                       maxiter::Int=KrylovDefaults.maxiter[],
                       tol::Real=KrylovDefaults.tol[],
@@ -165,8 +164,7 @@ function BlockLanczos(blocksize::Int;
                       eager::Bool=false,
                       verbosity::Int=KrylovDefaults.verbosity[],
                       qr_tol::Real=KrylovDefaults.tol[])
-    blocksize < 1 && error("blocksize must be greater than 0")
-    return BlockLanczos(orth, krylovdim, maxiter, tol, blocksize, qr_tol, eager, verbosity)
+    return BlockLanczos(orth, krylovdim, maxiter, tol, qr_tol, eager, verbosity)
 end
 
 """
@@ -494,9 +492,9 @@ A module listing the default values for the typical parameters in Krylov based a
   - `krylovdim = 30`: the maximal dimension of the Krylov subspace that will be constructed
   - `maxiter = 100`: the maximal number of outer iterations, i.e. the maximum number of
     times the Krylov subspace may be rebuilt
-  - `blockkrylovdim = 100`: the maximal dimension of the Krylov subspace that will be constructed for BlockLanczos
+  - `blockkrylovdim = 100`: the maximal dimension of the Krylov subspace that will be constructed for `BlockLanczos`
   - `tol = 1e-12`: the tolerance to which the problem must be solved, based on a suitable
-    error measure, e.g. the norm of some residual. It's also used as the default value of `qr_tol`
+    error measure, e.g. the norm of some residual
 
 !!! warning
 
