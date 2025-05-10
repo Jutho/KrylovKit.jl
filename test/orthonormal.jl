@@ -10,7 +10,7 @@
         Av[n ÷ 2] = sum(Av[(n ÷ 2 + 1):end] .* rand(T, n - n ÷ 2))
         Bv = deepcopy(Av)
         wAv = wrapvec.(Av, Val(mode))
-        R, gi = KrylovKit.abstract_qr!(KrylovKit.BlockVec{T}(wAv), qr_tol(T))
+        R, gi = KrylovKit.abstract_qr!(KrylovKit.BlockVec{T}(wAv), tolerance(T))
         Av1 = [unwrapvec(wAv[i]) for i in gi]
         @test hcat(Av1...)' * hcat(Av1...) ≈ I
         @test length(gi) < n
@@ -24,7 +24,7 @@ end
 
 @testset "abstract_qr! for abstract inner product" begin
     T = ComplexF64
-    H = rand(T, N, N)
+    H = rand(T, N, N) .- one(T) / 2
     H = H' * H + I
     ip(x, y) = x' * H * y
     X₁ = InnerProductVec(rand(T, N), ip)
@@ -37,7 +37,7 @@ end
     # Make sure X is not full rank
     X[end] = sum(X[1:(end - 1)] .* rand(T, n - 1))
     Xcopy = deepcopy(X)
-    R, gi = KrylovKit.abstract_qr!(KrylovKit.BlockVec{T}(X), qr_tol(T))
+    R, gi = KrylovKit.abstract_qr!(KrylovKit.BlockVec{T}(X), tolerance(T))
 
     @test length(gi) < n
     @test eltype(R) == T
@@ -59,7 +59,7 @@ end
         x₁ = [wrapvec(rand(T, N), Val(mode)) for i in 1:(2 * n)]
         b₀ = KrylovKit.BlockVec{T}(x₀)
         b₁ = KrylovKit.BlockVec{T}(x₁)
-        KrylovKit.abstract_qr!(b₁, qr_tol(T))
+        KrylovKit.abstract_qr!(b₁, tolerance(T))
         orthobasis_x₁ = KrylovKit.OrthonormalBasis(b₁.vec)
         KrylovKit.block_reorthogonalize!(b₀, orthobasis_x₁)
         @test norm(KrylovKit.block_inner(b₀, b₁)) < tolerance(T)
@@ -68,16 +68,15 @@ end
 
 @testset "block_reorthogonalize! for abstract inner product" begin
     T = ComplexF64
-    H = rand(T, N, N)
+    H = rand(T, N, N) .- one(T) / 2
     H = H' * H + I
-    H = (H + H') / 2
     ip(x, y) = x' * H * y
 
     x₀ = [InnerProductVec(rand(T, N), ip) for i in 1:n]
     x₁ = [InnerProductVec(rand(T, N), ip) for i in 1:(2 * n)]
     b₀ = KrylovKit.BlockVec{T}(x₀)
     b₁ = KrylovKit.BlockVec{T}(x₁)
-    KrylovKit.abstract_qr!(b₁, qr_tol(T))
+    KrylovKit.abstract_qr!(b₁, tolerance(T))
     orthobasis_x₁ = KrylovKit.OrthonormalBasis(b₁.vec)
     KrylovKit.block_reorthogonalize!(b₀, orthobasis_x₁)
     @test norm(KrylovKit.block_inner(b₀, b₁)) < tolerance(T)

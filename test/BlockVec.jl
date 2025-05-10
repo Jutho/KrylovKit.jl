@@ -3,8 +3,6 @@
         scalartypes = mode === :vector ? (Float32, Float64, ComplexF64) :
                       (ComplexF64,)
         @testset for T in scalartypes
-            mode = :inplace
-            T = ComplexF64
             A = rand(T, N, N) .- one(T) / 2
             A = (A + A') / 2
             wx₀ = KrylovKit.BlockVec{T}([wrapvec(rand(T, N), Val(mode)) for _ in 1:n])
@@ -16,7 +14,7 @@
     end
     T = ComplexF64
     A = rand(T, N, N) .- one(T) / 2
-    A = (A + A') / 2
+    A = A' * A + I
     f(x, y) = x' * A * y
     Af(x::InnerProductVec) = KrylovKit.InnerProductVec(A * x[], x.dotf)
     x₀ = KrylovKit.BlockVec{T}([InnerProductVec(rand(T, N), f) for _ in 1:n])
@@ -39,7 +37,9 @@ end
 
     # test for abtract type
     T = ComplexF64
-    f(x, y) = x' * y
+    A = rand(T, N, N) .- one(T) / 2
+    A = A' * A + I
+    f(x, y) = x' * A * y
     block0 = KrylovKit.BlockVec{T}([InnerProductVec(rand(T, N), f) for _ in 1:n])
     block1 = copy(block0)
     @test typeof(block0) == typeof(block1)

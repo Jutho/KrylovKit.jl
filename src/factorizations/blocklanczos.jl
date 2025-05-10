@@ -174,24 +174,24 @@ function expand!(iter::BlockLanczosIterator{F,T,S},
                  state::BlockLanczosFactorization{T,S,SR};
                  verbosity::Int=KrylovDefaults.verbosity[]) where {F,T,S,SR}
     k = state.k
-    rₖ = state.r[1:(state.r_size)]
-    bs_now = length(rₖ)
+    R = state.r[1:(state.r_size)]
+    bs = length(R)
     V = state.V
 
-    # Calculate the new basis and Bₖ
-    Bₖ, good_idx = abstract_qr!(rₖ, iter.qr_tol)
+    # Calculate the new basis and B
+    B, good_idx = abstract_qr!(R, iter.qr_tol)
     bs_next = length(good_idx)
-    push!(V, rₖ[good_idx])
-    state.T[(k + 1):(k + bs_next), (k - bs_now + 1):k] .= Bₖ
-    state.T[(k - bs_now + 1):k, (k + 1):(k + bs_next)] .= Bₖ'
+    push!(V, R[good_idx])
+    state.T[(k + 1):(k + bs_next), (k - bs + 1):k] .= B
+    state.T[(k - bs + 1):k, (k + 1):(k + bs_next)] .= B'
 
     # Calculate the new residual and orthogonalize the new basis
-    rₖnext, Mnext = blocklanczosrecurrence(iter.operator, V, Bₖ, iter.orth)
+    Rnext, Mnext = blocklanczosrecurrence(iter.operator, V, B, iter.orth)
     verbosity >= WARN_LEVEL && warn_nonhermitian(Mnext)
 
     state.T[(k + 1):(k + bs_next), (k + 1):(k + bs_next)] .= Mnext
-    state.r.vec[1:bs_next] .= rₖnext.vec
-    state.norm_r = norm(rₖnext)
+    state.r.vec[1:bs_next] .= Rnext.vec
+    state.norm_r = norm(Rnext)
     state.k += bs_next
     state.r_size = bs_next
 
@@ -200,52 +200,52 @@ function expand!(iter::BlockLanczosIterator{F,T,S},
     end
 end
 
-function blocklanczosrecurrence(operator, V::OrthonormalBasis, Bₖ::AbstractMatrix,
+function blocklanczosrecurrence(operator, V::OrthonormalBasis, B::AbstractMatrix,
                                 orth::ModifiedGramSchmidt2)
     # Apply the operator and calculate the M. Get Xnext and Mnext.
-    bs, bs_last = size(Bₖ)
-    S = eltype(Bₖ)
+    bs, bs_prev = size(B)
+    S = eltype(B)
     k = length(V)
     X = BlockVec{S}(V[(k - bs + 1):k])
     AX = apply(operator, X)
     M = block_inner(X, AX)
     # Calculate the new residual. Get Rnext
-    Xlast = BlockVec{S}(V[(k - bs_last - bs + 1):(k - bs)])
-    rₖnext = compute_residual!(AX, X, M, Xlast, Bₖ')
-    block_reorthogonalize!(rₖnext, V)
-    return rₖnext, M
+    Xprev = BlockVec{S}(V[(k - bs_prev - bs + 1):(k - bs)])
+    Rnext = block_orthogonalize!(AX, X, M, Xprev, B')
+    block_reorthogonalize!(Rnext, V)
+    return Rnext, M
 end
 
 """
-    compute_residual!(AX::BlockVec{T,S}, X::BlockVec{T,S},
+    block_orthogonalize!(AX::BlockVec{T,S}, X::BlockVec{T,S},
                            M::AbstractMatrix,
-                           X_prev::BlockVec{T,S}, B_prev::AbstractMatrix) where {T,S}
+                           Xprev::BlockVec{T,S}, Bprev::AbstractMatrix) where {T,S}
 
 Computes the residual block and stores the result in `AX`.
 
-This function orthogonalizes `AX` against the two most recent basis blocks, `X` and `X_prev`.  
+This function orthogonalizes `AX` against the two most recent basis blocks, `X` and `Xprev`.  
 Here, `AX` represents the image of the current block `X` under the action of the linear operator `A`.  
 The matrix `M` contains the inner products between `X` and `AX`, i.e., the projection of `AX` onto `X`.  
-Similarly, `B_prev` represents the projection of `AX` onto `X_prev`.
+Similarly, `Bprev` represents the projection of `AX` onto `Xprev`.
 
 The residual is computed as:
 
 ```
-    AX ← AX - X * M - X_prev * B_prev
+    AX ← AX - X * M - Xprev * Bprev
 ```
 
-After this operation, `AX` is orthogonal (in the block inner product sense) to both `X` and `X_prev`.
+After this operation, `AX` is orthogonal (in the block inner product sense) to both `X` and `Xprev`.
 
 """
-function compute_residual!(AX::BlockVec{T,S}, X::BlockVec{T,S},
+function block_orthogonalize!(AX::BlockVec{T,S}, X::BlockVec{T,S},
                            M::AbstractMatrix,
-                           X_prev::BlockVec{T,S}, B_prev::AbstractMatrix) where {T,S}
+                           Xprev::BlockVec{T,S}, Bprev::AbstractMatrix) where {T,S}
     @inbounds for j in 1:length(X)
         for i in 1:length(X)
             AX[j] = add!!(AX[j], X[i], -M[i, j])
         end
-        for i in 1:length(X_prev)
-            AX[j] = add!!(AX[j], X_prev[i], -B_prev[i, j])
+        for i in 1:length(Xprev)
+            AX[j] = add!!(AX[j], Xprev[i], -Bprev[i, j])
         end
     end
     return AX
@@ -263,14 +263,14 @@ Specifically, it modifies each vector `basis[i]` by projecting out its component
 
 Here,`⟨·,·⟩` denotes the inner product. The function assumes that `basis_sofar` is already orthonormal.
 """
-function block_reorthogonalize!(basis::BlockVec{T,S},
-                                basis_sofar::OrthonormalBasis{T}) where {T,S}
-    for i in 1:length(basis)
-        for q in basis_sofar
-            basis[i], _ = orthogonalize!!(basis[i], q, ModifiedGramSchmidt())
+function block_reorthogonalize!(R::BlockVec{T,S},
+                                V::OrthonormalBasis{T}) where {T,S}
+    for i in 1:length(R)
+        for q in V
+            R[i], _ = orthogonalize!!(R[i], q, ModifiedGramSchmidt())
         end
     end
-    return basis
+    return R
 end
 
 function warn_nonhermitian(M::AbstractMatrix)

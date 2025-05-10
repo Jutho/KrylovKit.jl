@@ -185,7 +185,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
         end
         # BlockLanczos can access the case of K = 1 and doesn't need extra processing
         if K >= krylovdim || β <= tol || (alg.eager && K >= howmany)
-            # compute eigenvalues
+            # Compute eigenvalues
             # Note: Fast eigen solver for block tridiagonal matrices is not implemented yet.
             BTD = view(fact.T, 1:K, 1:K)
             D, U = eigen(Hermitian(BTD))
@@ -193,15 +193,15 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
             p = sortperm(D; by=by, rev=rev)
             D, U = permuteeig!(D, U, p)
 
-            # detect convergence by computing the residuals
-            bs_r = fact.r_size   # the block size of the residual (decreases as the iteration goes)
+            # Detect convergence by computing the residuals
+            bs_r = fact.r_size   # The block size of the residual (decreases as the iteration goes)
             r = residual(fact)
-            UU = U[(end - bs_r + 1):end, :]  # the last bs_r rows of U, used to compute the residuals
+            UU = U[(end - bs_r + 1):end, :]  # The last bs_r rows of U, used to compute the residuals
             normresiduals = let R = block_inner(r, r)
                 map(u -> sqrt(real(dot(u, R, u))), cols(UU))
             end
             converged = count(<=(tol), normresiduals)
-            if converged >= howmany || β <= tol  # successfully find enough eigenvalues
+            if converged >= howmany || β <= tol  # Successfully find enough eigenvalues.
                 break
             elseif verbosity >= EACHITERATION_LEVEL
                 @info "BlockLanczos eigsolve in iteration $numiter: $converged values converged, normres = $(normres2string(normresiduals))"
@@ -211,7 +211,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
         if K < krylovdim
             expand!(iter, fact; verbosity=verbosity)
             numops += 1
-        else # shrink and restart
+        else # Shrink and restart. Following the shrinking method of Lanczos in the above `eigsolve`.
             numiter >= maxiter && break
             bsn = max(div(3 * krylovdim + 2 * converged, 5) ÷ bs, 1) # Divide basis into blocks with the same size
             keep = bs * bsn
@@ -222,7 +222,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
                 H[(bsn * bs + 1):end, j] = U[(K - bs + 1):K, j]
             end
             # Turn diagonal matrix D into a block tridiagonal matrix, and make sure 
-            # the residual of krylov subspace keeps the form of [0,..,0,R]
+            # The residual of krylov subspace keeps the form of [0,..,0,R]
             @inbounds for j in keep:-1:1
                 h, ν = householder(H, j + bs, 1:j, j)
                 H[j + bs, j] = ν
@@ -231,7 +231,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
                 rmul!(view(H, 1:(j + bs - 1), :), h')
                 rmul!(U, h')
             end
-            # transform the basis and update the residual and update the BTD.
+            # Transform the basis and update the residual and update the BTD.
             BTD .= S(0)
             BTD[1:keep, 1:keep] .= H[1:keep, 1:keep]
             B = basis(fact)

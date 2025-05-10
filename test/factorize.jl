@@ -309,7 +309,7 @@ end
         x₀m = Matrix(qr(rand(T, N, block_size)).Q)
         x₀ = KrylovKit.BlockVec{T}([wrapvec(x₀m[:, i], Val(mode)) for i in 1:block_size])
         eigvalsA = eigvals(A)
-        iter = BlockLanczosIterator(wrapop(A, Val(mode)), x₀, N, qr_tol(T))
+        iter = BlockLanczosIterator(wrapop(A, Val(mode)), x₀, N, tolerance(T))
         fact = @constinferred initialize(iter)
         @constinferred expand!(iter, fact)
         @test_logs initialize(iter; verbosity=EACHITERATION_LEVEL)
@@ -330,7 +330,7 @@ end
             bs = 2
             v₀m = Matrix(qr(rand(T, n, bs)).Q)
             v₀ = KrylovKit.BlockVec{T}([wrapvec(v₀m[:, i], Val(mode)) for i in 1:bs])
-            iter = BlockLanczosIterator(wrapop(B, Val(mode)), v₀, N, qr_tol(T))
+            iter = BlockLanczosIterator(wrapop(B, Val(mode)), v₀, N, tolerance(T))
             fact = initialize(iter)
             @constinferred expand!(iter, fact; verbosity=0)
             @test_logs initialize(iter; verbosity=0)
@@ -360,7 +360,7 @@ end
         block_size = 5
         x₀m = Matrix(qr(rand(T, N, block_size)).Q)
         x₀ = KrylovKit.BlockVec{T}([wrapvec(x₀m[:, i], Val(mode)) for i in 1:block_size])
-        iter = @constinferred BlockLanczosIterator(wrapop(A, Val(mode)), x₀, N, qr_tol(T))
+        iter = @constinferred BlockLanczosIterator(wrapop(A, Val(mode)), x₀, N, tolerance(T))
         krylovdim = n
         fact = initialize(iter)
         while fact.norm_r > eps(float(real(T))) && fact.k < krylovdim

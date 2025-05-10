@@ -420,7 +420,6 @@ end
         return H
     end
 
-    Random.seed!(4)
     sites_num = 3
     p = 5 # block size
     M = 2^(2 * sites_num^2)
@@ -446,7 +445,6 @@ end
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
                   (ComplexF64,)
     @testset for T in scalartypes
-        Random.seed!(6)
         A = rand(T, (n, n)) .- one(T) / 2
         A = (A + A') / 2
         block_size = 2
@@ -503,7 +501,6 @@ end
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
                   (ComplexF64,)
     @testset for T in scalartypes
-        Random.seed!(6)
         A = rand(T, (N, N)) .- one(T) / 2
         A = (A + A') / 2
         block_size = 2
@@ -539,7 +536,7 @@ end
 
 @testset "BlockLanczos - eigsolve for abstract type" begin
     T = ComplexF64
-    H = rand(T, (n, n))
+    H = rand(T, (n, n)) .- one(T) / 2
     H = H' * H + I
     block_size = 2
     eig_num = 2
@@ -562,7 +559,6 @@ end
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
                   (ComplexF64,)
     @testset for T in scalartypes
-        Random.seed!(6)
         A = rand(T, (2N, 2N))
         A = (A + A') / 2
         block_size = 1
@@ -576,7 +572,6 @@ end
         @test info1.converged == info2.converged
     end
     @testset for T in scalartypes
-        Random.seed!(6)
         A = rand(T, (2N, 2N))
         A = (A + A') / 2
         block_size = 4
@@ -598,7 +593,6 @@ end
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
                   (ComplexF64,)
     @testset for T in scalartypes
-        Random.seed!(6)
         A = rand(T, (N, N)) .- one(T) / 2
         A = (A + A') / 2
         block_size = 5
