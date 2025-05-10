@@ -13,7 +13,7 @@ using Random
 # -----------------
 "function for determining the precision of a type"
 tolerance(T::Type{<:Number}) = eps(real(T))^(2 // 3)
-relax_tol(T::Type{<:Number}) = eps(real(T))^(1//2)
+relax_tol(T::Type{<:Number}) = eps(real(T))^(1 // 2)
 
 "function for comparing sets of eigenvalues"
 function ≊(list1::AbstractVector, list2::AbstractVector)

@@ -360,7 +360,8 @@ end
         block_size = 5
         x₀m = Matrix(qr(rand(T, N, block_size)).Q)
         x₀ = KrylovKit.BlockVec{T}([wrapvec(x₀m[:, i], Val(mode)) for i in 1:block_size])
-        iter = @constinferred BlockLanczosIterator(wrapop(A, Val(mode)), x₀, N, tolerance(T))
+        iter = @constinferred BlockLanczosIterator(wrapop(A, Val(mode)), x₀, N,
+                                                   tolerance(T))
         krylovdim = n
         fact = initialize(iter)
         while fact.norm_r > eps(float(real(T))) && fact.k < krylovdim

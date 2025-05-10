@@ -238,8 +238,8 @@ After this operation, `AX` is orthogonal (in the block inner product sense) to b
 
 """
 function block_orthogonalize!(AX::BlockVec{T,S}, X::BlockVec{T,S},
-                           M::AbstractMatrix,
-                           Xprev::BlockVec{T,S}, Bprev::AbstractMatrix) where {T,S}
+                              M::AbstractMatrix,
+                              Xprev::BlockVec{T,S}, Bprev::AbstractMatrix) where {T,S}
     @inbounds for j in 1:length(X)
         for i in 1:length(X)
             AX[j] = add!!(AX[j], X[i], -M[i, j])
