@@ -65,9 +65,9 @@ BlockLanczos factorizations of a given linear map and a starting vector.
 mutable struct BlockLanczosFactorization{T,S<:Number,SR<:Real} <:
                KrylovFactorization{T,S}
     k::Int
-    const V::OrthonormalBasis{T}      # BlockLanczos Basis
-    const T::AbstractMatrix{S}      # block tridiagonal matrix, and S is the matrix element type
-    const r::BlockVec{T,S}            # residual block
+    V::OrthonormalBasis{T}      # BlockLanczos Basis
+    T::AbstractMatrix{S}      # block tridiagonal matrix, and S is the matrix element type
+    r::BlockVec{T,S}            # residual block
     r_size::Int # size of the residual block
     norm_r::SR  # norm of the residual block
 end
