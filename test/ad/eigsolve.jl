@@ -264,12 +264,12 @@ end
             end
             if eltype(A) <: Complex # test holomorphicity / Cauchy-Riemann equations
                 # for eigenvalues
-                @test real(∂vals[:, 1:2:(2n^2)]) ≈ +imag(∂vals[:, 2:2:(2n^2)])
-                @test imag(∂vals[:, 1:2:(2n^2)]) ≈ -real(∂vals[:, 2:2:(2n^2)])
+                @test real(∂vals[:, 1:2:(2n ^ 2)]) ≈ +imag(∂vals[:, 2:2:(2n ^ 2)])
+                @test imag(∂vals[:, 1:2:(2n ^ 2)]) ≈ -real(∂vals[:, 2:2:(2n ^ 2)])
                 # and for eigenvectors
                 for i in 1:howmany
-                    @test real(∂vecs[i][:, 1:2:(2n^2)]) ≈ +imag(∂vecs[i][:, 2:2:(2n^2)])
-                    @test imag(∂vecs[i][:, 1:2:(2n^2)]) ≈ -real(∂vecs[i][:, 2:2:(2n^2)])
+                    @test real(∂vecs[i][:, 1:2:(2n ^ 2)]) ≈ +imag(∂vecs[i][:, 2:2:(2n ^ 2)])
+                    @test imag(∂vecs[i][:, 1:2:(2n ^ 2)]) ≈ -real(∂vecs[i][:, 2:2:(2n ^ 2)])
                 end
             end
             # test orthogonality of vecs and ∂vecs

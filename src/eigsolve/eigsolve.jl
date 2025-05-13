@@ -256,7 +256,7 @@ function eigselector(f,
 end
 function eigselector(A::AbstractMatrix,
                      T::Type;
-                     issymmetric::Bool=T <: Real && LinearAlgebra.issymmetric(A),
+                     issymmetric::Bool=(T <: Real && LinearAlgebra.issymmetric(A)),
                      ishermitian::Bool=issymmetric || LinearAlgebra.ishermitian(A),
                      krylovdim::Int=KrylovDefaults.krylovdim[],
                      maxiter::Int=KrylovDefaults.maxiter[],

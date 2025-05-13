@@ -32,7 +32,7 @@ Base.:*(a::Number, v::InnerProductVec) = InnerProductVec(a * v.vec, v.dotf)
 Base.:/(v::InnerProductVec, a::Number) = InnerProductVec(v.vec / a, v.dotf)
 Base.:\(a::Number, v::InnerProductVec) = InnerProductVec(a \ v.vec, v.dotf)
 
-function Base.similar(v::InnerProductVec, ::Type{T}=scalartype(v)) where {T}
+function Base.similar(v::InnerProductVec, (::Type{T})=scalartype(v)) where {T}
     return InnerProductVec(similar(v.vec), v.dotf)
 end
 

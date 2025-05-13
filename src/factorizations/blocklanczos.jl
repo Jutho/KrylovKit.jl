@@ -19,7 +19,7 @@ end
 Base.setindex!(b::BlockVec{T}, v::T, i::Int) where {T} = (b.vec[i] = v)
 function Base.setindex!(b₁::BlockVec{T}, b₂::BlockVec{T},
                         idxs::AbstractVector{Int}) where {T}
-    return (b₁.vec[idxs] = b₂.vec;
+    return (b₁.vec[idxs]=b₂.vec;
             b₁)
 end
 LinearAlgebra.norm(b::BlockVec) = norm(b.vec)

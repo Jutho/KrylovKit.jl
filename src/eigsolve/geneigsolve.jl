@@ -199,7 +199,7 @@ end
 
 function geneigselector(AB::Tuple{AbstractMatrix,AbstractMatrix},
                         T::Type;
-                        issymmetric=T <: Real && all(LinearAlgebra.issymmetric, AB),
+                        issymmetric=(T <: Real && all(LinearAlgebra.issymmetric, AB)),
                         ishermitian=issymmetric || all(LinearAlgebra.ishermitian, AB),
                         isposdef=ishermitian && LinearAlgebra.isposdef(AB[2]),
                         kwargs...)

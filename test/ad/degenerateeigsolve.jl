@@ -141,19 +141,19 @@ end
     ∂vecsC = complex.(JC1[1 .+ (1:N), :], JC1[N + 2 .+ (1:N), :])
     if T <: Complex # test holomorphicity / Cauchy-Riemann equations
         # for eigenvalues
-        @test real(∂valsA[1:2:(2n^2)]) ≈ +imag(∂valsA[2:2:(2n^2)])
-        @test imag(∂valsA[1:2:(2n^2)]) ≈ -real(∂valsA[2:2:(2n^2)])
-        @test real(∂valsB[1:2:(2n^2)]) ≈ +imag(∂valsB[2:2:(2n^2)])
-        @test imag(∂valsB[1:2:(2n^2)]) ≈ -real(∂valsB[2:2:(2n^2)])
-        @test real(∂valsC[1:2:(2n^2)]) ≈ +imag(∂valsC[2:2:(2n^2)])
-        @test imag(∂valsC[1:2:(2n^2)]) ≈ -real(∂valsC[2:2:(2n^2)])
+        @test real(∂valsA[1:2:(2n ^ 2)]) ≈ +imag(∂valsA[2:2:(2n ^ 2)])
+        @test imag(∂valsA[1:2:(2n ^ 2)]) ≈ -real(∂valsA[2:2:(2n ^ 2)])
+        @test real(∂valsB[1:2:(2n ^ 2)]) ≈ +imag(∂valsB[2:2:(2n ^ 2)])
+        @test imag(∂valsB[1:2:(2n ^ 2)]) ≈ -real(∂valsB[2:2:(2n ^ 2)])
+        @test real(∂valsC[1:2:(2n ^ 2)]) ≈ +imag(∂valsC[2:2:(2n ^ 2)])
+        @test imag(∂valsC[1:2:(2n ^ 2)]) ≈ -real(∂valsC[2:2:(2n ^ 2)])
         # and for eigenvectors
-        @test real(∂vecsA[:, 1:2:(2n^2)]) ≈ +imag(∂vecsA[:, 2:2:(2n^2)])
-        @test imag(∂vecsA[:, 1:2:(2n^2)]) ≈ -real(∂vecsA[:, 2:2:(2n^2)])
-        @test real(∂vecsB[:, 1:2:(2n^2)]) ≈ +imag(∂vecsB[:, 2:2:(2n^2)])
-        @test imag(∂vecsB[:, 1:2:(2n^2)]) ≈ -real(∂vecsB[:, 2:2:(2n^2)])
-        @test real(∂vecsC[:, 1:2:(2n^2)]) ≈ +imag(∂vecsC[:, 2:2:(2n^2)])
-        @test imag(∂vecsC[:, 1:2:(2n^2)]) ≈ -real(∂vecsC[:, 2:2:(2n^2)])
+        @test real(∂vecsA[:, 1:2:(2n ^ 2)]) ≈ +imag(∂vecsA[:, 2:2:(2n ^ 2)])
+        @test imag(∂vecsA[:, 1:2:(2n ^ 2)]) ≈ -real(∂vecsA[:, 2:2:(2n ^ 2)])
+        @test real(∂vecsB[:, 1:2:(2n ^ 2)]) ≈ +imag(∂vecsB[:, 2:2:(2n ^ 2)])
+        @test imag(∂vecsB[:, 1:2:(2n ^ 2)]) ≈ -real(∂vecsB[:, 2:2:(2n ^ 2)])
+        @test real(∂vecsC[:, 1:2:(2n ^ 2)]) ≈ +imag(∂vecsC[:, 2:2:(2n ^ 2)])
+        @test imag(∂vecsC[:, 1:2:(2n ^ 2)]) ≈ -real(∂vecsC[:, 2:2:(2n ^ 2)])
     end
     # test orthogonality of vecs and ∂vecs
     @test all(isapprox.(abs.(vecs[1]' * ∂vecsA), 0; atol=sqrt(eps(real(T)))))

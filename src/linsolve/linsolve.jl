@@ -126,7 +126,7 @@ function linselector(f,
                      b,
                      T::Type;
                      issymmetric::Bool=false,
-                     ishermitian::Bool=T <: Real && issymmetric,
+                     ishermitian::Bool=(T <: Real && issymmetric),
                      isposdef::Bool=false,
                      krylovdim::Int=KrylovDefaults.krylovdim[],
                      maxiter::Int=KrylovDefaults.maxiter[],
@@ -152,7 +152,7 @@ end
 function linselector(A::AbstractMatrix,
                      b,
                      T::Type;
-                     issymmetric::Bool=T <: Real && LinearAlgebra.issymmetric(A),
+                     issymmetric::Bool=(T <: Real && LinearAlgebra.issymmetric(A)),
                      ishermitian::Bool=issymmetric || LinearAlgebra.ishermitian(A),
                      isposdef::Bool=ishermitian ? LinearAlgebra.isposdef(A) : false,
                      krylovdim::Int=KrylovDefaults.krylovdim[],

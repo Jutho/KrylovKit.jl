@@ -129,7 +129,7 @@ end
 function bidiagsvd!(B::Bidiagonal{T},
                     U::AbstractMatrix{T}=one(B),
                     VT::AbstractMatrix{T}=one(B)) where {T<:BlasReal}
-    s, Vt, U, = LAPACK.bdsqr!(B.uplo, B.dv, B.ev, VT, U, similar(U, (size(B, 1), 0)))
+    s, Vt, U = LAPACK.bdsqr!(B.uplo, B.dv, B.ev, VT, U, similar(U, (size(B, 1), 0)))
     return U, s, Vt
 end
 
@@ -394,7 +394,7 @@ end
 function partitionschur!(T::AbstractMatrix{S},
                          Q::AbstractMatrix{S},
                          select::AbstractVector{Bool}) where {S<:BlasFloat}
-    T, Q, vals, = trsen!('N', 'V', convert(Vector{BlasInt}, select), T, Q)
+    T, Q, vals = trsen!('N', 'V', convert(Vector{BlasInt}, select), T, Q)
     return T, Q, vals
 end
 
