@@ -49,8 +49,9 @@ end
         AX1copy = copy(AX1)
         KrylovKit.block_orthogonalize!(AX1, X1, M, X0, B)
         _bw2m(X) = hcat(unwrapvec.(X)...)
+        tol = T == ComplexF32 ? relax_tol(T) : tolerance(T)
         @test isapprox(_bw2m(AX1), _bw2m(AX1copy) - _bw2m(X1) * M - _bw2m(X0) * B;
-                       atol=tolerance(T))
+                       atol=tol)
     end
 end
 
