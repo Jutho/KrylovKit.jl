@@ -200,26 +200,28 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
             normresiduals = let R = block_inner(r, r)
                 map(u -> sqrt(real(dot(u, R, u))), cols(UU))
             end
-            converged = count(<=(tol), normresiduals)
+            converged = 0
+            while converged < K && normresiduals[converged + 1] <= tol
+                converged += 1
+            end
             if converged >= howmany || β <= tol  # Successfully find enough eigenvalues.
                 break
             elseif verbosity >= EACHITERATION_LEVEL
-                @info "BlockLanczos eigsolve in iteration $numiter: $converged values converged, normres = $(normres2string(normresiduals))"
+                @info "BlockLanczos eigsolve in iteration $numiter, Krylov dimension = $K: $converged values converged, normres = $(normres2string(normresiduals[1:howmany]))"
             end
         end
 
         if K < krylovdim
             expand!(iter, fact; verbosity=verbosity)
             numops += 1
-        else # Shrink and restart. Following the shrinking method of Lanczos in the above `eigsolve`.
+        else # Shrink and restart following the shrinking method of `Lanczos`.
             numiter >= maxiter && break
-            bsn = max(div(3 * krylovdim + 2 * converged, 5) ÷ bs, 1) # Divide basis into blocks with the same size
-            keep = bs * bsn
-            H = zeros(S, (bsn + 1) * bs, bsn * bs)
+            keep = max(floor(Int, (3 * krylovdim + 2 * converged) / (5 * bs)), 1) * bs
+            H = zeros(S, keep + bs, keep)
             # The last bs rows of U contribute to calculate errors of Ritz values.
             @inbounds for j in 1:keep
                 H[j, j] = D[j]
-                H[(bsn * bs + 1):end, j] = U[(K - bs + 1):K, j]
+                H[(keep + 1):end, j] = U[(K - bs + 1):K, j]
             end
             # Turn diagonal matrix D into a block tridiagonal matrix, and make sure 
             # The residual of krylov subspace keeps the form of [0,..,0,R]
