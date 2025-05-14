@@ -252,16 +252,16 @@ function block_orthogonalize!(AX::BlockVec{T,S}, X::BlockVec{T,S},
 end
 
 """
-    block_reorthogonalize!(basis::BlockVec{T,S}, basis_sofar::OrthonormalBasis{T}) where {T,S}
+    block_reorthogonalize!(R::BlockVec{T,S}, V::OrthonormalBasis{T}) where {T,S}
 
-This function orthogonalizes the vectors in `basis` with respect to the previously orthonormalized set `basis_sofar` by using the modified Gram-Schmidt process.
-Specifically, it modifies each vector `basis[i]` by projecting out its components along the directions spanned by `basis_sofar`, i.e.,
+This function orthogonalizes the vectors in `R` with respect to the previously orthonormalized set `V` by using the modified Gram-Schmidt process.
+Specifically, it modifies each vector `R[i]` by projecting out its components along the directions spanned by `V`, i.e.,
 
 ```
-    basis[i] = basis[i] - sum(j=1:length(basis_sofar)) <basis[i], basis_sofar[j]> basis_sofar[j]
+    R[i] = R[i] - sum(j=1:length(V)) <R[i], V[j]> V[j]
 ```
 
-Here,`⟨·,·⟩` denotes the inner product. The function assumes that `basis_sofar` is already orthonormal.
+Here,`⟨·,·⟩` denotes the inner product. The function assumes that `V` is already orthonormal.
 """
 function block_reorthogonalize!(R::BlockVec{T,S},
                                 V::OrthonormalBasis{T}) where {T,S}

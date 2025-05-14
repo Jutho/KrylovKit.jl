@@ -2,12 +2,11 @@ module TestSetup
 
 export tolerance, ≊, MinimalVec, isinplace, stack
 export wrapop, wrapvec, unwrapvec, buildrealmap
-export qr_tol, relax_tol
+export relax_tol
 
 import VectorInterface as VI
 using VectorInterface
 using LinearAlgebra: LinearAlgebra
-using Random
 
 # Utility functions
 # -----------------
