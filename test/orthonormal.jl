@@ -3,7 +3,7 @@
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
                   (ComplexF64,)
     @testset for T in scalartypes
-        A = rand(T, n, n)
+        A = rand(T, n, n) .- one(T) / 2
         B = copy(A)
         Av = [A[:, i] for i in 1:size(A, 2)]
         # A is a non-full rank matrix

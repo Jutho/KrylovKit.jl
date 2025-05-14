@@ -559,9 +559,7 @@ end
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
                   (ComplexF64,)
     @testset for T in scalartypes
-        # When VERSION == v"1.6", Threads.nthreads() == 4 and T == ComplexF32, the test may fail.
-        VERSION < v"1.11" && Threads.nthreads() > 1 && T == ComplexF32 && continue
-        A = rand(T, (2N, 2N))
+        A = rand(T, (2N, 2N)) .- one(T) / 2
         A = (A + A') / 2
         block_size = 1
         x₀_block = [wrapvec(rand(T, 2N), Val(mode)) for _ in 1:block_size]
@@ -574,7 +572,7 @@ end
         @test info1.converged == info2.converged
     end
     @testset for T in scalartypes
-        A = rand(T, (2N, 2N))
+        A = rand(T, (2N, 2N)) .- one(T) / 2
         A = (A + A') / 2
         block_size = 4
         x₀_block = [wrapvec(rand(T, 2N), Val(mode)) for _ in 1:block_size]

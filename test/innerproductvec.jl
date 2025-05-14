@@ -40,9 +40,9 @@ end
     @testset for T in scalartypes
         A = rand(T, N, N) .- one(T) / 2
         A = (A + A') / 2
-        M = rand(T, n, n)
+        M = rand(T, n, n) .- one(T) / 2
         M = M' + M
-        B = qr(rand(T, n, n)).R
+        B = qr(rand(T, n, n) .- one(T) / 2).R
         X0 = KrylovKit.BlockVec{T}([wrapvec(rand(T, N), Val(mode)) for _ in 1:n])
         X1 = KrylovKit.BlockVec{T}([wrapvec(rand(T, N), Val(mode)) for _ in 1:n])
         AX1 = KrylovKit.BlockVec{T}([wrapvec(rand(T, N), Val(mode)) for _ in 1:n])
@@ -60,9 +60,9 @@ end
     A = rand(T, N, N) .- one(T) / 2
     A = A * A' + I
     ip(x, y) = x' * A * y
-    M = rand(T, n, n)
+    M = rand(T, n, n) .- one(T) / 2
     M = M' + M
-    B = qr(rand(T, n, n)).R
+    B = qr(rand(T, n, n) .- one(T) / 2).R
     X0 = KrylovKit.BlockVec{T}([InnerProductVec(rand(T, N), ip) for _ in 1:n])
     X1 = KrylovKit.BlockVec{T}([InnerProductVec(rand(T, N), ip) for _ in 1:n])
     AX1 = KrylovKit.BlockVec{T}([InnerProductVec(rand(T, N), ip) for _ in 1:n])
