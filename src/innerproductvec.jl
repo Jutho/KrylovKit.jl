@@ -125,14 +125,3 @@ function VectorInterface.inner(v::InnerProductVec{F}, w::InnerProductVec{F}) whe
 end
 
 VectorInterface.norm(v::InnerProductVec) = sqrt(real(inner(v, v)))
-
-function block_inner(B₁::BlockVec{T,S}, B₂::BlockVec{T,S}) where {T,S}
-    M = Matrix{S}(undef, length(B₁.vec), length(B₂.vec))
-    @inbounds for j in 1:length(B₂)
-        yj = B₂[j]
-        for i in 1:length(B₁)
-            M[i, j] = inner(B₁[i], yj)
-        end
-    end
-    return M
-end

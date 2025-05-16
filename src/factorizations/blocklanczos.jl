@@ -26,6 +26,16 @@ LinearAlgebra.norm(b::BlockVec) = norm(b.vec)
 function apply(f, block::BlockVec{T,S}) where {T,S}
     return BlockVec{S}([apply(f, block[i]) for i in 1:length(block)])
 end
+function block_inner(B₁::BlockVec{T,S}, B₂::BlockVec{T,S}) where {T,S}
+    M = Matrix{S}(undef, length(B₁.vec), length(B₂.vec))
+    @inbounds for j in 1:length(B₂)
+        yj = B₂[j]
+        for i in 1:length(B₁)
+            M[i, j] = inner(B₁[i], yj)
+        end
+    end
+    return M
+end
 function Base.push!(V::OrthonormalBasis{T}, b::BlockVec{T}) where {T}
     for i in 1:length(b)
         push!(V, b[i])
@@ -96,7 +106,7 @@ default value in [`KrylovDefaults`](@ref) is to use [`ModifiedGramSchmidt2`](@re
 uses reorthogonalization steps in every iteration.
 Now our orthogonalizer is only ModifiedGramSchmidt2. So we don't need to provide "keepvecs" because we have to reverse all krylove vectors.
 Dimension of Krylov subspace in BlockLanczosIterator is usually much bigger than lanczos and its Default value is 100.
-`qr_tol` is the tolerance used in [`abstract_qr!`](@ref) to resolve the rank of a block of vectors.
+`qr_tol` is the tolerance used in [`block_qr!`](@ref) to resolve the rank of a block of vectors.
 
 When iterating over an instance of `BlockLanczosIterator`, the values being generated are
 instances of [`BlockLanczosFactorization`](@ref). 
@@ -144,7 +154,7 @@ function initialize(iter::BlockLanczosIterator{F,T,S};
 
     # Orthogonalization of the initial block
     X₁ = copy(X₀)
-    abstract_qr!(X₁, iter.qr_tol)
+    block_qr!(X₁, iter.qr_tol)
     V = OrthonormalBasis(X₁.vec)
 
     AX₁ = apply(A, X₁)
@@ -179,7 +189,7 @@ function expand!(iter::BlockLanczosIterator{F,T,S},
     V = state.V
 
     # Calculate the new basis and B
-    B, good_idx = abstract_qr!(R, iter.qr_tol)
+    B, good_idx = block_qr!(R, iter.qr_tol)
     bs_next = length(good_idx)
     push!(V, R[good_idx])
     state.T[(k + 1):(k + bs_next), (k - bs + 1):k] .= B
@@ -280,7 +290,7 @@ function warn_nonhermitian(M::AbstractMatrix)
 end
 
 """
-    abstract_qr!(block::BlockVec{T,S}, tol::Real) where {T,S}
+    block_qr!(block::BlockVec{T,S}, tol::Real) where {T,S}
 
 This function performs a QR factorization of a block of abstract vectors using the modified Gram-Schmidt process.
 
@@ -296,7 +306,7 @@ and `r` is the numerical rank of the input block. The matrix represents the uppe
 restricted to the `r` linearly independent components. The vector `goodidx` contains the indices of the non-zero
 (i.e., numerically independent) vectors in the orthonormalized block.
 """
-function abstract_qr!(block::BlockVec{T,S}, tol::Real) where {T,S}
+function block_qr!(block::BlockVec{T,S}, tol::Real) where {T,S}
     n = length(block)
     rank_shrink = false
     idx = ones(Int64, n)

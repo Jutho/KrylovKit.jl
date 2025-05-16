@@ -157,7 +157,7 @@ end
 end
 
 @testset "Arnoldi - expintegrator fixed point branch" begin
-    @testset for T in (ComplexF32, ComplexF64) # less probable that :LR eig is degenerate
+    @testset for T in (ComplexF32, ComplexF64) # less probable that :LR eig is repeated
         A = rand(T, (N, N)) / 10
         v₀ = rand(T, N)
         λs, vs, infoR = eigsolve(A, v₀, 1, :LR)

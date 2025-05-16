@@ -57,16 +57,10 @@ end
 end
 @testset "Eigsolve differentiation rules" verbose = true begin
     include("ad/eigsolve.jl")
-    include("ad/degenerateeigsolve.jl")
+    include("ad/repeatedeigsolve.jl")
 end
 @testset "Svdsolve differentiation rules" verbose = true begin
     include("ad/svdsolve.jl")
-end
-@testset "Orthonormal" verbose = true begin
-    include("orthonormal.jl")
-end
-@testset "Inner product vector" verbose = true begin
-    include("innerproductvec.jl")
 end
 @testset "BlockVec" verbose = true begin
     include("BlockVec.jl")

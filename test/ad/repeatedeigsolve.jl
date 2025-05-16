@@ -1,4 +1,4 @@
-module DegenerateEigsolveAD
+module RepeatedEigsolveAD
 
 using KrylovKit, LinearAlgebra
 using Random, Test, TestExtras
@@ -82,7 +82,7 @@ function build_mat_example(A, B, C, x, alg, alg_rrule)
            vecs
 end
 
-@timedtestset "Degenerate eigsolve AD test with eltype=$T" for T in (Float64, ComplexF64)
+@timedtestset "Repeated eigsolve AD test with eltype=$T" for T in (Float64, ComplexF64)
     n = 10
     N = 3n
 

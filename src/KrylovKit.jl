@@ -269,6 +269,7 @@ include("lssolve/lsmr.jl")
 # eigsolve and svdsolve
 include("eigsolve/eigsolve.jl")
 include("eigsolve/lanczos.jl")
+include("eigsolve/blocklanczos.jl")
 include("eigsolve/arnoldi.jl")
 include("eigsolve/geneigsolve.jl")
 include("eigsolve/golubye.jl")

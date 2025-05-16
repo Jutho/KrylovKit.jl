@@ -47,10 +47,10 @@ KrylovKit.basistransform!
 ```
 
 ## Block Krylov method
-The block version of the Krylov subspace algorithm is an approach to extending Krylov subspace techniques from a block of starting vectors. It is mainly used for solving linear systems with degenerate dominant eigenvalues.
+The block version of the Krylov subspace algorithm is an approach to extending Krylov subspace techniques from a block of starting vectors. It is mainly used for solving linear systems with repeated dominant eigenvalues.
 
 In our implementation, a block of vectors is stored in a new data structure `BlockVec`,
-which implements the [`KrylovKit.abstract_qr!`](@ref), [`KrylovKit.block_reorthogonalize!`](@ref), and [`KrylovKit.block_orthogonalize!`](@ref) interfaces.
+which implements the [`KrylovKit.block_qr!`](@ref), [`KrylovKit.block_reorthogonalize!`](@ref), and [`KrylovKit.block_orthogonalize!`](@ref) interfaces.
 
 ```@docs
 KrylovKit.BlockVec
@@ -58,7 +58,7 @@ KrylovKit.BlockVec
 
 A block of vectors can be orthonormalized using
 ```@docs
-KrylovKit.abstract_qr!
+KrylovKit.block_qr!
 ```
 This apply QR decomposition to a block of vectors using modified Gram-Schmidt process.
 
