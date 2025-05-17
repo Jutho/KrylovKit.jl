@@ -15,7 +15,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
 
     iter = BlockLanczosIterator(A, block0, krylovdim + bs, alg.qr_tol, alg.orth)
     fact = initialize(iter; verbosity=verbosity)  # Returns a BlockLanczosFactorization
-    numops = 1    # Number of matrix-vector multiplications (for logging)
+    numops = bs    # Number of matrix-vector multiplications (for logging)
     numiter = 1
 
     converged = 0
@@ -60,7 +60,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
 
         if K < krylovdim
             expand!(iter, fact; verbosity=verbosity)
-            numops += 1
+            numops += fact.r_size
         else # Shrink and restart following the shrinking method of `Lanczos`.
             numiter >= maxiter && break
             keep = max(div(3 * krylovdim + 2 * converged, 5 * bs), 1) * bs

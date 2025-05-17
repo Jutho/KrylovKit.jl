@@ -138,7 +138,8 @@ The block version of [`Lanczos`](@ref) is suited for solving eigenvalue problems
 Its implementation is mainly based on *Golub, G. H., & Van Loan, C. F. (2013). Matrix Computations* (4th ed., pp. 566–569).
 Arguments `krylovdim`, `maxiter`, `tol`, `orth`, `eager` and `verbosity` are the same as `Lanczos`.
 `qr_tol` is the error tolerance for `block_qr!` - a subroutine used to orthorgonalize the vectors in the same block.
-The initial size of the block is determined by the number of starting vectors that a user provides. And the size of the block shrinks during iterations.
+The initial size of the block is determined by the number of starting vectors that a user provides;
+the size of the block can shrink during iterations.
 The initial block size determines the maximum degeneracy of the target eigenvalue can that be resolved.
 
 The iteration stops when either the norm of the residual is below `tol` or a sufficient number of eigenvectors have converged. [Reference](https://www.netlib.org/utk/people/JackDongarra/etemplates/node250.html)
