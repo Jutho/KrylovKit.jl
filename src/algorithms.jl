@@ -134,7 +134,7 @@ end
             verbosity=KrylovDefaults.verbosity[],
             qr_tol::Real=KrylovDefaults.tol[])
 
-The block version of [`Lanczos`](@ref) is suited for solving eigenvalue problems with repeated dominant eigenvalues.
+The block version of [`Lanczos`](@ref) is suited for solving eigenvalue problems with repeated extremal eigenvalues.
 Its implementation is mainly based on *Golub, G. H., & Van Loan, C. F. (2013). Matrix Computations* (4th ed., pp. 566–569).
 Arguments `krylovdim`, `maxiter`, `tol`, `orth`, `eager` and `verbosity` are the same as `Lanczos`.
 `qr_tol` is the error tolerance for `block_qr!` - a subroutine used to orthorgonalize the vectors in the same block.

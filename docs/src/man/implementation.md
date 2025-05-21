@@ -61,7 +61,6 @@ A block of vectors can be orthonormalized using
 ```@docs
 KrylovKit.block_qr!
 ```
-This apply QR decomposition to a block of vectors using modified Gram-Schmidt process.
 
 Additional procedures applied to the block are as follows:
 ```@docs
