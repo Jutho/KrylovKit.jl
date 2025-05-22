@@ -147,18 +147,19 @@ function initialize(iter::BlockLanczosIterator{F,T,S};
                     verbosity::Int=KrylovDefaults.verbosity[]) where {F,T,S}
     X₀ = iter.x₀
     maxdim = iter.maxdim
-    bs = length(X₀) # block size now
     A = iter.operator
     BTD = zeros(S, maxdim, maxdim)
 
     # Orthogonalization of the initial block
     X₁ = copy(X₀)
-    block_qr!(X₁, iter.qr_tol)
+    _, good_idx = block_qr!(X₁, iter.qr_tol)
+    X₁ = X₁[good_idx]
     V = OrthonormalBasis(X₁.vec)
+    bs = length(X₁) # block size of the first block
 
     AX₁ = apply(A, X₁)
     M₁ = block_inner(X₁, AX₁)
-    BTD[1:bs, 1:bs] .= M₁
+    BTD[1:bs, 1:bs] = view(M₁, 1:bs, 1:bs)
     verbosity >= WARN_LEVEL && warn_nonhermitian(M₁)
 
     # Get the first residual
@@ -191,14 +192,14 @@ function expand!(iter::BlockLanczosIterator{F,T,S},
     B, good_idx = block_qr!(R, iter.qr_tol)
     bs_next = length(good_idx)
     push!(V, R[good_idx])
-    state.H[(k + 1):(k + bs_next), (k - bs + 1):k] .= B
-    state.H[(k - bs + 1):k, (k + 1):(k + bs_next)] .= B'
+    state.H[(k + 1):(k + bs_next), (k - bs + 1):k] = view(B, 1:bs_next, 1:bs)
+    state.H[(k - bs + 1):k, (k + 1):(k + bs_next)] = view(B, 1:bs_next, 1:bs)'
 
     # Calculate the new residual and orthogonalize the new basis
     Rnext, Mnext = blocklanczosrecurrence(iter.operator, V, B, iter.orth)
     verbosity >= WARN_LEVEL && warn_nonhermitian(Mnext)
 
-    state.H[(k + 1):(k + bs_next), (k + 1):(k + bs_next)] .= Mnext
+    state.H[(k + 1):(k + bs_next), (k + 1):(k + bs_next)] = view(Mnext, 1:bs_next, 1:bs_next)
     state.R.vec[1:bs_next] .= Rnext.vec
     state.norm_R = norm(Rnext)
     state.k += bs_next
