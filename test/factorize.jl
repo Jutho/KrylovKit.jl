@@ -364,20 +364,20 @@ end
                                                    tolerance(T))
         krylovdim = n
         fact = initialize(iter)
-        while fact.norm_r > eps(float(real(T))) && fact.k < krylovdim
+        while fact.norm_R > eps(float(real(T))) && fact.k < krylovdim
             @constinferred expand!(iter, fact)
             k = fact.k
-            rs = fact.r_size
+            rs = fact.R_size
             V0 = fact.V[1:k]
-            r0 = fact.r[1:rs]
-            H = fact.T[1:k, 1:k]
-            norm_r = fact.norm_r
+            r0 = fact.R[1:rs]
+            H = fact.H[1:k, 1:k]
+            norm_R = fact.norm_R
             V = hcat([unwrapvec(v) for v in V0]...)
             r = hcat([unwrapvec(r0[i]) for i in 1:rs]...)
             e = hcat(zeros(T, rs, k - rs), I)
             norm(V' * V - I)
             @test V' * V ≈ I
-            @test norm(r) ≈ norm_r
+            @test norm(r) ≈ norm_R
             @test A * V ≈ V * H + r * e
         end
     end

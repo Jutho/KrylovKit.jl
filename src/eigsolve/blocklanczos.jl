@@ -34,16 +34,16 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
         if K >= krylovdim || β <= tol || (alg.eager && K >= howmany)
             # Compute eigenvalues
             # Note: Fast eigen solver for block tridiagonal matrices is not implemented yet.
-            BTD = view(fact.T, 1:K, 1:K)
+            BTD = view(fact.H, 1:K, 1:K)
             D, U = eigen(Hermitian(BTD))
             by, rev = eigsort(which)
             p = sortperm(D; by=by, rev=rev)
             D, U = permuteeig!(D, U, p)
 
             # Detect convergence by computing the residuals
-            bs_r = fact.r_size   # The block size of the residual (decreases as the iteration goes)
+            bs_R = fact.R_size   # The block size of the residual (decreases as the iteration goes)
             r = residual(fact)
-            UU = U[(end - bs_r + 1):end, :]  # The last bs_r rows of U, used to compute the residuals
+            UU = view(U, (K - bs_R + 1):K, :)  # The last bs_R rows of U, used to compute the residuals
             normresiduals = let R = block_inner(r, r)
                 map(u -> sqrt(real(dot(u, R, u))), cols(UU))
             end
@@ -60,7 +60,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
 
         if K < krylovdim
             expand!(iter, fact; verbosity=verbosity)
-            numops += fact.r_size
+            numops += fact.R_size
         else # Shrink and restart following the shrinking method of `Lanczos`.
             numiter >= maxiter && break
             keep = max(div(3 * krylovdim + 2 * converged, 5 * bs), 1) * bs
@@ -68,7 +68,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
             # The last bs rows of U contribute to calculate errors of Ritz values.
             @inbounds for j in 1:keep
                 H[j, j] = D[j]
-                H[(keep + 1):end, j] = U[(K - bs + 1):K, j]
+                H[(keep + 1):end, j] = view(U, (K - bs + 1):K, j)
             end
             # Turn diagonal matrix D into a block tridiagonal matrix, and make sure 
             # The residual of krylov subspace keeps the form of [0,..,0,R]
@@ -87,10 +87,10 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
             B = basis(fact)
             basistransform!(B, view(U, :, 1:keep))
 
-            r_new = OrthonormalBasis(fact.r.vec[1:bs_r])
-            view_H = view(H, (keep + bs - bs_r + 1):(keep + bs), (keep - bs_r + 1):keep)
-            basistransform!(r_new, view_H)
-            fact.r.vec[1:bs_r] = r_new[1:bs_r]
+            R_new = OrthonormalBasis(fact.R.vec[1:bs_R])
+            view_H = view(H, (keep + bs - bs_R + 1):(keep + bs), (keep - bs_R + 1):keep)
+            basistransform!(R_new, view_H)
+            fact.R.vec[1:bs_R] = R_new[1:bs_R]
 
             while length(fact) > keep
                 pop!(fact.V)
@@ -111,13 +111,13 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
     vectors = let V = basis(fact)
         [V * u for u in cols(U1)]
     end
-    bs_r = fact.r_size
+    bs_R = fact.R_size
     K = length(fact)
-    U2 = view(U, (K - bs_r + 1):K, 1:howmany_actual)
-    R = fact.r
+    U2 = view(U, (K - bs_R + 1):K, 1:howmany_actual)
+    R = fact.R
     residuals = [zerovector(x₀[1]) for _ in 1:howmany_actual]
     @inbounds for i in 1:howmany_actual
-        for j in 1:bs_r
+        for j in 1:bs_R
             residuals[i] = add!!(residuals[i], R[j], U2[j, i])
         end
     end

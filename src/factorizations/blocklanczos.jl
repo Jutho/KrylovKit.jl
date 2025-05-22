@@ -55,17 +55,16 @@ Structure to store a BlockLanczos factorization of a real symmetric or complex h
 map `A` of the form
 
 ```julia
-A * V = V * B + r * b'
+A * V = V * H + R * B'
 ```
 
 For a given BlockLanczos factorization `fact`, length `k = length(fact)` and basis `V = basis(fact)` are
-like [`LanczosFactorization`](@ref). The block tridiagonal matrix `T` is preallocated in `BlockLanczosFactorization`
-and is of type `Hermitian{S<:Number}` with `size(T) == (krylovdim + bs₀, krylovdim + bs₀)` where `bs₀` is the size of the initial block
-and `krylovdim` is the maximum dimension of the Krylov subspace. The residuals `r` is of type `Vector{T}`.
-One can also query [`normres(fact)`](@ref) to obtain `norm(r)`, the norm of the residual. The matrix
-`b` takes the default value ``[0;I]``, i.e. the matrix of size `(k,bs)` and an unit matrix in the last
-`bs` rows and all zeros in the other rows. `bs` is the size of the last block. One can query [`r_size(fact)`] to obtain
-size of the last block and the residuals.
+like [`LanczosFactorization`](@ref). The hermitian block tridiagonal matrix `H` is preallocated
+in `BlockLanczosFactorization` and can reach a maximal size of `(krylovdim + bs₀, krylovdim + bs₀)`, where `bs₀` is the size of the initial block
+and `krylovdim` is the maximum dimension of the Krylov subspace. A list of residual vectors is contained in `R` is of type `Vector{T}`.
+One can also query [`normres(fact)`](@ref) to obtain `norm(R)`, which computes a total norm of all residual vectors combined. The matrix
+`B` takes the default value ``[0; I]``, i.e. the matrix of size `(k,bs)` containing a unit matrix in the last
+`bs` rows and all zeros in the other rows. `bs` is the size of the last block.
 
 `BlockLanczosFactorization` is mutable because it can [`expand!`](@ref). But it does not support `shrink!`
 because it is implemented in its `eigsolve`.
@@ -76,15 +75,15 @@ mutable struct BlockLanczosFactorization{T,S<:Number,SR<:Real} <:
                KrylovFactorization{T,S}
     k::Int
     V::OrthonormalBasis{T}      # BlockLanczos Basis
-    T::AbstractMatrix{S}      # block tridiagonal matrix, and S is the matrix element type
-    r::BlockVec{T,S}            # residual block
-    r_size::Int # size of the residual block
-    norm_r::SR  # norm of the residual block
+    H::AbstractMatrix{S}      # block tridiagonal matrix, and S is the matrix element type
+    R::BlockVec{T,S}            # residual block
+    R_size::Int # size of the residual block
+    norm_R::SR  # norm of the residual block
 end
 Base.length(fact::BlockLanczosFactorization) = fact.k
-normres(fact::BlockLanczosFactorization) = fact.norm_r
+normres(fact::BlockLanczosFactorization) = fact.norm_R
 basis(fact::BlockLanczosFactorization) = fact.V
-residual(fact::BlockLanczosFactorization) = fact.r[1:(fact.r_size)]
+residual(fact::BlockLanczosFactorization) = fact.R[1:(fact.R_size)]
 
 """
     struct BlockLanczosIterator{F,T,O<:Orthogonalizer} <: KrylovIterator{F,T}
@@ -168,23 +167,23 @@ function initialize(iter::BlockLanczosIterator{F,T,S};
             AX₁[j] = add!!(AX₁[j], X₁[i], -M₁[i, j])
         end
     end
-    norm_r = norm(AX₁)
+    norm_R = norm(AX₁)
     if verbosity > EACHITERATION_LEVEL
-        @info "BlockLanczos initiation at dimension $bs: subspace normres = $(normres2string(norm_r))"
+        @info "BlockLanczos initiation at dimension $bs: subspace normres = $(normres2string(norm_R))"
     end
     return BlockLanczosFactorization(bs,
                                      V,
                                      BTD,
                                      AX₁,
                                      bs,
-                                     norm_r)
+                                     norm_R)
 end
 
 function expand!(iter::BlockLanczosIterator{F,T,S},
                  state::BlockLanczosFactorization{T,S,SR};
                  verbosity::Int=KrylovDefaults.verbosity[]) where {F,T,S,SR}
     k = state.k
-    R = state.r[1:(state.r_size)]
+    R = state.R[1:(state.R_size)]
     bs = length(R)
     V = state.V
 
@@ -192,21 +191,21 @@ function expand!(iter::BlockLanczosIterator{F,T,S},
     B, good_idx = block_qr!(R, iter.qr_tol)
     bs_next = length(good_idx)
     push!(V, R[good_idx])
-    state.T[(k + 1):(k + bs_next), (k - bs + 1):k] .= B
-    state.T[(k - bs + 1):k, (k + 1):(k + bs_next)] .= B'
+    state.H[(k + 1):(k + bs_next), (k - bs + 1):k] .= B
+    state.H[(k - bs + 1):k, (k + 1):(k + bs_next)] .= B'
 
     # Calculate the new residual and orthogonalize the new basis
     Rnext, Mnext = blocklanczosrecurrence(iter.operator, V, B, iter.orth)
     verbosity >= WARN_LEVEL && warn_nonhermitian(Mnext)
 
-    state.T[(k + 1):(k + bs_next), (k + 1):(k + bs_next)] .= Mnext
-    state.r.vec[1:bs_next] .= Rnext.vec
-    state.norm_r = norm(Rnext)
+    state.H[(k + 1):(k + bs_next), (k + 1):(k + bs_next)] .= Mnext
+    state.R.vec[1:bs_next] .= Rnext.vec
+    state.norm_R = norm(Rnext)
     state.k += bs_next
-    state.r_size = bs_next
+    state.R_size = bs_next
 
     if verbosity > EACHITERATION_LEVEL
-        @info "BlockLanczos expansion to dimension $(state.k): subspace normres = $(normres2string(state.norm_r))"
+        @info "BlockLanczos expansion to dimension $(state.k): subspace normres = $(normres2string(state.norm_R))"
     end
 end
 
