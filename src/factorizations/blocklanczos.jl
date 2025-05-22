@@ -199,7 +199,8 @@ function expand!(iter::BlockLanczosIterator{F,T,S},
     Rnext, Mnext = blocklanczosrecurrence(iter.operator, V, B, iter.orth)
     verbosity >= WARN_LEVEL && warn_nonhermitian(Mnext)
 
-    state.H[(k + 1):(k + bs_next), (k + 1):(k + bs_next)] = view(Mnext, 1:bs_next, 1:bs_next)
+    state.H[(k + 1):(k + bs_next), (k + 1):(k + bs_next)] = view(Mnext, 1:bs_next,
+                                                                 1:bs_next)
     state.R.vec[1:bs_next] .= Rnext.vec
     state.norm_R = norm(Rnext)
     state.k += bs_next
