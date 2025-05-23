@@ -1,32 +1,41 @@
 # BlockLanczos
 """
-    struct BlockVec{T,S<:Number}
+    x₀ = Block{S}(vec)
+    x₀ = Block(vec)
 
 Structure for storing vectors in a block format. The type parameter `T` represents the type of vector elements,
-while `S` represents the type of inner products between vectors.
+while `S` represents the type of inner products between vectors. To create an instance of the `Block` type,
+one can specify `S` explicitly and use `Block{S}(vec)`, or use `Block(vec)` directly, in which case an
+inner product is performed to infer `S`.
 """
-struct BlockVec{T,S<:Number}
+struct Block{T,S<:Number}
     vec::Vector{T}
-    function BlockVec{S}(vec::Vector{T}) where {T,S<:Number}
+    function Block{S}(vec::Vector{T}) where {T,S<:Number}
+        @assert length(vec) > 1
         return new{T,S}(vec)
     end
 end
-Base.length(b::BlockVec) = length(b.vec)
-Base.getindex(b::BlockVec, i::Int) = b.vec[i]
-function Base.getindex(b::BlockVec{T,S}, idxs::AbstractVector{Int}) where {T,S}
-    return BlockVec{S}([b.vec[i] for i in idxs])
+function Block(vec::Vector{T}) where {T}
+    @assert length(vec) > 1
+    S = typeof(inner(vec[1], vec[1]))
+    return Block{S}(vec)
+end # A convenient constructor for users
+Base.length(b::Block) = length(b.vec)
+Base.getindex(b::Block, i::Int) = b.vec[i]
+function Base.getindex(b::Block{T,S}, idxs::AbstractVector{Int}) where {T,S}
+    return Block{S}([b.vec[i] for i in idxs])
 end
-Base.setindex!(b::BlockVec{T}, v::T, i::Int) where {T} = (b.vec[i] = v)
-function Base.setindex!(b₁::BlockVec{T}, b₂::BlockVec{T},
+Base.setindex!(b::Block{T}, v::T, i::Int) where {T} = (b.vec[i] = v)
+function Base.setindex!(b₁::Block{T}, b₂::Block{T},
                         idxs::AbstractVector{Int}) where {T}
     return (b₁.vec[idxs]=b₂.vec;
             b₁)
 end
-LinearAlgebra.norm(b::BlockVec) = norm(b.vec)
-function apply(f, block::BlockVec{T,S}) where {T,S}
-    return BlockVec{S}([apply(f, block[i]) for i in 1:length(block)])
+LinearAlgebra.norm(b::Block) = norm(b.vec)
+function apply(f, block::Block{T,S}) where {T,S}
+    return Block{S}([apply(f, block[i]) for i in 1:length(block)])
 end
-function block_inner(B₁::BlockVec{T,S}, B₂::BlockVec{T,S}) where {T,S}
+function block_inner(B₁::Block{T,S}, B₂::Block{T,S}) where {T,S}
     M = Matrix{S}(undef, length(B₁.vec), length(B₂.vec))
     @inbounds for j in 1:length(B₂)
         yj = B₂[j]
@@ -36,17 +45,17 @@ function block_inner(B₁::BlockVec{T,S}, B₂::BlockVec{T,S}) where {T,S}
     end
     return M
 end
-function Base.push!(V::OrthonormalBasis{T}, b::BlockVec{T}) where {T}
+function Base.push!(V::OrthonormalBasis{T}, b::Block{T}) where {T}
     for i in 1:length(b)
         push!(V, b[i])
     end
     return V
 end
-function Base.copy(b::BlockVec)
-    return BlockVec{typeof(b).parameters[2]}(scale.(b.vec, 1))
+function Base.copy(b::Block)
+    return Block{typeof(b).parameters[2]}(scale.(b.vec, 1))
 end
-Base.iterate(b::BlockVec) = iterate(b.vec)
-Base.iterate(b::BlockVec, state) = iterate(b.vec, state)
+Base.iterate(b::Block) = iterate(b.vec)
+Base.iterate(b::Block, state) = iterate(b.vec, state)
 
 """
     mutable struct BlockLanczosFactorization{T,S<:Number,SR<:Real} <: BlockKrylovFactorization{T,S,SR}
@@ -69,14 +78,14 @@ One can also query [`normres(fact)`](@ref) to obtain `norm(R)`, which computes a
 `BlockLanczosFactorization` is mutable because it can [`expand!`](@ref). But it does not support `shrink!`
 because it is implemented in its `eigsolve`.
 See also [`BlockLanczosIterator`](@ref) for an iterator that constructs a progressively expanding
-BlockLanczos factorizations of a given linear map and a starting vector.
+BlockLanczos factorizations of a given linear map and a starting block.
 """
 mutable struct BlockLanczosFactorization{T,S<:Number,SR<:Real} <:
                KrylovFactorization{T,S}
     k::Int
     V::OrthonormalBasis{T}      # BlockLanczos Basis
     H::AbstractMatrix{S}      # block tridiagonal matrix, and S is the matrix element type
-    R::BlockVec{T,S}            # residual block
+    R::Block{T,S}            # residual block
     R_size::Int # size of the residual block
     norm_R::SR  # norm of the residual block
 end
@@ -90,7 +99,7 @@ residual(fact::BlockLanczosFactorization) = fact.R[1:(fact.R_size)]
     BlockLanczosIterator(f, x₀, maxdim, qr_tol, [orth::Orthogonalizer = KrylovDefaults.orth])
 
 Iterator that takes a linear map `f::F` (supposed to be real symmetric or complex hermitian)
-and an initial block `x₀::BlockVec{T,S}` and generates an expanding `BlockLanczosFactorization` thereof. In
+and an initial block `x₀::Block{T,S}` and generates an expanding `BlockLanczosFactorization` thereof. In
 particular, `BlockLanczosIterator` uses the
 BlockLanczos iteration(see: *Golub, G. H., & Van Loan, C. F. (2013). Matrix Computations* (4th ed., pp. 566–569))
 scheme to build a successively expanding BlockLanczos factorization. While `f` cannot be tested to be symmetric or
@@ -119,12 +128,12 @@ factorization in place.
 """
 struct BlockLanczosIterator{F,T,S,O<:Orthogonalizer} <: KrylovIterator{F,T}
     operator::F
-    x₀::BlockVec{T,S}
+    x₀::Block{T,S}
     maxdim::Int
     orth::O
     qr_tol::Real
     function BlockLanczosIterator{F,T,S,O}(operator::F,
-                                           x₀::BlockVec{T,S},
+                                           x₀::Block{T,S},
                                            maxdim::Int,
                                            orth::O,
                                            qr_tol::Real) where {F,T,S,O<:Orthogonalizer}
@@ -132,7 +141,7 @@ struct BlockLanczosIterator{F,T,S,O<:Orthogonalizer} <: KrylovIterator{F,T}
     end
 end
 function BlockLanczosIterator(operator::F,
-                              x₀::BlockVec{T,S},
+                              x₀::Block{T,S},
                               maxdim::Int,
                               qr_tol::Real,
                               orth::O=ModifiedGramSchmidt2()) where {F,T,S,
@@ -217,20 +226,20 @@ function blocklanczosrecurrence(operator, V::OrthonormalBasis, B::AbstractMatrix
     bs, bs_prev = size(B)
     S = eltype(B)
     k = length(V)
-    X = BlockVec{S}(V[(k - bs + 1):k])
+    X = Block{S}(V[(k - bs + 1):k])
     AX = apply(operator, X)
     M = block_inner(X, AX)
     # Calculate the new residual. Get Rnext
-    Xprev = BlockVec{S}(V[(k - bs_prev - bs + 1):(k - bs)])
+    Xprev = Block{S}(V[(k - bs_prev - bs + 1):(k - bs)])
     Rnext = block_orthogonalize!(AX, X, M, Xprev, B')
     block_reorthogonalize!(Rnext, V)
     return Rnext, M
 end
 
 """
-    block_orthogonalize!(AX::BlockVec{T,S}, X::BlockVec{T,S},
+    block_orthogonalize!(AX::Block{T,S}, X::Block{T,S},
                            M::AbstractMatrix,
-                           Xprev::BlockVec{T,S}, Bprev::AbstractMatrix) where {T,S}
+                           Xprev::Block{T,S}, Bprev::AbstractMatrix) where {T,S}
 
 Computes the residual block and stores the result in `AX`.
 
@@ -248,9 +257,9 @@ The residual is computed as:
 After this operation, `AX` is orthogonal (in the block inner product sense) to both `X` and `Xprev`.
 
 """
-function block_orthogonalize!(AX::BlockVec{T,S}, X::BlockVec{T,S},
+function block_orthogonalize!(AX::Block{T,S}, X::Block{T,S},
                               M::AbstractMatrix,
-                              Xprev::BlockVec{T,S}, Bprev::AbstractMatrix) where {T,S}
+                              Xprev::Block{T,S}, Bprev::AbstractMatrix) where {T,S}
     @inbounds for j in 1:length(X)
         for i in 1:length(X)
             AX[j] = add!!(AX[j], X[i], -M[i, j])
@@ -263,7 +272,7 @@ function block_orthogonalize!(AX::BlockVec{T,S}, X::BlockVec{T,S},
 end
 
 """
-    block_reorthogonalize!(R::BlockVec{T,S}, V::OrthonormalBasis{T}) where {T,S}
+    block_reorthogonalize!(R::Block{T,S}, V::OrthonormalBasis{T}) where {T,S}
 
 This function orthogonalizes the vectors in `R` with respect to the previously orthonormalized set `V` by using the modified Gram-Schmidt process.
 Specifically, it modifies each vector `R[i]` by projecting out its components along the directions spanned by `V`, i.e.,
@@ -274,7 +283,7 @@ Specifically, it modifies each vector `R[i]` by projecting out its components al
 
 Here,`⟨·,·⟩` denotes the inner product. The function assumes that `V` is already orthonormal.
 """
-function block_reorthogonalize!(R::BlockVec{T,S},
+function block_reorthogonalize!(R::Block{T,S},
                                 V::OrthonormalBasis{T}) where {T,S}
     for i in 1:length(R)
         for q in V
@@ -291,7 +300,7 @@ function warn_nonhermitian(M::AbstractMatrix)
 end
 
 """
-    block_qr!(block::BlockVec{T,S}, tol::Real) where {T,S}
+    block_qr!(block::Block{T,S}, tol::Real) where {T,S}
 
 This function performs a QR factorization of a block of abstract vectors using the modified Gram-Schmidt process.
 
@@ -307,7 +316,7 @@ and `r` is the numerical rank of the input block. The matrix represents the uppe
 restricted to the `r` linearly independent components. The vector `goodidx` contains the indices of the non-zero
 (i.e., numerically independent) vectors in the orthonormalized block.
 """
-function block_qr!(block::BlockVec{T,S}, tol::Real) where {T,S}
+function block_qr!(block::Block{T,S}, tol::Real) where {T,S}
     n = length(block)
     rank_shrink = false
     idx = ones(Int64, n)

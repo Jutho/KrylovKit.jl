@@ -1,11 +1,30 @@
-@testset "apply on BlockVec" begin
+@testset "Block constructor" begin
     for mode in (:vector, :inplace, :outplace)
-        scalartypes = mode === :vector ? (Float32, Float64, ComplexF64) :
+        scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
                       (ComplexF64,)
         @testset for T in scalartypes
-            A = rand(T, N, N) .- one(T) / 2
+            x₀ = Block{T}([wrapvec(rand(T, n), Val(mode)) for _ in 1:n])
+            x₁ = Block([wrapvec(rand(T, n), Val(mode)) for _ in 1:n])
+            @test typeof(x₀) == typeof(x₁)
+        end
+    end
+    T = ComplexF64
+    A = rand(T, n, n) .- one(T) / 2
+    A = A' * A + I
+    f(x, y) = x' * A * y
+    x₀ = Block{T}([InnerProductVec(rand(T, n), f) for _ in 1:n])
+    x₁ = Block([InnerProductVec(rand(T, n), f) for _ in 1:n])
+    @test typeof(x₀) == typeof(x₁)
+end
+
+@testset "apply on Block" begin
+    for mode in (:vector, :inplace, :outplace)
+        scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
+                      (ComplexF64,)
+        @testset for T in scalartypes
+            A = rand(T, n, n) .- one(T) / 2
             A = (A + A') / 2
-            wx₀ = KrylovKit.BlockVec{T}([wrapvec(rand(T, N), Val(mode)) for _ in 1:n])
+            wx₀ = Block{T}([wrapvec(rand(T, n), Val(mode)) for _ in 1:n])
             wy = KrylovKit.apply(wrapop(A, Val(mode)), wx₀)
             y = unwrapvec.(wy)
             x₀ = unwrapvec.(wx₀)
@@ -13,22 +32,22 @@
         end
     end
     T = ComplexF64
-    A = rand(T, N, N) .- one(T) / 2
+    A = rand(T, n, n) .- one(T) / 2
     A = A' * A + I
     f(x, y) = x' * A * y
     Af(x::InnerProductVec) = KrylovKit.InnerProductVec(A * x[], x.dotf)
-    x₀ = KrylovKit.BlockVec{T}([InnerProductVec(rand(T, N), f) for _ in 1:n])
+    x₀ = Block{T}([InnerProductVec(rand(T, n), f) for _ in 1:n])
     y = KrylovKit.apply(Af, x₀)
     @test isapprox(hcat([y[i].vec for i in 1:n]...), A * hcat([x₀[i].vec for i in 1:n]...);
                    atol=tolerance(T))
 end
 
-@testset "copy for BlockVec" begin
+@testset "copy for Block" begin
     for mode in (:vector, :inplace, :outplace)
         scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
                       (ComplexF64,)
         @testset for T in scalartypes
-            block0 = KrylovKit.BlockVec{T}([wrapvec(rand(T, N), Val(mode)) for _ in 1:n])
+            block0 = Block{T}([wrapvec(rand(T, N), Val(mode)) for _ in 1:n])
             block1 = copy(block0)
             @test typeof(block0) == typeof(block1)
             @test unwrapvec.(block0.vec) == unwrapvec.(block1.vec)
@@ -40,7 +59,7 @@ end
     A = rand(T, N, N) .- one(T) / 2
     A = A' * A + I
     f(x, y) = x' * A * y
-    block0 = KrylovKit.BlockVec{T}([InnerProductVec(rand(T, N), f) for _ in 1:n])
+    block0 = Block{T}([InnerProductVec(rand(T, N), f) for _ in 1:n])
     block1 = copy(block0)
     @test typeof(block0) == typeof(block1)
     @test [block0.vec[i].vec for i in 1:n] == [block1.vec[i].vec for i in 1:n]
@@ -57,8 +76,8 @@ M[i,j] = inner(x[i],y[j])
         A = [rand(T, N) for _ in 1:n]
         B = [rand(T, N) for _ in 1:n]
         M0 = hcat(A...)' * hcat(B...)
-        BlockA = KrylovKit.BlockVec{T}(wrapvec.(A, Val(mode)))
-        BlockB = KrylovKit.BlockVec{T}(wrapvec.(B, Val(mode)))
+        BlockA = Block{T}(wrapvec.(A, Val(mode)))
+        BlockB = Block{T}(wrapvec.(B, Val(mode)))
         M = KrylovKit.block_inner(BlockA, BlockB)
         @test eltype(M) == T
         @test isapprox(M, M0; atol=relax_tol(T))
@@ -72,8 +91,8 @@ end
     ip(x, y) = x' * H * y
     X = [InnerProductVec(rand(T, N), ip) for _ in 1:n]
     Y = [InnerProductVec(rand(T, N), ip) for _ in 1:n]
-    BlockX = KrylovKit.BlockVec{T}(X)
-    BlockY = KrylovKit.BlockVec{T}(Y)
+    BlockX = Block{T}(X)
+    BlockY = Block{T}(Y)
     M = KrylovKit.block_inner(BlockX, BlockY)
     Xm = hcat([X[i].vec for i in 1:n]...)
     Ym = hcat([Y[i].vec for i in 1:n]...)
@@ -91,9 +110,9 @@ end
         M = rand(T, n, n) .- one(T) / 2
         M = M' + M
         B = qr(rand(T, n, n) .- one(T) / 2).R
-        X0 = KrylovKit.BlockVec{T}([wrapvec(rand(T, N), Val(mode)) for _ in 1:n])
-        X1 = KrylovKit.BlockVec{T}([wrapvec(rand(T, N), Val(mode)) for _ in 1:n])
-        AX1 = KrylovKit.BlockVec{T}([wrapvec(rand(T, N), Val(mode)) for _ in 1:n])
+        X0 = Block{T}([wrapvec(rand(T, N), Val(mode)) for _ in 1:n])
+        X1 = Block{T}([wrapvec(rand(T, N), Val(mode)) for _ in 1:n])
+        AX1 = Block{T}([wrapvec(rand(T, N), Val(mode)) for _ in 1:n])
         AX1copy = copy(AX1)
         KrylovKit.block_orthogonalize!(AX1, X1, M, X0, B)
         _bw2m(X) = hcat(unwrapvec.(X)...)
@@ -111,9 +130,9 @@ end
     M = rand(T, n, n) .- one(T) / 2
     M = M' + M
     B = qr(rand(T, n, n) .- one(T) / 2).R
-    X0 = KrylovKit.BlockVec{T}([InnerProductVec(rand(T, N), ip) for _ in 1:n])
-    X1 = KrylovKit.BlockVec{T}([InnerProductVec(rand(T, N), ip) for _ in 1:n])
-    AX1 = KrylovKit.BlockVec{T}([InnerProductVec(rand(T, N), ip) for _ in 1:n])
+    X0 = Block{T}([InnerProductVec(rand(T, N), ip) for _ in 1:n])
+    X1 = Block{T}([InnerProductVec(rand(T, N), ip) for _ in 1:n])
+    AX1 = Block{T}([InnerProductVec(rand(T, N), ip) for _ in 1:n])
     AX1copy = copy(AX1)
     KrylovKit.block_orthogonalize!(AX1, X1, M, X0, B)
 
@@ -133,8 +152,8 @@ end
         A = (A + A') / 2
         x₀ = [wrapvec(rand(T, N), Val(mode)) for i in 1:n]
         x₁ = [wrapvec(rand(T, N), Val(mode)) for i in 1:(2 * n)]
-        b₀ = KrylovKit.BlockVec{T}(x₀)
-        b₁ = KrylovKit.BlockVec{T}(x₁)
+        b₀ = Block{T}(x₀)
+        b₁ = Block{T}(x₁)
         KrylovKit.block_qr!(b₁, tolerance(T))
         orthobasis_x₁ = KrylovKit.OrthonormalBasis(b₁.vec)
         KrylovKit.block_reorthogonalize!(b₀, orthobasis_x₁)
@@ -150,8 +169,8 @@ end
 
     x₀ = [InnerProductVec(rand(T, N), ip) for i in 1:n]
     x₁ = [InnerProductVec(rand(T, N), ip) for i in 1:(2 * n)]
-    b₀ = KrylovKit.BlockVec{T}(x₀)
-    b₁ = KrylovKit.BlockVec{T}(x₁)
+    b₀ = Block{T}(x₀)
+    b₁ = Block{T}(x₁)
     KrylovKit.block_qr!(b₁, tolerance(T))
     orthobasis_x₁ = KrylovKit.OrthonormalBasis(b₁.vec)
     KrylovKit.block_reorthogonalize!(b₀, orthobasis_x₁)
@@ -170,7 +189,7 @@ end
         Av[n ÷ 2] = sum(Av[(n ÷ 2 + 1):end] .* rand(T, n - n ÷ 2))
         Bv = deepcopy(Av)
         wAv = wrapvec.(Av, Val(mode))
-        R, gi = KrylovKit.block_qr!(KrylovKit.BlockVec{T}(wAv), tolerance(T))
+        R, gi = KrylovKit.block_qr!(Block{T}(wAv), tolerance(T))
         Av1 = [unwrapvec(wAv[i]) for i in gi]
         @test hcat(Av1...)' * hcat(Av1...) ≈ I
         @test length(gi) < n
@@ -197,11 +216,11 @@ end
     # Make sure X is not full rank
     X[end] = sum(X[1:(end - 1)] .* rand(T, n - 1))
     Xcopy = deepcopy(X)
-    R, gi = KrylovKit.block_qr!(KrylovKit.BlockVec{T}(X), tolerance(T))
+    R, gi = KrylovKit.block_qr!(Block{T}(X), tolerance(T))
 
     @test length(gi) < n
     @test eltype(R) == T
-    BlockX = KrylovKit.BlockVec{T}(X[gi])
+    BlockX = Block{T}(X[gi])
     @test isapprox(KrylovKit.block_inner(BlockX, BlockX), I; atol=tolerance(T))
     ΔX = norm.([sum(X[gi] .* R[:, i]) for i in 1:size(R, 2)] - Xcopy)
     @test isapprox(norm(ΔX), T(0); atol=tolerance(T))

@@ -1,4 +1,9 @@
-function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
+function eigsolve(A, x₀::Block{T,S}, howmany::Int, which::Selector, alg::BlockLanczos;
+                  alg_rrule=Arnoldi(; tol=alg.tol,
+                                    krylovdim=alg.krylovdim,
+                                    maxiter=alg.maxiter,
+                                    eager=alg.eager,
+                                    orth=alg.orth)) where {T,S}
     maxiter = alg.maxiter
     krylovdim = alg.krylovdim
     if howmany > krylovdim
@@ -7,13 +12,10 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::BlockLanczos)
     tol = alg.tol
     verbosity = alg.verbosity
 
-    # The initial block size is determined by the number of the starting vectors provided by the user
-    S = typeof(inner(x₀[1], x₀[1])) # Scalar type of the inner product between vectors in x₀
-    block0 = BlockVec{S}(x₀)
-    bs = length(block0)
-    bs < 1 && error("The length of the starting vector x₀ must be greater than 0")
+    bs = length(x₀)
+    bs < 1 && error("The length of the starting block x₀ must be greater than 0")
 
-    iter = BlockLanczosIterator(A, block0, krylovdim + bs, alg.qr_tol, alg.orth)
+    iter = BlockLanczosIterator(A, x₀, krylovdim + bs, alg.qr_tol, alg.orth)
     fact = initialize(iter; verbosity=verbosity)  # Returns a BlockLanczosFactorization
     numops = bs    # Number of matrix-vector multiplications (for logging)
     numiter = 1

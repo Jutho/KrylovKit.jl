@@ -5,6 +5,11 @@
     # expert version:
     eigsolve(f, x₀, howmany, which, algorithm; alg_rrule=...)
 
+    # block version:
+    eigsolve(f, x₀::Block, [howmany = 1, which = :LM]; kwargs...)
+    # expert block version:
+    eigsolve(f, x₀::Block, howmany, which, algorithm; alg_rrule=...)
+
 Compute at least `howmany` eigenvalues from the linear map encoded in the matrix `A` or by
 the function `f`. Return eigenvalues, eigenvectors and a `ConvergenceInfo` structure.
 
@@ -55,9 +60,9 @@ targeted. Valid specifications of `which` are given by
     iteration. Nonetheless, it is important to take this into account and to try not to
     depend on this potentially fragile behaviour, especially for smaller problems.
     The [`BlockLanczos`](@ref) method has been implemented to compute repeated
-    eigenvalues and their corresponding eigenvectors more reliably. Given a block size `p`,
-    which is the number of starting vectors, the method can at most simultaneously determine
-    `p`-fold repeated eigenvalues and their associated eigenvectors.
+    eigenvalues and their corresponding eigenvectors more reliably. Given a starting block `x₀`
+    with length `p`, which is the number of vectors in `x₀`, the method can at most simultaneously
+    determine `p`-fold repeated eigenvalues and their associated eigenvectors.
 
 The argument `T` acts as a hint in which `Number` type the computation should be performed,
 but is not restrictive. If the linear map automatically produces complex values, complex
@@ -74,7 +79,7 @@ The return value is always of the form `vals, vecs, info = eigsolve(...)` with
 
   - `vals`: a `Vector` containing the eigenvalues, of length at least `howmany`, but could
     be longer if more eigenvalues were converged at the same cost. Eigenvalues will be real
-    if [`Lanczos`](@ref) was used and complex if [`Arnoldi`](@ref) was used (see below).
+    if [`Lanczos`](@ref) or [`BlockLanczos`](@ref) was used and complex if [`Arnoldi`](@ref) was used (see below).
   - `vecs`: a `Vector` of corresponding eigenvectors, of the same length as `vals`. Note
     that eigenvectors are not returned as a matrix, as the linear map could act on any
     custom Julia type with vector like behavior, i.e. the elements of the list `vecs` are
@@ -109,7 +114,7 @@ Keyword arguments and their default values are given by:
     - 1 (only warnings)
     - 2 (one message with convergence info at the end)
     - 3 (progress info after every iteration)
-    - 4+ (all of the above and additional information about the Lanczos or Arnoldi iteration)
+    - 4+ (all of the above and additional information about the Lanczos, BlockLanczos, or Arnoldi iteration)
   - `tol::Real`: the requested accuracy (corresponding to the 2-norm of the residual for
     Schur vectors, not the eigenvectors). If you work in e.g. single precision (`Float32`),
     you should definitely change the default value.
@@ -151,7 +156,7 @@ being used.
 
 The final (expert) method, without default values and keyword arguments, is the one that is
 finally called, and can also be used directly. Here, one specifies the algorithm explicitly
-as either [`Lanczos`](@ref), for real symmetric or complex hermitian problems, or
+as either [`Lanczos`](@ref) or [`BlockLanczos`](@ref), for real symmetric or complex hermitian problems, or
 [`Arnoldi`](@ref), for general problems. Note that these names refer to the process for
 building the Krylov subspace, but the actual algorithm is an implementation of the
 Krylov-Schur algorithm, which can dynamically shrink and grow the Krylov subspace, i.e. the
@@ -204,11 +209,11 @@ function eigsolve(f, x₀, howmany::Int=1, which::Selector=:LM; kwargs...)
     Tx = typeof(x₀)
     Tfx = Core.Compiler.return_type(apply, Tuple{typeof(f),Tx})
     T = Core.Compiler.return_type(dot, Tuple{Tx,Tfx})
-    alg = eigselector(f, T; kwargs...)
+    alg = eigselector(f, T; Tx=Tx, kwargs...)
     checkwhich(which) || error("Unknown eigenvalue selector: which = $which")
-    if alg isa Lanczos
+    if alg isa Lanczos || alg isa BlockLanczos
         if which == :LI || which == :SI
-            error("Eigenvalue selector which = $which invalid: real eigenvalues expected with Lanczos algorithm")
+            error("Eigenvalue selector which = $which invalid: real eigenvalues expected with Lanczos and BlockLanczos algorithms")
         end
     elseif T <: Real
         by, rev = eigsort(which)
@@ -231,16 +236,28 @@ end
 
 function eigselector(f,
                      T::Type;
+                     Tx::Type=Nothing,
                      issymmetric::Bool=false,
                      ishermitian::Bool=issymmetric && (T <: Real),
                      krylovdim::Int=KrylovDefaults.krylovdim[],
                      maxiter::Int=KrylovDefaults.maxiter[],
                      tol::Real=KrylovDefaults.tol[],
+                     qr_tol::Real=KrylovDefaults.tol[],
                      orth::Orthogonalizer=KrylovDefaults.orth,
                      eager::Bool=false,
                      verbosity::Int=KrylovDefaults.verbosity[],
                      alg_rrule=nothing)
-    if (T <: Real && issymmetric) || ishermitian
+    if Tx <: Block
+        !(issymmetric || ishermitian) &&
+            error("BlockLanczos requires a symmetric or hermitian linear map. A BlockArnoldi method has not yet been implemented but will be in the future")
+        return BlockLanczos(; krylovdim=krylovdim,
+                            maxiter=maxiter,
+                            tol=tol,
+                            qr_tol=qr_tol,
+                            orth=orth,
+                            eager=eager,
+                            verbosity=verbosity)
+    elseif (T <: Real && issymmetric) || ishermitian
         return Lanczos(; krylovdim=krylovdim,
                        maxiter=maxiter,
                        tol=tol,
@@ -258,16 +275,28 @@ function eigselector(f,
 end
 function eigselector(A::AbstractMatrix,
                      T::Type;
+                     Tx::Type=Nothing,
                      issymmetric::Bool=(T <: Real && LinearAlgebra.issymmetric(A)),
                      ishermitian::Bool=issymmetric || LinearAlgebra.ishermitian(A),
                      krylovdim::Int=KrylovDefaults.krylovdim[],
                      maxiter::Int=KrylovDefaults.maxiter[],
                      tol::Real=KrylovDefaults.tol[],
+                     qr_tol::Real=KrylovDefaults.tol[],
                      orth::Orthogonalizer=KrylovDefaults.orth,
                      eager::Bool=false,
                      verbosity::Int=KrylovDefaults.verbosity[],
                      alg_rrule=nothing)
-    if (T <: Real && issymmetric) || ishermitian
+    if Tx <: Block
+        !(issymmetric || ishermitian) &&
+            error("BlockLanczos requires a symmetric or hermitian linear map. A BlockArnoldi method has not yet been implemented but will be in the future")
+        return BlockLanczos(; krylovdim=krylovdim,
+                            maxiter=maxiter,
+                            tol=tol,
+                            qr_tol=qr_tol,
+                            orth=orth,
+                            eager=eager,
+                            verbosity=verbosity)
+    elseif (T <: Real && issymmetric) || ishermitian
         return Lanczos(; krylovdim=krylovdim,
                        maxiter=maxiter,
                        tol=tol,

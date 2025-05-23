@@ -307,7 +307,7 @@ end
         A = (A + A') / 2
         block_size = 5
         x₀m = Matrix(qr(rand(T, N, block_size)).Q)
-        x₀ = KrylovKit.BlockVec{T}([wrapvec(x₀m[:, i], Val(mode)) for i in 1:block_size])
+        x₀ = KrylovKit.Block{T}([wrapvec(x₀m[:, i], Val(mode)) for i in 1:block_size])
         eigvalsA = eigvals(A)
         iter = BlockLanczosIterator(wrapop(A, Val(mode)), x₀, N, tolerance(T))
         fact = @constinferred initialize(iter)
@@ -329,7 +329,7 @@ end
             B = rand(T, (n, n)) # test warnings for non-hermitian matrices
             bs = 2
             v₀m = Matrix(qr(rand(T, n, bs)).Q)
-            v₀ = KrylovKit.BlockVec{T}([wrapvec(v₀m[:, i], Val(mode)) for i in 1:bs])
+            v₀ = KrylovKit.Block{T}([wrapvec(v₀m[:, i], Val(mode)) for i in 1:bs])
             iter = BlockLanczosIterator(wrapop(B, Val(mode)), v₀, N, tolerance(T))
             fact = initialize(iter)
             @constinferred expand!(iter, fact; verbosity=0)
@@ -359,7 +359,7 @@ end
         A = (A + A') / 2
         block_size = 5
         x₀m = Matrix(qr(rand(T, N, block_size)).Q)
-        x₀ = KrylovKit.BlockVec{T}([wrapvec(x₀m[:, i], Val(mode)) for i in 1:block_size])
+        x₀ = KrylovKit.Block{T}([wrapvec(x₀m[:, i], Val(mode)) for i in 1:block_size])
         iter = @constinferred BlockLanczosIterator(wrapop(A, Val(mode)), x₀, N,
                                                    tolerance(T))
         krylovdim = n

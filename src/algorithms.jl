@@ -138,7 +138,7 @@ The block version of [`Lanczos`](@ref) is suited for solving eigenvalue problems
 Its implementation is mainly based on *Golub, G. H., & Van Loan, C. F. (2013). Matrix Computations* (4th ed., pp. 566–569).
 Arguments `krylovdim`, `maxiter`, `tol`, `orth`, `eager` and `verbosity` are the same as `Lanczos`.
 `qr_tol` is the error tolerance for `block_qr!` - a subroutine used to orthorgonalize the vectors in the same block.
-The initial size of the block is determined by the number of starting vectors that a user provides;
+The initial size of the block is determined by the number of vectors that a user provides in the starting block;
 the size of the block can shrink during iterations.
 The initial block size determines the maximum degeneracy of the target eigenvalue can that be resolved.
 
@@ -161,10 +161,10 @@ function BlockLanczos(;
                       krylovdim::Int=KrylovDefaults.blockkrylovdim[],
                       maxiter::Int=KrylovDefaults.maxiter[],
                       tol::Real=KrylovDefaults.tol[],
+                      qr_tol::Real=KrylovDefaults.tol[],
                       orth::Orthogonalizer=KrylovDefaults.orth,
                       eager::Bool=false,
-                      verbosity::Int=KrylovDefaults.verbosity[],
-                      qr_tol::Real=KrylovDefaults.tol[])
+                      verbosity::Int=KrylovDefaults.verbosity[])
     return BlockLanczos(orth, krylovdim, maxiter, tol, qr_tol, eager, verbosity)
 end
 

@@ -423,7 +423,7 @@ end
     sites_num = 3
     p = 5 # block size
     M = 2^(2 * sites_num^2)
-    x₀ = [rand(M) for _ in 1:p]
+    x₀ = Block{Float64}([rand(M) for _ in 1:p])
     get_value_num = 10
     tol = 1e-6
     h_mat = toric_code_hamiltonian_matrix(sites_num, sites_num)
@@ -440,7 +440,7 @@ end
     @test count(x -> abs(x + 16.0) < 1e-8, D[1:get_value_num]) == 4
 end
 
-# For user interface, input is a vector of starting vectors.
+# For user interface, input is a block.
 @testset "BlockLanczos - eigsolve full $mode" for mode in (:vector, :inplace, :outplace)
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
                   (ComplexF64,)
@@ -448,7 +448,7 @@ end
         A = rand(T, (n, n)) .- one(T) / 2
         A = (A + A') / 2
         block_size = 2
-        x₀ = [wrapvec(rand(T, n), Val(mode)) for _ in 1:block_size]
+        x₀ = Block{T}([wrapvec(rand(T, n), Val(mode)) for _ in 1:block_size])
         n1 = div(n, 2)  # eigenvalues to solve
         eigvalsA = eigvals(A)
         alg = BlockLanczos(; krylovdim=n, maxiter=1, tol=tolerance(T),
@@ -504,7 +504,7 @@ end
         A = rand(T, (N, N)) .- one(T) / 2
         A = (A + A') / 2
         block_size = 2
-        x₀ = [wrapvec(rand(T, N), Val(mode)) for _ in 1:block_size]
+        x₀ = Block{T}([wrapvec(rand(T, N), Val(mode)) for _ in 1:block_size])
         eigvalsA = eigvals(A)
 
         alg = BlockLanczos(; krylovdim=N, maxiter=10, tol=tolerance(T),
@@ -541,13 +541,13 @@ end
     block_size = 2
     eig_num = 2
     Hip(x::Vector, y::Vector) = x' * H * y
-    x₀ = [InnerProductVec(rand(T, n), Hip) for _ in 1:block_size]
+    x₀ = Block{T}([InnerProductVec(rand(T, n), Hip) for _ in 1:block_size])
     Aip(x::InnerProductVec) = InnerProductVec(H * x.vec, Hip)
     D, V, info = eigsolve(Aip, x₀, eig_num, :SR,
                           BlockLanczos(; krylovdim=n, maxiter=1, tol=tolerance(T),
                                        verbosity=0))
     D_true = eigvals(H)
-    BlockV = KrylovKit.BlockVec{T}(V)
+    BlockV = KrylovKit.Block{T}(V)
     @test D[1:eig_num] ≈ D_true[1:eig_num]
     @test KrylovKit.block_inner(BlockV, BlockV) ≈ I
     @test findmax([norm(Aip(V[i]) - D[i] * V[i]) for i in 1:eig_num])[1] < tolerance(T)
@@ -562,7 +562,7 @@ end
         A = rand(T, (2N, 2N)) .- one(T) / 2
         A = (A + A') / 2
         block_size = 1
-        x₀_block = [wrapvec(rand(T, 2N), Val(mode)) for _ in 1:block_size]
+        x₀_block = Block{T}([wrapvec(rand(T, 2N), Val(mode)) for _ in 1:block_size])
         x₀_lanczos = x₀_block[1]
         alg1 = Lanczos(; krylovdim=2n, maxiter=10, tol=tolerance(T), verbosity=1)
         alg2 = BlockLanczos(; krylovdim=2n, maxiter=10, tol=tolerance(T),
@@ -575,7 +575,7 @@ end
         A = rand(T, (2N, 2N)) .- one(T) / 2
         A = (A + A') / 2
         block_size = 4
-        x₀_block = [wrapvec(rand(T, 2N), Val(mode)) for _ in 1:block_size]
+        x₀_block = Block{T}([wrapvec(rand(T, 2N), Val(mode)) for _ in 1:block_size])
         x₀_lanczos = x₀_block[1]
         alg1 = Lanczos(; krylovdim=2n, maxiter=10, tol=tolerance(T), verbosity=1)
         alg2 = BlockLanczos(; krylovdim=2n, maxiter=10, tol=tolerance(T),
@@ -596,7 +596,7 @@ end
         A = rand(T, (N, N)) .- one(T) / 2
         A = (A + A') / 2
         block_size = 5
-        x₀ = [wrapvec(rand(T, N), Val(mode)) for _ in 1:block_size]
+        x₀ = Block{T}([wrapvec(rand(T, N), Val(mode)) for _ in 1:block_size])
         values0 = eigvals(A)[1:n]
         n1 = n ÷ 2
         alg = BlockLanczos(; krylovdim=3 * n ÷ 2, maxiter=1, tol=1e-12)
@@ -606,5 +606,30 @@ end
         values_shrink, _, _ = eigsolve(wrapop(A, Val(mode)), x₀, n, :SR, alg_shrink)
         error2 = norm(values_shrink[1:n1] - values0[1:n1])
         @test error2 < error1
+    end
+end
+
+@testset "BlockLanczos - eigsolve without alg $mode" for mode in
+                                                         (:vector, :inplace, :outplace)
+    scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
+                  (ComplexF64,)
+    @testset for T in scalartypes
+        A = rand(T, (n, n)) .- one(T) / 2
+        A = (A + A') / 2
+        block_size = 2
+        x₀ = Block{T}([wrapvec(rand(T, n), Val(mode)) for _ in 1:block_size])
+        if mode === :vector
+            D1, V1, info1 = eigsolve(wrapop(A, Val(mode)), x₀, 1, :SR)
+            eigA = eigvals(A)
+            @test D1[1] ≈ eigA[1]
+            D2, V2, info2 = eigsolve(wrapop(A, Val(mode)), x₀)
+            D2[1] = max(abs(eigA[1]), abs(eigA[end]))
+            @test_throws ErrorException eigsolve(wrapop(A, Val(mode)), x₀, 1, :LI)
+            B = copy(A)
+            B[1, 2] += T(1) # error for non-symmetric/hermitian operator
+            @test_throws ErrorException eigsolve(wrapop(B, Val(mode)), x₀, 1, :SR)
+        else
+            @test_throws ErrorException eigsolve(wrapop(A, Val(mode)), x₀, 1, :SR)
+        end
     end
 end
