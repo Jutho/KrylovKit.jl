@@ -11,12 +11,12 @@ inner product is performed to infer `S`.
 struct Block{T,S<:Number}
     vec::Vector{T}
     function Block{S}(vec::Vector{T}) where {T,S<:Number}
-        @assert length(vec) > 1
+        @assert length(vec) > 0
         return new{T,S}(vec)
     end
 end
 function Block(vec::Vector{T}) where {T}
-    @assert length(vec) > 1
+    @assert length(vec) > 0
     S = typeof(inner(vec[1], vec[1]))
     return Block{S}(vec)
 end # A convenient constructor for users
