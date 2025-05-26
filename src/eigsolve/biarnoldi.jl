@@ -68,7 +68,6 @@ function _getresiduals(βr, h, c)
     #       c_j is the last Ritzvector
     # from the _schursolve call we get || v~_{l+1} || = βrV
 
-    @show size(c)
     residuals = zeros(real(eltype(c)), size(c, 2))
     for j in axes(c, 2)
         residuals[j] = βr * abs(h'c[:, j])
@@ -87,7 +86,9 @@ function _geteigenspacematchperm!!(valuesS, valuesT, vectorsS, vectorsT, residua
             firstunusedT += 1
         end
         for j in firstunusedT:length(valuesT)
-            if !usedvaluesT[j] && isapprox(valuesS[i], conj(valuesT[j]))
+            usedvaluesT[j] && continue 
+
+            if isapprox(norm(valuesS[i] - conj(valuesT[j])), 0.0; atol=max(norm(valuesS[i]), 1.0) * sqrt(eps(real(eltype(valuesS)))))
                 overlapji = inner(vectorsT[j], vectorsS[i])
                 if !isapprox(abs(overlapji), 0.0)
                     matchperm[i] = j
@@ -197,7 +198,7 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
                 rV = add!!(rV, V[i], -MWv[i])
                 rW = add!!(rW, W[i], -MVw[i])
             end
-
+            
             # Step 5 - Compute dense schur factorization
             S, Q, valuesH = hschur!(H, Q)
             T, Z, valuesK = hschur!(K, Z)
@@ -228,10 +229,8 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
                 # as suggested by the authors 
 
                 # This is Eq. 10 in the paper
-                xh = abs(h[converged + 1]) / abs(valuesH[pH[converged + 1]]) * βrV /
-                     abs(M[converged + 1, converged + 1])
-                xk = abs(k[converged + 1]) / abs(valuesK[pK[converged + 1]]) * βrW /
-                     abs(M[converged + 1, converged + 1])
+                xh = abs(h[converged + 1]) 
+                xk = abs(k[converged + 1]) 
                 if max(xh, xk) <= tol
                     converged += 1
                 else
