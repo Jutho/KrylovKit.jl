@@ -189,8 +189,9 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
                 Vw[i] = inner(V[i], rW)
             end
 
-            MWv = M \ Wv
-            MVw = M' \ Vw
+            F = lu(M)
+            MWv = F \ Wv
+            MVw = F' \ Vw
             add!(view(H, :, L), MWv, βv)
             add!(view(K, :, L), MVw, βw)
 
@@ -198,7 +199,7 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
                 rV = add!!(rV, V[i], -MWv[i])
                 rW = add!!(rW, W[i], -MVw[i])
             end
-            
+
             # Step 5 - Compute dense schur factorization
             S, Q, valuesH = hschur!(H, Q)
             T, Z, valuesK = hschur!(K, Z)
