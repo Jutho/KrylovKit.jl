@@ -319,7 +319,7 @@ restricted to the `r` linearly independent components. The vector `goodidx` cont
 function block_qr!(block::Block{T,S}, tol::Real) where {T,S}
     n = length(block)
     rank_shrink = false
-    idx = ones(Int64, n)
+    idx = trues(n)
     R = zeros(S, n, n)
     @inbounds for j in 1:n
         for i in 1:(j - 1)
@@ -333,9 +333,9 @@ function block_qr!(block::Block{T,S}, tol::Real) where {T,S}
         else
             block[j] = zerovector!!(block[j])
             rank_shrink = true
-            idx[j] = 0
+            idx[j] = false
         end
     end
-    good_idx = findall(idx .> 0)
+    good_idx = findall(idx)
     return R[good_idx, :], good_idx
 end

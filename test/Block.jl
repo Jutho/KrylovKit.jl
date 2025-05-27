@@ -191,11 +191,8 @@ end
         wAv = wrapvec.(Av, Val(mode))
         R, gi = KrylovKit.block_qr!(Block{T}(wAv), tolerance(T))
         Av1 = [unwrapvec(wAv[i]) for i in gi]
-        @test hcat(Av1...)' * hcat(Av1...) ≈ I
         @test length(gi) < n
-        @test eltype(R) == eltype(eltype(A)) == T
-
-        norm(hcat(Av1...) * R - hcat(Bv...))
+        @test eltype(R) == eltype(A) == T
         @test isapprox(hcat(Av1...) * R, hcat(Bv...); atol=tolerance(T))
         @test isapprox(hcat(Av1...)' * hcat(Av1...), I; atol=tolerance(T))
     end
@@ -206,12 +203,7 @@ end
     H = rand(T, N, N) .- one(T) / 2
     H = H' * H + I
     ip(x, y) = x' * H * y
-    X₁ = InnerProductVec(rand(T, N), ip)
-    X = [similar(X₁) for _ in 1:n]
-    X[1] = X₁
-    for i in 2:(n - 1)
-        X[i] = InnerProductVec(rand(T, N), ip)
-    end
+    X = [InnerProductVec(rand(T, N), ip) for _ in 1:n]
 
     # Make sure X is not full rank
     X[end] = sum(X[1:(end - 1)] .* rand(T, n - 1))
@@ -222,6 +214,6 @@ end
     @test eltype(R) == T
     BlockX = Block{T}(X[gi])
     @test isapprox(KrylovKit.block_inner(BlockX, BlockX), I; atol=tolerance(T))
-    ΔX = norm.([sum(X[gi] .* R[:, i]) for i in 1:size(R, 2)] - Xcopy)
-    @test isapprox(norm(ΔX), T(0); atol=tolerance(T))
+    @test isapprox(hcat([X[i].vec for i in gi]...) * R,
+                   hcat([Xcopy[i].vec for i in 1:n]...); atol=tolerance(T))
 end

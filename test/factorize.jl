@@ -331,7 +331,7 @@ end
             v₀m = Matrix(qr(rand(T, n, bs)).Q)
             v₀ = KrylovKit.Block{T}([wrapvec(v₀m[:, i], Val(mode)) for i in 1:bs])
             iter = BlockLanczosIterator(wrapop(B, Val(mode)), v₀, N, tolerance(T))
-            fact = initialize(iter)
+            fact = @constinferred initialize(iter)
             @constinferred expand!(iter, fact; verbosity=0)
             @test_logs initialize(iter; verbosity=0)
             @test_logs (:warn,) initialize(iter)
@@ -363,7 +363,7 @@ end
         iter = @constinferred BlockLanczosIterator(wrapop(A, Val(mode)), x₀, N,
                                                    tolerance(T))
         krylovdim = n
-        fact = initialize(iter)
+        fact = @constinferred initialize(iter)
         while fact.norm_R > eps(float(real(T))) && fact.k < krylovdim
             @constinferred expand!(iter, fact)
             k = fact.k
