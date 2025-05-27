@@ -229,46 +229,18 @@ function blocklanczosrecurrence(operator, V::OrthonormalBasis, B::AbstractMatrix
     X = Block{S}(V[(k - bs + 1):k])
     AX = apply(operator, X)
     M = block_inner(X, AX)
-    # Calculate the new residual. Get Rnext
+    # Calculate the new residual in AX.
     Xprev = Block{S}(V[(k - bs_prev - bs + 1):(k - bs)])
-    Rnext = block_orthogonalize!(AX, X, M, Xprev, B')
-    block_reorthogonalize!(Rnext, V)
-    return Rnext, M
-end
-
-"""
-    block_orthogonalize!(AX::Block{T,S}, X::Block{T,S},
-                           M::AbstractMatrix,
-                           Xprev::Block{T,S}, Bprev::AbstractMatrix) where {T,S}
-
-Computes the residual block and stores the result in `AX`.
-
-This function orthogonalizes `AX` against the two most recent basis blocks, `X` and `Xprev`.  
-Here, `AX` represents the image of the current block `X` under the action of the linear operator `A`.  
-The matrix `M` contains the inner products between `X` and `AX`, i.e., the projection of `AX` onto `X`.  
-Similarly, `Bprev` represents the projection of `AX` onto `Xprev`.
-
-The residual is computed as:
-
-```
-    AX ← AX - X * M - Xprev * Bprev
-```
-
-After this operation, `AX` is orthogonal (in the block inner product sense) to both `X` and `Xprev`.
-
-"""
-function block_orthogonalize!(AX::Block{T,S}, X::Block{T,S},
-                              M::AbstractMatrix,
-                              Xprev::Block{T,S}, Bprev::AbstractMatrix) where {T,S}
     @inbounds for j in 1:length(X)
         for i in 1:length(X)
             AX[j] = add!!(AX[j], X[i], -M[i, j])
         end
         for i in 1:length(Xprev)
-            AX[j] = add!!(AX[j], Xprev[i], -Bprev[i, j])
+            AX[j] = add!!(AX[j], Xprev[i], -conj(B[j, i]))
         end
     end
-    return AX
+    block_reorthogonalize!(AX, V)
+    return AX, M
 end
 
 """

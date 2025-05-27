@@ -51,7 +51,7 @@ The block version of the Krylov subspace algorithm is an approach to extending K
 a starting block. It is mainly used for solving eigenvalue problems with repeated eigenvalues.
 
 In our implementation, a block of vectors is stored in a new data structure `Block`,
-which implements the [`KrylovKit.block_qr!`](@ref), [`KrylovKit.block_reorthogonalize!`](@ref), and [`KrylovKit.block_orthogonalize!`](@ref) interfaces.
+which implements the [`KrylovKit.block_qr!`](@ref) and [`KrylovKit.block_reorthogonalize!`](@ref) interfaces.
 
 ```@docs
 KrylovKit.Block
@@ -62,10 +62,9 @@ A block of vectors can be orthonormalized using
 KrylovKit.block_qr!
 ```
 
-Additional procedures applied to the block are as follows:
+Additional procedure applied to the block is as follows:
 ```@docs
 KrylovKit.block_reorthogonalize!
-KrylovKit.block_orthogonalize!
 ```
 
 

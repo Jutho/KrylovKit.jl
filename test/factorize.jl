@@ -375,7 +375,6 @@ end
             V = hcat([unwrapvec(v) for v in V0]...)
             r = hcat([unwrapvec(r0[i]) for i in 1:rs]...)
             e = hcat(zeros(T, rs, k - rs), I)
-            norm(V' * V - I)
             @test V' * V ≈ I
             @test norm(r) ≈ norm_R
             @test A * V ≈ V * H + r * e
