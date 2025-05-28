@@ -344,10 +344,13 @@ end
     v = ones(Float64, size(A, 1))
     @test_logs realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-8, verbosity=SILENT_LEVEL))
     @test_logs realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-8, verbosity=WARN_LEVEL))
-    @test_logs (:info,) realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-8, verbosity=STARTSTOP_LEVEL))
-    @test_logs (:warn,) realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-10, verbosity=WARN_LEVEL))
+    @test_logs (:info,) realeigsolve(A, v, 1, :LM,
+                                     Arnoldi(; tol=1e-8, verbosity=STARTSTOP_LEVEL))
+    @test_logs (:warn,) realeigsolve(A, v, 1, :LM,
+                                     Arnoldi(; tol=1e-10, verbosity=WARN_LEVEL))
     @test_logs (:warn,) (:info,) realeigsolve(A, v, 1, :LM,
-                                              Arnoldi(; tol=1e-10, verbosity=STARTSTOP_LEVEL))
+                                              Arnoldi(; tol=1e-10,
+                                                      verbosity=STARTSTOP_LEVEL))
 
     # this should not trigger a warning
     A[1, 2] = A[2, 1] = 0
@@ -357,7 +360,8 @@ end
     A[2, 3] = -1e-6
     @test_logs realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-12, verbosity=SILENT_LEVEL))
     @test_logs realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-12, verbosity=WARN_LEVEL))
-    @test_logs (:info,) realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1e-12, verbosity=STARTSTOP_LEVEL))
+    @test_logs (:info,) realeigsolve(A, v, 1, :LM,
+                                     Arnoldi(; tol=1e-12, verbosity=STARTSTOP_LEVEL))
 end
 
 @testset "BlockLanczos - eigsolve for large sparse matrix and map input" begin
