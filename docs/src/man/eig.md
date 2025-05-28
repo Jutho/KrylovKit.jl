@@ -74,7 +74,7 @@ by changing the phase of those eigenvectors, i.e. the cost function should be 'g
 If this is not the case, the cost function is said to be 'gauge dependent', and this can be detected
 in the resulting adjoint variables for those eigenvectors. The KrylovKit `rrule` for `eigsolve`
 will print a warning if it detects from the incoming adjoint variables that the cost function is gauge
-dependent. This warning can be suppressed by passing `alg_rrule` an algorithm with `verbosity=-1`.
+dependent. This warning can be suppressed by passing `alg_rrule` an algorithm with `verbosity=SILENT_LEVEL-1`.
 
 ## Generalized eigenvalue problems
 

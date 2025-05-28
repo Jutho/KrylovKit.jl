@@ -23,7 +23,7 @@ end
             V = one(A)
             W = zero(A)
             alg = Lanczos(; orth=orth, krylovdim=n, maxiter=2, tol=tolerance(T),
-                          verbosity=2)
+                          verbosity=STARTSTOP_LEVEL)
             for k in 1:n
                 w, = @test_logs (:info,) exponentiate(wrapop(A, Val(mode)), 1,
                                                       wrapvec(view(V, :, k),
@@ -34,7 +34,7 @@ end
 
             pmax = 5
             alg = Lanczos(; orth=orth, krylovdim=n, maxiter=2, tol=tolerance(T),
-                          verbosity=0)
+                          verbosity=SILENT_LEVEL)
             for t in (rand(real(T)), -rand(real(T)), im * randn(real(T)),
                       randn(real(T)) + im * randn(real(T)))
                 for p in 1:pmax
@@ -63,7 +63,7 @@ end
             V = one(A)
             W = zero(A)
             alg = Arnoldi(; orth=orth, krylovdim=n, maxiter=2, tol=tolerance(T),
-                          verbosity=2)
+                          verbosity=STARTSTOP_LEVEL)
             for k in 1:n
                 w, = @test_logs (:info,) exponentiate(wrapop(A, Val(mode)), 1,
                                                       wrapvec(view(V, :, k),
@@ -74,7 +74,7 @@ end
 
             pmax = 5
             alg = Arnoldi(; orth=orth, krylovdim=n, maxiter=2, tol=tolerance(T),
-                          verbosity=0)
+                          verbosity=SILENT_LEVEL)
             for t in (rand(real(T)), -rand(real(T)), im * randn(real(T)),
                       randn(real(T)) + im * randn(real(T)))
                 for p in 1:pmax

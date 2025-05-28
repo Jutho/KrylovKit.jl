@@ -14,16 +14,16 @@
             @test_logs schursolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n1, :SR,
                                   alg)
             alg = Arnoldi(; orth=orth, krylovdim=n, maxiter=1, tol=tolerance(T),
-                          verbosity=1)
+                          verbosity=WARN_LEVEL)
             @test_logs schursolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n1, :SR,
                                   alg)
             alg = Arnoldi(; orth=orth, krylovdim=n1 + 1, maxiter=1, tol=tolerance(T),
-                          verbosity=1)
+                          verbosity=WARN_LEVEL)
             @test_logs (:warn,) schursolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n1,
                                            :SR,
                                            alg)
             alg = Arnoldi(; orth=orth, krylovdim=n, maxiter=1, tol=tolerance(T),
-                          verbosity=2)
+                          verbosity=STARTSTOP_LEVEL)
             @test_logs (:info,) schursolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n1,
                                            :SR,
                                            alg)
@@ -76,7 +76,7 @@ end
             A = rand(T, (N, N)) .- one(T) / 2
             v = rand(T, (N,))
             alg = Arnoldi(; orth=orth, krylovdim=3 * n, maxiter=10, tol=tolerance(T),
-                          verbosity=0)
+                          verbosity=SILENT_LEVEL)
             T1, V1, D1, info1 = @constinferred schursolve(wrapop(A, Val(mode)),
                                                           wrapvec(v, Val(mode)), n, :SR,
                                                           alg)

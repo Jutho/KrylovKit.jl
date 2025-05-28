@@ -11,7 +11,7 @@
             B = sqrt(B * B')
             v = rand(T, (n,))
             alg = GolubYe(; orth=orth, krylovdim=n, maxiter=1, tol=tolerance(T),
-                          verbosity=1)
+                          verbosity=WARN_LEVEL)
             n1 = div(n, 2)
             D1, V1, info = @constinferred geneigsolve((wrapop(A, Val(mode)),
                                                        wrapop(B, Val(mode))),
@@ -19,7 +19,7 @@
                                                       n1, :SR; orth=orth, krylovdim=n,
                                                       maxiter=1, tol=tolerance(T),
                                                       ishermitian=true, isposdef=true,
-                                                      verbosity=0)
+                                                      verbosity=SILENT_LEVEL)
 
             if info.converged < n1
                 @test_logs geneigsolve((wrapop(A, Val(mode)),
@@ -28,35 +28,35 @@
                                        n1, :SR; orth=orth, krylovdim=n,
                                        maxiter=1, tol=tolerance(T),
                                        ishermitian=true, isposdef=true,
-                                       verbosity=0)
+                                       verbosity=SILENT_LEVEL)
                 @test_logs geneigsolve((wrapop(A, Val(mode)),
                                         wrapop(B, Val(mode))),
                                        wrapvec(v, Val(mode)),
                                        n1, :SR; orth=orth, krylovdim=n,
                                        maxiter=1, tol=tolerance(T),
                                        ishermitian=true, isposdef=true,
-                                       verbosity=1)
+                                       verbosity=WARN_LEVEL)
                 @test_logs (:warn,) geneigsolve((wrapop(A, Val(mode)),
                                                  wrapop(B, Val(mode))),
                                                 wrapvec(v, Val(mode)),
                                                 n1, :SR; orth=orth, krylovdim=n1 + 1,
                                                 maxiter=1, tol=tolerance(T),
                                                 ishermitian=true, isposdef=true,
-                                                verbosity=1)
+                                                verbosity=WARN_LEVEL)
                 @test_logs (:info,) geneigsolve((wrapop(A, Val(mode)),
                                                  wrapop(B, Val(mode))),
                                                 wrapvec(v, Val(mode)),
                                                 n1, :SR; orth=orth, krylovdim=n,
                                                 maxiter=1, tol=tolerance(T),
                                                 ishermitian=true, isposdef=true,
-                                                verbosity=2)
+                                                verbosity=STARTSTOP_LEVEL)
                 alg = GolubYe(; orth=orth, krylovdim=n1, maxiter=3, tol=tolerance(T),
-                              verbosity=3)
+                              verbosity=EACHITERATION_LEVEL)
                 @test_logs((:info,), (:info,), (:info,), (:warn,),
                            geneigsolve((wrapop(A, Val(mode)), wrapop(B, Val(mode))),
                                        wrapvec(v, Val(mode)), 1, :SR, alg))
                 alg = GolubYe(; orth=orth, krylovdim=3, maxiter=2, tol=tolerance(T),
-                              verbosity=4)
+                              verbosity=EACHITERATION_LEVEL+1)
                 @test_logs((:info,), (:info,), (:info,), (:info,),
                            (:info,), (:info,), (:info,), (:info,), (:warn,),
                            geneigsolve((wrapop(A, Val(mode)), wrapop(B, Val(mode))),
@@ -97,7 +97,7 @@ end
             B = sqrt(B * B')
             v = rand(T, (N,))
             alg = GolubYe(; orth=orth, krylovdim=3 * n, maxiter=100,
-                          tol=cond(B) * tolerance(T), verbosity=0)
+                          tol=cond(B) * tolerance(T), verbosity=SILENT_LEVEL)
             D1, V1, info1 = @constinferred geneigsolve((wrapop(A, Val(mode)),
                                                         wrapop(B, Val(mode))),
                                                        wrapvec(v, Val(mode)),

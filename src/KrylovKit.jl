@@ -156,6 +156,7 @@ end
 include("apply.jl")
 
 # Verbosity levels
+const SILENT_LEVEL = 0
 const WARN_LEVEL = 1
 const STARTSTOP_LEVEL = 2
 const EACHITERATION_LEVEL = 3

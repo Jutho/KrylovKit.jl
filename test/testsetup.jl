@@ -2,7 +2,7 @@ module TestSetup
 
 export tolerance, ≊, MinimalVec, isinplace, stack
 export wrapop, wrapvec, unwrapvec, buildrealmap
-export relax_tol
+export relax_tol, mat_with_eigrepition
 
 import VectorInterface as VI
 using VectorInterface
@@ -40,6 +40,20 @@ function buildrealmap(A, B)
         end
     end
     return f
+end
+
+"function for generating a matrix with repeated eigenvalues"
+function mat_with_eigrepition(T, N, multiplicity)
+    U = LinearAlgebra.qr(randn(T, (N, N))).Q # Haar random matrix
+    D = sort(randn(real(T), N))
+    i = 0
+    while multiplicity >= 2 && (i + multiplicity) <= N
+        D[i .+ (1:multiplicity)] .= D[i+1]
+        i += multiplicity
+        multiplicity -= 1
+    end
+    A = U * LinearAlgebra.Diagonal(D) * U'
+    return (A + A')/2
 end
 
 # Wrappers

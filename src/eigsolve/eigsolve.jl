@@ -109,12 +109,12 @@ The return value is always of the form `vals, vecs, info = eigsolve(...)` with
 
 Keyword arguments and their default values are given by:
 
-  - `verbosity::Int = 0`: verbosity level, i.e. 
-    - 0 (suppress all messages)
-    - 1 (only warnings)
-    - 2 (one message with convergence info at the end)
-    - 3 (progress info after every iteration)
-    - 4+ (all of the above and additional information about the Lanczos, BlockLanczos, or Arnoldi iteration)
+  - `verbosity::Int = SILENT_LEVEL`: verbosity level, i.e. 
+    - SILENT_LEVEL (suppress all messages)
+    - WARN_LEVEL (only warnings)
+    - STARTSTOP_LEVEL (one message with convergence info at the end)
+    - EACHITERATION_LEVEL (progress info after every iteration)
+    - EACHITERATION_LEVEL+ (all of the above and additional information about the Lanczos, BlockLanczos, or Arnoldi iteration)
   - `tol::Real`: the requested accuracy (corresponding to the 2-norm of the residual for
     Schur vectors, not the eigenvectors). If you work in e.g. single precision (`Float32`),
     you should definitely change the default value.
