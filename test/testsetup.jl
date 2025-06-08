@@ -47,8 +47,9 @@ function mat_with_eigrepition(T, N, multiplicity)
     U = LinearAlgebra.qr(randn(T, (N, N))).Q # Haar random matrix
     D = sort(randn(real(T), N))
     i = 0
-    while multiplicity >= 2 && (i + multiplicity) <= N
+    while multiplicity >= 2 && (i + multiplicity) <= N÷2
         D[i .+ (1:multiplicity)] .= D[i+1]
+        D[N+1-i .- (1:multiplicity)] .= D[N-i]
         i += multiplicity
         multiplicity -= 1
     end

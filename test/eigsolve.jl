@@ -500,7 +500,7 @@ end
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
                   (ComplexF64,)
     @testset for T in scalartypes
-        block_size = 2
+        block_size = 4
         A = mat_with_eigrepition(T, N, block_size)
         x₀ = Block{T}([wrapvec(rand(T, N), Val(mode)) for _ in 1:block_size])
         eigvalsA = eigvals(A)
@@ -568,6 +568,13 @@ end
         evals1, _, info1 = eigsolve(wrapop(A, Val(mode)), x₀_lanczos, n, :SR, alg1)
         evals2, _, info2 = eigsolve(wrapop(A, Val(mode)), x₀_block, n, :SR, alg2)
         @test info1.converged == info2.converged
+        @test info1.numiter == info2.numiter
+        @test info1.numops == info2.numops
+        @test isapprox(info1.normres, info2.normres, atol=tolerance(T))
+        @test isapprox(unwrapvec.(info1.residual[1:info1.converged])[2],
+                       unwrapvec.(info2.residual[1:info2.converged])[2]; atol=tolerance(T))
+        @test isapprox(evals1[1:info1.converged], evals2[1:info2.converged];
+                       atol=tolerance(T))
     end
     @testset for T in scalartypes
         A = rand(T, (2N, 2N)) .- one(T) / 2
@@ -619,7 +626,7 @@ end
             eigA = eigvals(A)
             @test D1[1] ≈ eigA[1]
             D2, V2, info2 = eigsolve(wrapop(A, Val(mode)), x₀)
-            D2[1] = max(abs(eigA[1]), abs(eigA[end]))
+            @test D2[1] ≈ (abs(eigA[1]) > abs(eigA[end]) ? eigA[1] : eigA[end])
             @test_throws ErrorException eigsolve(wrapop(A, Val(mode)), x₀, 1, :LI)
             B = copy(A)
             B[1, 2] += T(1) # error for non-symmetric/hermitian operator
