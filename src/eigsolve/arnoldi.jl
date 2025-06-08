@@ -36,11 +36,13 @@ should be targeted. Valid specifications of `which` are
     only be successful if you somehow know that eigenvalues close to zero are also close
     to the periphery of the spectrum.
 
-!!! warning "Degenerate eigenvalues"
+!!! warning "Repeated eigenvalues"
 
     From a theoretical point of view, Krylov methods can at most find a single eigenvector
-    associated with a targetted eigenvalue, even if the latter is degenerate. In the case of
-    a degenerate eigenvalue, the specific eigenvector that is returned is determined by the
+    associated with a targetted eigenvalue, even if the latter is repeated, i.e. the
+    eigenvalue has multiple linearly independent eigenvectors or thus an eigenspace
+    with dimension (geometric multiplicity) larger than one. In the case of such
+    a repeated eigenvalue, the specific eigenvector that is returned is determined by the
     starting vector `x₀`. For large problems, this turns out to be less of an issue in
     practice, as often a second linearly independent eigenvector is generated out of the
     numerical noise resulting from the orthogonalisation steps in the Lanczos or Arnoldi
@@ -238,11 +240,13 @@ problems are given by
     only be successful if you somehow know that eigenvalues close to zero are also close
     to the periphery of the spectrum.
 
-!!! warning "Degenerate eigenvalues"
+!!! warning "Repeated eigenvalues"
 
     From a theoretical point of view, Krylov methods can at most find a single eigenvector
-    associated with a targetted eigenvalue, even if the latter is degenerate. In the case of
-    a degenerate eigenvalue, the specific eigenvector that is returned is determined by the
+    associated with a targetted eigenvalue, even if the latter is repeated, i.e. the
+    eigenvalue has multiple linearly independent eigenvectors or thus an eigenspace
+    with dimension (geometric multiplicity) larger than one. In the case of such
+    a repeated eigenvalue, the specific eigenvector that is returned is determined by the
     starting vector `x₀`. For large problems, this turns out to be less of an issue in
     practice, as often a second linearly independent eigenvector is generated out of the
     numerical noise resulting from the orthogonalisation steps in the Lanczos or Arnoldi

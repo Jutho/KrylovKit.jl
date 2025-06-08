@@ -105,7 +105,7 @@ lack of convergence.
 
 Use `Arnoldi` for non-symmetric or non-Hermitian linear operators.
 
-See also: `factorize`, `eigsolve`, `exponentiate`, `Arnoldi`, `Orthogonalizer`
+See also: [Factorization types](@ref), [`eigsolve`](@ref), [`exponentiate`](@ref), [`Arnoldi`](@ref), [`Orthogonalizer`](@ref)
 """
 struct Lanczos{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     orth::O
@@ -123,6 +123,49 @@ function Lanczos(;
                  eager::Bool=false,
                  verbosity::Int=KrylovDefaults.verbosity[])
     return Lanczos(orth, krylovdim, maxiter, tol, eager, verbosity)
+end
+
+"""
+    BlockLanczos(; krylovdim=KrylovDefaults.blockkrylovdim[],
+            maxiter=KrylovDefaults.maxiter[],
+            tol=KrylovDefaults.tol[],
+            orth=KrylovDefaults.orth,
+            eager=false,
+            verbosity=KrylovDefaults.verbosity[],
+            qr_tol::Real=KrylovDefaults.tol[])
+
+The block version of [`Lanczos`](@ref) is suited for solving eigenvalue problems with repeated extremal eigenvalues.
+Its implementation is mainly based on *Golub, G. H., & Van Loan, C. F. (2013). Matrix Computations* (4th ed., pp. 566–569).
+Arguments `krylovdim`, `maxiter`, `tol`, `orth`, `eager` and `verbosity` are the same as `Lanczos`.
+`qr_tol` is the error tolerance for `block_qr!` - a subroutine used to orthorgonalize the vectors in the same block.
+The initial size of the block is determined by the number of vectors that a user provides in the starting block;
+the size of the block can shrink during iterations.
+The initial block size determines the maximum multiplicity of the target eigenvalue can that be resolved.
+
+The iteration stops when either the norm of the residual is below `tol` or a sufficient number of eigenvectors have converged. [Reference](https://www.netlib.org/utk/people/JackDongarra/etemplates/node250.html)
+
+Use `Arnoldi` for non-symmetric or non-Hermitian linear operators. 
+
+See also: [Factorization types](@ref), [`eigsolve`](@ref), [`Arnoldi`](@ref), [`Orthogonalizer`](@ref)
+"""
+struct BlockLanczos{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
+    orth::O
+    krylovdim::Int
+    maxiter::Int
+    tol::S
+    qr_tol::Real
+    eager::Bool
+    verbosity::Int
+end
+function BlockLanczos(;
+                      krylovdim::Int=KrylovDefaults.blockkrylovdim[],
+                      maxiter::Int=KrylovDefaults.maxiter[],
+                      tol::Real=KrylovDefaults.tol[],
+                      qr_tol::Real=KrylovDefaults.tol[],
+                      orth::Orthogonalizer=KrylovDefaults.orth,
+                      eager::Bool=false,
+                      verbosity::Int=KrylovDefaults.verbosity[])
+    return BlockLanczos(orth, krylovdim, maxiter, tol, qr_tol, eager, verbosity)
 end
 
 """
@@ -438,6 +481,7 @@ struct JacobiDavidson <: EigenSolver end
         const orth = KrylovKit.ModifiedGramSchmidtIR()
         const krylovdim = Ref(30)
         const maxiter = Ref(100)
+        const blockkrylovdim = Ref(100)
         const tol = Ref(1e-12)
         const verbosity = Ref(KrylovKit.WARN_LEVEL)
     end
@@ -449,6 +493,7 @@ A module listing the default values for the typical parameters in Krylov based a
   - `krylovdim = 30`: the maximal dimension of the Krylov subspace that will be constructed
   - `maxiter = 100`: the maximal number of outer iterations, i.e. the maximum number of
     times the Krylov subspace may be rebuilt
+  - `blockkrylovdim = 100`: the maximal dimension of the Krylov subspace that will be constructed for `BlockLanczos`
   - `tol = 1e-12`: the tolerance to which the problem must be solved, based on a suitable
     error measure, e.g. the norm of some residual.
 
@@ -463,6 +508,7 @@ using ..KrylovKit
 const orth = KrylovKit.ModifiedGramSchmidt2() # conservative choice
 const krylovdim = Ref(30)
 const maxiter = Ref(100)
+const blockkrylovdim = Ref(100)
 const tol = Ref(1e-12)
 const verbosity = Ref(KrylovKit.WARN_LEVEL)
 end

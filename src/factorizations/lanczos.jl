@@ -119,7 +119,7 @@ end
 ```
 
 Here, [`initialize(::KrylovIterator)`](@ref) produces the first Krylov factorization of
-length 1, and `expand!(::KrylovIterator, ::KrylovFactorization)`(@ref) expands the
+length 1, and [`expand!(iter::KrylovIterator, fact::KrylovFactorization)`](@ref) expands the
 factorization in place. See also [`initialize!(::KrylovIterator,
 ::KrylovFactorization)`](@ref) to initialize in an already existing factorization (most
 information will be discarded) and [`shrink!(::KrylovFactorization, k)`](@ref) to shrink an

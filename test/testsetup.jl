@@ -2,6 +2,7 @@ module TestSetup
 
 export tolerance, ≊, MinimalVec, isinplace, stack
 export wrapop, wrapvec, unwrapvec, buildrealmap
+export relax_tol, mat_with_eigrepition
 
 import VectorInterface as VI
 using VectorInterface
@@ -11,6 +12,7 @@ using LinearAlgebra: LinearAlgebra
 # -----------------
 "function for determining the precision of a type"
 tolerance(T::Type{<:Number}) = eps(real(T))^(2 // 3)
+relax_tol(T::Type{<:Number}) = eps(real(T))^(1 // 2)
 
 "function for comparing sets of eigenvalues"
 function ≊(list1::AbstractVector, list2::AbstractVector)
@@ -38,6 +40,21 @@ function buildrealmap(A, B)
         end
     end
     return f
+end
+
+"function for generating a matrix with repeated eigenvalues"
+function mat_with_eigrepition(T, N, multiplicity)
+    U = LinearAlgebra.qr(randn(T, (N, N))).Q # Haar random matrix
+    D = sort(randn(real(T), N))
+    i = 0
+    while multiplicity >= 2 && (i + multiplicity) <= N÷2
+        D[i .+ (1:multiplicity)] .= D[i+1]
+        D[N+1-i .- (1:multiplicity)] .= D[N-i]
+        i += multiplicity
+        multiplicity -= 1
+    end
+    A = U * LinearAlgebra.Diagonal(D) * U'
+    return (A + A')/2
 end
 
 # Wrappers

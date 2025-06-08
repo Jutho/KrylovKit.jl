@@ -37,7 +37,7 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number=0, a₁::Number=1;
     numops = 1 # operator has been applied once to determine T and r
 
     iter = ArnoldiIterator(operator, r, alg.orth)
-    fact = initialize(iter; verbosity=0)
+    fact = initialize(iter; verbosity=SILENT_LEVEL)
     sizehint!(fact, alg.krylovdim)
     numops += 1 # start applies operator once
 
@@ -56,7 +56,7 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number=0, a₁::Number=1;
             if alg.verbosity >= EACHITERATION_LEVEL
                 @info "GMRES linsolve in iteration $numiter; step $k: normres = $(normres2string(β))"
             end
-            fact = expand!(iter, fact; verbosity=0)
+            fact = expand!(iter, fact; verbosity=SILENT_LEVEL)
             numops += 1 # expand! applies the operator once
             k = length(fact)
             H = rayleighquotient(fact)
@@ -132,6 +132,6 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number=0, a₁::Number=1;
 
         # Restart Arnoldi factorization with new r
         iter = ArnoldiIterator(operator, r, alg.orth)
-        fact = initialize!(iter, fact; verbosity=0)
+        fact = initialize!(iter, fact; verbosity=SILENT_LEVEL)
     end
 end

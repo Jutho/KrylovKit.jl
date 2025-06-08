@@ -99,7 +99,7 @@ end
 #         rhs = mul!(rhs, ΔA, x, -a₁, true)
 #     end
 #     (Δx, forward_info) = linsolve(A, rhs, zerovector(rhs), algorithm, a₀, a₁)
-#     if info.converged > 0 && forward_info.converged == 0 && alg_rrule.verbosity >= 0
+#     if info.converged > 0 && forward_info.converged == 0 && alg_rrule.verbosity >= SILENT_LEVEL
 #         @warn "The tangent linear problem did not converge, whereas the primal linear problem did."
 #     end
 #     return (x, info), (Δx, NoTangent())
@@ -129,7 +129,7 @@ end
 #         rhs = add!!(rhs, frule_via_ad(config, (Δf, ZeroTangent()), f, x), -a₀)
 #     end
 #     (Δx, forward_info) = linsolve(f, rhs, zerovector(rhs), algorithm, a₀, a₁)
-#     if info.converged > 0 && forward_info.converged == 0 && alg_rrule.verbosity >= 0
+#     if info.converged > 0 && forward_info.converged == 0 && alg_rrule.verbosity >= SILENT_LEVEL
 #         @warn "The tangent linear problem did not converge, whereas the primal linear problem did."
 #     end
 #     return (x, info), (Δx, NoTangent())

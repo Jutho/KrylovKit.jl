@@ -16,21 +16,21 @@
             @test_logs svdsolve(wrapop(A, Val(mode)), wrapvec(A[:, 1], Val(mode)), n1, :LR,
                                 alg)
             alg = GKL(; orth=orth, krylovdim=2 * n, maxiter=1, tol=tolerance(T),
-                      verbosity=1)
+                      verbosity=WARN_LEVEL)
             @test_logs svdsolve(wrapop(A, Val(mode)), wrapvec(A[:, 1], Val(mode)), n1, :LR,
                                 alg)
             alg = GKL(; orth=orth, krylovdim=n1 + 1, maxiter=1, tol=tolerance(T),
-                      verbosity=1)
+                      verbosity=WARN_LEVEL)
             @test_logs (:warn,) svdsolve(wrapop(A, Val(mode)), wrapvec(A[:, 1], Val(mode)),
                                          n1, :LR,
                                          alg)
             alg = GKL(; orth=orth, krylovdim=2 * n, maxiter=1, tol=tolerance(T),
-                      verbosity=2)
+                      verbosity=STARTSTOP_LEVEL)
             @test_logs (:info,) svdsolve(wrapop(A, Val(mode)), wrapvec(A[:, 1], Val(mode)),
                                          n1, :LR,
                                          alg)
             alg = GKL(; orth=orth, krylovdim=2 * n, maxiter=1, tol=tolerance(T),
-                      verbosity=4)
+                      verbosity=EACHITERATION_LEVEL+1)
             @test_logs min_level = Logging.Warn svdsolve(wrapop(A, Val(mode)),
                                                          wrapvec(A[:, 1], Val(mode)),
                                                          n1, :LR,
@@ -56,7 +56,7 @@ end
             v = rand(T, (2 * N,))
             n₁ = div(n, 2)
             alg = GKL(; orth=orth, krylovdim=n, maxiter=10, tol=tolerance(T), eager=true,
-                      verbosity=0)
+                      verbosity=SILENT_LEVEL)
             S, lvecs, rvecs, info = @constinferred svdsolve(wrapop(A, Val(mode)),
                                                             wrapvec(v, Val(mode)),
                                                             n₁, :LR, alg)

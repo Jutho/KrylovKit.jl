@@ -36,10 +36,10 @@ export basis, rayleighquotient, residual, normres, rayleighextension
 export initialize, initialize!, expand!, shrink!
 export ClassicalGramSchmidt, ClassicalGramSchmidt2, ClassicalGramSchmidtIR
 export ModifiedGramSchmidt, ModifiedGramSchmidt2, ModifiedGramSchmidtIR
-export LanczosIterator, ArnoldiIterator, GKLIterator
-export CG, GMRES, BiCGStab, Lanczos, Arnoldi, GKL, GolubYe, LSMR
+export LanczosIterator, BlockLanczosIterator, ArnoldiIterator, GKLIterator
+export CG, GMRES, BiCGStab, Lanczos, BlockLanczos, Arnoldi, GKL, GolubYe, LSMR
 export KrylovDefaults, EigSorter
-export RecursiveVec, InnerProductVec
+export RecursiveVec, InnerProductVec, Block
 
 # Multithreading
 const _NTHREADS = Ref(1)
@@ -156,6 +156,7 @@ end
 include("apply.jl")
 
 # Verbosity levels
+const SILENT_LEVEL = 0
 const WARN_LEVEL = 1
 const STARTSTOP_LEVEL = 2
 const EACHITERATION_LEVEL = 3
@@ -175,6 +176,7 @@ include("dense/reflector.jl")
 # Krylov and related factorizations and their iterators
 include("factorizations/krylov.jl")
 include("factorizations/lanczos.jl")
+include("factorizations/blocklanczos.jl")
 include("factorizations/arnoldi.jl")
 include("factorizations/gkl.jl")
 
@@ -268,6 +270,7 @@ include("lssolve/lsmr.jl")
 # eigsolve and svdsolve
 include("eigsolve/eigsolve.jl")
 include("eigsolve/lanczos.jl")
+include("eigsolve/blocklanczos.jl")
 include("eigsolve/arnoldi.jl")
 include("eigsolve/geneigsolve.jl")
 include("eigsolve/golubye.jl")

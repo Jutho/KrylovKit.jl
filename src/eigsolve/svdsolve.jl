@@ -81,12 +81,12 @@ The return value is always of the form `vals, lvecs, rvecs, info = svdsolve(...)
 
 Keyword arguments and their default values are given by:
 
-  - `verbosity::Int = 0`: verbosity level
-    - 0 (suppress all messages)
-    - 1 (only warnings)
-    - 2 (one message with convergence info at the end)
-    - 3 (progress info after every iteration)
-    - 4+ (all of the above and additional information about the GKL iteration)
+  - `verbosity::Int = SILENT_LEVEL`: verbosity level
+    - SILENT_LEVEL (suppress all messages)
+    - WARN_LEVEL (only warnings)
+    - STARTSTOP_LEVEL (one message with convergence info at the end)
+    - EACHITERATION_LEVEL (progress info after every iteration)
+    - EACHITERATION_LEVEL+ (all of the above and additional information about the GKL iteration)
   - `krylovdim`: the maximum dimension of the Krylov subspace that will be constructed.
     Note that the dimension of the vector space is not known or checked, e.g. `x₀` should
     not necessarily support the `Base.length` function. If you know the actual problem

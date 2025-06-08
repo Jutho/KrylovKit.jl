@@ -37,7 +37,7 @@ a common phase factor, i.e. the cost function should be 'gauge invariant'. If th
 the cost function is said to be 'gauge dependent', and this can be detected in the resulting adjoint
 variables for those singular vectors. The KrylovKit `rrule` for `svdsolve` will print a warning if
 it detects from the incoming adjoint variables that the cost function is gauge dependent. This
-warning can be suppressed by passing `alg_rrule` an algorithm with `verbosity=-1`.
+warning can be suppressed by passing `alg_rrule` an algorithm with `verbosity=SILENT_LEVEL-1`.
 
 [^1]: For a linear map, the adjoint or pullback required in the reverse-order chain rule coincides
 with its (conjugate) transpose, at least with respect to the standard Euclidean inner product.

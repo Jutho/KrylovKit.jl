@@ -6,40 +6,40 @@
         A = rand(T, (n, n))
         A = sqrt(A * A')
         b = rand(T, n)
-        alg = CG(; maxiter=2n, tol=tolerance(T) * norm(b), verbosity=0) # because of loss of orthogonality, we choose maxiter = 2n
+        alg = CG(; maxiter=2n, tol=tolerance(T) * norm(b), verbosity=SILENT_LEVEL) # because of loss of orthogonality, we choose maxiter = 2n
         x, info = @constinferred linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode));
                                           ishermitian=true, isposdef=true, maxiter=2n,
                                           krylovdim=1, rtol=tolerance(T),
-                                          verbosity=0)
+                                          verbosity=SILENT_LEVEL)
         @test info.converged > 0
         @test unwrapvec(b) ≈ A * unwrapvec(x)
         @test_logs linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode));
                             ishermitian=true, isposdef=true, maxiter=2n,
                             krylovdim=1, rtol=tolerance(T),
-                            verbosity=0)
+                            verbosity=SILENT_LEVEL)
         @test_logs linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode));
                             ishermitian=true, isposdef=true, maxiter=2n,
                             krylovdim=1, rtol=tolerance(T),
-                            verbosity=1)
+                            verbosity=WARN_LEVEL)
         @test_logs (:info,) (:info,) linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode));
                                               ishermitian=true, isposdef=true, maxiter=2n,
                                               krylovdim=1, rtol=tolerance(T),
-                                              verbosity=2)
+                                              verbosity=STARTSTOP_LEVEL)
         @test_logs min_level = Logging.Warn linsolve(wrapop(A, Val(mode)),
                                                      wrapvec(b, Val(mode));
                                                      ishermitian=true, isposdef=true,
                                                      maxiter=2n,
                                                      krylovdim=1, rtol=tolerance(T),
-                                                     verbosity=3)
+                                                     verbosity=EACHITERATION_LEVEL)
 
         x, info = linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), x, alg)
         @test info.numops == 1
         @test_logs linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), x, alg)
-        alg = CG(; maxiter=2n, tol=tolerance(T) * norm(b), verbosity=1)
+        alg = CG(; maxiter=2n, tol=tolerance(T) * norm(b), verbosity=WARN_LEVEL)
         @test_logs linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), x, alg)
-        alg = CG(; maxiter=2n, tol=tolerance(T) * norm(b), verbosity=2)
+        alg = CG(; maxiter=2n, tol=tolerance(T) * norm(b), verbosity=STARTSTOP_LEVEL)
         @test_logs (:info,) linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), x, alg)
-        alg = CG(; maxiter=2n, tol=tolerance(T) * norm(b), verbosity=0)
+        alg = CG(; maxiter=2n, tol=tolerance(T) * norm(b), verbosity=SILENT_LEVEL)
 
         A = rand(T, (n, n))
         A = sqrt(A * A')
@@ -70,16 +70,17 @@ end
             @test_logs linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)),
                                 wrapvec(x₀, Val(mode));
                                 isposdef=true, maxiter=1, krylovdim=N,
-                                rtol=tolerance(T), verbosity=0)
+                                rtol=tolerance(T), verbosity=SILENT_LEVEL)
             @test_logs (:warn,) linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)),
                                          wrapvec(x₀, Val(mode));
                                          isposdef=true, maxiter=1, krylovdim=N,
-                                         rtol=tolerance(T), verbosity=1)
+                                         rtol=tolerance(T), verbosity=WARN_LEVEL)
             @test_logs (:info,) (:warn,) linsolve(wrapop(A, Val(mode)),
                                                   wrapvec(b, Val(mode)),
                                                   wrapvec(x₀, Val(mode));
                                                   isposdef=true, maxiter=1, krylovdim=N,
-                                                  rtol=tolerance(T), verbosity=2)
+                                                  rtol=tolerance(T),
+                                                  verbosity=STARTSTOP_LEVEL)
         end
 
         α₀ = rand(real(T)) + 1
@@ -99,39 +100,46 @@ end
     @testset for T in scalartypes
         A = rand(T, (n, n)) .- one(T) / 2
         b = rand(T, n)
-        alg = GMRES(; krylovdim=n, maxiter=2, tol=tolerance(T) * norm(b), verbosity=0)
+        alg = GMRES(; krylovdim=n, maxiter=2, tol=tolerance(T) * norm(b),
+                    verbosity=SILENT_LEVEL)
         x, info = @constinferred linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode));
                                           krylovdim=n, maxiter=2,
-                                          rtol=tolerance(T), verbosity=0)
+                                          rtol=tolerance(T), verbosity=SILENT_LEVEL)
         @test info.converged == 1
         @test unwrapvec(b) ≈ A * unwrapvec(x)
         @test_logs linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode));
                             krylovdim=n, maxiter=2,
-                            rtol=tolerance(T), verbosity=0)
+                            rtol=tolerance(T), verbosity=SILENT_LEVEL)
         @test_logs linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode));
                             krylovdim=n, maxiter=2,
-                            rtol=tolerance(T), verbosity=1)
+                            rtol=tolerance(T), verbosity=WARN_LEVEL)
         @test_logs (:info,) (:info,) linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode));
                                               krylovdim=n, maxiter=2,
-                                              rtol=tolerance(T), verbosity=2)
+                                              rtol=tolerance(T), verbosity=STARTSTOP_LEVEL)
         @test_logs min_level = Logging.Warn linsolve(wrapop(A, Val(mode)),
                                                      wrapvec(b, Val(mode));
                                                      krylovdim=n, maxiter=2,
-                                                     rtol=tolerance(T), verbosity=3)
+                                                     rtol=tolerance(T),
+                                                     verbosity=EACHITERATION_LEVEL)
 
-        alg = GMRES(; krylovdim=n, maxiter=2, tol=tolerance(T) * norm(b), verbosity=0)
+        alg = GMRES(; krylovdim=n, maxiter=2, tol=tolerance(T) * norm(b),
+                    verbosity=SILENT_LEVEL)
         x, info = @constinferred linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), x,
                                           alg)
         @test info.numops == 1
         @test_logs linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), x, alg)
-        alg = GMRES(; krylovdim=n, maxiter=2, tol=tolerance(T) * norm(b), verbosity=1)
+        alg = GMRES(; krylovdim=n, maxiter=2, tol=tolerance(T) * norm(b),
+                    verbosity=WARN_LEVEL)
         @test_logs linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), x, alg)
-        alg = GMRES(; krylovdim=n, maxiter=2, tol=tolerance(T) * norm(b), verbosity=2)
+        alg = GMRES(; krylovdim=n, maxiter=2, tol=tolerance(T) * norm(b),
+                    verbosity=STARTSTOP_LEVEL)
         @test_logs (:info,) linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), x, alg)
-        alg = GMRES(; krylovdim=n, maxiter=2, tol=tolerance(T) * norm(b), verbosity=0)
+        alg = GMRES(; krylovdim=n, maxiter=2, tol=tolerance(T) * norm(b),
+                    verbosity=SILENT_LEVEL)
 
         nreal = (T <: Real) ? n : 2n
-        algr = GMRES(; krylovdim=nreal, maxiter=2, tol=tolerance(T) * norm(b), verbosity=0)
+        algr = GMRES(; krylovdim=nreal, maxiter=2, tol=tolerance(T) * norm(b),
+                     verbosity=SILENT_LEVEL)
         xr, infor = @constinferred reallinsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)),
                                                 zerovector(x), algr)
         @test infor.converged == 1
@@ -174,20 +182,22 @@ end
             @test_logs linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)),
                                 wrapvec(x₀, Val(mode));
                                 krylovdim=3 * n,
-                                maxiter=50, rtol=tolerance(T), verbosity=0)
+                                maxiter=50, rtol=tolerance(T), verbosity=SILENT_LEVEL)
             @test_logs (:warn,) linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)),
                                          wrapvec(x₀, Val(mode));
                                          krylovdim=3 * n,
-                                         maxiter=50, rtol=tolerance(T), verbosity=1)
+                                         maxiter=50, rtol=tolerance(T),
+                                         verbosity=WARN_LEVEL)
             @test_logs (:info,) (:warn,) linsolve(wrapop(A, Val(mode)),
                                                   wrapvec(b, Val(mode)),
                                                   wrapvec(x₀, Val(mode));
                                                   krylovdim=3 * n,
                                                   maxiter=50, rtol=tolerance(T),
-                                                  verbosity=2)
+                                                  verbosity=STARTSTOP_LEVEL)
         end
 
-        alg = GMRES(; krylovdim=3 * n, maxiter=50, tol=tolerance(T) * norm(b), verbosity=0)
+        alg = GMRES(; krylovdim=3 * n, maxiter=50, tol=tolerance(T) * norm(b),
+                    verbosity=SILENT_LEVEL)
         xr, infor = @constinferred reallinsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)),
                                                 zerovector(x), alg)
         @test unwrapvec(b) ≈ A * unwrapvec(xr) + unwrapvec(infor.residual)
@@ -220,36 +230,37 @@ end
         A = rand(T, (n, n)) .- one(T) / 2
         A = I - T(9 / 10) * A / maximum(abs, eigvals(A))
         b = rand(T, n)
-        alg = BiCGStab(; maxiter=4n, tol=tolerance(T) * norm(b), verbosity=0)
+        alg = BiCGStab(; maxiter=4n, tol=tolerance(T) * norm(b), verbosity=SILENT_LEVEL)
         x, info = @constinferred linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)),
                                           wrapvec(zerovector(b), Val(mode)), alg)
         @test info.converged > 0
         @test unwrapvec(b) ≈ A * unwrapvec(x)
-        alg = BiCGStab(; maxiter=4n, tol=tolerance(T) * norm(b), verbosity=0)
+        alg = BiCGStab(; maxiter=4n, tol=tolerance(T) * norm(b), verbosity=SILENT_LEVEL)
         @test_logs linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)),
                             wrapvec(zerovector(b), Val(mode)), alg)
-        alg = BiCGStab(; maxiter=4n, tol=tolerance(T) * norm(b), verbosity=1)
+        alg = BiCGStab(; maxiter=4n, tol=tolerance(T) * norm(b), verbosity=WARN_LEVEL)
         @test_logs linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)),
                             wrapvec(zerovector(b), Val(mode)), alg)
-        alg = BiCGStab(; maxiter=4n, tol=tolerance(T) * norm(b), verbosity=2)
+        alg = BiCGStab(; maxiter=4n, tol=tolerance(T) * norm(b), verbosity=STARTSTOP_LEVEL)
         @test_logs (:info,) (:info,) linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)),
                                               wrapvec(zerovector(b), Val(mode)), alg)
-        alg = BiCGStab(; maxiter=4n, tol=tolerance(T) * norm(b), verbosity=3)
+        alg = BiCGStab(; maxiter=4n, tol=tolerance(T) * norm(b),
+                       verbosity=EACHITERATION_LEVEL)
         @test_logs min_level = Logging.Warn linsolve(wrapop(A, Val(mode)),
                                                      wrapvec(b, Val(mode)),
                                                      wrapvec(zerovector(b), Val(mode)), alg)
-        alg = BiCGStab(; maxiter=4n, tol=tolerance(T) * norm(b), verbosity=0)
+        alg = BiCGStab(; maxiter=4n, tol=tolerance(T) * norm(b), verbosity=SILENT_LEVEL)
 
         x, info = @constinferred linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), x,
                                           alg)
         @test info.numops == 1
-        alg = BiCGStab(; maxiter=4n, tol=tolerance(T) * norm(b), verbosity=0)
+        alg = BiCGStab(; maxiter=4n, tol=tolerance(T) * norm(b), verbosity=SILENT_LEVEL)
         @test_logs linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), x, alg)
-        alg = BiCGStab(; maxiter=4n, tol=tolerance(T) * norm(b), verbosity=1)
+        alg = BiCGStab(; maxiter=4n, tol=tolerance(T) * norm(b), verbosity=WARN_LEVEL)
         @test_logs linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), x, alg)
-        alg = BiCGStab(; maxiter=4n, tol=tolerance(T) * norm(b), verbosity=2)
+        alg = BiCGStab(; maxiter=4n, tol=tolerance(T) * norm(b), verbosity=STARTSTOP_LEVEL)
         @test_logs (:info,) linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), x, alg)
-        alg = BiCGStab(; maxiter=4n, tol=tolerance(T) * norm(b), verbosity=0)
+        alg = BiCGStab(; maxiter=4n, tol=tolerance(T) * norm(b), verbosity=SILENT_LEVEL)
 
         α₀ = rand(real(T)) + 1
         α₁ = rand(real(T))
@@ -268,7 +279,7 @@ end
         b = rand(T, N)
         α₀ = maximum(abs, eigvals(A))
         α₁ = -9 * rand(real(T)) / 10
-        alg = BiCGStab(; maxiter=2, tol=tolerance(T) * norm(b), verbosity=0)
+        alg = BiCGStab(; maxiter=2, tol=tolerance(T) * norm(b), verbosity=SILENT_LEVEL)
         x, info = @constinferred linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)),
                                           wrapvec(zerovector(b), Val(mode)), alg, α₀,
                                           α₁)
@@ -276,17 +287,18 @@ end
         if info.converged == 0
             @test_logs linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)),
                                 wrapvec(zerovector(b), Val(mode)), alg, α₀, α₁)
-            alg = BiCGStab(; maxiter=2, tol=tolerance(T) * norm(b), verbosity=1)
+            alg = BiCGStab(; maxiter=2, tol=tolerance(T) * norm(b), verbosity=WARN_LEVEL)
             @test_logs (:warn,) linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)),
                                          wrapvec(zerovector(b), Val(mode)), alg, α₀, α₁)
-            alg = BiCGStab(; maxiter=2, tol=tolerance(T) * norm(b), verbosity=2)
+            alg = BiCGStab(; maxiter=2, tol=tolerance(T) * norm(b),
+                           verbosity=STARTSTOP_LEVEL)
             @test_logs (:info,) (:warn,) linsolve(wrapop(A, Val(mode)),
                                                   wrapvec(b, Val(mode)),
                                                   wrapvec(zerovector(b), Val(mode)), alg,
                                                   α₀, α₁)
         end
 
-        alg = BiCGStab(; maxiter=10 * N, tol=tolerance(T) * norm(b), verbosity=0)
+        alg = BiCGStab(; maxiter=10 * N, tol=tolerance(T) * norm(b), verbosity=SILENT_LEVEL)
         x, info = @constinferred linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), x,
                                           alg, α₀, α₁)
         @test info.converged > 0

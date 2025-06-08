@@ -54,11 +54,11 @@ Furthermore, `args` is a set of additional arguments to specify the problem. The
 arguments `kwargs` contain information about the linear map (`issymmetric`, `ishermitian`,
 `isposdef`) and about the solution strategy (`tol`, `krylovdim`, `maxiter`). Finally, there
 is a keyword argument `verbosity` that determines how much information is printed to
-`STDOUT`. The default value `verbosity = 0` means that no information will be printed. With
-`verbosity = 1`, a single message at the end of the algorithm will be displayed, which is a
+`STDOUT`. The default value `verbosity = SILENT_LEVEL` means that no information will be printed. With
+`verbosity = WARN_LEVEL`, a single message at the end of the algorithm will be displayed, which is a
 warning if the algorithm did not succeed in finding the solution, or some information if it
-did. For `verbosity = 2`, information about the current state is displayed after every
-iteration of the algorithm. Finally, for `verbosity > 2`, information about the individual Krylov expansion steps is displayed.
+did. For `verbosity = STARTSTOP_LEVEL`, information about the current state is displayed after every
+iteration of the algorithm. Finally, for `verbosity > STARTSTOP_LEVEL`, information about the individual Krylov expansion steps is displayed.
 
 The return value contains one or more entries that define the solution, and a final
 entry `info` of type `ConvergeInfo` that encodes information about the solution, i.e.

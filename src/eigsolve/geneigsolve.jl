@@ -88,11 +88,11 @@ The return value is always of the form `vals, vecs, info = geneigsolve(...)` wit
 
 Keyword arguments and their default values are given by:
 
-  - `verbosity::Int = 0`: verbosity level, i.e. 
-    - 0 (suppress all messages)
-    - 1 (only warnings)
-    - 2 (one message with convergence info at the end)
-    - 3 (progress info after every iteration)
+  - `verbosity::Int = SILENT_LEVEL`: verbosity level, i.e. 
+    - SILENT_LEVEL (suppress all messages)
+    - WARN_LEVEL (only warnings)
+    - STARTSTOP_LEVEL (one message with convergence info at the end)
+    - EACHITERATION_LEVEL (progress info after every iteration)
   - `tol::Real`: the requested accuracy, relative to the 2-norm of the corresponding
     eigenvectors, i.e. convergence is achieved if `norm((A - λB)x) < tol * norm(x)`. Because
     eigenvectors are now normalised such that `dot(x, B*x) = 1`, `norm(x)` is not
@@ -199,7 +199,7 @@ end
 
 function geneigselector(AB::Tuple{AbstractMatrix,AbstractMatrix},
                         T::Type;
-                        issymmetric=T <: Real && all(LinearAlgebra.issymmetric, AB),
+                        issymmetric=(T <: Real && all(LinearAlgebra.issymmetric, AB)),
                         ishermitian=issymmetric || all(LinearAlgebra.ishermitian, AB),
                         isposdef=ishermitian && LinearAlgebra.isposdef(AB[2]),
                         kwargs...)

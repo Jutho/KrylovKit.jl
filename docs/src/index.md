@@ -91,7 +91,7 @@ The following algorithms are currently implemented
 *   `linsolve`: [`CG`](@ref), [`GMRES`](@ref), [`BiCGStab`](@ref)
 *   `eigsolve`: a Krylov-Schur algorithm (i.e. with tick restarts) for extremal eigenvalues
     of normal (i.e. not generalized) eigenvalue problems, corresponding to
-    [`Lanczos`](@ref) for real symmetric or complex hermitian linear maps, and to
+    [`Lanczos`](@ref) and [`BlockLanczos`](@ref) for real symmetric or complex hermitian linear maps, and to
     [`Arnoldi`](@ref) for general linear maps.
 *   `geneigsolve`: an customized implementation of the inverse-free algorithm of Golub and
     Ye for symmetric / hermitian generalized eigenvalue problems with positive definite

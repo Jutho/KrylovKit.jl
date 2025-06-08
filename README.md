@@ -48,7 +48,7 @@ KrylovKit v0.9 adds two new sets of functionality:
 
 In addition, the following is technically a breaking change:
 * The verbosity system, the different verbosity levels and the output formatting have been redesigned (both in the primal methods
-  and the rrules). The default verbosity level is now 1, which means that warnings will be printed by default, but all other output
+  and the rrules). The default verbosity level is now `WARN_LEVEL`, which means that warnings will be printed by default, but all other output
   (info messages) are suppressed. Before, the default verbosity was such that all output (including warnings) were suppressed.
 
 ## Overview

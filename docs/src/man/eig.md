@@ -25,7 +25,7 @@ using `schursolve`, for which only an 'expert' method call is available
 schursolve
 ```
 Note that, for symmetric or hermitian linear maps, the eigenvalue and Schur factorization
-are equivalent, and one should only use `eigsolve`. There is no `schursolve` using the `Lanczos` algorithm.
+are equivalent, and one should only use `eigsolve`. There is no `schursolve` using the `Lanczos` or `BlockLanczos` algorithm.
 
 Another example of a possible use case of `schursolve` is if the linear map is known to have
 a unique eigenvalue of, e.g. largest magnitude. Then, if the linear map is real valued, that
@@ -74,7 +74,7 @@ by changing the phase of those eigenvectors, i.e. the cost function should be 'g
 If this is not the case, the cost function is said to be 'gauge dependent', and this can be detected
 in the resulting adjoint variables for those eigenvectors. The KrylovKit `rrule` for `eigsolve`
 will print a warning if it detects from the incoming adjoint variables that the cost function is gauge
-dependent. This warning can be suppressed by passing `alg_rrule` an algorithm with `verbosity=-1`.
+dependent. This warning can be suppressed by passing `alg_rrule` an algorithm with `verbosity=SILENT_LEVEL-1`.
 
 ## Generalized eigenvalue problems
 

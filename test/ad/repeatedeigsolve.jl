@@ -1,6 +1,7 @@
-module DegenerateEigsolveAD
+module RepeatedEigsolveAD
 
 using KrylovKit, LinearAlgebra
+using KrylovKit: SILENT_LEVEL, WARN_LEVEL, STARTSTOP_LEVEL, EACHITERATION_LEVEL
 using Random, Test, TestExtras
 using ChainRulesCore, ChainRulesTestUtils, Zygote, FiniteDifferences
 using ..TestSetup
@@ -82,7 +83,7 @@ function build_mat_example(A, B, C, x, alg, alg_rrule)
            vecs
 end
 
-@timedtestset "Degenerate eigsolve AD test with eltype=$T" for T in (Float64, ComplexF64)
+@timedtestset "Repeated eigsolve AD test with eltype=$T" for T in (Float64, ComplexF64)
     n = 10
     N = 3n
 
@@ -95,8 +96,8 @@ end
 
     tol = tolerance(T) #2 * N^2 * eps(real(T))
     alg = Arnoldi(; tol=tol, krylovdim=2n)
-    alg_rrule1 = Arnoldi(; tol=tol, krylovdim=2n, verbosity=0)
-    alg_rrule2 = GMRES(; tol=tol, krylovdim=2n, verbosity=0)
+    alg_rrule1 = Arnoldi(; tol=tol, krylovdim=2n, verbosity=SILENT_LEVEL)
+    alg_rrule2 = GMRES(; tol=tol, krylovdim=2n, verbosity=SILENT_LEVEL)
     #! format: off
     mat_example1, mat_example_fun1, mat_example_fd, Avec, Bvec, Cvec, xvec, vals, vecs =
         build_mat_example(A, B, C, x, alg, alg_rrule1)
@@ -141,19 +142,19 @@ end
     ∂vecsC = complex.(JC1[1 .+ (1:N), :], JC1[N + 2 .+ (1:N), :])
     if T <: Complex # test holomorphicity / Cauchy-Riemann equations
         # for eigenvalues
-        @test real(∂valsA[1:2:(2n^2)]) ≈ +imag(∂valsA[2:2:(2n^2)])
-        @test imag(∂valsA[1:2:(2n^2)]) ≈ -real(∂valsA[2:2:(2n^2)])
-        @test real(∂valsB[1:2:(2n^2)]) ≈ +imag(∂valsB[2:2:(2n^2)])
-        @test imag(∂valsB[1:2:(2n^2)]) ≈ -real(∂valsB[2:2:(2n^2)])
-        @test real(∂valsC[1:2:(2n^2)]) ≈ +imag(∂valsC[2:2:(2n^2)])
-        @test imag(∂valsC[1:2:(2n^2)]) ≈ -real(∂valsC[2:2:(2n^2)])
+        @test real(∂valsA[1:2:(2n ^ 2)]) ≈ +imag(∂valsA[2:2:(2n ^ 2)])
+        @test imag(∂valsA[1:2:(2n ^ 2)]) ≈ -real(∂valsA[2:2:(2n ^ 2)])
+        @test real(∂valsB[1:2:(2n ^ 2)]) ≈ +imag(∂valsB[2:2:(2n ^ 2)])
+        @test imag(∂valsB[1:2:(2n ^ 2)]) ≈ -real(∂valsB[2:2:(2n ^ 2)])
+        @test real(∂valsC[1:2:(2n ^ 2)]) ≈ +imag(∂valsC[2:2:(2n ^ 2)])
+        @test imag(∂valsC[1:2:(2n ^ 2)]) ≈ -real(∂valsC[2:2:(2n ^ 2)])
         # and for eigenvectors
-        @test real(∂vecsA[:, 1:2:(2n^2)]) ≈ +imag(∂vecsA[:, 2:2:(2n^2)])
-        @test imag(∂vecsA[:, 1:2:(2n^2)]) ≈ -real(∂vecsA[:, 2:2:(2n^2)])
-        @test real(∂vecsB[:, 1:2:(2n^2)]) ≈ +imag(∂vecsB[:, 2:2:(2n^2)])
-        @test imag(∂vecsB[:, 1:2:(2n^2)]) ≈ -real(∂vecsB[:, 2:2:(2n^2)])
-        @test real(∂vecsC[:, 1:2:(2n^2)]) ≈ +imag(∂vecsC[:, 2:2:(2n^2)])
-        @test imag(∂vecsC[:, 1:2:(2n^2)]) ≈ -real(∂vecsC[:, 2:2:(2n^2)])
+        @test real(∂vecsA[:, 1:2:(2n ^ 2)]) ≈ +imag(∂vecsA[:, 2:2:(2n ^ 2)])
+        @test imag(∂vecsA[:, 1:2:(2n ^ 2)]) ≈ -real(∂vecsA[:, 2:2:(2n ^ 2)])
+        @test real(∂vecsB[:, 1:2:(2n ^ 2)]) ≈ +imag(∂vecsB[:, 2:2:(2n ^ 2)])
+        @test imag(∂vecsB[:, 1:2:(2n ^ 2)]) ≈ -real(∂vecsB[:, 2:2:(2n ^ 2)])
+        @test real(∂vecsC[:, 1:2:(2n ^ 2)]) ≈ +imag(∂vecsC[:, 2:2:(2n ^ 2)])
+        @test imag(∂vecsC[:, 1:2:(2n ^ 2)]) ≈ -real(∂vecsC[:, 2:2:(2n ^ 2)])
     end
     # test orthogonality of vecs and ∂vecs
     @test all(isapprox.(abs.(vecs[1]' * ∂vecsA), 0; atol=sqrt(eps(real(T)))))

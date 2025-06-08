@@ -2,8 +2,9 @@ using Random
 Random.seed!(76543210)
 
 using Test, TestExtras, Logging
-using LinearAlgebra
+using LinearAlgebra, SparseArrays
 using KrylovKit
+using KrylovKit: SILENT_LEVEL, WARN_LEVEL, STARTSTOP_LEVEL, EACHITERATION_LEVEL
 using VectorInterface
 
 include("testsetup.jl")
@@ -57,10 +58,13 @@ end
 end
 @testset "Eigsolve differentiation rules" verbose = true begin
     include("ad/eigsolve.jl")
-    include("ad/degenerateeigsolve.jl")
+    include("ad/repeatedeigsolve.jl")
 end
 @testset "Svdsolve differentiation rules" verbose = true begin
     include("ad/svdsolve.jl")
+end
+@testset "block" verbose = true begin
+    include("block.jl")
 end
 t = time() - t
 

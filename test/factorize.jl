@@ -3,8 +3,6 @@
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
                   (ComplexF64,)
     orths = mode === :vector ? (cgs2, mgs2, cgsr, mgsr) : (cgs2,)
-    using KrylovKit: EACHITERATION_LEVEL
-
     @testset for T in scalartypes
         @testset for orth in orths # tests fail miserably for cgs and mgs
             A = rand(T, (n, n))
@@ -46,18 +44,18 @@
                 A = rand(T, (n, n)) # test warnings for non-hermitian matrices
                 v = rand(T, (n,))
                 iter = LanczosIterator(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), orth)
-                fact = @constinferred initialize(iter; verbosity=0)
-                @constinferred expand!(iter, fact; verbosity=0)
-                @test_logs initialize(iter; verbosity=0)
+                fact = @constinferred initialize(iter; verbosity=SILENT_LEVEL)
+                @constinferred expand!(iter, fact; verbosity=SILENT_LEVEL)
+                @test_logs initialize(iter; verbosity=SILENT_LEVEL)
                 @test_logs (:warn,) initialize(iter)
-                verbosity = 1
+                verbosity = WARN_LEVEL
                 while length(fact) < n
-                    if verbosity == 1
+                    if verbosity == WARN_LEVEL
                         @test_logs (:warn,) expand!(iter, fact; verbosity=verbosity)
-                        verbosity = 0
+                        verbosity = SILENT_LEVEL
                     else
                         @test_logs expand!(iter, fact; verbosity=verbosity)
-                        verbosity = 1
+                        verbosity = WARN_LEVEL
                     end
                 end
             end
@@ -293,6 +291,88 @@ end
             @test norm(r) ≈ β
             @test A * V ≈ U * B + r * e'
             @test A' * U ≈ V * B'
+        end
+    end
+end
+
+# Test complete BlockLanczos factorization
+@testset "Complete BlockLanczos factorization " for mode in (:vector, :inplace, :outplace)
+    scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
+                  (ComplexF64,)
+    @testset for T in scalartypes
+        block_size = 5
+        A = mat_with_eigrepition(T, N, block_size)
+        x₀m = Matrix(qr(rand(T, N, block_size)).Q)
+        x₀ = KrylovKit.Block{T}([wrapvec(x₀m[:, i], Val(mode)) for i in 1:block_size])
+        eigvalsA = eigvals(A)
+        iter = BlockLanczosIterator(wrapop(A, Val(mode)), x₀, N, tolerance(T))
+        fact = @constinferred initialize(iter)
+        @constinferred expand!(iter, fact)
+        @test_logs initialize(iter; verbosity=EACHITERATION_LEVEL)
+        @test_logs (:info,) initialize(iter; verbosity=EACHITERATION_LEVEL + 1)
+        verbosity = EACHITERATION_LEVEL + 1
+        while fact.k < n
+            if verbosity == EACHITERATION_LEVEL + 1
+                @test_logs (:info,) expand!(iter, fact; verbosity=verbosity)
+                verbosity = EACHITERATION_LEVEL
+            else
+                @test_logs expand!(iter, fact; verbosity=verbosity)
+                verbosity = EACHITERATION_LEVEL + 1
+            end
+        end
+
+        if T <: Complex
+            B = rand(T, (n, n)) # test warnings for non-hermitian matrices
+            bs = 2
+            v₀m = Matrix(qr(rand(T, n, bs)).Q)
+            v₀ = KrylovKit.Block{T}([wrapvec(v₀m[:, i], Val(mode)) for i in 1:bs])
+            iter = BlockLanczosIterator(wrapop(B, Val(mode)), v₀, N, tolerance(T))
+            fact = @constinferred initialize(iter)
+            @constinferred expand!(iter, fact; verbosity=SILENT_LEVEL)
+            @test_logs initialize(iter; verbosity=SILENT_LEVEL)
+            @test_logs (:warn,) initialize(iter)
+            verbosity = WARN_LEVEL
+            while fact.k < n
+                if verbosity == WARN_LEVEL
+                    @test_logs (:warn,) expand!(iter, fact; verbosity=verbosity)
+                    verbosity = SILENT_LEVEL
+                else
+                    @test_logs expand!(iter, fact; verbosity=verbosity)
+                    verbosity = WARN_LEVEL
+                end
+            end
+        end
+    end
+end
+
+# Test incomplete BlockLanczos factorization
+@testset "Incomplete BlockLanczos factorization " for mode in
+                                                      (:vector, :inplace, :outplace)
+    scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
+                  (ComplexF64,)
+    @testset for T in scalartypes
+        block_size = 5
+        A = mat_with_eigrepition(T, N, block_size)
+        x₀m = Matrix(qr(rand(T, N, block_size)).Q)
+        x₀ = KrylovKit.Block{T}([wrapvec(x₀m[:, i], Val(mode)) for i in 1:block_size])
+        iter = @constinferred BlockLanczosIterator(wrapop(A, Val(mode)), x₀, N,
+                                                   tolerance(T))
+        krylovdim = n
+        fact = @constinferred initialize(iter)
+        while fact.norm_R > eps(float(real(T))) && fact.k < krylovdim
+            @constinferred expand!(iter, fact)
+            k = fact.k
+            rs = fact.R_size
+            V0 = fact.V[1:k]
+            r0 = fact.R[1:rs]
+            H = fact.H[1:k, 1:k]
+            norm_R = fact.norm_R
+            V = hcat([unwrapvec(v) for v in V0]...)
+            r = hcat([unwrapvec(r0[i]) for i in 1:rs]...)
+            e = hcat(zeros(T, rs, k - rs), I)
+            @test V' * V ≈ I
+            @test norm(r) ≈ norm_R
+            @test A * V ≈ V * H + r * e
         end
     end
 end
