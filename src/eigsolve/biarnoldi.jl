@@ -230,8 +230,8 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
                 # as suggested by the authors 
 
                 # This is Eq. 10 in the paper
-                xh = abs(h[converged + 1]) 
-                xk = abs(k[converged + 1]) 
+                xh = abs(h[converged + 1]) / abs(M[converged + 1, converged + 1])
+                xk = abs(k[converged + 1]) / abs(M[converged + 1, converged + 1])
                 if max(xh, xk) <= tol
                     converged += 1
                 else
