@@ -200,7 +200,7 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
             # Step 5 - Compute dense schur factorization
             S, Q, valuesH = hschur!(H, Q)
             T, Z, valuesK = hschur!(K, Z)
-
+            
             # Step 6 - Order the Schur decompositions
             by, rev = eigsort(which)
             pH = sortperm(valuesH; by=by, rev=rev)
@@ -210,8 +210,8 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
             T, Z = permuteschur!(T, Z, pK)
 
             # Partially Step 7 & 8 - Correction of hm and km
-            h = mul!(h, view(Q, L, :), 1)
-            k = mul!(k, view(Z, L, :), 1)
+            h = mul!(h, view(Q, L, :), 1.0)
+            k = mul!(k, view(Z, L, :), 1.0)
 
             converged = 0
             while converged < length(fact)
@@ -224,8 +224,8 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
                 # as suggested by the authors 
 
                 # This is Eq. 10 in the paper
-                xh = abs(h[converged + 1]) / abs(M[converged + 1, converged + 1])
-                xk = abs(k[converged + 1]) / abs(M[converged + 1, converged + 1])
+                xh = norm(rV) * abs(h[converged + 1]) / abs(M[converged + 1, converged + 1])
+                xk = norm(rW) *abs(k[converged + 1]) / abs(M[converged + 1, converged + 1])
                 if max(xh, xk) <= tol
                     converged += 1
                 else
@@ -289,7 +289,7 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
 
             H[1:keep, 1:keep] += Vv * transpose(h[1:keep])
             K[1:keep, 1:keep] += Ww * transpose(k[1:keep])
-
+            
             # newresidual = (I - Vm Vm*) oldresidual = (I - Vl Q1 Vm*) oldresidual = oldresidual + Vl Q1 Q_1^* MWv = oldresidual + Vl Q1 Vv
             Q1Vv = Q[:, 1:keep] * Vv
             Z1Ww = Z[:, 1:keep] * Ww
@@ -299,10 +299,10 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
                 rV = add!!(rV, V[i], -Q1Vv[i])
                 rW = add!!(rW, W[i], -Z1Ww[i])
             end
-
+           
             # Restore Arnoldi form in the first keep columns; this is not part of the original paper
-            _restorearnoldiformandupdatebasis!(keep, H, Q, h, rayleighquotient(fact)[1], V)
-            _restorearnoldiformandupdatebasis!(keep, K, Z, k, rayleighquotient(fact)[2], W)
+            _restorearnoldiformandupdatebasis!(keep, H, Q, h, rayleighquotient(fact)[1], V, rV)
+            _restorearnoldiformandupdatebasis!(keep, K, Z, k, rayleighquotient(fact)[2], W, rW)
 
             # Update M according to the transformation M -> Z'MQ to save some inner products later
             _M = view(MM, 1:keep, 1:keep)
@@ -319,9 +319,11 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
     return (S, Q), (T, Z), fact, converged, numiter, numops
 end
 
-function _restorearnoldiformandupdatebasis!(keep, H, U, f, rq, B)
+function _restorearnoldiformandupdatebasis!(keep, H, U, f, rq, B, r)
+    nr = norm(r)
+
     @inbounds for j in 1:keep
-        H[keep + 1, j] = f[j]
+        H[keep + 1, j] = f[j] * nr
     end
     @inbounds for j in keep:-1:1
         h, ν = householder(H, j + 1, 1:j, j)
@@ -335,6 +337,7 @@ function _restorearnoldiformandupdatebasis!(keep, H, U, f, rq, B)
 
     # Update B by applying U
     basistransform!(B, view(U, :, 1:keep))
+    B[keep + 1] = scale!!(r, 1 / nr)
 
     return nothing
 end
