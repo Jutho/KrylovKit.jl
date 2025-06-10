@@ -1,7 +1,7 @@
 # 
 function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi;
                     alg_rrule=alg)
-    (S, Q), (T, Z), (βrV, βrW), fact, converged, numiter, numops = _schursolve(f, v₀, w₀, howmany,
+    (S, Q), (T, Z), fact, converged, numiter, numops = _schursolve(f, v₀, w₀, howmany,
                                                                    which, alg)
 
     howmany′ = howmany
@@ -30,7 +30,7 @@ function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi
     end
 
     H, K = rayleighquotient(fact)
-    residualsS = _getresiduals(βrV, H[end, :], VS)
+    residualsS = _getresiduals(H[end, :], VS)
     # residualsT = _getresiduals(βrW, rW, VT )
 
     # we need to match the eigenvalues; sometimes λ and λ* get mismatched,
@@ -61,7 +61,7 @@ function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi
                            numiter, numops)
 end
 
-function _getresiduals(βr, h, c)
+function _getresiduals(h, c)
     # || r_j || = ... = || v~_{l+1} || |h^*_l c_j |
     # where v~_{l+1} is the biorthogonality corrected residual, 
     #       h^*_l is the final term in the Arnoldi expansion and 
@@ -70,7 +70,7 @@ function _getresiduals(βr, h, c)
 
     residuals = zeros(real(eltype(c)), size(c, 2))
     for j in axes(c, 2)
-        residuals[j] = βr * abs(h'c[:, j])
+        residuals[j] = abs(h'c[:, j])
     end
     residuals
 end
@@ -146,7 +146,6 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
     V, W = basis(fact)
     MM[L, L] = inner(W[L], V[L])
     converged = 0
-    βrV = βrW = 0.0
     local S, T, Q, Z
     while true
         βv, βw = normres(fact)
@@ -177,8 +176,6 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
             copyto!.((H, K), rayleighquotient(fact))
 
             rV, rW = residual(fact)
-            rV = scale!!(rV, 1 / βv)
-            rW = scale!!(rW, 1 / βw)
 
             # Step 2 and 3 - Correct H, K and the residuals using the oblique projection
 
@@ -192,8 +189,8 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
             F = lu(M)
             MWv = F \ Wv
             MVw = F' \ Vw
-            add!(view(H, :, L), MWv, βv)
-            add!(view(K, :, L), MVw, βw)
+            add!(view(H, :, L), MWv, 1)
+            add!(view(K, :, L), MVw, 1)
 
             for i in eachindex(Wv)
                 rV = add!!(rV, V[i], -MWv[i])
@@ -213,11 +210,8 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
             T, Z = permuteschur!(T, Z, pK)
 
             # Partially Step 7 & 8 - Correction of hm and km
-            h = mul!(h, view(Q, L, :), βv)
-            k = mul!(k, view(Z, L, :), βw)
-
-            βrV = norm(rV)
-            βrW = norm(rW)
+            h = mul!(h, view(Q, L, :), 1)
+            k = mul!(k, view(Z, L, :), 1)
 
             converged = 0
             while converged < length(fact)
@@ -306,17 +300,9 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
                 rW = add!!(rW, W[i], -Z1Ww[i])
             end
 
-            βpv = norm(rV)
-            βpw = norm(rW)
-
-            h .*= βpv
-            k .*= βpw
-
             # Restore Arnoldi form in the first keep columns; this is not part of the original paper
-            _restorearnoldiformandupdatebasis!(keep, H, Q, h, rayleighquotient(fact)[1],
-                                               V, rV, βpv)
-            _restorearnoldiformandupdatebasis!(keep, K, Z, k, rayleighquotient(fact)[2],
-                                               W, rW, βpw)
+            _restorearnoldiformandupdatebasis!(keep, H, Q, h, rayleighquotient(fact)[1], V)
+            _restorearnoldiformandupdatebasis!(keep, K, Z, k, rayleighquotient(fact)[2], W)
 
             # Update M according to the transformation M -> Z'MQ to save some inner products later
             _M = view(MM, 1:keep, 1:keep)
@@ -330,10 +316,10 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
         end
     end
 
-    return (S, Q), (T, Z), (βrV, βrW), fact, converged, numiter, numops
+    return (S, Q), (T, Z), fact, converged, numiter, numops
 end
 
-function _restorearnoldiformandupdatebasis!(keep, H, U, f, rq, B, r, βr)
+function _restorearnoldiformandupdatebasis!(keep, H, U, f, rq, B)
     @inbounds for j in 1:keep
         H[keep + 1, j] = f[j]
     end
@@ -349,5 +335,6 @@ function _restorearnoldiformandupdatebasis!(keep, H, U, f, rq, B, r, βr)
 
     # Update B by applying U
     basistransform!(B, view(U, :, 1:keep))
-    return B[keep + 1] = scale!!(r, 1 / βr)
+
+    return nothing
 end
