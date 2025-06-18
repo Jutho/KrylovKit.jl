@@ -403,9 +403,7 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
             while converged < length(fact) && abs(f[converged + 1]) <= tol
                 converged += 1
             end
-            if eltype(T) <: Real &&
-               0 < converged < length(fact) &&
-               T[converged + 1, converged] != 0
+            if 0 < converged < length(fact) && !iszero(T[converged + 1, converged])
                 converged -= 1
             end
 
@@ -424,7 +422,7 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
 
             # Determine how many to keep
             keep = div(3 * krylovdim + 2 * converged, 5) # strictly smaller than krylovdim since converged < howmany <= krylovdim, at least equal to converged
-            if eltype(H) <: Real && H[keep + 1, keep] != 0
+            if !iszero(H[keep + 1, keep])
                 # we are in the middle of a 2x2 block; this cannot happen if keep == converged, so we can decrease keep
                 # however, we have to make sure that we do not end up with keep = 0
                 if keep > 1
@@ -439,30 +437,52 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
                 end
             end
 
-            # Restore Arnoldi form in the first keep columns
-            @inbounds for j in 1:keep
-                H[keep + 1, j] = f[j]
-            end
-            @inbounds for j in keep:-1:1
-                h, ν = householder(H, j + 1, 1:j, j)
-                H[j + 1, j] = ν
-                H[j + 1, 1:(j - 1)] .= 0
-                lmul!(h, H)
-                rmul!(view(H, 1:j, :), h')
-                rmul!(U, h')
-            end
-            copyto!(rayleighquotient(fact), H) # copy back into fact
-
-            # Update B by applying U
+            # Restore Arnoldi form in the first keep columns before shrinking
+            _restorearnoldiform!(U, H, f, keep)
+            # Copy H back into compact Hessenberg form
+            copy!(rayleighquotient(fact), H)
+            # Update the basis
             B = basis(fact)
             basistransform!(B, view(U, :, 1:keep))
-            r = residual(fact)
-            B[keep + 1] = scale!!(r, 1 / normres(fact))
-
-            # Shrink Arnoldi factorization
+            B[keep + 1] = scale!!(residual(fact), 1 / β)
+            # Everything is set up to shrink Arnoldi factorization
             fact = shrink!(fact, keep; verbosity=alg.verbosity)
             numiter += 1
         end
     end
     return T, U, fact, converged, numiter, numops
+end
+
+# Input:
+# Square matrices `U` and `H` of some size `m x m`, a vector `f` of length `m` and an integer value `keep`
+# such that:
+# * there exists a general Krylov factorization of the form
+#   ``A * V * U = V * U * H + v * f``
+#   with `V`` some orthonormal basis and `v` some unit-norm residual vector, i.e. `V'*v = 0` and `norm(v) = 1`
+# * `keep < m`
+# * `H[keep+1:m, 1:keep]` is zero (i.e. the first `keep` coordinate axis span an invariant subspace of `H`)
+#
+# Output:
+# `U` and `H` are updated in place such that a truncated Krylov factorization of size `keep` in
+# standard Arnoldi form is obtained, i.e.
+# A * V * U[:, 1:keep] = V * U[:, 1:keep] * H[1:keep, 1:keep] + H[keep+1, keep] * v * eₖ
+# with `H[1:keep, 1:keep]` in Hessenberg form and `eₖ` the unit vector along the `keep`-th coordinate axis.
+function _restorearnoldiform!(U, H, f, keep)
+    @inbounds for j in 1:keep
+        H[keep + 1, j] = f[j]
+    end
+    @inbounds for j in keep:-1:1
+        h, ν = householder(H, j + 1, 1:j, j)
+        H[j + 1, j] = ν
+        H[j + 1, 1:(j - 1)] .= 0
+        lmul!(h, H)
+        rmul!(view(H, 1:j, :), h')
+        rmul!(U, h')
+    end
+    copyto!(Hcompact, H) # copy back into compact Hessenberg form
+
+    # Update basis B by applying U
+    basistransform!(B, view(U, :, 1:keep))
+    B[keep + 1] = scale!!(r, 1 / βr)
+    return nothing
 end
