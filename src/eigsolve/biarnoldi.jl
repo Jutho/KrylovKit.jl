@@ -1,8 +1,10 @@
 # 
 function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi;
                     alg_rrule=alg)
-    (S, Q), (T, Z), (βrV, βrW), fact, converged, numiter, numops = _schursolve(f, v₀, w₀, howmany,
-                                                                   which, alg)
+    #! format: off
+    (S, T), (Q, Z), (V, W), (rV, rW), (h, k), M, converged, numiter, numops =
+        _bischursolve(f, v₀, w₀, howmany, which, alg)
+    #! format: on
 
     howmany′ = howmany
     if eltype(T) <: Real && howmany < length(fact) && T[howmany + 1, howmany] != 0
@@ -14,107 +16,62 @@ function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi
         howmany′ = converged
     end
 
+    # Compute the eigenvalues and eigenvectors of the reduced matrices
     SS = view(S, 1:howmany′, 1:howmany′)
     TT = view(T, 1:howmany′, 1:howmany′)
     valuesS = schur2eigvals(SS)
-    valuesT = schur2eigvals(TT)
+    vecsS = schur2eigvecs(SS)
 
-    # Compute eigenvectors
-    VS = view(Q, :, 1:howmany′) * schur2eigvecs(SS)
-    VT = view(Z, :, 1:howmany′) * schur2eigvecs(TT)
-    vectorsS = let B = basis(fact)[1]
-        [B * v for v in cols(VS)]
+    # Instead of computing the eigenvectors of TT separately, we can use the
+    # relation ZᴴMQ * S = T' * ZᴴMQ to compute vecsT directly from vecsS.
+    # In this way, we avoid the potential ordering mismatch, and the resulting
+    # left and right eigenvectors will automatically be biorthogonal.
+    # Note that this requires that ZᴴMQ can be accurately inverted.
+    ZᴴMQ = view(Z, :, 1:howmany′)' * M * view(Q, :, 1:howmany′)
+    vecsT = inv(adjoint(ZᴴMQ * vecsS))
+    valuesT = conj(valuesS)
+
+    if !isapprox(TT * vecsT, vecsT * Diagonal(valuesT)) && alg.verbosity >= WARN_LEVEL
+        @warn """Unexpected relation between S and T in BiArnoldi eigsolve:
+        left eigenvectors might not be correctly computed
+        """
     end
-    vectorsT = let B = basis(fact)[2]
-        [B * v for v in cols(VT)]
+
+    # Construct the actual eigenvectors and residuals
+    VS = view(Q, :, 1:howmany′) * vecsS
+    vectorsS = [V * v for v in cols(VS)]
+    hᴴVS = h[1:howmany′]' * vecsS
+    residualsS = [scale(rV, s) for s in hᴴVS]
+    normresidualsS = let βrV = norm(rV)
+        [βrV * s for s in hᴴVS]
     end
-
-    H, K = rayleighquotient(fact)
-    residualsS = _getresiduals(βrV, H[end, :], VS)
-    # residualsT = _getresiduals(βrW, rW, VT )
-
-    # we need to match the eigenvalues; sometimes λ and λ* get mismatched,
-    # if, e.g., one sorts by the real part
-    matchperm = _geteigenspacematchperm!!(valuesS, valuesT, vectorsS, vectorsT, residualsS)
-
-
-    normresidualsS = [abs(normres(fact)[1]) * abs(last(v)) for v in cols(VS)]
-    normresidualsT = [abs(normres(fact)[2]) * abs(last(v)) for v in cols(VT)]
+    VT = view(Z, :, 1:howmany′) * vecsT
+    vectorsT = [W * v for v in cols(VT)]
+    kᴴVT = k[1:howmany′]' * vecsT
+    residualsT = [scale(rW, s) for s in kᴴVT]
+    normresidualsT = let βrW = norm(rW)
+        [βrW * s for s in kᴴVT]
+    end
 
     if (converged < howmany) && alg.verbosity >= WARN_LEVEL
-        @warn """Arnoldi eigsolve stopped without convergence after $numiter iterations:
+        @warn """BiArnoldi eigsolve stopped without convergence after $numiter iterations:
         * $converged eigenvalues converged
         * norm of residuals = $(normres2string(normresidualsS))
         * number of operations = $numops"""
     elseif alg.verbosity >= STARTSTOP_LEVEL
-        @info """Arnoldi eigsolve finished after $numiter iterations:
+        @info """BiArnoldi eigsolve finished after $numiter iterations:
         * $converged eigenvalues converged
         * norm of residuals = $(normres2string(normresidualsS))
         * number of operations = $numops"""
     end
 
-    resize!(valuesS, length(matchperm))
-    resize!(vectorsS, length(matchperm))
+    infoS = ConvergenceInfo(converged, residualsS, normresidualsS, numiter, numops)
+    infoT = ConvergenceInfo(converged, residualsT, normresidualsT, numiter, numops)
 
-    return valuesS, vectorsS, vectorsT[matchperm],
-           ConvergenceInfo(converged, residualsS, max.(normresidualsS, normresidualsT),
-                           numiter, numops)
+    return valuesS, (vectorsS, vectorsT), (infoS, infoT)
 end
 
-function _getresiduals(βr, h, c)
-    # || r_j || = ... = || v~_{l+1} || |h^*_l c_j |
-    # where v~_{l+1} is the biorthogonality corrected residual, 
-    #       h^*_l is the final term in the Arnoldi expansion and 
-    #       c_j is the last Ritzvector
-    # from the _schursolve call we get || v~_{l+1} || = βrV
-
-    residuals = zeros(real(eltype(c)), size(c, 2))
-    for j in axes(c, 2)
-        residuals[j] = βr * abs(h'c[:, j])
-    end
-    residuals
-end
-
-function _geteigenspacematchperm!!(valuesS, valuesT, vectorsS, vectorsT, residualsS)
-    matchperm = zeros(Int64, length(valuesS))
-    usedvaluesT = zeros(Bool, length(valuesT))
-    firstunusedT = 1
-    for i in eachindex(matchperm)
-        # as both arrays are sorted roughly similar, tracking the first valid index
-        # changes the scaling of the loop from O(n^2) to rougly O(n)
-        while usedvaluesT[firstunusedT]
-            firstunusedT += 1
-        end
-        for j in firstunusedT:length(valuesT)
-            usedvaluesT[j] && continue 
-
-            if isapprox(norm(valuesS[i] - conj(valuesT[j])), 0.0; atol=max(norm(valuesS[i]), 1.0) * sqrt(eps(real(eltype(valuesS)))))
-                overlapji = inner(vectorsT[j], vectorsS[i])
-                if !isapprox(abs(overlapji), 0.0)
-                    matchperm[i] = j
-                    usedvaluesT[j] = true
-                    # normalize and rotate the vectors according to biorthogonality,
-                    #          <W_i | V_j> = delta_ij
-                    # distribute the weight to both vectors
-                    vectorsS[i] = scale!!(vectorsS[i], 1 / sqrt(overlapji))
-                    vectorsT[j] = scale!!(vectorsT[j], 1 / conj(sqrt(overlapji)))
-                    residualsS[i] /= abs(sqrt(overlapji))
-                    break
-                end
-            end
-        end
-
-        if matchperm[i] == 0
-            resize!(matchperm, i - 1)
-            @error "BiArnoldi bieigsolve converged with mismatched left- and right-eigenspaces"
-            break
-        end
-    end
-
-    return matchperm
-end
-
-function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi)
+function _bischursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi)
     krylovdim = alg.krylovdim
     maxiter = alg.maxiter
     howmany > krylovdim &&
@@ -135,19 +92,19 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
     KK = fill(zero(eltype(fact)), krylovdim + 1, krylovdim)
     QQ = fill(zero(eltype(fact)), krylovdim, krylovdim)
     ZZ = fill(zero(eltype(fact)), krylovdim, krylovdim)
-    Wvv = zeros(eltype(fact), krylovdim)
-    Vww = zeros(eltype(fact), krylovdim)
+    Wᴴvv = fill(zero(eltype(fact)), krylovdim)
+    Vᴴww = fill(zero(eltype(fact)), krylovdim)
 
     MM = fill(zero(eltype(fact)), krylovdim, krylovdim)
-    temp = fill(zero(eltype(fact)), krylovdim, krylovdim)
+    MMQQ = fill(zero(eltype(fact)), krylovdim, krylovdim)
+    ZZMMQQ = fill(zero(eltype(fact)), krylovdim, krylovdim)
 
     # initialize storage
     L = length(fact) # == 1
     V, W = basis(fact)
     MM[L, L] = inner(W[L], V[L])
     converged = 0
-    βrV = βrW = 0.0
-    local S, T, Q, Z
+    local S, T, Q, Z, rV, rW, h, k, M
     while true
         βv, βw = normres(fact)
         L = length(fact)
@@ -160,8 +117,7 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
             end
         end
         if L == krylovdim || (βv <= tol && βw <= tol) || (alg.eager && L >= howmany) # process
-
-            # Step 1
+            # Assign storage as views of the allocated arrays
             H = view(HH, 1:L, 1:L)
             K = view(KK, 1:L, 1:L)
             Q = view(QQ, 1:L, 1:L)
@@ -169,36 +125,47 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
             M = view(MM, 1:L, 1:L)
             h = view(HH, L + 1, 1:L)
             k = view(KK, L + 1, 1:L)
-            Wv = view(Wvv, 1:L)
-            Vw = view(Vww, 1:L)
+            Wᴴv = view(Wᴴvv, 1:L)
+            Vᴴw = view(Vᴴww, 1:L)
+            MQ = view(MMQQ, 1:L, 1:L)
+            ZMQ = view(ZZMMQQ, 1:L, 1:L)
 
+            # Initialize values
             copyto!(Q, I)
             copyto!(Z, I)
             copyto!.((H, K), rayleighquotient(fact))
+            # h .= SimpleBasisVector(L, L)
+            # k .= SimpleBasisVector(L, L)
 
+            # Step 1 - Normalize residuals so that they represent next Arnoldi vectors
             rV, rW = residual(fact)
-            rV = scale!!(rV, 1 / βv)
-            rW = scale!!(rW, 1 / βw)
+            rV = scale!!(rV, 1 / βv) # vℓ₊₁
+            rW = scale!!(rW, 1 / βw) # wℓ₊₁
+            # we remember the value of h and k until the first time we actually need to construt them
+            # h .*= βv # or thus: h = βv * SimpleBasisVector(L, L)
+            # k .*= βw # or thus: k = βw * SimpleBasisVector(L, L)
 
-            # Step 2 and 3 - Correct H, K and the residuals using the oblique projection
-
-            # Compute the projections W* residual(V) and V* residual(W)
+            # Step 2 - 3 - Correct H, K and the residuals using the oblique projection
+            # Compute the projections Wᴴ * residual(V) and Vᴴ * residual(W)
             V, W = basis(fact)
-            for i in eachindex(Wv)
-                Wv[i] = inner(W[i], rV)
-                Vw[i] = inner(V[i], rW)
+            @inbounds for i in 1:L
+                Wᴴv[i] = inner(W[i], rV)
+                Vᴴw[i] = inner(V[i], rW)
             end
 
-            F = lu(M)
-            MWv = F \ Wv
-            MVw = F' \ Vw
-            add!(view(H, :, L), MWv, βv)
-            add!(view(K, :, L), MVw, βw)
+            luM = lu(M)
+            M⁻¹Wᴴv = luM \ Wᴴv
+            M⁻ᴴVᴴw = luM' \ Vᴴw
+            add!(view(H, :, L), M⁻¹Wᴴv, βv) # H̃ = H + (M \ (W' * v)) * h'
+            add!(view(K, :, L), M⁻ᴴVᴴw, βw) # K̃ = K + (M' \ (V' * w)) * k'
 
-            for i in eachindex(Wv)
-                rV = add!!(rV, V[i], -MWv[i])
-                rW = add!!(rW, W[i], -MVw[i])
+            @inbounds for i in 1:L
+                rV = add!!(rV, V[i], -M⁻¹Wᴴv[i]) # ṽℓ₊₁
+                rW = add!!(rW, W[i], -M⁻ᴴVᴴw[i]) # w̃ℓ₊₁
             end
+
+            βrV = norm(rV) # || ṽℓ₊₁ ||
+            βrW = norm(rW) # || w̃ℓ₊₁ ||
 
             # Step 5 - Compute dense schur factorization
             S, Q, valuesH = hschur!(H, Q)
@@ -213,41 +180,35 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
             T, Z = permuteschur!(T, Z, pK)
 
             # Partially Step 7 & 8 - Correction of hm and km
-            h = mul!(h, view(Q, L, :), βv)
-            k = mul!(k, view(Z, L, :), βw)
+            h .= conj.(view(Q, L, :)) .* βv # h̃ = Q' * h
+            k .= conj.(view(Z, L, :)) .* βw # k̃ = Z' * k
 
-            βrV = norm(rV)
-            βrW = norm(rW)
+            # At this point, we have the partial Schur decompositions of the form
+            # A * V * Q = V * Q * S + rV * h'
+            # A' * W * Z = W * Z * T + rW * k'
+            # with W' * rV = 0 and V' * rW = 0
 
             converged = 0
             while converged < length(fact)
-                # The authors suggest the convergence should also include the 
-                # 1. a biorthogonality component, i.e., kappa_j / |rho_j| in the paper 
-                #    with kappa_j = norm(w_j* v_j) and rho_j = abs(w_j* A v_j) / kappa_j 
-                # 2. a contribution of the norms of tilde v and tilde w
-
-                # For the first case (1.), we use the Ritz values instead of the Rayleigh quotients 
-                # as suggested by the authors 
-
-                # This is Eq. 10 in the paper
-                xh = abs(h[converged + 1]) 
-                xk = abs(k[converged + 1]) 
+                # As in the Arnoldi case, we will not actually compute the 
+                # eigenvectors yet, but use the "residuals" of the Schur vectors
+                # to determine how many vectors have converged.
+                xh = βrV * abs(h[converged + 1])
+                xk = βrW * abs(k[converged + 1])
                 if max(xh, xk) <= tol
                     converged += 1
                 else
                     break
                 end
             end
-            if eltype(T) <: Real &&
-               0 < converged < length(fact) &&
-               T[converged + 1, converged] != 0
+            if 0 < converged < length(fact) && !iszero(S[converged + 1, converged])
                 converged -= 1
             end
 
             if converged >= howmany || (βv <= tol && βw <= tol)
                 break
             elseif alg.verbosity >= EACHITERATION_LEVEL
-                @info "Arnoldi schursolve in iteration $numiter, step = $L: $converged values converged, normres = $(normres2string(abs.(h[1:howmany])))"
+                @info "BiArnoldi schursolve in iteration $numiter, step = $L: $converged values converged, normres = $(normres2string(abs.(h[1:howmany])))"
             end
         end
 
@@ -256,20 +217,20 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
             V, W = basis(fact)
 
             # update M with the new basis vectors
-            for i in 1:L
+            @inbounds for i in 1:L
                 MM[i, L + 1] = inner(W[i], V[L + 1])
                 MM[L + 1, i] = inner(W[L + 1], V[i])
             end
             MM[L + 1, L + 1] = inner(W[L + 1], V[L + 1])
 
-            numops += 1
+            numops += 2
         else # shrink
             numiter == maxiter && break
 
             # Determine how many to keep
             keep = div(3 * krylovdim + 2 * converged, 5) # strictly smaller than krylovdim since converged < howmany <= krylovdim, at least equal to converged
 
-            while eltype(H) <: Real && (H[keep + 1, keep] != 0 || K[keep + 1, keep] != 0)
+            while (!iszero(H[keep + 1, keep]) || !iszero(K[keep + 1, keep]))
                 # we are in the middle of a 2x2 block; this cannot happen if keep == converged, so we can decrease keep
                 # however, we have to make sure that we do not end up with keep = 0
                 if keep > 1
@@ -284,70 +245,77 @@ function _schursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnold
                 end
             end
 
-            # Setp 10 & 11 - Correct the kept part of H and K and the residual 
+            # Step 9 to 11 - Shrink Krylov factorization and restore Arnoldi form for both directions
+            # In particular, we need to return to a Rayleigh quotient that is `V' * A * V` instead
+            # of `W' * A * V`, and residuals that satisfy `V' * rV = 0` and `W' * rW = 0` instead of
+            # `W' * rV = 0` and `V' * rW = 0`.
 
-            # We know that 
-            #   Vm* residual(V) = Q_1* (Vl* residual(V)) = Q_1* Vl* (residual - Vl Ml^-1 Wl* residual) = -Q_1* Ml^-1 Wl* residual = -Q_1* MWv 
-            # as Vl*Vl = Id and Vl* residual = 0
+            # Step 10 and 11: update Rayleigh quotients and residuals
+            # Ĥ = Sₖₖ + (V * Qₖ)' * ṽℓ₊₁ * h̃ₖ' (subscript k for `keep`)
+            # and
+            # (V * Qₖ)' * ṽℓ₊₁ = Qₖ' * V' * (vℓ₊₁ - V * M \ (W' * vℓ₊₁))= - Qₖ' * M \ (W' * vℓ₊₁)
+            # so that (and analoguously for K)
+            # Ĥ = Sₖₖ - Qₖ' * M⁻¹Wᴴv * h̃'ₖ
+            # K̂ = Tₖₖ - Zₖ' * M⁻ᴴVᴴw * k̃'ₖ
 
-            Vv = -adjoint(Q[:, 1:keep]) * MWv
-            Ww = -adjoint(Z[:, 1:keep]) * MVw
+            VQᴴv = -view(Q, :, 1:keep)' * M⁻¹Wᴴv
+            WZᴴw = -view(Z, :, 1:keep)' * M⁻ᴴVᴴw
 
-            H[1:keep, 1:keep] += Vv * transpose(h[1:keep])
-            K[1:keep, 1:keep] += Ww * transpose(k[1:keep])
+            H[1:keep, 1:keep] += VQᴴv * h[1:keep]' # Ĥ = Sₖₖ + (V * Qₖ)' * ṽℓ₊₁ * h̃ₖ'
+            K[1:keep, 1:keep] += WZᴴw * k[1:keep]' # K̂ = Tₖₖ + (W * Zₖ)' * w̃ℓ₊₁ * k̃ₖ'
 
-            # newresidual = (I - Vm Vm*) oldresidual = (I - Vl Q1 Vm*) oldresidual = oldresidual + Vl Q1 Q_1^* MWv = oldresidual + Vl Q1 Vv
-            Q1Vv = Q[:, 1:keep] * Vv
-            Z1Ww = Z[:, 1:keep] * Ww
-
-            V, W = basis(fact)
-            for i in eachindex(Q1Vv)
-                rV = add!!(rV, V[i], -Q1Vv[i])
-                rW = add!!(rW, W[i], -Z1Ww[i])
+            # We similarly correct the residuals
+            # v̂ = ṽℓ₊₁ - (V * Qₖ) * (V * Qₖ)' * ṽℓ₊₁
+            #   = ṽℓ₊₁ + (V * Qₖ) * (V * Qₖ)' * V * M \ (W' * vℓ₊₁)
+            #   = ṽℓ₊₁ + V * Qₖ * Qₖ' * M⁻¹Wᴴv
+            #   = ṽℓ₊₁ - V * Qₖ * VQᴴv
+            # Let's also recylce the Wᴴv and Vᴴw storage, which we don't need anymore
+            QVQᴴv = mul!(Wᴴv, view(Q, :, 1:keep), VQᴴv)
+            ZWZᴴw = mul!(Vᴴw, view(Z, :, 1:keep), WZᴴw)
+            @inbounds for i in 1:L
+                rV = add!!(rV, V[i], -QVQᴴv[i]) # v̂ = ṽℓ₊₁ - V * Qₖ * VQᴴv
+                rW = add!!(rW, W[i], -ZWZᴴw[i]) # ŵ = w̃ℓ₊₁ - W * Zₖ * WZᴴw
             end
 
-            βpv = norm(rV)
-            βpw = norm(rW)
+            # normalize the new residuals and absorb norm in h and k
+            βrV = norm(rV)
+            βrW = norm(rW)
+            rV = scale!!(rV, 1 / βrV) # v̂ₖ₊₁
+            rW = scale!!(rW, 1 / βrW) # ŵₖ₊₁
+            h .*= βrV
+            k .*= βrW
 
-            h .*= βpv
-            k .*= βpw
+            # Restore Arnoldi form in the first keep columns before shrinking
+            _restorearnoldiform!(Q, H, h, keep)
+            _restorearnoldiform!(Z, K, k, keep)
+            # Copy H and K back into compact Hessenberg form
+            copy!.(rayleighquotient(fact), (H, K))
+            # Update the basis
+            basistransform!(V, view(Q, :, 1:keep))
+            V[keep + 1] = rV
+            basistransform!(W, view(Z, :, 1:keep))
+            W[keep + 1] = rW
 
-            # Restore Arnoldi form in the first keep columns; this is not part of the original paper
-            _restorearnoldiformandupdatebasis!(keep, H, Q, h, rayleighquotient(fact)[1],
-                                               V, rV, βpv)
-            _restorearnoldiformandupdatebasis!(keep, K, Z, k, rayleighquotient(fact)[2],
-                                               W, rW, βpw)
+            # Step 9: update M; we can only do this now because by restoring the Arnoldi form where
+            # the Rayleigh quotients have a Hessenberg form, we have further changed `Q` and `Z` and
+            # thus the actual new Krylov bases `V` and `W`.
+            MQ = view(MMQQ, 1:L, 1:keep)
+            ZMQ = view(ZZMMQQ, 1:keep, 1:keep)
+            MQ = mul!(MQ, M, view(Q, :, 1:keep))
+            ZMQ = mul!(ZMQ, view(Z, :, 1:keep)', MQ)
+            copy!(view(MM, 1:keep, 1:keep), ZMQ)
 
-            # Update M according to the transformation M -> Z'MQ to save some inner products later
-            _M = view(MM, 1:keep, 1:keep)
-            _temp = view(temp, 1:keep, 1:L)
-            mul!(_temp, (Z[:, 1:keep])', M)
-            mul!(_M, _temp, Q[:, 1:keep])
-
-            # Shrink Arnoldi factorization
+            # Shrink BiArnoldi factorization
             fact = shrink!(fact, keep; verbosity=alg.verbosity)
             numiter += 1
         end
     end
 
-    return (S, Q), (T, Z), (βrV, βrW), fact, converged, numiter, numops
-end
-
-function _restorearnoldiformandupdatebasis!(keep, H, U, f, rq, B, r, βr)
-    @inbounds for j in 1:keep
-        H[keep + 1, j] = f[j]
-    end
-    @inbounds for j in keep:-1:1
-        h, ν = householder(H, j + 1, 1:j, j)
-        H[j + 1, j] = ν
-        H[j + 1, 1:(j - 1)] .= 0
-        lmul!(h, H)
-        rmul!(view(H, 1:j, :), h')
-        rmul!(U, h')
-    end
-    copyto!(rq, H) # copy back into fact
-
-    # Update B by applying U
-    basistransform!(B, view(U, :, 1:keep))
-    return B[keep + 1] = scale!!(r, 1 / βr)
+    # At the point where we return, `fact` is not in a valid state, as we have the
+    # Krylov factorization or partial Schur decomposition in the form
+    # A * V * Q = V * Q * S + rV * h'
+    # A' * W * Z = W * Z * T + rW * k'
+    # with W' * rV = 0 and V' * rW = 0, so this is the information we return.
+    # We also return M = W' * V. 
+    return (S, T), (Q, Z), (V, W), (rV, rW), (h, k), M, converged, numiter, numops
 end
