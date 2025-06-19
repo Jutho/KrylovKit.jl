@@ -43,14 +43,14 @@ function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi
     hᴴVS = h[1:howmany′]' * vecsS
     residualsS = [scale(rV, s) for s in hᴴVS]
     normresidualsS = let βrV = norm(rV)
-        [βrV * s for s in hᴴVS]
+        [abs(βrV * s) for s in hᴴVS]
     end
     VT = view(Z, :, 1:howmany′) * vecsT
     vectorsT = [W * v for v in cols(VT)]
     kᴴVT = k[1:howmany′]' * vecsT
     residualsT = [scale(rW, s) for s in kᴴVT]
     normresidualsT = let βrW = norm(rW)
-        [βrW * s for s in kᴴVT]
+        [abs(βrW * s) for s in kᴴVT]
     end
 
     if (converged < howmany) && alg.verbosity >= WARN_LEVEL
