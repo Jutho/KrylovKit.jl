@@ -475,10 +475,5 @@ function _restorearnoldiform!(U, H, f, keep)
         rmul!(view(H, 1:j, :), h')
         rmul!(U, h')
     end
-    copyto!(Hcompact, H) # copy back into compact Hessenberg form
-
-    # Update basis B by applying U
-    basistransform!(B, view(U, :, 1:keep))
-    B[keep + 1] = scale!!(r, 1 / βr)
     return nothing
 end
