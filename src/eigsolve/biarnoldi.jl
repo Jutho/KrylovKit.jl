@@ -7,7 +7,7 @@ function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi
     #! format: on
 
     howmany′ = howmany
-    if eltype(T) <: Real && howmany < length(fact) && T[howmany + 1, howmany] != 0
+    if eltype(T) <: Real && howmany < size(T, 1) && !iszero(T[howmany + 1, howmany])
         howmany′ += 1
     elseif size(T, 1) < howmany
         howmany′ = size(T, 1)
