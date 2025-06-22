@@ -10,13 +10,10 @@
             n1 = div(n, 2)
 
             alg = BiArnoldi(; orth=orth, krylovdim=n, maxiter=1, tol=tolerance(T))
-            D1, V1, W1, info1 = @constinferred bieigsolve(wrapop(A,
-                                                                 Val(mode)),
-                                                          wrapvec(v,
-                                                                  Val(mode)),
-                                                          wrapvec(w,
-                                                                  Val(mode)),
-                                                          n1, :SR, alg)
+            #! format: off
+            D1, (V1, W1), (infoV1, infoV2) =
+                @constinferred bieigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), wrapvec(w, Val(mode)), n1, :SR, alg)
+            #! format: on
 
             # Some of these still fail
             # alg = BiArnoldi(; orth=orth, krylovdim=n, maxiter=1, tol=tolerance(T),
@@ -55,13 +52,10 @@
             #                             tol=tolerance(T)) isa BiArnoldi
             n2 = n - n1
             alg = BiArnoldi(; orth=orth, krylovdim=2 * n, maxiter=1, tol=tolerance(T))
-            D2, V2, W2, info2 = @constinferred bieigsolve(wrapop(A,
-                                                                  Val(mode)),
-                                                           wrapvec(v,
-                                                                   Val(mode)),
-                                                           wrapvec(w,
-                                                                   Val(mode)),
-                                                           n2, :LR, alg)
+            #! format: off
+            D2, (V2, W2), (infoV2, infoW2) =
+                @constinferred bieigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), wrapvec(w, Val(mode)), n2, :LR, alg)
+            #! format: on
             D = sort(sort(eigvals(A); by=imag, rev=true); alg=MergeSort, by=real)
             D2′ = sort(sort(D2; by=imag, rev=true); alg=MergeSort, by=real)
             @test vcat(D1[1:n1], D2′[(end - n2 + 1):end]) ≊ D
@@ -82,17 +76,17 @@
 
             if T <: Complex
                 n1 = div(n, 2)
-                D1, V1, W1, info = bieigsolve(wrapop(A, Val(mode)),
-                                                        wrapvec(v, Val(mode)),
-                                                        wrapvec(w, Val(mode)), n1,
-                                                        :SI,
-                                                        alg)
+                D1, (V1, W1), (infoV1, infoW1) = bieigsolve(wrapop(A, Val(mode)),
+                                                            wrapvec(v, Val(mode)),
+                                                            wrapvec(w, Val(mode)), n1,
+                                                            :SI,
+                                                            alg)
                 n2 = n - n1
-                D2, V2, W2, info = bieigsolve(wrapop(A, Val(mode)),
-                                                        wrapvec(v, Val(mode)),
-                                                        wrapvec(w, Val(mode)), n2,
-                                                        :LI,
-                                                        alg)
+                D2, (V2, W2), (infoV2, infoW2) = bieigsolve(wrapop(A, Val(mode)),
+                                                            wrapvec(v, Val(mode)),
+                                                            wrapvec(w, Val(mode)), n2,
+                                                            :LI,
+                                                            alg)
                 D = sort(eigvals(A); by=imag)
                 @test vcat(D1[1:n1], reverse(D2[1:n2])) ≊ D
 

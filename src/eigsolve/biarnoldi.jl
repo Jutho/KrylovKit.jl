@@ -180,8 +180,8 @@ function _bischursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArno
             T, Z = permuteschur!(T, Z, pK)
 
             # Partially Step 7 & 8 - Correction of hm and km
-            h .= (view(Q, L, :)) .* βv # h̃ = Q' * h
-            k .= (view(Z, L, :)) .* βw # k̃ = Z' * k
+            h .= conj.(view(Q, L, :)) .* βv # h̃ = Q' * h
+            k .= conj.(view(Z, L, :)) .* βw # k̃ = Z' * k
 
             # At this point, we have the partial Schur decompositions of the form
             # A * V * Q = V * Q * S + rV * h'
@@ -261,8 +261,8 @@ function _bischursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArno
             VQᴴv = -view(Q, :, 1:keep)' * M⁻¹Wᴴv
             WZᴴw = -view(Z, :, 1:keep)' * M⁻ᴴVᴴw
 
-            H[1:keep, 1:keep] += VQᴴv * transpose(h[1:keep]) # Ĥ = Sₖₖ + (V * Qₖ)' * ṽℓ₊₁ * h̃ₖ'
-            K[1:keep, 1:keep] += WZᴴw * transpose(k[1:keep]) # K̂ = Tₖₖ + (W * Zₖ)' * w̃ℓ₊₁ * k̃ₖ'
+            H[1:keep, 1:keep] += VQᴴv * h[1:keep]' # Ĥ = Sₖₖ + (V * Qₖ)' * ṽℓ₊₁ * h̃ₖ'
+            K[1:keep, 1:keep] += WZᴴw * k[1:keep]' # K̂ = Tₖₖ + (W * Zₖ)' * w̃ℓ₊₁ * k̃ₖ'
 
             # We similarly correct the residuals
             # v̂ = ṽℓ₊₁ - (V * Qₖ) * (V * Qₖ)' * ṽℓ₊₁

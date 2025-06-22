@@ -368,13 +368,14 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     tol::eltype(β) = alg.tol
 
     # allocate storage
-    HH = fill(zero(eltype(fact)), krylovdim + 1, krylovdim)
+    HH = fill(zero(eltype(fact)), krylovdim, krylovdim)
     UU = fill(zero(eltype(fact)), krylovdim, krylovdim)
+    ff = fill(zero(eltype(fact)), krylovdim)
 
     # initialize storage
     K = length(fact) # == 1
     converged = 0
-    local T, U
+    local T, U, f
     while true
         β = normres(fact)
         K = length(fact)
@@ -389,7 +390,7 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
         if K == krylovdim || β <= tol || (alg.eager && K >= howmany) # process
             H = view(HH, 1:K, 1:K)
             U = view(UU, 1:K, 1:K)
-            f = view(HH, K + 1, 1:K)
+            f = view(ff, 1:K)
             copyto!(U, I)
             copyto!(H, rayleighquotient(fact))
 
@@ -398,7 +399,7 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
             by, rev = eigsort(which)
             p = sortperm(values; by=by, rev=rev)
             T, U = permuteschur!(T, U, p)
-            f = mul!(f, view(U, K, :), β)
+            f .= conj.(view(U, K, :)) .* β
             converged = 0
             while converged < length(fact) && abs(f[converged + 1]) <= tol
                 converged += 1
@@ -457,7 +458,7 @@ end
 # Square matrices `U` and `H` of some size `m x m`, a vector `f` of length `m` and an integer value `keep`
 # such that:
 # * there exists a general Krylov factorization of the form
-#   ``A * V * U = V * U * H + v * f``
+#   ``A * V * U = V * U * H + v * f'``
 #   with `V`` some orthonormal basis and `v` some unit-norm residual vector, i.e. `V'*v = 0` and `norm(v) = 1`
 # * `keep < m`
 # * `H[keep+1:m, 1:keep]` is zero (i.e. the first `keep` coordinate axis span an invariant subspace of `H`)
@@ -469,7 +470,7 @@ end
 # with `H[1:keep, 1:keep]` in Hessenberg form and `eₖ` the unit vector along the `keep`-th coordinate axis.
 function _restorearnoldiform!(U, H, f, keep)
     @inbounds for j in 1:keep
-        H[keep + 1, j] = f[j]
+        H[keep + 1, j] = conj(f[j])
     end
     @inbounds for j in keep:-1:1
         h, ν = householder(H, j + 1, 1:j, j)
