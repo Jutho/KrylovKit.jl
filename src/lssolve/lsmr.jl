@@ -61,28 +61,32 @@ function lssolve(operator, b, alg::LSMR, λ_::Real=0)
     while true
         numiter += 1
         Av = apply_normal(operator, v)
+        numops += 1
         Ah = add!!(Ah, Av, 1, -θ / ρ)
 
         # βₖ₊₁ uₖ₊₁ = A vₖ - αₖ uₖ₊₁
         u = add!!(Av, u, -α)
         β = norm(u)
-        u = scale!!(u, 1 / β)
-        # αₖ₊₁ vₖ₊₁ = Aᴴ uₖ₊₁ - βₖ₊₁ vₖ
-        v = add!!(apply_adjoint(operator, u), v, -β)
-        # Reorthogonalize v against previous vectors
-        if K > 1
-            v, = orthogonalize!!(v, V, view(Vv, 1:min(K, numiter)), alg.orth)
-        end
+        if β > tol
+            u = scale!!(u, 1 / β)
+            # αₖ₊₁ vₖ₊₁ = Aᴴ uₖ₊₁ - βₖ₊₁ vₖ
+            v = add!!(apply_adjoint(operator, u), v, -β)
+            numops += 1
+            # Reorthogonalize v against previous vectors
+            if K > 1
+                v, = orthogonalize!!(v, V, view(Vv, 1:min(K, numiter)), alg.orth)
+            end
 
-        α = norm(v)
-        v = scale!!(v, 1 / α)
-        numops += 2
-
-        # add new vector to subspace at position numiter+1
-        if numiter < K
-            push!(V, v)
-        else
-            V[mod1(numiter + 1, K)] = v
+            α = norm(v)
+            if α > tol
+                v = scale!!(v, 1 / α)
+                # add new vector to subspace at position numiter+1
+                if numiter < K
+                    push!(V, v)
+                else
+                    V[mod1(numiter + 1, K)] = v
+                end
+            end
         end
 
         # Construct rotation P̂ₖ
