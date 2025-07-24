@@ -132,12 +132,12 @@ struct BlockLanczosIterator{F,T,S,O<:Orthogonalizer,S2<:Real} <: KrylovIterator{
     maxdim::Int
     orth::O
     qr_tol::S2
-    function BlockLanczosIterator{F,T,S,O}(operator::F,
+    function BlockLanczosIterator{F,T,S,O,S2}(operator::F,
                                            x₀::Block{T,S},
                                            maxdim::Int,
                                            orth::O,
                                            qr_tol::Real) where {F,T,S,O<:Orthogonalizer}
-        return new{F,T,S,O}(operator, x₀, maxdim, orth, qr_tol)
+        return new{F,T,S,O,S2}(operator, x₀, maxdim, orth, qr_tol)
     end
 end
 function BlockLanczosIterator(operator::F,
