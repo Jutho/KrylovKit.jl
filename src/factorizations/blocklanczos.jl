@@ -28,7 +28,7 @@ end
 Base.setindex!(b::Block{T}, v::T, i::Int) where {T} = (b.vec[i] = v)
 function Base.setindex!(b₁::Block{T}, b₂::Block{T},
                         idxs::AbstractVector{Int}) where {T}
-    return (b₁.vec[idxs]=b₂.vec;
+    return (b₁.vec[idxs] = b₂.vec;
             b₁)
 end
 LinearAlgebra.norm(b::Block) = norm(b.vec)
@@ -133,10 +133,11 @@ struct BlockLanczosIterator{F,T,S,O<:Orthogonalizer,S2<:Real} <: KrylovIterator{
     orth::O
     qr_tol::S2
     function BlockLanczosIterator{F,T,S,O,S2}(operator::F,
-                                           x₀::Block{T,S},
-                                           maxdim::Int,
-                                           orth::O,
-                                           qr_tol::Real) where {F,T,S,O<:Orthogonalizer}
+                                              x₀::Block{T,S},
+                                              maxdim::Int,
+                                              orth::O,
+                                              qr_tol::Real) where {F,T,S,O<:Orthogonalizer,
+                                                                   S2}
         return new{F,T,S,O,S2}(operator, x₀, maxdim, orth, qr_tol)
     end
 end
