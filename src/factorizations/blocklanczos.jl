@@ -80,11 +80,11 @@ because it is implemented in its `eigsolve`.
 See also [`BlockLanczosIterator`](@ref) for an iterator that constructs a progressively expanding
 BlockLanczos factorizations of a given linear map and a starting block.
 """
-mutable struct BlockLanczosFactorization{T,S<:Number,SR<:Real} <:
+mutable struct BlockLanczosFactorization{T,S<:Number,M<:AbstractMatrix{S},SR<:Real} <:
                KrylovFactorization{T,S}
     k::Int
     V::OrthonormalBasis{T}      # BlockLanczos Basis
-    H::AbstractMatrix{S}      # block tridiagonal matrix, and S is the matrix element type
+    H::M      # block tridiagonal matrix, and S is the matrix element type
     R::Block{T,S}            # residual block
     R_size::Int # size of the residual block
     norm_R::SR  # norm of the residual block
@@ -126,12 +126,12 @@ Here, [`initialize(::KrylovIterator)`](@ref) produces the first Krylov factoriza
 and [`expand!(iter::KrylovIterator, fact::KrylovFactorization)`](@ref) expands the
 factorization in place.
 """
-struct BlockLanczosIterator{F,T,S,O<:Orthogonalizer} <: KrylovIterator{F,T}
+struct BlockLanczosIterator{F,T,S,O<:Orthogonalizer,S2<:Real} <: KrylovIterator{F,T}
     operator::F
     x₀::Block{T,S}
     maxdim::Int
     orth::O
-    qr_tol::Real
+    qr_tol::S2
     function BlockLanczosIterator{F,T,S,O}(operator::F,
                                            x₀::Block{T,S},
                                            maxdim::Int,
