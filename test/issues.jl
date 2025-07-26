@@ -17,3 +17,13 @@
         @test abs(inner(vcat(v...), v′)) ≈ 1
     end
 end
+
+# https://github.com/Jutho/KrylovKit.jl/issues/133
+@testset "Issue #133" begin
+    x, info = lssolve(I(2), [1.0, 0.0])
+    @test x == [1.0, 0.0]
+    @test info.converged == 1
+    @test info.numiter == 1
+    @test info.numops == 2
+    @test info.normres == 0.0
+end
