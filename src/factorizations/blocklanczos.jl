@@ -35,7 +35,7 @@ apply(f, block::Block) = Block(map(Base.Fix1(apply, f), block.vec))
 
 function VectorInterface.inner(B₁::Block{T}, B₂::Block{T}) where {T}
     m₁₁ = inner(B₁[1], B₂[1])
-    M = Matrix{typeof(m₁₁)}(length(B₁), length(B₂))
+    M = Matrix{typeof(m₁₁)}(undef, length(B₁), length(B₂))
     @inbounds M[1, 1] = m₁₁
     @inbounds for j in axes(M, 2), i in axes(M, 1)
         i == j == 1 && continue
