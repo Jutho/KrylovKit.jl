@@ -148,12 +148,12 @@ Use `Arnoldi` for non-symmetric or non-Hermitian linear operators.
 
 See also: [Factorization types](@ref), [`eigsolve`](@ref), [`Arnoldi`](@ref), [`Orthogonalizer`](@ref)
 """
-struct BlockLanczos{O<:Orthogonalizer,S<:Real,S2<:Real} <: KrylovAlgorithm
+struct BlockLanczos{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     orth::O
     krylovdim::Int
     maxiter::Int
     tol::S
-    qr_tol::S2
+    qr_tol::S
     eager::Bool
     verbosity::Int
 end
@@ -165,7 +165,7 @@ function BlockLanczos(;
                       orth::Orthogonalizer=KrylovDefaults.orth,
                       eager::Bool=false,
                       verbosity::Int=KrylovDefaults.verbosity[])
-    return BlockLanczos(orth, krylovdim, maxiter, tol, qr_tol, eager, verbosity)
+    return BlockLanczos(orth, krylovdim, maxiter, promote(tol, qr_tol)..., eager, verbosity)
 end
 
 """
