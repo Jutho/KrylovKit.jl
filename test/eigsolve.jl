@@ -427,7 +427,7 @@ end
     sites_num = 3
     p = 5 # block size
     M = 2^(2 * sites_num^2)
-    x₀ = Block{Float64}([rand(M) for _ in 1:p])
+    x₀ = Block([rand(M) for _ in 1:p])
     get_value_num = 10
     tol = 1e-6
     h_mat = toric_code_hamiltonian_matrix(sites_num, sites_num)
@@ -451,7 +451,7 @@ end
     @testset for T in scalartypes
         block_size = 2
         A = mat_with_eigrepition(T, n, block_size)
-        x₀ = Block{T}([wrapvec(rand(T, n), Val(mode)) for _ in 1:block_size])
+        x₀ = Block([wrapvec(rand(T, n), Val(mode)) for _ in 1:block_size])
         n1 = div(n, 2)  # eigenvalues to solve
         eigvalsA = eigvals(A)
         alg = BlockLanczos(; krylovdim=n, maxiter=1, tol=tolerance(T),
@@ -502,7 +502,7 @@ end
     @testset for T in scalartypes
         block_size = 4
         A = mat_with_eigrepition(T, N, block_size)
-        x₀ = Block{T}([wrapvec(rand(T, N), Val(mode)) for _ in 1:block_size])
+        x₀ = Block([wrapvec(rand(T, N), Val(mode)) for _ in 1:block_size])
         eigvalsA = eigvals(A)
 
         alg = BlockLanczos(; krylovdim=N, maxiter=10, tol=tolerance(T),
@@ -539,15 +539,15 @@ end
     H = H' * H + I
     eig_num = 2
     Hip(x::Vector, y::Vector) = x' * H * y
-    x₀ = Block{T}([InnerProductVec(rand(T, n), Hip) for _ in 1:block_size])
+    x₀ = Block([InnerProductVec(rand(T, n), Hip) for _ in 1:block_size])
     Aip(x::InnerProductVec) = InnerProductVec(H * x.vec, Hip)
     D, V, info = eigsolve(Aip, x₀, eig_num, :SR,
                           BlockLanczos(; krylovdim=n, maxiter=1, tol=tolerance(T),
                                        verbosity=SILENT_LEVEL))
     D_true = eigvals(H)
-    BlockV = KrylovKit.Block{T}(V)
+    BlockV = KrylovKit.Block(V)
     @test D[1:eig_num] ≈ D_true[1:eig_num]
-    @test KrylovKit.block_inner(BlockV, BlockV) ≈ I
+    @test inner(BlockV, BlockV) ≈ I
     @test findmax([norm(Aip(V[i]) - D[i] * V[i]) for i in 1:eig_num])[1] < tolerance(T)
 end
 
@@ -560,7 +560,7 @@ end
         A = rand(T, (2N, 2N)) .- one(T) / 2
         A = (A + A') / 2
         block_size = 1
-        x₀_block = Block{T}([wrapvec(rand(T, 2N), Val(mode)) for _ in 1:block_size])
+        x₀_block = Block([wrapvec(rand(T, 2N), Val(mode)) for _ in 1:block_size])
         x₀_lanczos = x₀_block[1]
         alg1 = Lanczos(; krylovdim=2n, maxiter=10, tol=tolerance(T), verbosity=WARN_LEVEL)
         alg2 = BlockLanczos(; krylovdim=2n, maxiter=10, tol=tolerance(T),
@@ -580,7 +580,7 @@ end
         A = rand(T, (2N, 2N)) .- one(T) / 2
         A = (A + A') / 2
         block_size = 4
-        x₀_block = Block{T}([wrapvec(rand(T, 2N), Val(mode)) for _ in 1:block_size])
+        x₀_block = Block([wrapvec(rand(T, 2N), Val(mode)) for _ in 1:block_size])
         x₀_lanczos = x₀_block[1]
         alg1 = Lanczos(; krylovdim=2n, maxiter=10, tol=tolerance(T), verbosity=WARN_LEVEL)
         alg2 = BlockLanczos(; krylovdim=2n, maxiter=10, tol=tolerance(T),
@@ -600,7 +600,7 @@ end
     @testset for T in scalartypes
         block_size = 5
         A = mat_with_eigrepition(T, N, block_size)
-        x₀ = Block{T}([wrapvec(rand(T, N), Val(mode)) for _ in 1:block_size])
+        x₀ = Block([wrapvec(rand(T, N), Val(mode)) for _ in 1:block_size])
         values0 = eigvals(A)[1:n]
         n1 = n ÷ 2
         alg = BlockLanczos(; krylovdim=3 * n ÷ 2, maxiter=1, tol=1e-12)
@@ -620,7 +620,7 @@ end
     @testset for T in scalartypes
         block_size = 2
         A = mat_with_eigrepition(T, n, block_size)
-        x₀ = Block{T}([wrapvec(rand(T, n), Val(mode)) for _ in 1:block_size])
+        x₀ = Block([wrapvec(rand(T, n), Val(mode)) for _ in 1:block_size])
         if mode === :vector
             D1, V1, info1 = eigsolve(wrapop(A, Val(mode)), x₀, 1, :SR)
             eigA = eigvals(A)

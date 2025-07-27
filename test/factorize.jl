@@ -303,9 +303,10 @@ end
         block_size = 5
         A = mat_with_eigrepition(T, N, block_size)
         x₀m = Matrix(qr(rand(T, N, block_size)).Q)
-        x₀ = KrylovKit.Block{T}([wrapvec(x₀m[:, i], Val(mode)) for i in 1:block_size])
+        x₀ = KrylovKit.Block([wrapvec(x₀m[:, i], Val(mode)) for i in 1:block_size])
         eigvalsA = eigvals(A)
-        iter = BlockLanczosIterator(wrapop(A, Val(mode)), x₀, N, tolerance(T))
+        iter = BlockLanczosIterator(wrapop(A, Val(mode)), x₀, N,
+                                    KrylovKit.KrylovDefaults.orth, tolerance(T))
         fact = @constinferred initialize(iter)
         @constinferred expand!(iter, fact)
         @test_logs initialize(iter; verbosity=EACHITERATION_LEVEL)
@@ -325,8 +326,9 @@ end
             B = rand(T, (n, n)) # test warnings for non-hermitian matrices
             bs = 2
             v₀m = Matrix(qr(rand(T, n, bs)).Q)
-            v₀ = KrylovKit.Block{T}([wrapvec(v₀m[:, i], Val(mode)) for i in 1:bs])
-            iter = BlockLanczosIterator(wrapop(B, Val(mode)), v₀, N, tolerance(T))
+            v₀ = KrylovKit.Block([wrapvec(v₀m[:, i], Val(mode)) for i in 1:bs])
+            iter = BlockLanczosIterator(wrapop(B, Val(mode)), v₀, N,
+                                        KrylovKit.KrylovDefaults.orth, tolerance(T))
             fact = @constinferred initialize(iter)
             @constinferred expand!(iter, fact; verbosity=SILENT_LEVEL)
             @test_logs initialize(iter; verbosity=SILENT_LEVEL)
@@ -354,8 +356,9 @@ end
         block_size = 5
         A = mat_with_eigrepition(T, N, block_size)
         x₀m = Matrix(qr(rand(T, N, block_size)).Q)
-        x₀ = KrylovKit.Block{T}([wrapvec(x₀m[:, i], Val(mode)) for i in 1:block_size])
+        x₀ = KrylovKit.Block([wrapvec(x₀m[:, i], Val(mode)) for i in 1:block_size])
         iter = @constinferred BlockLanczosIterator(wrapop(A, Val(mode)), x₀, N,
+                                                   KrylovKit.KrylovDefaults.orth,
                                                    tolerance(T))
         krylovdim = n
         fact = @constinferred initialize(iter)

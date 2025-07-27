@@ -1,9 +1,9 @@
-function eigsolve(A, x₀::Block{T,S}, howmany::Int, which::Selector, alg::BlockLanczos;
+function eigsolve(A, x₀::Block{T}, howmany::Int, which::Selector, alg::BlockLanczos;
                   alg_rrule=Arnoldi(; tol=alg.tol,
                                     krylovdim=alg.krylovdim,
                                     maxiter=alg.maxiter,
                                     eager=alg.eager,
-                                    orth=alg.orth)) where {T,S}
+                                    orth=alg.orth)) where {T}
     maxiter = alg.maxiter
     krylovdim = alg.krylovdim
     if howmany > krylovdim
@@ -15,7 +15,7 @@ function eigsolve(A, x₀::Block{T,S}, howmany::Int, which::Selector, alg::Block
     bs = length(x₀)
     bs < 1 && error("The length of the starting block x₀ must be greater than 0")
 
-    iter = BlockLanczosIterator(A, x₀, krylovdim + bs, alg.qr_tol, alg.orth)
+    iter = BlockLanczosIterator(A, x₀, krylovdim + bs, alg.orth, alg.qr_tol)
     fact = initialize(iter; verbosity=verbosity)  # Returns a BlockLanczosFactorization
     numops = bs    # Number of matrix-vector multiplications (for logging)
     numiter = 1
@@ -46,7 +46,7 @@ function eigsolve(A, x₀::Block{T,S}, howmany::Int, which::Selector, alg::Block
             bs_R = fact.R_size   # The block size of the residual (decreases as the iteration goes)
             r = residual(fact)
             UU = view(U, (K - bs_R + 1):K, :)  # The last bs_R rows of U, used to compute the residuals
-            normresiduals = let R = block_inner(r, r)
+            normresiduals = let R = inner(r, r)
                 map(u -> sqrt(real(dot(u, R, u))), cols(UU))
             end
             converged = 0
@@ -66,7 +66,7 @@ function eigsolve(A, x₀::Block{T,S}, howmany::Int, which::Selector, alg::Block
         else # Shrink and restart following the shrinking method of `Lanczos`.
             numiter >= maxiter && break
             keep = max(div(3 * krylovdim + 2 * converged, 5 * bs), 1) * bs
-            H = zeros(S, keep + bs, keep)
+            H = zeros(eltype(fact.H), keep + bs, keep)
             # The last bs rows of U contribute to calculate errors of Ritz values.
             @inbounds for j in 1:keep
                 H[j, j] = D[j]
@@ -83,7 +83,7 @@ function eigsolve(A, x₀::Block{T,S}, howmany::Int, which::Selector, alg::Block
                 rmul!(U, h')
             end
             # Transform the basis and update the residual and update the BTD.
-            BTD .= S(0)
+            fill!(BTD, zero(eltype(BTD)))
             Hkeep = view(H, 1:keep, 1:keep)
             BTD[1:keep, 1:keep] .= (Hkeep .+ Hkeep') ./ 2 # make exactly Hermitian
             B = basis(fact)
