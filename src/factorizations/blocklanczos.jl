@@ -80,14 +80,13 @@ because it is implemented in its `eigsolve`.
 See also [`BlockLanczosIterator`](@ref) for an iterator that constructs a progressively expanding
 BlockLanczos factorizations of a given linear map and a starting block.
 """
-mutable struct BlockLanczosFactorization{T,S<:Number,M<:AbstractMatrix{S},SR<:Real} <:
-               KrylovFactorization{T,S}
+mutable struct BlockLanczosFactorization{T,S<:Number,SR<:Real} <: KrylovFactorization{T,S}
     k::Int
     V::OrthonormalBasis{T}      # BlockLanczos Basis
-    H::M      # block tridiagonal matrix, and S is the matrix element type
-    R::Block{T,S}            # residual block
-    R_size::Int # size of the residual block
-    norm_R::SR  # norm of the residual block
+    H::Matrix{S}                # block tridiagonal matrix, and S is the matrix element type
+    R::Block{T,S}               # residual block
+    R_size::Int                 # size of the residual block
+    norm_R::SR                  # norm of the residual block
 end
 Base.length(fact::BlockLanczosFactorization) = fact.k
 normres(fact::BlockLanczosFactorization) = fact.norm_R
