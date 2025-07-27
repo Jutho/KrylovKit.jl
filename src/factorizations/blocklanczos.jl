@@ -58,7 +58,7 @@ Base.iterate(b::Block) = iterate(b.vec)
 Base.iterate(b::Block, state) = iterate(b.vec, state)
 
 """
-    mutable struct BlockLanczosFactorization{T,S<:Number,SR<:Real} <: KrylovFactorization{T,S,SR}
+    mutable struct BlockLanczosFactorization{T,S<:Number,SR<:Real} <: KrylovFactorization{T,S}
 
 Structure to store a BlockLanczos factorization of a real symmetric or complex hermitian linear
 map `A` of the form
@@ -94,7 +94,7 @@ basis(fact::BlockLanczosFactorization) = fact.V
 residual(fact::BlockLanczosFactorization) = fact.R[1:(fact.R_size)]
 
 """
-    struct BlockLanczosIterator{F,T,O<:Orthogonalizer} <: KrylovIterator{F,T}
+    struct BlockLanczosIterator{F,T,S<:Real,O<:Orthogonalizer} <: KrylovIterator{F,T}
     BlockLanczosIterator(f, x₀, maxdim, qr_tol, [orth::Orthogonalizer = KrylovDefaults.orth])
 
 Iterator that takes a linear map `f::F` (supposed to be real symmetric or complex hermitian)
