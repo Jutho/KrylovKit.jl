@@ -125,19 +125,18 @@ Here, [`initialize(::KrylovIterator)`](@ref) produces the first Krylov factoriza
 and [`expand!(iter::KrylovIterator, fact::KrylovFactorization)`](@ref) expands the
 factorization in place.
 """
-struct BlockLanczosIterator{F,T,S,O<:Orthogonalizer,S2<:Real} <: KrylovIterator{F,T}
+struct BlockLanczosIterator{F,T,S<:Real,O<:Orthogonalizer} <: KrylovIterator{F,T}
     operator::F
     x₀::Block{T,S}
     maxdim::Int
     orth::O
-    qr_tol::S2
-    function BlockLanczosIterator{F,T,S,O,S2}(operator::F,
-                                              x₀::Block{T,S},
-                                              maxdim::Int,
-                                              orth::O,
-                                              qr_tol::Real) where {F,T,S,O<:Orthogonalizer,
-                                                                   S2}
-        return new{F,T,S,O,S2}(operator, x₀, maxdim, orth, qr_tol)
+    qr_tol::S
+    function BlockLanczosIterator{F,T,S,O}(operator::F,
+                                           x₀::Block{T,S},
+                                           maxdim::Int,
+                                           orth::O,
+                                           qr_tol::Real) where {F,T,S,O<:Orthogonalizer}
+        return new{F,T,S,O}(operator, x₀, maxdim, orth, qr_tol)
     end
 end
 function BlockLanczosIterator(operator::F,
@@ -181,12 +180,7 @@ function initialize(iter::BlockLanczosIterator{F,T,S};
     if verbosity > EACHITERATION_LEVEL
         @info "BlockLanczos initiation at dimension $bs: subspace normres = $(normres2string(norm_R))"
     end
-    return BlockLanczosFactorization(bs,
-                                     V,
-                                     BTD,
-                                     AX₁,
-                                     bs,
-                                     norm_R)
+    return BlockLanczosFactorization(bs, V, BTD, AX₁, bs, norm_R)
 end
 
 function expand!(iter::BlockLanczosIterator{F,T,S},
