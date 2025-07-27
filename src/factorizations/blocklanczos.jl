@@ -34,7 +34,14 @@ LinearAlgebra.norm(b::Block) = norm(b.vec)
 apply(f, block::Block) = Block(map(Base.Fix1(apply, f), block.vec))
 
 function VectorInterface.inner(B₁::Block{T}, B₂::Block{T}) where {T}
-    return [inner(b1, b2) for b1 in B₁, b2 in B₂]
+    m₁₁ = inner(B₁[1], B₂[1])
+    M = Matrix{typeof(m₁₁)}(length(B₁), length(B₂))
+    @inbounds M[1, 1] = m₁₁
+    @inbounds for j in axes(M, 2), i in axes(M, 1)
+        i == j == 1 && continue
+        M[i, j] = inner(B₁[i], B₂[j])
+    end
+    return M
 end
 
 function Base.push!(V::OrthonormalBasis{T}, b::Block{T}) where {T}
