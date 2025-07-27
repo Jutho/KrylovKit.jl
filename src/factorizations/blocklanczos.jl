@@ -34,7 +34,7 @@ LinearAlgebra.norm(b::Block) = norm(b.vec)
 apply(f, block::Block) = Block(map(Base.Fix1(apply, f), block.vec))
 
 function VectorInterface.inner(B₁::Block{T}, B₂::Block{T}) where {T}
-    return inner.(reshape(B₁.vec, :, 1), reshape(B₂.vec, 1, :))
+    return [inner(b1, b2) for b1 in B₁, b2 in B₂]
 end
 
 function Base.push!(V::OrthonormalBasis{T}, b::Block{T}) where {T}
