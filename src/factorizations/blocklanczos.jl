@@ -263,7 +263,7 @@ function block_reorthogonalize!(R::Block{T}, V::OrthonormalBasis{T}) where {T}
 end
 
 function warn_nonhermitian(M::AbstractMatrix)
-    if norm(M - M') > eps(real(eltype(M)))^(2 / 5)
+    if !isapprox(M, M'; atol=eps(real(eltype(M)))^(2/5))
         @warn "ignoring the antihermitian part of the block triangular matrix: operator might not be hermitian?" M
     end
 end
