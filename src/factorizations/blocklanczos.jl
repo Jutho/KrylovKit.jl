@@ -19,12 +19,17 @@ Block(vec::Vector{T}) where {T} = Block{T}(vec)
 
 Base.length(b::Block) = length(b.vec)
 
-@inline Base.getindex(b::Block, i::Int) = b.vec[i]
-@inline Base.getindex(b::Block, idxs::AbstractVector{<:Integer}) = Block(b.vec[idxs])
+Base.@propagate_inbounds Base.getindex(b::Block, i::Int) = b.vec[i]
+Base.@propagate_inbounds function Base.getindex(b::Block, idxs::AbstractVector{<:Integer})
+    return Block(b.vec[idxs])
+end
 
-@inline Base.setindex!(b::Block{T}, v::T, i::Int) where {T} = (b.vec[i]=v; b)
-@inline function Base.setindex!(b₁::Block{T}, b₂::Block{T},
-                                idxs::AbstractVector{Int}) where {T}
+Base.@propagate_inbounds function Base.setindex!(b::Block{T}, v::T, i::Int) where {T}
+    b.vec[i]=v
+    return b
+end
+Base.@propagate_inbounds function Base.setindex!(b₁::Block{T}, b₂::Block{T},
+                                                 idxs::AbstractVector{Int}) where {T}
     b₁.vec[idxs] = b₂.vec
     return b₁
 end
@@ -214,7 +219,7 @@ function expand!(iter::BlockLanczosIterator,
 end
 
 function block_lanczosrecurrence(operator, V::OrthonormalBasis, B::AbstractMatrix,
-                                orth::ModifiedGramSchmidt2)
+                                 orth::ModifiedGramSchmidt2)
     # Apply the operator and calculate the M. Get Xnext and Mnext.
     bs, bs_prev = size(B)
     S = eltype(B)
