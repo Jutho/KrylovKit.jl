@@ -547,7 +547,7 @@ end
     D_true = eigvals(H)
     BlockV = KrylovKit.Block(V)
     @test D[1:eig_num] ≈ D_true[1:eig_num]
-    @test inner(BlockV, BlockV) ≈ I
+    @test block_inner(BlockV, BlockV) ≈ I
     @test findmax([norm(Aip(V[i]) - D[i] * V[i]) for i in 1:eig_num])[1] < tolerance(T)
 end
 

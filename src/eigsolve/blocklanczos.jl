@@ -46,7 +46,7 @@ function eigsolve(A, x₀::Block{T}, howmany::Int, which::Selector, alg::BlockLa
             bs_R = fact.R_size   # The block size of the residual (decreases as the iteration goes)
             r = residual(fact)
             UU = view(U, (K - bs_R + 1):K, :)  # The last bs_R rows of U, used to compute the residuals
-            normresiduals = let R = inner(r, r)
+            normresiduals = let R = block_inner(r, r)
                 map(u -> sqrt(real(dot(u, R, u))), cols(UU))
             end
             converged = 0

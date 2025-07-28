@@ -33,7 +33,7 @@ LinearAlgebra.norm(b::Block) = norm(b.vec)
 
 apply(f, block::Block) = Block(map(Base.Fix1(apply, f), block.vec))
 
-function VectorInterface.inner(B₁::Block{T}, B₂::Block{T}) where {T}
+function block_inner(B₁::Block{T}, B₂::Block{T}) where {T}
     m₁₁ = inner(B₁[1], B₂[1])
     M = Matrix{typeof(m₁₁)}(undef, length(B₁), length(B₂))
     @inbounds M[1, 1] = m₁₁
@@ -101,7 +101,7 @@ and an initial block `x₀::Block{T}` and generates an expanding `BlockLanczosFa
 particular, `BlockLanczosIterator` uses the
 BlockLanczos iteration(see: *Golub, G. H., & Van Loan, C. F. (2013). Matrix Computations* (4th ed., pp. 566–569))
 scheme to build a successively expanding BlockLanczos factorization. While `f` cannot be tested to be symmetric or
-hermitian directly when the linear map is encoded as a general callable object or function, with `inner(X, f.(X))`,
+hermitian directly when the linear map is encoded as a general callable object or function, with `block_inner(X, f.(X))`,
 it is tested whether `norm(M-M')` is sufficiently small to be neglected.
 
 The argument `f` can be a matrix, or a function accepting a single argument `v`, so that
@@ -163,7 +163,7 @@ function initialize(iter::BlockLanczosIterator;
     bs = length(X₁) # block size of the first block
 
     AX₁ = apply(A, X₁)
-    M₁ = inner(X₁, AX₁)
+    M₁ = block_inner(X₁, AX₁)
     BTD = zeros(eltype(M₁), maxdim, maxdim)
     BTD[1:bs, 1:bs] = view(M₁, 1:bs, 1:bs)
     verbosity >= WARN_LEVEL && warn_nonhermitian(M₁)
@@ -221,7 +221,7 @@ function blocklanczosrecurrence(operator, V::OrthonormalBasis, B::AbstractMatrix
     k = length(V)
     X = Block(V[(k - bs + 1):k])
     AX = apply(operator, X)
-    M = inner(X, AX)
+    M = block_inner(X, AX)
     # Calculate the new residual in AX.
     Xprev = Block(V[(k - bs_prev - bs + 1):(k - bs)])
     @inbounds for j in 1:length(X)
