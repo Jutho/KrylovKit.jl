@@ -197,7 +197,7 @@ function expand!(iter::BlockLanczosIterator,
     state.H[(k - bs + 1):k, (k + 1):(k + bs_next)] = view(B, 1:bs_next, 1:bs)'
 
     # Calculate the new residual and orthogonalize the new basis
-    Rnext, Mnext = blocklanczosrecurrence(iter.operator, V, B, iter.orth)
+    Rnext, Mnext = block_lanczosrecurrence(iter.operator, V, B, iter.orth)
     verbosity >= WARN_LEVEL && warn_nonhermitian(Mnext)
 
     state.H[(k + 1):(k + bs_next), (k + 1):(k + bs_next)] = view(Mnext, 1:bs_next,
@@ -213,7 +213,7 @@ function expand!(iter::BlockLanczosIterator,
     return state
 end
 
-function blocklanczosrecurrence(operator, V::OrthonormalBasis, B::AbstractMatrix,
+function block_lanczosrecurrence(operator, V::OrthonormalBasis, B::AbstractMatrix,
                                 orth::ModifiedGramSchmidt2)
     # Apply the operator and calculate the M. Get Xnext and Mnext.
     bs, bs_prev = size(B)
