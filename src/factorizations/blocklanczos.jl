@@ -289,16 +289,16 @@ function block_qr!(block::Block, tol::Real)
     n = length(block)
     rank_shrink = false
     idx = trues(n)
-    r₁₁ = norm(block[1])
+    r₁₁ = inner(block[1], block[1])
     R = zeros(typeof(r₁₁), n, n)
     @inbounds for j in 1:n
         for i in 1:(j - 1)
             R[i, j] = inner(block[i], block[j])
             block[j] = add!!(block[j], block[i], -R[i, j])
         end
-        β = j == 1 ? r₁₁ : norm(block[j])
-        if !(β ≤ tol)
-            R[j, j] = β
+        β = j == 1 ? sqrt(real(r₁₁)) : norm(block[j])
+        if β > tol
+            R[j, j] = r₁₁
             block[j] = scale!!(block[j], 1 / β)
         else
             block[j] = zerovector!!(block[j])
