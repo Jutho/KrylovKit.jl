@@ -56,7 +56,7 @@ function Base.push!(V::OrthonormalBasis{T}, b::Block{T}) where {T}
     return V
 end
 
-Base.copy(b::Block) = Block(map(Base.Fix2(scale, One()), b.vec))
+Base.copy(b::Block{T}) where {T} = Block{T}(scale.(b.vec, One()))
 
 Base.iterate(b::Block) = iterate(b.vec)
 Base.iterate(b::Block, state) = iterate(b.vec, state)
