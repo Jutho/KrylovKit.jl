@@ -298,7 +298,7 @@ function block_qr!(block::Block, tol::Real)
         end
         β = j == 1 ? sqrt(real(r₁₁)) : norm(block[j])
         if β > tol
-            R[j, j] = r₁₁
+            R[j, j] = β
             block[j] = scale!!(block[j], 1 / β)
         else
             block[j] = zerovector!!(block[j])
