@@ -24,12 +24,12 @@ Base.@propagate_inbounds function Base.getindex(b::Block, idxs::AbstractVector{<
     return Block(b.vec[idxs])
 end
 
-Base.@propagate_inbounds function Base.setindex!(b::Block{T}, v::T, i::Int) where {T}
-    b.vec[i]=v
+Base.@propagate_inbounds function Base.setindex!(b::Block, v, i::Int)
+    b.vec[i] = v
     return b
 end
-Base.@propagate_inbounds function Base.setindex!(b₁::Block{T}, b₂::Block{T},
-                                                 idxs::AbstractVector{Int}) where {T}
+Base.@propagate_inbounds function Base.setindex!(b₁::Block, b₂::Block,
+                                                 idxs::AbstractVector{Int})
     b₁.vec[idxs] = b₂.vec
     return b₁
 end
