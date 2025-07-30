@@ -31,7 +31,7 @@ function build_mat_example(A, B, C, x, alg, alg_rrule)
         x̃ = x_fromvec(xv)
         M̃ = [zero(Ã) zero(Ã) C̃; Ã zero(Ã) zero(Ã); zero(Ã) B̃ zero(Ã)]
         vals′, vecs′, info′ = eigsolve(M̃, x̃, howmany, which, alg; alg_rrule=alg_rrule)
-        info′.converged < howmany && @warn "eigsolve did not converge"
+        info′.converged < howmany && println("eigsolve did not converge")
         catresults = vcat(vals′[1:howmany], vecs′[1:howmany]...)
         if eltype(catresults) <: Complex
             return vcat(real(catresults), imag(catresults))
@@ -48,7 +48,7 @@ function build_mat_example(A, B, C, x, alg, alg_rrule)
         M̃ = [zero(Ã) zero(Ã) C̃; Ã zero(Ã) zero(Ã); zero(Ã) B̃ zero(Ã)]
         f = x -> M̃ * x
         vals′, vecs′, info′ = eigsolve(f, x̃, howmany, which, alg; alg_rrule=alg_rrule)
-        info′.converged < howmany && @warn "eigsolve did not converge"
+        info′.converged < howmany && println("eigsolve did not converge")
         catresults = vcat(vals′[1:howmany], vecs′[1:howmany]...)
         if eltype(catresults) <: Complex
             return vcat(real(catresults), imag(catresults))
@@ -66,7 +66,7 @@ function build_mat_example(A, B, C, x, alg, alg_rrule)
         howmany′ = (eltype(Av) <: Complex ? 3 : 6) * howmany
         vals′, vecs′, info′ = eigsolve(M̃, x̃, howmany′, which, alg; alg_rrule=alg_rrule)
         _, i = findmin(abs.(vals′ .- vals[1]))
-        info′.converged < i && @warn "eigsolve did not converge"
+        info′.converged < i && println("eigsolve did not converge")
         d = dot(vecs[1], vecs′[i])
         @assert abs(d) > sqrt(eps(real(eltype(A))))
         phasefix = abs(d) / d

@@ -25,7 +25,7 @@ function build_mat_example(A, x, howmany::Int, which, alg, alg_rrule)
         Ã = A_fromvec(Av)
         x̃ = x_fromvec(xv)
         vals′, vecs′, info′ = eigsolve(Ã, x̃, howmany, which, alg; alg_rrule=alg_rrule)
-        info′.converged < howmany && @warn "eigsolve did not converge"
+        info′.converged < howmany && println("eigsolve did not converge")
         catresults = vcat(vals′[1:howmany], vecs′[1:howmany]...)
         if eltype(catresults) <: Complex
             return vcat(real(catresults), imag(catresults))
@@ -39,7 +39,7 @@ function build_mat_example(A, x, howmany::Int, which, alg, alg_rrule)
         x̃ = x_fromvec(xv)
         f = x -> Ã * x
         vals′, vecs′, info′ = eigsolve(f, x̃, howmany, which, alg; alg_rrule=alg_rrule)
-        info′.converged < howmany && @warn "eigsolve did not converge"
+        info′.converged < howmany && println("eigsolve did not converge")
         catresults = vcat(vals′[1:howmany], vecs′[1:howmany]...)
         if eltype(catresults) <: Complex
             return vcat(real(catresults), imag(catresults))
@@ -52,7 +52,7 @@ function build_mat_example(A, x, howmany::Int, which, alg, alg_rrule)
         Ã = A_fromvec(Av)
         x̃ = x_fromvec(xv)
         vals′, vecs′, info′ = eigsolve(Ã, x̃, howmany, which, alg; alg_rrule=alg_rrule)
-        info′.converged < howmany && @warn "eigsolve did not converge"
+        info′.converged < howmany && println("eigsolve did not converge")
         for i in 1:howmany
             d = dot(vecs[i], vecs′[i])
             @assert abs(d) > sqrt(eps(real(eltype(A))))
@@ -110,7 +110,7 @@ function build_fun_example(A, x, c, d, howmany::Int, which, alg, alg_rrule)
                                            alg_rrule=alg_rrule) do y
                 return testfunthunk(Ã, y, c̃, d̃)
             end
-            info′.converged < howmany′ && @warn "eigsolve did not converge"
+            info′.converged < howmany′ && println("eigsolve did not converge")
             catresults = vcat(vals′[1:howmany′], vecs′[1:howmany′]...)
             if eltype(catresults) <: Complex
                 return vcat(real(catresults), imag(catresults))
@@ -131,7 +131,7 @@ function build_fun_example(A, x, c, d, howmany::Int, which, alg, alg_rrule)
                                            alg_rrule=alg_rrule) do y
                 return Ã * y + c̃ * dot(d̃, y)
             end
-            info′.converged < howmany′ && @warn "eigsolve did not converge"
+            info′.converged < howmany′ && println("eigsolve did not converge")
             for i in 1:howmany′
                 d = dot(vecs[i], vecs′[i])
                 @assert abs(d) > sqrt(eps(real(eltype(A))))
@@ -169,7 +169,7 @@ function build_hermitianfun_example(A, x, c, howmany::Int, which, alg, alg_rrule
                                        alg_rrule=alg_rrule) do y
             return testfunthunk(Hermitian(Ã), y, c̃, c̃)
         end
-        info′.converged < howmany && @warn "eigsolve did not converge"
+        info′.converged < howmany && println("eigsolve did not converge")
         catresults = vcat(vals′[1:howmany], vecs′[1:howmany]...)
         if eltype(catresults) <: Complex
             return vcat(real(catresults), imag(catresults))
@@ -187,7 +187,7 @@ function build_hermitianfun_example(A, x, c, howmany::Int, which, alg, alg_rrule
                                        alg_rrule=alg_rrule) do y
             return Hermitian(Ã) * y + c̃ * dot(c̃, y)
         end
-        info′.converged < howmany && @warn "eigsolve did not converge"
+        info′.converged < howmany && println("eigsolve did not converge")
         for i in 1:howmany
             d = dot(vecs[i], vecs′[i])
             @assert abs(d) > sqrt(eps(real(eltype(A))))

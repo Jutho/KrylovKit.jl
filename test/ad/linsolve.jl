@@ -19,10 +19,8 @@ function build_mat_example(A, b, x, alg, alg_rrule)
         b̃ = b_fromvec(bv)
         x̃ = x_fromvec(xv)
         x, info = linsolve(Ã, b̃, x̃, alg; alg_rrule=alg_rrule)
-        if info.converged == 0
-            @warn "linsolve did not converge:"
-            println("normres = ", info.normres)
-        end
+        info.converged == 0 &&
+            println("linsolve did not converge: normres = ", info.normres)
         xv, = to_vec(x)
         return xv
     end
@@ -32,10 +30,8 @@ function build_mat_example(A, b, x, alg, alg_rrule)
         x̃ = x_fromvec(xv)
         f = x -> Ã * x
         x, info = linsolve(f, b̃, x̃, alg; alg_rrule=alg_rrule)
-        if info.converged == 0
-            @warn "linsolve did not converge:"
-            println("normres = ", info.normres)
-        end
+        info.converged == 0 &&
+            println("linsolve did not converge: normres = ", info.normres)
         xv, = to_vec(x)
         return xv
     end

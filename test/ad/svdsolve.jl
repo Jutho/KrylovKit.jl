@@ -21,7 +21,7 @@ function build_mat_example(A, x, howmany::Int, alg, alg_rrule)
         x̃ = x_fromvec(xv)
         vals′, lvecs′, rvecs′, info′ = svdsolve(Ã, x̃, howmany, :LR, alg;
                                                 alg_rrule=alg_rrule)
-        info′.converged < howmany && @warn "svdsolve did not converge"
+        info′.converged < howmany && println("svdsolve did not converge")
         catresults = vcat(vals′[1:howmany], lvecs′[1:howmany]..., rvecs′[1:howmany]...)
         if eltype(catresults) <: Complex
             return vcat(real(catresults), imag(catresults))
@@ -35,7 +35,7 @@ function build_mat_example(A, x, howmany::Int, alg, alg_rrule)
         f = (x, adj::Val) -> (adj isa Val{true}) ? adjoint(Ã) * x : Ã * x
         vals′, lvecs′, rvecs′, info′ = svdsolve(f, x̃, howmany, :LR, alg;
                                                 alg_rrule=alg_rrule)
-        info′.converged < howmany && @warn "svdsolve did not converge"
+        info′.converged < howmany && println("svdsolve did not converge")
         catresults = vcat(vals′[1:howmany], lvecs′[1:howmany]..., rvecs′[1:howmany]...)
         if eltype(catresults) <: Complex
             return vcat(real(catresults), imag(catresults))
@@ -49,7 +49,7 @@ function build_mat_example(A, x, howmany::Int, alg, alg_rrule)
         (f, fᴴ) = (x -> Ã * x, x -> adjoint(Ã) * x)
         vals′, lvecs′, rvecs′, info′ = svdsolve((f, fᴴ), x̃, howmany, :LR, alg;
                                                 alg_rrule=alg_rrule)
-        info′.converged < howmany && @warn "svdsolve did not converge"
+        info′.converged < howmany && println("svdsolve did not converge")
         catresults = vcat(vals′[1:howmany], lvecs′[1:howmany]..., rvecs′[1:howmany]...)
         if eltype(catresults) <: Complex
             return vcat(real(catresults), imag(catresults))
@@ -63,7 +63,7 @@ function build_mat_example(A, x, howmany::Int, alg, alg_rrule)
         x̃ = x_fromvec(xv)
         vals′, lvecs′, rvecs′, info′ = svdsolve(Ã, x̃, howmany, :LR, alg;
                                                 alg_rrule=alg_rrule)
-        info′.converged < howmany && @warn "svdsolve did not converge"
+        info′.converged < howmany && println("svdsolve did not converge")
         for i in 1:howmany
             dl = dot(lvecs[i], lvecs′[i])
             dr = dot(rvecs[i], rvecs′[i])
@@ -106,7 +106,7 @@ function build_fun_example(A, x, c, d, howmany::Int, alg, alg_rrule)
         fᴴ = y -> adjoint(Ã) * y + d̃ * dot(c̃, y)
         vals′, lvecs′, rvecs′, info′ = svdsolve((f, fᴴ), x̃, howmany, :LR, alg;
                                                 alg_rrule=alg_rrule)
-        info′.converged < howmany && @warn "svdsolve did not converge"
+        info′.converged < howmany && println("svdsolve did not converge")
         catresults = vcat(vals′[1:howmany], lvecs′[1:howmany]..., rvecs′[1:howmany]...)
         if eltype(catresults) <: Complex
             return vcat(real(catresults), imag(catresults))
@@ -124,7 +124,7 @@ function build_fun_example(A, x, c, d, howmany::Int, alg, alg_rrule)
         fᴴ = y -> adjoint(Ã) * y + d̃ * dot(c̃, y)
         vals′, lvecs′, rvecs′, info′ = svdsolve((f, fᴴ), x̃, howmany, :LR, alg;
                                                 alg_rrule=alg_rrule)
-        info′.converged < howmany && @warn "svdsolve did not converge"
+        info′.converged < howmany && println("svdsolve did not converge")
         for i in 1:howmany
             dl = dot(lvecs[i], lvecs′[i])
             dr = dot(rvecs[i], rvecs′[i])

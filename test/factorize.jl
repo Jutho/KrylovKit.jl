@@ -206,7 +206,7 @@ end
     orths = mode === :vector ? (cgs2, mgs2, cgsr, mgsr) : (mgsr,)
     @testset for T in scalartypes
         @testset for orth in orths
-            A = rand(T, (n, n))
+            A = rand(T, (2n, n))
             v = A * rand(T, (n,)) # ensure v is in column space of A
             iter = GKLIterator(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), orth)
             fact = @constinferred initialize(iter)
@@ -226,7 +226,7 @@ end
             U = stack(unwrapvec, basis(fact, Val(:U)))
             V = stack(unwrapvec, basis(fact, Val(:V)))
             B = rayleighquotient(fact)
-            @test normres(fact) < 10 * n * eps(real(T))
+            @test normres(fact) < n * sqrt(eps(real(T)))
             @test U' * U ≈ I
             @test V' * V ≈ I
             @test A * V ≈ U * B

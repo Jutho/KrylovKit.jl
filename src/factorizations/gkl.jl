@@ -332,9 +332,12 @@ function gklrecurrence(operator,
     u = U[end]
     v = apply_adjoint(operator, u)
     v = add!!(v, V[end], -β)
-    # for q in V # not necessary if we definitely reorthogonalize next step and previous step
-    #     v, = orthogonalize!(v, q, ModifiedGramSchmidt())
-    # end
+    for q in V
+        # it is claimed that this is not necessary if we definitely
+        # reorthogonalize next step and previous step, but some of
+        # my experiments show that this does make a significant difference
+        v, = orthogonalize!!(v, q, ModifiedGramSchmidt())
+    end
     α = norm(v)
     v = scale!!(v, inv(α))
 
