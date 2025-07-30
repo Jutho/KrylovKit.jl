@@ -115,7 +115,7 @@ function eigsolve(A, x₀::Block{T}, howmany::Int, which::Selector, alg::BlockLa
     K = length(fact)
     U2 = view(U, (K - bs_R + 1):K, 1:howmany_actual)
     R = fact.R
-    residuals = [zerovector(x₀[1]) for _ in 1:howmany_actual]
+    residuals = [zerovector(R[1]) for _ in 1:howmany_actual]
     @inbounds for i in 1:howmany_actual
         for j in 1:bs_R
             residuals[i] = add!!(residuals[i], R[j], U2[j, i])
