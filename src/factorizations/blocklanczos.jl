@@ -160,8 +160,15 @@ function initialize(iter::BlockLanczosIterator;
     maxdim = iter.maxdim
     A = iter.operator
 
+    # Some overhead to determine the proper types for the rest of the computation
+    β₀ = norm(X₀)
+    iszero(β₀) && throw(ArgumentError("initial vector should not have norm zero"))
+    x₀ = X₀[1]
+    Ax₀ = apply(A, x₀) # one extra application of the operator: can be avoided but is it worth it?
+    α = inner(x₀, Ax₀) / β₀ # this value has no meaning, we only care about its type
+    X₁ = Block(map(Base.Fix2(scale, one(α)), X₀.vec))
+
     # Orthogonalization of the initial block
-    X₁ = copy(X₀)
     _, good_idx = block_qr!(X₁, iter.qr_tol)
     X₁ = X₁[good_idx]
     V = OrthonormalBasis(X₁.vec)
@@ -263,7 +270,7 @@ function block_reorthogonalize!(R::Block{T}, V::OrthonormalBasis{T}) where {T}
 end
 
 function warn_nonhermitian(M::AbstractMatrix)
-    if !isapprox(M, M'; atol=eps(real(eltype(M)))^(2/5))
+    if !isapprox(M, M'; atol=eps(real(eltype(M)))^(2 / 5))
         @warn "ignoring the antihermitian part of the block triangular matrix: operator might not be hermitian?" M
     end
 end
@@ -291,12 +298,21 @@ function block_qr!(block::Block, tol::Real)
     idx = trues(n)
     r₁₁ = inner(block[1], block[1])
     R = zeros(typeof(r₁₁), n, n)
-    @inbounds for j in 1:n
+    β = sqrt(real(r₁₁)) # norm(block[1])
+    if β > tol
+        R[1, 1] = β
+        block[1] = scale!!(block[1], 1 / β)
+    else
+        block[1] = zerovector!!(block[1])
+        rank_shrink = true
+        idx[1] = false
+    end
+    @inbounds for j in 2:n
         for i in 1:(j - 1)
             R[i, j] = inner(block[i], block[j])
             block[j] = add!!(block[j], block[i], -R[i, j])
         end
-        β = j == 1 ? sqrt(real(r₁₁)) : norm(block[j])
+        β = norm(block[j])
         if β > tol
             R[j, j] = β
             block[j] = scale!!(block[j], 1 / β)
@@ -306,6 +322,10 @@ function block_qr!(block::Block, tol::Real)
             idx[j] = false
         end
     end
-    good_idx = findall(idx)
-    return R[good_idx, :], good_idx
+    if rank_shrink
+        good_idx = findall(idx)
+        return R[good_idx, :], good_idx
+    else
+        return R, collect(Int, 1:n)
+    end
 end
