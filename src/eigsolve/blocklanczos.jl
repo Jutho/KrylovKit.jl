@@ -13,11 +13,9 @@ function eigsolve(A, x₀::Block{T}, howmany::Int, which::Selector, alg::BlockLa
     verbosity = alg.verbosity
 
     bs = length(x₀)
-    bs < 1 && error("The length of the starting block x₀ must be greater than 0")
-
     iter = BlockLanczosIterator(A, x₀, krylovdim + bs, alg.orth, alg.qr_tol)
     fact = initialize(iter; verbosity=verbosity)  # Returns a BlockLanczosFactorization
-    numops = bs    # Number of matrix-vector multiplications (for logging)
+    numops = bs + 1    # Number of matrix-vector multiplications (for logging)
     numiter = 1
 
     converged = 0

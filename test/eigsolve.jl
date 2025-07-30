@@ -29,7 +29,7 @@
             @test_logs((:info,), (:info,), (:info,), (:warn,),
                        eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), 1, :SR, alg))
             alg = Lanczos(; orth=orth, krylovdim=4, maxiter=1, tol=tolerance(T),
-                          verbosity=EACHITERATION_LEVEL+1)
+                          verbosity=EACHITERATION_LEVEL + 1)
             # since it is impossible to know exactly the size of the Krylov subspace after shrinking,
             # we only know the output for a sigle iteration
             @test_logs((:info,), (:info,), (:info,), (:info,), (:info,), (:warn,),
@@ -129,7 +129,7 @@ end
             @test_logs((:info,), (:info,), (:info,), (:warn,),
                        eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), 1, :SR, alg))
             alg = Arnoldi(; orth=orth, krylovdim=4, maxiter=1, tol=tolerance(T),
-                          verbosity=EACHITERATION_LEVEL+1)
+                          verbosity=EACHITERATION_LEVEL + 1)
             # since it is impossible to know exactly the size of the Krylov subspace after shrinking,
             # we only know the output for a sigle iteration
             @test_logs((:info,), (:info,), (:info,), (:info,), (:info,), (:warn,),
@@ -472,7 +472,7 @@ end
         @test_logs((:info,), (:info,), (:info,), (:warn,),
                    eigsolve(wrapop(A, Val(mode)), x₀, 1, :SR, alg))
         alg = BlockLanczos(; krylovdim=4, maxiter=1, tol=tolerance(T),
-                           verbosity=EACHITERATION_LEVEL+1)
+                           verbosity=EACHITERATION_LEVEL + 1)
         @test_logs((:info,), (:info,), (:info,), (:warn,),
                    eigsolve(wrapop(A, Val(mode)), x₀, 1, :SR, alg))
         n2 = n - n1
@@ -569,11 +569,12 @@ end
         evals2, _, info2 = eigsolve(wrapop(A, Val(mode)), x₀_block, n, :SR, alg2)
         @test info1.converged == info2.converged
         @test info1.numiter == info2.numiter
-        @test info1.numops == info2.numops
+        @test info1.numops + 1 == info2.numops
         @test isapprox(info1.normres, info2.normres, atol=tolerance(T))
-        @test isapprox(unwrapvec.(info1.residual[1:info1.converged])[2],
-                       unwrapvec.(info2.residual[1:info2.converged])[2]; atol=tolerance(T))
-        @test isapprox(evals1[1:info1.converged], evals2[1:info2.converged];
+        @test isapprox(unwrapvec.(info1.residual[1:(info1.converged)])[2],
+                       unwrapvec.(info2.residual[1:(info2.converged)])[2];
+                       atol=tolerance(T))
+        @test isapprox(evals1[1:(info1.converged)], evals2[1:(info2.converged)];
                        atol=tolerance(T))
     end
     @testset for T in scalartypes
