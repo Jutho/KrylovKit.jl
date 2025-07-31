@@ -48,7 +48,6 @@ function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi
     hᴴVT = map(Base.Fix1(dot, k[1:howmany′]), cols(vecsT))
     residualsT = map(Base.Fix1(scale, rW), hᴴVT)
     normresidualsT = map(abs ∘ Base.Fix1(*, norm(rW)), hᴴVT)
-    end
 
     if (converged < howmany) && alg.verbosity >= WARN_LEVEL
         @warn """BiArnoldi eigsolve stopped without convergence after $numiter iterations:
