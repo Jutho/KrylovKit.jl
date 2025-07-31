@@ -329,7 +329,7 @@ end
             v₀ = KrylovKit.Block([wrapvec(v₀m[:, i], Val(mode)) for i in 1:bs])
             iter = BlockLanczosIterator(wrapop(B, Val(mode)), v₀, N,
                                         KrylovKit.KrylovDefaults.orth, tolerance(T))
-            fact = @constinferred initialize(iter)
+            fact = @constinferred initialize(iter; verbosity=SILENT_LEVEL)
             @constinferred expand!(iter, fact; verbosity=SILENT_LEVEL)
             @test_logs initialize(iter; verbosity=SILENT_LEVEL)
             @test_logs (:warn,) initialize(iter)
