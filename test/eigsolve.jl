@@ -562,14 +562,15 @@ end
         block_size = 1
         x₀_block = Block([wrapvec(rand(T, 2N), Val(mode)) for _ in 1:block_size])
         x₀_lanczos = x₀_block[1]
-        alg1 = Lanczos(; krylovdim=2n, maxiter=10, tol=tolerance(T), verbosity=WARN_LEVEL)
+        alg1 = Lanczos(; krylovdim=2n, maxiter=10, tol=tolerance(T),
+                       verbosity=SILENT_LEVEL)
         alg2 = BlockLanczos(; krylovdim=2n, maxiter=10, tol=tolerance(T),
-                            verbosity=WARN_LEVEL)
+                            verbosity=SILENT_LEVEL)
         evals1, _, info1 = eigsolve(wrapop(A, Val(mode)), x₀_lanczos, n, :SR, alg1)
         evals2, _, info2 = eigsolve(wrapop(A, Val(mode)), x₀_block, n, :SR, alg2)
         @test info1.converged == info2.converged
         @test info1.numiter == info2.numiter
-        @test info1.numops + 1 == info2.numops
+        @test info1.numops + 1 == info2.numops # one extra operation for the BlockLanczos initialization
         @test isapprox(info1.normres, info2.normres, atol=tolerance(T))
         @test isapprox(unwrapvec.(info1.residual[1:(info1.converged)])[2],
                        unwrapvec.(info2.residual[1:(info2.converged)])[2];
@@ -577,18 +578,24 @@ end
         @test isapprox(evals1[1:(info1.converged)], evals2[1:(info2.converged)];
                        atol=tolerance(T))
     end
-    @testset for T in scalartypes
+    @testset for T in (Float64, ComplexF64)
         A = rand(T, (2N, 2N)) .- one(T) / 2
         A = (A + A') / 2
-        block_size = 4
+        block_size = 2
         x₀_block = Block([wrapvec(rand(T, 2N), Val(mode)) for _ in 1:block_size])
-        x₀_lanczos = x₀_block[1]
-        alg1 = Lanczos(; krylovdim=2n, maxiter=10, tol=tolerance(T), verbosity=WARN_LEVEL)
-        alg2 = BlockLanczos(; krylovdim=2n, maxiter=10, tol=tolerance(T),
-                            verbosity=WARN_LEVEL)
-        evals1, _, info1 = eigsolve(wrapop(A, Val(mode)), x₀_lanczos, n, :SR, alg1)
-        evals2, _, info2 = eigsolve(wrapop(A, Val(mode)), x₀_block, n, :SR, alg2)
-        @test info1.converged >= info2.converged + 1
+        x₀ = rand(T, 2N) # Lanczos input
+        x₁ = A^n * x₀ # effectively build the same Krylov subspace in `BlockLanczos`
+        x₀_lanczos = wrapvec(x₀, Val(mode))
+        x₀_block = Block([wrapvec(x₀, Val(mode)), wrapvec(x₁, Val(mode))])
+        alg1 = Lanczos(; krylovdim=2n, maxiter=1, tol=tolerance(T),
+                       verbosity=SILENT_LEVEL)
+        alg2 = BlockLanczos(; krylovdim=2n, maxiter=1, tol=tolerance(T),
+                            verbosity=SILENT_LEVEL)
+        vals1, vecs1, info1 = eigsolve(wrapop(A, Val(mode)), x₀_lanczos, n, :SR, alg1)
+        vals2, vecs2, info2 = eigsolve(wrapop(A, Val(mode)), x₀_block, n, :SR, alg2)
+        @test vals1 ≈ vals2
+        @test all(abs.(inner.(vecs1, vecs2)) .≈ 1)
+        @test info1.normres ≈ info2.normres
     end
 end
 
