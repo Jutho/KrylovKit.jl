@@ -153,7 +153,7 @@ struct BlockLanczos{O<:Orthogonalizer,S<:Real} <: KrylovAlgorithm
     krylovdim::Int
     maxiter::Int
     tol::S
-    qr_tol::Real
+    qr_tol::S
     eager::Bool
     verbosity::Int
 end
@@ -165,7 +165,7 @@ function BlockLanczos(;
                       orth::Orthogonalizer=KrylovDefaults.orth,
                       eager::Bool=false,
                       verbosity::Int=KrylovDefaults.verbosity[])
-    return BlockLanczos(orth, krylovdim, maxiter, tol, qr_tol, eager, verbosity)
+    return BlockLanczos(orth, krylovdim, maxiter, promote(tol, qr_tol)..., eager, verbosity)
 end
 
 """

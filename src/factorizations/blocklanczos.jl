@@ -8,57 +8,61 @@ while `S` represents the type of inner products between vectors. To create an in
 one can specify `S` explicitly and use `Block{S}(vec)`, or use `Block(vec)` directly, in which case an
 inner product is performed to infer `S`.
 """
-struct Block{T,S<:Number}
+struct Block{T}
     vec::Vector{T}
-    function Block{S}(vec::Vector{T}) where {T,S<:Number}
-        @assert length(vec) > 0
-        return new{T,S}(vec)
+    function Block{T}(vec::Vector{T}) where {T}
+        length(vec) > 0 || throw(ArgumentError("blocklength must be >(0)"))
+        return new{T}(vec)
     end
 end
-function Block(vec::Vector{T}) where {T}
-    @assert length(vec) > 0
-    S = typeof(inner(vec[1], vec[1]))
-    return Block{S}(vec)
-end # A convenient constructor for users
+Block(vec::Vector{T}) where {T} = Block{T}(vec)
+
 Base.length(b::Block) = length(b.vec)
-Base.getindex(b::Block, i::Int) = b.vec[i]
-function Base.getindex(b::Block{T,S}, idxs::AbstractVector{Int}) where {T,S}
-    return Block{S}([b.vec[i] for i in idxs])
+
+Base.@propagate_inbounds Base.getindex(b::Block, i::Int) = b.vec[i]
+Base.@propagate_inbounds function Base.getindex(b::Block, idxs::AbstractVector{<:Integer})
+    return Block(b.vec[idxs])
 end
-Base.setindex!(b::Block{T}, v::T, i::Int) where {T} = (b.vec[i] = v)
-function Base.setindex!(b₁::Block{T}, b₂::Block{T},
-                        idxs::AbstractVector{Int}) where {T}
-    return (b₁.vec[idxs]=b₂.vec;
-            b₁)
+
+Base.@propagate_inbounds function Base.setindex!(b::Block, v, i::Int)
+    b.vec[i] = v
+    return b
 end
+Base.@propagate_inbounds function Base.setindex!(b₁::Block, b₂::Block,
+                                                 idxs::AbstractVector{Int})
+    b₁.vec[idxs] = b₂.vec
+    return b₁
+end
+
 LinearAlgebra.norm(b::Block) = norm(b.vec)
-function apply(f, block::Block{T,S}) where {T,S}
-    return Block{S}([apply(f, block[i]) for i in 1:length(block)])
-end
-function block_inner(B₁::Block{T,S}, B₂::Block{T,S}) where {T,S}
-    M = Matrix{S}(undef, length(B₁.vec), length(B₂.vec))
-    @inbounds for j in 1:length(B₂)
-        yj = B₂[j]
-        for i in 1:length(B₁)
-            M[i, j] = inner(B₁[i], yj)
-        end
+
+apply(f, block::Block) = Block(map(Base.Fix1(apply, f), block.vec))
+
+function block_inner(B₁::Block{T}, B₂::Block{T}) where {T}
+    m₁₁ = inner(B₁[1], B₂[1])
+    M = Matrix{typeof(m₁₁)}(undef, length(B₁), length(B₂))
+    @inbounds M[1, 1] = m₁₁
+    @inbounds for j in axes(M, 2), i in axes(M, 1)
+        i == j == 1 && continue
+        M[i, j] = inner(B₁[i], B₂[j])
     end
     return M
 end
+
 function Base.push!(V::OrthonormalBasis{T}, b::Block{T}) where {T}
     for i in 1:length(b)
         push!(V, b[i])
     end
     return V
 end
-function Base.copy(b::Block)
-    return Block{typeof(b).parameters[2]}(scale.(b.vec, 1))
-end
+
+Base.copy(b::Block{T}) where {T} = Block{T}(scale.(b.vec, One()))
+
 Base.iterate(b::Block) = iterate(b.vec)
 Base.iterate(b::Block, state) = iterate(b.vec, state)
 
 """
-    mutable struct BlockLanczosFactorization{T,S<:Number,SR<:Real} <: KrylovFactorization{T,S,SR}
+    mutable struct BlockLanczosFactorization{T,S<:Number,SR<:Real} <: KrylovFactorization{T,S}
 
 Structure to store a BlockLanczos factorization of a real symmetric or complex hermitian linear
 map `A` of the form
@@ -80,14 +84,13 @@ because it is implemented in its `eigsolve`.
 See also [`BlockLanczosIterator`](@ref) for an iterator that constructs a progressively expanding
 BlockLanczos factorizations of a given linear map and a starting block.
 """
-mutable struct BlockLanczosFactorization{T,S<:Number,SR<:Real} <:
-               KrylovFactorization{T,S}
+mutable struct BlockLanczosFactorization{T,S<:Number,SR<:Real} <: KrylovFactorization{T,S}
     k::Int
     V::OrthonormalBasis{T}      # BlockLanczos Basis
-    H::AbstractMatrix{S}      # block tridiagonal matrix, and S is the matrix element type
-    R::Block{T,S}            # residual block
-    R_size::Int # size of the residual block
-    norm_R::SR  # norm of the residual block
+    H::Matrix{S}                # block tridiagonal matrix, and S is the matrix element type
+    R::Block{T}                 # residual block
+    R_size::Int                 # size of the residual block
+    norm_R::SR                  # norm of the residual block
 end
 Base.length(fact::BlockLanczosFactorization) = fact.k
 normres(fact::BlockLanczosFactorization) = fact.norm_R
@@ -95,11 +98,11 @@ basis(fact::BlockLanczosFactorization) = fact.V
 residual(fact::BlockLanczosFactorization) = fact.R[1:(fact.R_size)]
 
 """
-    struct BlockLanczosIterator{F,T,O<:Orthogonalizer} <: KrylovIterator{F,T}
+    struct BlockLanczosIterator{F,T,S<:Real,O<:Orthogonalizer} <: KrylovIterator{F,T}
     BlockLanczosIterator(f, x₀, maxdim, qr_tol, [orth::Orthogonalizer = KrylovDefaults.orth])
 
 Iterator that takes a linear map `f::F` (supposed to be real symmetric or complex hermitian)
-and an initial block `x₀::Block{T,S}` and generates an expanding `BlockLanczosFactorization` thereof. In
+and an initial block `x₀::Block{T}` and generates an expanding `BlockLanczosFactorization` thereof. In
 particular, `BlockLanczosIterator` uses the
 BlockLanczos iteration(see: *Golub, G. H., & Van Loan, C. F. (2013). Matrix Computations* (4th ed., pp. 566–569))
 scheme to build a successively expanding BlockLanczos factorization. While `f` cannot be tested to be symmetric or
@@ -126,41 +129,47 @@ Here, [`initialize(::KrylovIterator)`](@ref) produces the first Krylov factoriza
 and [`expand!(iter::KrylovIterator, fact::KrylovFactorization)`](@ref) expands the
 factorization in place.
 """
-struct BlockLanczosIterator{F,T,S,O<:Orthogonalizer} <: KrylovIterator{F,T}
+struct BlockLanczosIterator{F,T,O<:Orthogonalizer,S<:Real} <: KrylovIterator{F,T}
     operator::F
-    x₀::Block{T,S}
+    x₀::Block{T}
     maxdim::Int
     orth::O
-    qr_tol::Real
-    function BlockLanczosIterator{F,T,S,O}(operator::F,
-                                           x₀::Block{T,S},
+    qr_tol::S
+    function BlockLanczosIterator{F,T,O,S}(operator::F,
+                                           x₀::Block{T},
                                            maxdim::Int,
                                            orth::O,
-                                           qr_tol::Real) where {F,T,S,O<:Orthogonalizer}
-        return new{F,T,S,O}(operator, x₀, maxdim, orth, qr_tol)
+                                           qr_tol::S) where {F,T,O<:Orthogonalizer,S<:Real}
+        return new{F,T,O,S}(operator, x₀, maxdim, orth, qr_tol)
     end
 end
 function BlockLanczosIterator(operator::F,
-                              x₀::Block{T,S},
+                              x₀::Block{T},
                               maxdim::Int,
-                              qr_tol::Real,
-                              orth::O=ModifiedGramSchmidt2()) where {F,T,S,
-                                                                     O<:Orthogonalizer}
+                              orth::O=KrylovDefaults.orth,
+                              qr_tol::Real=KrylovDefaults.tol[]) where {F,T,
+                                                                        O<:Orthogonalizer}
     norm(x₀) < qr_tol && @error "initial vector should not have norm zero"
     orth != ModifiedGramSchmidt2() &&
         @error "BlockLanczosIterator only supports ModifiedGramSchmidt2 orthogonalizer"
-    return BlockLanczosIterator{F,T,S,O}(operator, x₀, maxdim, orth, qr_tol)
+    return BlockLanczosIterator{F,T,O,typeof(qr_tol)}(operator, x₀, maxdim, orth, qr_tol)
 end
 
-function initialize(iter::BlockLanczosIterator{F,T,S};
-                    verbosity::Int=KrylovDefaults.verbosity[]) where {F,T,S}
+function initialize(iter::BlockLanczosIterator;
+                    verbosity::Int=KrylovDefaults.verbosity[])
     X₀ = iter.x₀
     maxdim = iter.maxdim
     A = iter.operator
-    BTD = zeros(S, maxdim, maxdim)
+
+    # Some overhead to determine the proper types for the rest of the computation
+    β₀ = norm(X₀)
+    iszero(β₀) && throw(ArgumentError("initial vector should not have norm zero"))
+    x₀ = X₀[1]
+    Ax₀ = apply(A, x₀) # one extra application of the operator: can be avoided but is it worth it?
+    α = inner(x₀, Ax₀) / β₀ # this value has no meaning, we only care about its type
+    X₁ = Block(map(Base.Fix2(scale, one(α)), X₀.vec))
 
     # Orthogonalization of the initial block
-    X₁ = copy(X₀)
     _, good_idx = block_qr!(X₁, iter.qr_tol)
     X₁ = X₁[good_idx]
     V = OrthonormalBasis(X₁.vec)
@@ -168,6 +177,7 @@ function initialize(iter::BlockLanczosIterator{F,T,S};
 
     AX₁ = apply(A, X₁)
     M₁ = block_inner(X₁, AX₁)
+    BTD = zeros(eltype(M₁), maxdim, maxdim)
     BTD[1:bs, 1:bs] = view(M₁, 1:bs, 1:bs)
     verbosity >= WARN_LEVEL && warn_nonhermitian(M₁)
 
@@ -181,17 +191,12 @@ function initialize(iter::BlockLanczosIterator{F,T,S};
     if verbosity > EACHITERATION_LEVEL
         @info "BlockLanczos initiation at dimension $bs: subspace normres = $(normres2string(norm_R))"
     end
-    return BlockLanczosFactorization(bs,
-                                     V,
-                                     BTD,
-                                     AX₁,
-                                     bs,
-                                     norm_R)
+    return BlockLanczosFactorization(bs, V, BTD, AX₁, bs, norm_R)
 end
 
-function expand!(iter::BlockLanczosIterator{F,T,S},
-                 state::BlockLanczosFactorization{T,S,SR};
-                 verbosity::Int=KrylovDefaults.verbosity[]) where {F,T,S,SR}
+function expand!(iter::BlockLanczosIterator,
+                 state::BlockLanczosFactorization;
+                 verbosity::Int=KrylovDefaults.verbosity[])
     k = state.k
     R = state.R[1:(state.R_size)]
     bs = length(R)
@@ -205,7 +210,7 @@ function expand!(iter::BlockLanczosIterator{F,T,S},
     state.H[(k - bs + 1):k, (k + 1):(k + bs_next)] = view(B, 1:bs_next, 1:bs)'
 
     # Calculate the new residual and orthogonalize the new basis
-    Rnext, Mnext = blocklanczosrecurrence(iter.operator, V, B, iter.orth)
+    Rnext, Mnext = block_lanczosrecurrence(iter.operator, V, B, iter.orth)
     verbosity >= WARN_LEVEL && warn_nonhermitian(Mnext)
 
     state.H[(k + 1):(k + bs_next), (k + 1):(k + bs_next)] = view(Mnext, 1:bs_next,
@@ -218,19 +223,20 @@ function expand!(iter::BlockLanczosIterator{F,T,S},
     if verbosity > EACHITERATION_LEVEL
         @info "BlockLanczos expansion to dimension $(state.k): subspace normres = $(normres2string(state.norm_R))"
     end
+    return state
 end
 
-function blocklanczosrecurrence(operator, V::OrthonormalBasis, B::AbstractMatrix,
-                                orth::ModifiedGramSchmidt2)
+function block_lanczosrecurrence(operator, V::OrthonormalBasis, B::AbstractMatrix,
+                                 orth::ModifiedGramSchmidt2)
     # Apply the operator and calculate the M. Get Xnext and Mnext.
     bs, bs_prev = size(B)
     S = eltype(B)
     k = length(V)
-    X = Block{S}(V[(k - bs + 1):k])
+    X = Block(V[(k - bs + 1):k])
     AX = apply(operator, X)
     M = block_inner(X, AX)
     # Calculate the new residual in AX.
-    Xprev = Block{S}(V[(k - bs_prev - bs + 1):(k - bs)])
+    Xprev = Block(V[(k - bs_prev - bs + 1):(k - bs)])
     @inbounds for j in 1:length(X)
         for i in 1:length(X)
             AX[j] = add!!(AX[j], X[i], -M[i, j])
@@ -244,7 +250,7 @@ function blocklanczosrecurrence(operator, V::OrthonormalBasis, B::AbstractMatrix
 end
 
 """
-    block_reorthogonalize!(R::Block{T,S}, V::OrthonormalBasis{T}) where {T,S}
+    block_reorthogonalize!(R::Block{T}, V::OrthonormalBasis{T}) where {T}
 
 This function orthogonalizes the vectors in `R` with respect to the previously orthonormalized set `V` by using the modified Gram-Schmidt process.
 Specifically, it modifies each vector `R[i]` by projecting out its components along the directions spanned by `V`, i.e.,
@@ -255,8 +261,7 @@ Specifically, it modifies each vector `R[i]` by projecting out its components al
 
 Here,`⟨·,·⟩` denotes the inner product. The function assumes that `V` is already orthonormal.
 """
-function block_reorthogonalize!(R::Block{T,S},
-                                V::OrthonormalBasis{T}) where {T,S}
+function block_reorthogonalize!(R::Block{T}, V::OrthonormalBasis{T}) where {T}
     for i in 1:length(R)
         for q in V
             R[i], _ = orthogonalize!!(R[i], q, ModifiedGramSchmidt())
@@ -266,7 +271,7 @@ function block_reorthogonalize!(R::Block{T,S},
 end
 
 function warn_nonhermitian(M::AbstractMatrix)
-    if norm(M - M') > eps(real(eltype(M)))^(2 / 5)
+    if !isapprox(M, M'; atol=eps(real(eltype(M)))^(2 / 5))
         @warn "ignoring the antihermitian part of the block triangular matrix: operator might not be hermitian?" M
     end
 end
@@ -288,18 +293,28 @@ and `r` is the numerical rank of the input block. The matrix represents the uppe
 restricted to the `r` linearly independent components. The vector `goodidx` contains the indices of the non-zero
 (i.e., numerically independent) vectors in the orthonormalized block.
 """
-function block_qr!(block::Block{T,S}, tol::Real) where {T,S}
+function block_qr!(block::Block, tol::Real)
     n = length(block)
     rank_shrink = false
     idx = trues(n)
-    R = zeros(S, n, n)
-    @inbounds for j in 1:n
+    r₁₁ = inner(block[1], block[1])
+    R = zeros(typeof(r₁₁), n, n)
+    β = sqrt(real(r₁₁)) # norm(block[1])
+    if β > tol
+        R[1, 1] = β
+        block[1] = scale!!(block[1], 1 / β)
+    else
+        block[1] = zerovector!!(block[1])
+        rank_shrink = true
+        idx[1] = false
+    end
+    @inbounds for j in 2:n
         for i in 1:(j - 1)
             R[i, j] = inner(block[i], block[j])
             block[j] = add!!(block[j], block[i], -R[i, j])
         end
         β = norm(block[j])
-        if !(β ≤ tol)
+        if β > tol
             R[j, j] = β
             block[j] = scale!!(block[j], 1 / β)
         else
@@ -308,6 +323,10 @@ function block_qr!(block::Block{T,S}, tol::Real) where {T,S}
             idx[j] = false
         end
     end
-    good_idx = findall(idx)
-    return R[good_idx, :], good_idx
+    if rank_shrink
+        good_idx = findall(idx)
+        return R[good_idx, :], good_idx
+    else
+        return R, collect(Int, 1:n)
+    end
 end
