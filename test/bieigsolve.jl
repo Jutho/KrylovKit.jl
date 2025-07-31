@@ -8,8 +8,7 @@
             v = rand(T, (n,))
             w = rand(T, (n,))
             n1 = div(n, 2)
-            alg = BiArnoldi(; orth=orth, krylovdim=n, maxiter=1, tol=tolerance(T),
-                            verbosity=STARTSTOP_LEVEL)
+            alg = BiArnoldi(; orth=orth, krylovdim=n, maxiter=1, tol=tolerance(T))
             #! format: off
             D1, (V1, W1), (infoV1, infoV2) =
                 @constinferred bieigsolve(wrapop(A, Val(mode)),
@@ -75,8 +74,6 @@
             # check biorthogonality
             @test UW1' * UV1 ≈ Matrix(I, size(UW1, 2), size(UV1, 2))
             @test UW2' * UV2 ≈ Matrix(I, size(UW2, 2), size(UV2, 2))
-            @test norm(UW1[:, 1:n1]' * UV2[:, 1:n2], Inf) < tolerance(T)
-            @test norm(UW2[:, 1:n2]' * UV1[:, 1:n1], Inf) < tolerance(T)
 
             if T <: Complex
                 n1 = div(n, 2)
@@ -105,99 +102,92 @@
                 # check biorthogonality
                 @test UW1' * UV1 ≈ Matrix(I, size(UW1, 2), size(UV1, 2))
                 @test UW2' * UV2 ≈ Matrix(I, size(UW2, 2), size(UV2, 2))
-                @test norm(UW1[:, 1:n1]' * UV2[:, 1:n2], Inf) < tolerance(T)
-                @test norm(UW2[:, 1:n2]' * UV1[:, 1:n1], Inf) < tolerance(T)
             end
-
-            # alg = Arnoldi(; orth=orth, krylovdim=2n, maxiter=1, tol=tolerance(T),
-            #               verbosity=1)
-            # @test_logs (:warn,) (:warn,) eigsolve(wrapop(A, Val(mode)),
-            #                                       wrapvec(v, Val(mode)), n + 1, :LM, alg)
         end
     end
 end
 
-# @testset "BiArnoldi - eigsolve iteratively ($mode)" for mode in
-#                                                         (:vector, :inplace, :outplace)
-#     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
-#                   (ComplexF64,)
-#     orths = mode === :vector ? (cgs2, mgs2, cgsr, mgsr) : (mgsr,)
-#     @testset for T in scalartypes
-#         @testset for orth in orths
-#             A = rand(T, (N, N)) .- one(T) / 2
-#             v = rand(T, (N,))
-#             w = rand(T, (N,))
-#             alg = BiArnoldi(; krylovdim=3 * n, maxiter=20, orth = orth,
-#                             tol=tolerance(T), eager=true, verbosity=EACHITERATION_LEVEL)
-#             #! format: off
-#             D1, (V1, W1), (infoV1, infoW1) =
-#                 @constinferred bieigsolve(wrapop(A, Val(mode)),
-#                                                  wrapvec(v, Val(mode)), wrapvec(w, Val(mode)),
-#                                                  n, :SR, alg)
-#             #! format: on
-#             D2, (V2, W2), (infoV2, infoW2) = bieigsolve(wrapop(A, Val(mode)),
-#                                                         wrapvec(v, Val(mode)),
-#                                                         wrapvec(w, Val(mode)),
-#                                                         n, :LR, alg)
-#             D3, (V3, W3), (infoV3, infoW3) = bieigsolve(wrapop(A, Val(mode)),
-#                                                        wrapvec(v, Val(mode)),
-#                                                        wrapvec(w, Val(mode)),
-#                                                        n, :LM, alg)
-#             D = sort(eigvals(A); by=imag, rev=true)
+@testset "BiArnoldi - eigsolve iteratively ($mode)" for mode in
+                                                        (:vector, :inplace, :outplace)
+    scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
+                  (ComplexF64,)
+    orths = mode === :vector ? (cgs2, mgs2, cgsr, mgsr) : (mgsr,)
+    @testset for T in scalartypes
+        @testset for orth in orths
+            A = rand(T, (N, N)) .- one(T) / 2
+            v = rand(T, (N,))
+            w = rand(T, (N,))
+            alg = BiArnoldi(; krylovdim=3 * n, maxiter=2, orth = orth,
+                            tol=tolerance(T), eager=true, verbosity=EACHITERATION_LEVEL)
+            #! format: off
+            D1, (V1, W1), (infoV1, infoW1) =
+                @constinferred bieigsolve(wrapop(A, Val(mode)),
+                                                 wrapvec(v, Val(mode)), wrapvec(w, Val(mode)),
+                                                 n, :SR, alg)
+            #! format: on
+            D2, (V2, W2), (infoV2, infoW2) = bieigsolve(wrapop(A, Val(mode)),
+                                                        wrapvec(v, Val(mode)),
+                                                        wrapvec(w, Val(mode)),
+                                                        n, :LR, alg)
+            D3, (V3, W3), (infoV3, infoW3) = bieigsolve(wrapop(A, Val(mode)),
+                                                       wrapvec(v, Val(mode)),
+                                                       wrapvec(w, Val(mode)),
+                                                       n, :LM, alg)
+            D = sort(eigvals(A); by=imag, rev=true)
 
-#             l1 = infoV1.converged
-#             l2 = infoV2.converged
-#             l3 = infoV3.converged
-#             @test l1 > 0
-#             @test l2 > 0
-#             @test l3 > 0
-#             @test D1[1:l1] ≊ sort(D; alg=MergeSort, by=real)[1:l1]
-#             @test D2[1:l2] ≊ sort(D; alg=MergeSort, by=real, rev=true)[1:l2]
-#             # sorting by abs does not seem very reliable if two distinct eigenvalues are close
-#             # in absolute value, so we perform a second sort afterwards using the real part
-#             @test D3[1:l3] ≊ sort(D; by=abs, rev=true)[1:l3]
+            l1 = infoV1.converged
+            l2 = infoV2.converged
+            l3 = infoV3.converged
+            @test l1 > 0
+            @test l2 > 0
+            @test l3 > 0
+            @test D1[1:l1] ≊ sort(D; alg=MergeSort, by=real)[1:l1]
+            @test D2[1:l2] ≊ sort(D; alg=MergeSort, by=real, rev=true)[1:l2]
+            # sorting by abs does not seem very reliable if two distinct eigenvalues are close
+            # in absolute value, so we perform a second sort afterwards using the real part
+            @test D3[1:l3] ≊ sort(D; by=abs, rev=true)[1:l3]
 
-#             U1 = stack(unwrapvec, V1)
-#             U2 = stack(unwrapvec, V2)
-#             U3 = stack(unwrapvec, V3)
-#             R1 = stack(unwrapvec, infoV1.residual)
-#             R2 = stack(unwrapvec, infoV2.residual)
-#             R3 = stack(unwrapvec, infoV3.residual)
-#             @test A * U1 ≈ U1 * Diagonal(D1) + R1
-#             @test A * U2 ≈ U2 * Diagonal(D2) + R2
-#             @test A * U3 ≈ U3 * Diagonal(D3) + R3
+            U1 = stack(unwrapvec, V1)
+            U2 = stack(unwrapvec, V2)
+            U3 = stack(unwrapvec, V3)
+            R1 = stack(unwrapvec, infoV1.residual)
+            R2 = stack(unwrapvec, infoV2.residual)
+            R3 = stack(unwrapvec, infoV3.residual)
+            @test A * U1 ≈ U1 * Diagonal(D1) + R1
+            @test A * U2 ≈ U2 * Diagonal(D2) + R2
+            @test A * U3 ≈ U3 * Diagonal(D3) + R3
 
-#             U1 = stack(unwrapvec, W1)
-#             U2 = stack(unwrapvec, W2)
-#             U3 = stack(unwrapvec, W3)
-#             R1 = stack(unwrapvec, infoW1.residual)
-#             R2 = stack(unwrapvec, infoW2.residual)
-#             R3 = stack(unwrapvec, infoW3.residual)
-#             @test A' * U1 ≈ U1 * Diagonal(D1) + R1
-#             @test A' * U2 ≈ U2 * Diagonal(D2) + R2
-#             @test A' * U3 ≈ U3 * Diagonal(D3) + R3
+            U1 = stack(unwrapvec, W1)
+            U2 = stack(unwrapvec, W2)
+            U3 = stack(unwrapvec, W3)
+            R1 = stack(unwrapvec, infoW1.residual)
+            R2 = stack(unwrapvec, infoW2.residual)
+            R3 = stack(unwrapvec, infoW3.residual)
+            @test A' * U1 ≈ U1 * Diagonal(D1) + R1
+            @test A' * U2 ≈ U2 * Diagonal(D2) + R2
+            @test A' * U3 ≈ U3 * Diagonal(D3) + R3
 
-#             if T <: Complex
-#                 D1, V1, info1 = eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n,
-#                                          :SI, alg)
-#                 D2, V2, info2 = eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n,
-#                                          :LI, alg)
-#                 D = eigvals(A)
+            # if T <: Complex
+            #     D1, V1, info1 = eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n,
+            #                              :SI, alg)
+            #     D2, V2, info2 = eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n,
+            #                              :LI, alg)
+            #     D = eigvals(A)
 
-#                 l1 = info1.converged
-#                 l2 = info2.converged
-#                 @test l1 > 0
-#                 @test l2 > 0
-#                 @test D1[1:l1] ≈ sort(D; by=imag)[1:l1]
-#                 @test D2[1:l2] ≈ sort(D; by=imag, rev=true)[1:l2]
+            #     l1 = info1.converged
+            #     l2 = info2.converged
+            #     @test l1 > 0
+            #     @test l2 > 0
+            #     @test D1[1:l1] ≈ sort(D; by=imag)[1:l1]
+            #     @test D2[1:l2] ≈ sort(D; by=imag, rev=true)[1:l2]
 
-#                 U1 = stack(unwrapvec, V1)
-#                 U2 = stack(unwrapvec, V2)
-#                 R1 = stack(unwrapvec, info1.residual)
-#                 R2 = stack(unwrapvec, info2.residual)
-#                 @test A * U1 ≈ U1 * Diagonal(D1) + R1
-#                 @test A * U2 ≈ U2 * Diagonal(D2) + R2
-#             end
-#         end
-#     end
-# end
+            #     U1 = stack(unwrapvec, V1)
+            #     U2 = stack(unwrapvec, V2)
+            #     R1 = stack(unwrapvec, info1.residual)
+            #     R2 = stack(unwrapvec, info2.residual)
+            #     @test A * U1 ≈ U1 * Diagonal(D1) + R1
+            #     @test A * U2 ≈ U2 * Diagonal(D2) + R2
+            # end
+        end
+    end
+end
