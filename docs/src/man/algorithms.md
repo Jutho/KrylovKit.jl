@@ -16,6 +16,7 @@ ModifiedGramSchmidtIR
 Lanczos
 BlockLanczos
 Arnoldi
+BiArnoldi
 ```
 
 ## Specific algorithms for linear systems
