@@ -127,8 +127,7 @@ function bieigsolve(f, v₀, w₀, howmany::Int=1, which::Selector=:LM;
                       BiArnoldi(orth, krylovdim, maxiter, tol, eager, verbosity,))
 end
 
-function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi;
-                    alg_rrule=alg)
+function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi)
     #! format: off
     (S, T), (Q, Z), (V, W), (rV, rW), (h, k), M, converged, numiter, numops =
         _bischursolve(f, v₀, w₀, howmany, which, alg)
