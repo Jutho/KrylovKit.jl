@@ -118,7 +118,7 @@ end
                 A = rand(T, (N, N)) .- one(T) / 2
                 v = rand(T, (N,))
                 w = rand(T, (N,))
-                alg = BiArnoldi(; krylovdim=3 * n, maxiter=40,
+                alg = BiArnoldi(; krylovdim=3 * n, maxiter=40, eager,
                                 tol=tolerance(T), verbosity=SILENT_LEVEL)
                 #! format: off
                 D1, (V1, W1), (infoV1, infoW1) = @constinferred bieigsolve(
