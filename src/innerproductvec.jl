@@ -85,6 +85,12 @@ VectorInterface.scalartype(::Type{<:InnerProductVec{F,T}}) where {F,T} = scalart
 function VectorInterface.zerovector(v::InnerProductVec, T::Type{<:Number})
     return InnerProductVec(zerovector(v.vec, T), v.dotf)
 end
+function VectorInterface.zerovector!(v::InnerProductVec)
+    return InnerProductVec(zerovector!(v.vec), v.dotf)
+end
+function VectorInterface.zerovector!!(v::InnerProductVec)
+    return InnerProductVec(zerovector!!(v.vec), v.dotf)
+end
 
 function VectorInterface.scale(v::InnerProductVec, a::Number)
     return InnerProductVec(scale(v.vec, a), v.dotf)
