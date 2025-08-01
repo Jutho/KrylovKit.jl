@@ -1,4 +1,132 @@
-# 
+"""
+    bieigsolve(A::AbstractMatrix, [howmany = 1, which = :LM, T = eltype(A)]; kwargs...))
+    bieigsolve(f, n::Int, [howmany = 1, which = :LM, T = Float64]; kwargs...)
+    bieigsolve(f, v₀, w₀, [howmany = 1, which = :LM]; kwargs...)
+    bieigsolve(f, v₀, w₀, howmany, which, alg::BiArnoldi)
+
+Compute at least `howmany` eigenvalues from the linear map encoded in the matrix `A` or by the function `f`. Return eigenvalues, left- and right-eigenvectors and a `ConvergenceInfo` structure.
+
+### Arguments:
+
+The linear map can be an `AbstractMatrix` (dense or sparse) or a general function or
+callable object. Since both the action of the linear map and its adjoint are required in
+order to compute right- and left-eigenvectors, `f` can either be a tuple of two callable objects (each
+accepting a single argument), representing the linear map and its adjoint respectively, or,
+`f` can be a single callable object that accepts two input arguments, where the second
+argument is a flag of type `Val{true}` or `Val{false}` that indicates whether the adjoint or
+the normal action of the linear map needs to be computed. This is the same implementation as 
+for `svd_solve`.
+
+If the linear map is encoded more
+generally as a a callable function or method, the best approach is to provide an explicit
+starting guess `v₀` and `w₀` for  the right- and left-eigenvector. Note that `v₀` and `w₀` do not need to be of type `AbstractVector`; any type
+that behaves as a vector and supports the required methods (see KrylovKit docs) is accepted.
+If instead of `v₀` and `w₀` an integer `n` is specified, it is assumed that both are a regular vector
+and they are initialized to `rand(T, n)`, where the default value of `T` is `Float64`, unless
+specified differently.
+
+The next arguments are optional, but should typically be specified. `howmany` specifies how
+many eigenvalues should be computed; `which` specifies which eigenvalues should be
+targeted. Valid specifications of `which` are given by
+
+  - `:LM`: eigenvalues of largest magnitude
+  - `:LR`: eigenvalues with largest (most positive) real part
+  - `:SR`: eigenvalues with smallest (most negative) real part
+  - `:LI`: eigenvalues with largest (most positive) imaginary part, only if `T <: Complex`
+  - `:SI`: eigenvalues with smallest (most negative) imaginary part, only if `T <: Complex`
+  - [`EigSorter(f; rev = false)`](@ref): eigenvalues `λ` that appear first (or last if
+    `rev == true`) when sorted by `f(λ)`
+
+### Return Values
+
+Returns a tuple `(values, (vectorsV, vectorsW), (infoV, infoW))` where:
+
+- `values`: Vector of computed eigenvalues.
+- `vectorsV`: Vector of right eigenvectors (corresponding to `A`).
+- `vectorsW`: Vector of left eigenvectors (corresponding to `A'`).
+- `infoV`, `infoW`: `ConvergenceInfo` objects for right and left eigenproblems, containing:
+    - `converged`: Number of converged eigenvalues.
+    - `residual`: List of residual vectors.
+    - `normres`: List of residual norms.
+    - `numiter`: Number of Krylov restarts.
+    - `numops`: Number of operator applications.
+
+### Notes
+
+- The BiArnoldi method is designed for non-Hermitian problems and returns both left and right eigenvectors, which are biorthogonal.
+- For Hermitian or symmetric problems, prefer using `eigsolve` or `realeigsolve`.
+
+
+!!! warning "Check for convergence"
+
+    No warning is printed if not all requested eigenvalues were converged, so always check
+    if `info.converged >= howmany`.
+
+### Keyword arguments:
+
+Keyword arguments and their default values are given by:
+
+  - `verbosity::Int = SILENT_LEVEL`: verbosity level, i.e. 
+    - SILENT_LEVEL (suppress all messages)
+    - WARN_LEVEL (only warnings)
+    - STARTSTOP_LEVEL (one message with convergence info at the end)
+    - EACHITERATION_LEVEL (progress info after every iteration)
+    - EACHITERATION_LEVEL+ (all of the above and additional information about the Lanczos, BlockLanczos, or Arnoldi iteration)
+  - `tol::Real`: the requested accuracy (corresponding to the 2-norm of the residual for
+    Schur vectors, not the eigenvectors). If you work in e.g. single precision (`Float32`),
+    you should definitely change the default value.
+  - `krylovdim::Integer`: the maximum dimension of the Krylov subspace that will be
+    constructed. Note that the dimension of the vector space is not known or checked, e.g.
+    `x₀` should not necessarily support the `Base.length` function. If you know the actual
+    problem dimension is smaller than the default value, it is useful to reduce the value of
+    `krylovdim`, though in principle this should be detected.
+  - `maxiter::Integer`: the number of times the Krylov subspace can be rebuilt; see below
+    for further details on the algorithms.
+  - `orth::Orthogonalizer`: the orthogonalization method to be used, see
+    [`Orthogonalizer`](@ref)
+
+The default values are given by `tol = KrylovDefaults.tol`,
+`krylovdim = KrylovDefaults.krylovdim`, `maxiter = KrylovDefaults.maxiter`,
+`orth = KrylovDefaults.orth`; see [`KrylovDefaults`](@ref) for details.
+
+
+### Example
+
+```julia
+A = randn(10, 10)
+vals, (vecsR, vecsL), (infoR, infoL) = bieigsolve(A, 3, :LM)
+```
+
+See also: [`eigsolve`](@ref), [`realeigsolve`](@ref), [`BiArnoldi`](@ref)
+"""
+function bieigsolve end
+
+function bieigsolve(A::AbstractMatrix,
+                    howmany::Int=1,
+                    which::Selector=:LM,
+                    T::Type=eltype(A);
+                    kwargs...)
+    v₀ = Random.rand!(similar(A, T, size(A, 1)))
+    w₀ = Random.rand!(similar(A, T, size(A, 1)))
+    return bieigsolve(A, v₀, w₀, howmany, which; kwargs...)
+end
+
+function bieigsolve(f, n::Int, howmany::Int=1, which::Selector=:LM, T::Type=Float64;
+                    kwargs...)
+    return bieigsolve(f, rand(T, n), rand(T, n), howmany, which; kwargs...)
+end
+
+function bieigsolve(f, v₀, w₀, howmany::Int=1, which::Selector=:LM;
+                    krylovdim::Int=KrylovDefaults.krylovdim[],
+                    maxiter::Int=KrylovDefaults.maxiter[],
+                    eager::Bool=false,
+                    tol::Real=KrylovDefaults.tol[],
+                    orth::Orthogonalizer=KrylovDefaults.orth,
+                    verbosity::Int=KrylovDefaults.verbosity[])
+    return bieigsolve(f, v₀, w₀, howmany, which,
+                      BiArnoldi(orth, krylovdim, maxiter, tol, eager, verbosity,))
+end
+
 function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi;
                     alg_rrule=alg)
     #! format: off
