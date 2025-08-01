@@ -20,7 +20,7 @@ function householder(A::AbstractMatrix, r::IndexRange, col::Int, k=first(r))
     β, v, ν = _householder!(A[r, col], i)
     return Householder(β, v, r), ν
 end
-# Householder reflector that zeros the elements A[row,r] (except for A[row,k]) upon rmulc!(A,h)
+# Householder reflector that zeros the elements A[row,r] (except for A[row,k]) upon rmul!(A,h')
 function householder(A::AbstractMatrix, row::Int, r::IndexRange, k=first(r))
     i = findfirst(isequal(k), r)
     i isa Nothing && error("k = $k should be in the range r = $r")

@@ -15,12 +15,22 @@ sorting operation using `EigSorter`
 EigSorter
 ```
 
-For a general matrix, eigenvalues and eigenvectors will always be returned with complex
-values for reasons of type stability. However, if the linear map and initial guess are
-real, most of the computation is actually performed using real arithmetic, as in fact the
-first step is to compute an approximate partial Schur factorization. If one is not
-interested in the eigenvectors, one can also just compute this partial Schur factorization
-using `schursolve`, for which only an 'expert' method call is available
+For a self-adjoint linear map (hermitian or, in the real case, symmetric), the eigenvalues are real 
+and the eigenvectors satisfy both $$A \vec{v} = \lambda \vec{v}$$ and
+$$A^\dagger \vec{v} = \lambda \vec{v}$$. For a general linear map, eigenvalues are in general 
+complex, and so eigenvalues and eigenvectors obtained by `eigsolve` will always be returned with 
+complex values for reasons of type stability. Furthermore, the eigenvectors only satisfy
+$$A \vec{v} = \lambda \vec{v}$$, although there are associated "left" eigenvectors that satisfy
+$$A^\dagger \vec{w} = \bar{\lambda} \vec{w}$$. These can be computed using the `bieigsolve` method
+```@docs
+bieigsolve
+```
+
+Even though eigenvalues and eigenvectors for a general linear map are returned with complex numbers,
+if the linear map and initial guess are real, most of the computation is actually performed using 
+real arithmetic, as in fact the first step is to compute an approximate partial Schur factorization.
+If one is not interested in the eigenvectors, one can also just compute this partial Schur 
+factorization using `schursolve`, for which only an 'expert' method call is available
 ```@docs
 schursolve
 ```

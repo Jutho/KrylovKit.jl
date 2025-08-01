@@ -40,6 +40,9 @@ end
     include("schursolve.jl")
     include("geneigsolve.jl")
 end
+@testset "Biorthogonal eigenvalue problems with bieigsolve" verbose = true begin
+    include("bieigsolve.jl")
+end
 @testset "Singular value problems with svdsolve" verbose = true begin
     include("svdsolve.jl")
 end

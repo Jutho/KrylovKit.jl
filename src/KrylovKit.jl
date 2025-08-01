@@ -29,15 +29,16 @@ using PackageExtensionCompat
 const IndexRange = AbstractRange{Int}
 
 export linsolve, reallinsolve, lssolve, reallssolve
-export eigsolve, geneigsolve, realeigsolve, schursolve, svdsolve
+export eigsolve, geneigsolve, realeigsolve, schursolve, svdsolve, bieigsolve
 export exponentiate, expintegrator
 export orthogonalize, orthogonalize!!, orthonormalize, orthonormalize!!
 export basis, rayleighquotient, residual, normres, rayleighextension
 export initialize, initialize!, expand!, shrink!
 export ClassicalGramSchmidt, ClassicalGramSchmidt2, ClassicalGramSchmidtIR
 export ModifiedGramSchmidt, ModifiedGramSchmidt2, ModifiedGramSchmidtIR
-export LanczosIterator, BlockLanczosIterator, ArnoldiIterator, GKLIterator
-export CG, GMRES, BiCGStab, Lanczos, BlockLanczos, Arnoldi, GKL, GolubYe, LSMR
+export LanczosIterator, BlockLanczosIterator, ArnoldiIterator, GKLIterator,
+       BiArnoldiIterator
+export CG, GMRES, BiCGStab, Lanczos, BlockLanczos, Arnoldi, GKL, GolubYe, LSMR, BiArnoldi
 export KrylovDefaults, EigSorter
 export RecursiveVec, InnerProductVec, Block
 
@@ -178,6 +179,7 @@ include("factorizations/krylov.jl")
 include("factorizations/lanczos.jl")
 include("factorizations/blocklanczos.jl")
 include("factorizations/arnoldi.jl")
+include("factorizations/biarnoldi.jl")
 include("factorizations/gkl.jl")
 
 # A general structure to pass on convergence information
@@ -272,6 +274,7 @@ include("eigsolve/eigsolve.jl")
 include("eigsolve/lanczos.jl")
 include("eigsolve/blocklanczos.jl")
 include("eigsolve/arnoldi.jl")
+include("eigsolve/biarnoldi.jl")
 include("eigsolve/geneigsolve.jl")
 include("eigsolve/golubye.jl")
 include("eigsolve/svdsolve.jl")
