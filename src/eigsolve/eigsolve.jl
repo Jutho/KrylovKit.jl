@@ -207,8 +207,13 @@ function eigsolve(f, n::Int, howmany::Int=1, which::Selector=:LM, T::Type=Float6
 end
 function eigsolve(f, x₀, howmany::Int=1, which::Selector=:LM; kwargs...)
     Tx = typeof(x₀)
-    Tfx = Core.Compiler.return_type(apply, Tuple{typeof(f),Tx})
-    T = Core.Compiler.return_type(dot, Tuple{Tx,Tfx})
+    if Tx <: Block
+        α₀ = inner(x₀[1], apply(f, x₀[1]))
+        T = typeof(α₀)
+    else
+        α₀ = inner(x₀, apply(f, x₀))
+        T = typeof(α₀)
+    end
     alg = eigselector(f, T; Tx=Tx, kwargs...)
     checkwhich(which) || error("Unknown eigenvalue selector: which = $which")
     if alg isa Lanczos || alg isa BlockLanczos
