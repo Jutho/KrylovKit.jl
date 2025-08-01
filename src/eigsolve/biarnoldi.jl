@@ -124,7 +124,7 @@ function bieigsolve(f, v₀, w₀, howmany::Int=1, which::Selector=:LM;
                     orth::Orthogonalizer=KrylovDefaults.orth,
                     verbosity::Int=KrylovDefaults.verbosity[])
     return bieigsolve(f, v₀, w₀, howmany, which,
-                      BiArnoldi(;orth, krylovdim, maxiter, tol, eager, verbosity,))
+                      BiArnoldi(; orth, krylovdim, maxiter, tol, eager, verbosity,))
 end
 
 function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi)
@@ -168,13 +168,13 @@ function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi
     VS = view(Q, :, 1:howmany′) * vecsS
     vectorsS = [V * v for v in cols(VS)]
     hᴴVS = map(Base.Fix1(dot, h[1:howmany′]), cols(vecsS))
-    residualsS = map(Base.Fix1(scale, rV), hᴴVS)::typeof(vectorsS)
-    normresidualsS = map(abs ∘ Base.Fix1(*, norm(rV)), hᴴVS)
+    residualsS = [scale(rV, s) for s in hᴴVS]
+    normresidualsS = map(Base.Fix1(*, norm(rV)) ∘ abs, hᴴVS)
     VT = view(Z, :, 1:howmany′) * vecsT
     vectorsT = [W * v for v in cols(VT)]
-    hᴴVT = map(Base.Fix1(dot, k[1:howmany′]), cols(vecsT))
-    residualsT = map(Base.Fix1(scale, rW), hᴴVT)::typeof(vectorsT)
-    normresidualsT = map(abs ∘ Base.Fix1(*, norm(rW)), hᴴVT)
+    kᴴVT = map(Base.Fix1(dot, k[1:howmany′]), cols(vecsT))
+    residualsT = [scale(rW, s) for s in kᴴVT]
+    normresidualsT = map(Base.Fix1(*, norm(rW)) ∘ abs, kᴴVT)
 
     if (converged < howmany) && alg.verbosity >= WARN_LEVEL
         @warn """BiArnoldi eigsolve stopped without convergence after $numiter iterations:
@@ -262,8 +262,8 @@ function _bischursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArno
 
             # Step 1 - Normalize residuals so that they represent next Arnoldi vectors
             rV, rW = residual(fact)
-            if alg.eager
-                # explicitly copy the residual to not disturb future iterations
+            if L < krylovdim
+                # explicitly copy the residual to not disturb future expansion steps
                 rV = scale(rV, 1 / βv) # vℓ₊₁
                 rW = scale(rW, 1 / βw) # wℓ₊₁            
             else
