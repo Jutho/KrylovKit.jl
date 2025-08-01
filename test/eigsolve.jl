@@ -611,10 +611,12 @@ end
         x₀ = Block([wrapvec(rand(T, N), Val(mode)) for _ in 1:block_size])
         values0 = eigvals(A)[1:n]
         n1 = n ÷ 2
-        alg = BlockLanczos(; krylovdim=3 * n ÷ 2, maxiter=1, tol=1e-12)
+        alg = BlockLanczos(; krylovdim=3 * n ÷ 2, maxiter=1, tol=1e-12,
+                           verbosity=SILENT_LEVEL)
         values, _, _ = eigsolve(wrapop(A, Val(mode)), x₀, n, :SR, alg)
         error1 = norm(values[1:n1] - values0[1:n1])
-        alg_shrink = BlockLanczos(; krylovdim=3 * n ÷ 2, maxiter=2, tol=1e-12)
+        alg_shrink = BlockLanczos(; krylovdim=3 * n ÷ 2, maxiter=2, tol=1e-12,
+                                  verbosity=SILENT_LEVEL)
         values_shrink, _, _ = eigsolve(wrapop(A, Val(mode)), x₀, n, :SR, alg_shrink)
         error2 = norm(values_shrink[1:n1] - values0[1:n1])
         @test error2 < error1
@@ -631,9 +633,11 @@ end
         x₀ = Block([wrapvec(rand(T, n), Val(mode)) for _ in 1:block_size])
         if mode === :vector
             D1, V1, info1 = eigsolve(wrapop(A, Val(mode)), x₀, 1, :SR)
+            @test info1.converged >= 1
             eigA = eigvals(A)
             @test D1[1] ≈ eigA[1]
             D2, V2, info2 = eigsolve(wrapop(A, Val(mode)), x₀)
+            @test info1.converged >= 1
             @test D2[1] ≈ (abs(eigA[1]) > abs(eigA[end]) ? eigA[1] : eigA[end])
             @test_throws ErrorException eigsolve(wrapop(A, Val(mode)), x₀, 1, :LI)
             B = copy(A)
