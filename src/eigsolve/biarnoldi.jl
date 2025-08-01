@@ -167,14 +167,18 @@ function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi
     # Construct the actual eigenvectors and residuals
     VS = view(Q, :, 1:howmany′) * vecsS
     vectorsS = [V * v for v in cols(VS)]
-    hᴴVS = map(Base.Fix1(dot, h[1:howmany′]), cols(vecsS))
-    residualsS = map(Base.Fix1(scale, rV), hᴴVS)
-    normresidualsS = map(abs ∘ Base.Fix1(*, norm(rV)), hᴴVS)
+    hᴴVS = vec(h[1:howmany′]' * vecsS)
+    residualsS = [scale(rV, s) for s in hᴴVS]
+    normresidualsS = let βrV = norm(rV)
+        [abs(βrV * s) for s in hᴴVS]
+    end
     VT = view(Z, :, 1:howmany′) * vecsT
     vectorsT = [W * v for v in cols(VT)]
-    hᴴVT = map(Base.Fix1(dot, k[1:howmany′]), cols(vecsT))
-    residualsT = map(Base.Fix1(scale, rW), hᴴVT)
-    normresidualsT = map(abs ∘ Base.Fix1(*, norm(rW)), hᴴVT)
+    kᴴVT = vec(k[1:howmany′]' * vecsT)
+    residualsT = [scale(rW, s) for s in kᴴVT]
+    normresidualsT = let βrW = norm(rW)
+        [abs(βrW * s) for s in kᴴVT]
+    end
 
     if (converged < howmany) && alg.verbosity >= WARN_LEVEL
         @warn """BiArnoldi eigsolve stopped without convergence after $numiter iterations:
