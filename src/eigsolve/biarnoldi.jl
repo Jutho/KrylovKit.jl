@@ -262,8 +262,14 @@ function _bischursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArno
 
             # Step 1 - Normalize residuals so that they represent next Arnoldi vectors
             rV, rW = residual(fact)
-            rV = scale!!(rV, 1 / βv) # vℓ₊₁
-            rW = scale!!(rW, 1 / βw) # wℓ₊₁
+            if alg.eager
+                # explicitly copy the residual to not disturb future iterations
+                rV = scale(rV, 1 / βv) # vℓ₊₁
+                rW = scale(rW, 1 / βw) # wℓ₊₁            
+            else
+                rV = scale!!(rV, 1 / βv) # vℓ₊₁
+                rW = scale!!(rW, 1 / βw) # wℓ₊₁
+            end
             # we remember the value of h and k until the first time we actually need to construt them
             # h .*= βv # or thus: h = βv * SimpleBasisVector(L, L)
             # k .*= βw # or thus: k = βw * SimpleBasisVector(L, L)
