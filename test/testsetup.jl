@@ -47,14 +47,14 @@ function mat_with_eigrepition(T, N, multiplicity)
     U = LinearAlgebra.qr(randn(T, (N, N))).Q # Haar random matrix
     D = sort(randn(real(T), N))
     i = 0
-    while multiplicity >= 2 && (i + multiplicity) <= N÷2
-        D[i .+ (1:multiplicity)] .= D[i+1]
-        D[N+1-i .- (1:multiplicity)] .= D[N-i]
+    while multiplicity >= 2 && (i + multiplicity) <= N ÷ 2
+        D[i .+ (1:multiplicity)] .= D[i + 1]
+        D[N + 1 - i .- (1:multiplicity)] .= D[N - i]
         i += multiplicity
         multiplicity -= 1
     end
     A = U * LinearAlgebra.Diagonal(D) * U'
-    return (A + A')/2
+    return (A + A') / 2
 end
 
 # Wrappers
@@ -64,10 +64,10 @@ using VectorInterface: MinimalSVec, MinimalMVec, MinimalVec
 
 function wrapvec(v, ::Val{mode}) where {mode}
     return mode === :vector ? v :
-           mode === :inplace ? MinimalMVec(v) :
-           mode === :outplace ? MinimalSVec(v) :
-           mode === :mixed ? MinimalSVec(v) :
-           throw(ArgumentError("invalid mode ($mode)"))
+        mode === :inplace ? MinimalMVec(v) :
+        mode === :outplace ? MinimalSVec(v) :
+        mode === :mixed ? MinimalSVec(v) :
+        throw(ArgumentError("invalid mode ($mode)"))
 end
 function wrapvec2(v, ::Val{mode}) where {mode}
     return mode === :mixed ? MinimalMVec(v) : wrapvec(v, mode)
@@ -80,7 +80,7 @@ function wrapop(A, ::Val{mode}) where {mode}
     if mode === :vector
         return A
     elseif mode === :inplace || mode === :outplace
-        return function (v, flag=Val(false))
+        return function (v, flag = Val(false))
             if flag === Val(true)
                 return wrapvec(A' * unwrapvec(v), Val(mode))
             else
@@ -88,8 +88,10 @@ function wrapop(A, ::Val{mode}) where {mode}
             end
         end
     elseif mode === :mixed
-        return (x -> wrapvec(A * unwrapvec(x), Val(mode)),
-                y -> wrapvec2(A' * unwrapvec(y), Val(mode)))
+        return (
+            x -> wrapvec(A * unwrapvec(x), Val(mode)),
+            y -> wrapvec2(A' * unwrapvec(y), Val(mode)),
+        )
     else
         throw(ArgumentError("invalid mode ($mode)"))
     end

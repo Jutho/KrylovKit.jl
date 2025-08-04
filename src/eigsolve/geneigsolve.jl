@@ -145,50 +145,54 @@ equivalent to `LOPCG`.
 """
 function geneigsolve end
 
-function geneigsolve(AB::Tuple{AbstractMatrix,AbstractMatrix},
-                     howmany::Int=1,
-                     which::Selector=:LM,
-                     T=promote_type(eltype.(AB)...);
-                     kwargs...)
+function geneigsolve(
+        AB::Tuple{AbstractMatrix, AbstractMatrix},
+        howmany::Int = 1,
+        which::Selector = :LM,
+        T = promote_type(eltype.(AB)...);
+        kwargs...
+    )
     if !(size(AB[1], 1) == size(AB[1], 2) == size(AB[2], 1) == size(AB[2], 2))
         throw(DimensionMismatch("Matrices `A` and `B` should be square and have matching size"))
     end
     x₀ = Random.rand!(similar(AB[1], T, size(AB[1], 1)))
     return geneigsolve(AB, x₀, howmany::Int, which; kwargs...)
 end
-function geneigsolve(AB::Tuple{Any,AbstractMatrix},
-                     howmany::Int=1,
-                     which::Selector=:LM,
-                     T=eltype(AB[2]);
-                     kwargs...)
+function geneigsolve(
+        AB::Tuple{Any, AbstractMatrix},
+        howmany::Int = 1,
+        which::Selector = :LM,
+        T = eltype(AB[2]);
+        kwargs...
+    )
     x₀ = Random.rand!(similar(AB[2], T, size(AB[2], 1)))
     return geneigsolve(AB, x₀, howmany, which; kwargs...)
 end
-function geneigsolve(AB::Tuple{AbstractMatrix,Any},
-                     howmany::Int=1,
-                     which::Selector=:LM,
-                     T=eltype(AB[1]);
-                     kwargs...)
+function geneigsolve(
+        AB::Tuple{AbstractMatrix, Any},
+        howmany::Int = 1,
+        which::Selector = :LM,
+        T = eltype(AB[1]);
+        kwargs...
+    )
     x₀ = Random.rand!(similar(AB[1], T, size(AB[1], 1)))
     return geneigsolve(AB, x₀, howmany, which; kwargs...)
 end
 
-function geneigsolve(f,
-                     n::Int,
-                     howmany::Int=1,
-                     which::Selector=:LM,
-                     T::Type=Float64;
-                     kwargs...)
+function geneigsolve(
+        f, n::Int, howmany::Int = 1, which::Selector = :LM, T::Type = Float64;
+        kwargs...
+    )
     return geneigsolve(f, rand(T, n), howmany, which; kwargs...)
 end
 
-function geneigsolve(f, x₀, howmany::Int=1, which::Selector=:LM; kwargs...)
+function geneigsolve(f, x₀, howmany::Int = 1, which::Selector = :LM; kwargs...)
     Tx = typeof(x₀)
-    Tfx = Core.Compiler.return_type(genapply, Tuple{typeof(f),Tx}) # should be a tuple type
+    Tfx = Core.Compiler.return_type(genapply, Tuple{typeof(f), Tx}) # should be a tuple type
     Tfx1 = Base.tuple_type_head(Tfx)
     Tfx2 = Base.tuple_type_head(Base.tuple_type_tail(Tfx))
-    T1 = Core.Compiler.return_type(dot, Tuple{Tx,Tfx1})
-    T2 = Core.Compiler.return_type(dot, Tuple{Tx,Tfx2})
+    T1 = Core.Compiler.return_type(dot, Tuple{Tx, Tfx1})
+    T2 = Core.Compiler.return_type(dot, Tuple{Tx, Tfx2})
     T = promote_type(T1, T2)
     alg = geneigselector(f, T; kwargs...)
     if alg isa GolubYe && (which == :LI || which == :SI)
@@ -197,24 +201,26 @@ function geneigsolve(f, x₀, howmany::Int=1, which::Selector=:LM; kwargs...)
     return geneigsolve(f, x₀, howmany, which, alg)
 end
 
-function geneigselector(AB::Tuple{AbstractMatrix,AbstractMatrix},
-                        T::Type;
-                        issymmetric=(T <: Real && all(LinearAlgebra.issymmetric, AB)),
-                        ishermitian=issymmetric || all(LinearAlgebra.ishermitian, AB),
-                        isposdef=ishermitian && LinearAlgebra.isposdef(AB[2]),
-                        kwargs...)
+function geneigselector(
+        AB::Tuple{AbstractMatrix, AbstractMatrix}, T::Type;
+        issymmetric = (T <: Real && all(LinearAlgebra.issymmetric, AB)),
+        ishermitian = issymmetric || all(LinearAlgebra.ishermitian, AB),
+        isposdef = ishermitian && LinearAlgebra.isposdef(AB[2]),
+        kwargs...
+    )
     if (issymmetric || ishermitian) && isposdef
         return GolubYe(; kwargs...)
     else
         throw(ArgumentError("Only symmetric or hermitian generalized eigenvalue problems with positive definite `B` matrix are currently supported."))
     end
 end
-function geneigselector(f,
-                        T::Type;
-                        issymmetric=false,
-                        ishermitian=issymmetric,
-                        isposdef=false,
-                        kwargs...)
+function geneigselector(
+        f, T::Type;
+        issymmetric = false,
+        ishermitian = issymmetric,
+        isposdef = false,
+        kwargs...
+    )
     if (issymmetric || ishermitian) && isposdef
         return GolubYe(; kwargs...)
     else

@@ -1,4 +1,3 @@
-# lanczos.jl
 """
     mutable struct LanczosFactorization{T,S<:Real} <: KrylovFactorization{T,S}
 
@@ -29,7 +28,7 @@ Lanczos factorizations of a given linear map and a starting vector. See
 [`ArnoldiFactorization`](@ref) and [`ArnoldiIterator`](@ref) for a Krylov factorization that
 works for general (non-symmetric) linear maps.
 """
-mutable struct LanczosFactorization{T,S<:Real} <: KrylovFactorization{T,S}
+mutable struct LanczosFactorization{T, S <: Real} <: KrylovFactorization{T, S}
     k::Int # current Krylov dimension
     V::OrthonormalBasis{T} # basis of length k
     αs::Vector{S}
@@ -45,11 +44,11 @@ Base.sizehint!(F::LanczosFactorization, n) = begin
     return F
 end
 Base.eltype(F::LanczosFactorization) = eltype(typeof(F))
-Base.eltype(::Type{<:LanczosFactorization{<:Any,S}}) where {S} = S
+Base.eltype(::Type{<:LanczosFactorization{<:Any, S}}) where {S} = S
 
 function basis(F::LanczosFactorization)
     return length(F.V) == F.k ? F.V :
-           error("Not keeping vectors during Lanczos factorization")
+        error("Not keeping vectors during Lanczos factorization")
 end
 rayleighquotient(F::LanczosFactorization) = SymTridiagonal(F.αs, F.βs)
 residual(F::LanczosFactorization) = F.r
@@ -125,26 +124,30 @@ factorization in place. See also [`initialize!(::KrylovIterator,
 information will be discarded) and [`shrink!(::KrylovFactorization, k)`](@ref) to shrink an
 existing factorization down to length `k`.
 """
-struct LanczosIterator{F,T,O<:Orthogonalizer} <: KrylovIterator{F,T}
+struct LanczosIterator{F, T, O <: Orthogonalizer} <: KrylovIterator{F, T}
     operator::F
     x₀::T
     orth::O
     keepvecs::Bool
-    function LanczosIterator{F,T,O}(operator::F,
-                                    x₀::T,
-                                    orth::O,
-                                    keepvecs::Bool) where {F,T,O<:Orthogonalizer}
+    function LanczosIterator{F, T, O}(
+            operator::F,
+            x₀::T,
+            orth::O,
+            keepvecs::Bool
+        ) where {F, T, O <: Orthogonalizer}
         if !keepvecs && isa(orth, Reorthogonalizer)
             error("Cannot use reorthogonalization without keeping all Krylov vectors")
         end
-        return new{F,T,O}(operator, x₀, orth, keepvecs)
+        return new{F, T, O}(operator, x₀, orth, keepvecs)
     end
 end
-function LanczosIterator(operator::F,
-                         x₀::T,
-                         orth::O=KrylovDefaults.orth,
-                         keepvecs::Bool=true) where {F,T,O<:Orthogonalizer}
-    return LanczosIterator{F,T,O}(operator, x₀, orth, keepvecs)
+function LanczosIterator(
+        operator::F,
+        x₀::T,
+        orth::O = KrylovDefaults.orth,
+        keepvecs::Bool = true
+    ) where {F, T, O <: Orthogonalizer}
+    return LanczosIterator{F, T, O}(operator, x₀, orth, keepvecs)
 end
 
 Base.IteratorSize(::Type{<:LanczosIterator}) = Base.SizeUnknown()
@@ -172,7 +175,7 @@ function warn_nonhermitian(α, β₁, β₂)
     return nothing
 end
 
-function initialize(iter::LanczosIterator; verbosity::Int=KrylovDefaults.verbosity[])
+function initialize(iter::LanczosIterator; verbosity::Int = KrylovDefaults.verbosity[])
     # initialize without using eltype
     x₀ = iter.x₀
     β₀ = norm(x₀)
@@ -192,12 +195,12 @@ function initialize(iter::LanczosIterator; verbosity::Int=KrylovDefaults.verbosi
     r = add!!(r, v, -α) # should we use real(α) here?
     β = norm(r)
     # possibly reorthogonalize
-    if iter.orth isa Union{ClassicalGramSchmidt2,ModifiedGramSchmidt2}
+    if iter.orth isa Union{ClassicalGramSchmidt2, ModifiedGramSchmidt2}
         dα = inner(v, r)
         α += dα
         r = add!!(r, v, -dα) # should we use real(dα) here?
         β = norm(r)
-    elseif iter.orth isa Union{ClassicalGramSchmidtIR,ModifiedGramSchmidtIR}
+    elseif iter.orth isa Union{ClassicalGramSchmidtIR, ModifiedGramSchmidtIR}
         while eps(one(β)) < β < iter.orth.η * βold
             βold = β
             dα = inner(v, r)
@@ -215,8 +218,10 @@ function initialize(iter::LanczosIterator; verbosity::Int=KrylovDefaults.verbosi
     end
     return LanczosFactorization(1, V, αs, βs, r)
 end
-function initialize!(iter::LanczosIterator, state::LanczosFactorization;
-                     verbosity::Int=KrylovDefaults.verbosity[])
+function initialize!(
+        iter::LanczosIterator, state::LanczosFactorization;
+        verbosity::Int = KrylovDefaults.verbosity[]
+    )
     x₀ = iter.x₀
     V = state.V
     while length(V) > 1
@@ -240,8 +245,10 @@ function initialize!(iter::LanczosIterator, state::LanczosFactorization;
     end
     return state
 end
-function expand!(iter::LanczosIterator, state::LanczosFactorization;
-                 verbosity::Int=KrylovDefaults.verbosity[])
+function expand!(
+        iter::LanczosIterator, state::LanczosFactorization;
+        verbosity::Int = KrylovDefaults.verbosity[]
+    )
     βold = normres(state)
     V = state.V
     r = state.r
@@ -261,7 +268,7 @@ function expand!(iter::LanczosIterator, state::LanczosFactorization;
     end
     return state
 end
-function shrink!(state::LanczosFactorization, k; verbosity::Int=KrylovDefaults.verbosity[])
+function shrink!(state::LanczosFactorization, k; verbosity::Int = KrylovDefaults.verbosity[])
     length(state) == length(state.V) ||
         error("we cannot shrink LanczosFactorization without keeping Lanczos vectors")
     length(state) <= k && return state

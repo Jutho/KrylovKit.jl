@@ -1,4 +1,4 @@
-function linsolve(operator, b, x₀, alg::BiCGStab, a₀::Number=0, a₁::Number=1; alg_rrule=alg)
+function linsolve(operator, b, x₀, alg::BiCGStab, a₀::Number = 0, a₁::Number = 1; alg_rrule = alg)
     # Initial function operation and division defines number type
     y₀ = apply(operator, x₀)
     T = typeof(inner(b, y₀) / norm(b) * one(a₀) * one(a₁))
@@ -71,7 +71,7 @@ function linsolve(operator, b, x₀, alg::BiCGStab, a₀::Number=0, a₁::Number
         normr_act = norm(s)
         if normr_act < tol
             if alg.verbosity >= STARTSTOP_LEVEL
-                @info """BiCGStab linsolve converged at iteration $(numiter-1/2):
+                @info """BiCGStab linsolve converged at iteration $(numiter - 1 / 2):
                 * norm of residual = $(normres2string(normr_act))
                 * number of operations = $numops"""
             end
@@ -146,7 +146,7 @@ function linsolve(operator, b, x₀, alg::BiCGStab, a₀::Number=0, a₁::Number
             normr_act = norm(s)
             if normr_act < tol
                 if alg.verbosity >= STARTSTOP_LEVEL
-                    @info """BiCGStab linsolve converged at iteration $(numiter-1/2):
+                    @info """BiCGStab linsolve converged at iteration $(numiter - 1 / 2):
                     * norm of residual = $(normres2string(normr_act))
                     * number of operations = $numops"""
                 end
@@ -154,7 +154,7 @@ function linsolve(operator, b, x₀, alg::BiCGStab, a₀::Number=0, a₁::Number
             end
         end
         if alg.verbosity >= EACHITERATION_LEVEL
-            @info "BiCGStab linsolve in iteration $(numiter-1/2): normres = $(normres2string(normr))"
+            @info "BiCGStab linsolve in iteration $(numiter - 1 / 2): normres = $(normres2string(normr))"
         end
 
         ## GMRES part of the algorithm.
@@ -199,4 +199,5 @@ function linsolve(operator, b, x₀, alg::BiCGStab, a₀::Number=0, a₁::Number
             @info "BiCGStab linsolve in iteration $numiter: normres = $(normres2string(normr))"
         end
     end
+    return
 end

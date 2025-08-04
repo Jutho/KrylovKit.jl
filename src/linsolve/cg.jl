@@ -1,4 +1,4 @@
-function linsolve(operator, b, x₀, alg::CG, a₀::Real=0, a₁::Real=1; alg_rrule=alg)
+function linsolve(operator, b, x₀, alg::CG, a₀::Real = 0, a₁::Real = 1; alg_rrule = alg)
     # Initial function operation and division defines number type
     y₀ = apply(operator, x₀)
     T = typeof(inner(b, y₀) / norm(b) * one(a₀) * one(a₁))
@@ -99,4 +99,5 @@ function linsolve(operator, b, x₀, alg::CG, a₀::Real=0, a₁::Real=1; alg_rr
             @info "CG linsolve in iteration $numiter: normres = $(normres2string(normr))"
         end
     end
+    return
 end

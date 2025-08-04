@@ -1,4 +1,4 @@
-function lssolve(operator, b, alg::LSMR, λ_::Real=0)
+function lssolve(operator, b, alg::LSMR, λ_::Real = 0)
     # Initialisation: determine number type
     u₀ = b
     v₀ = apply_adjoint(operator, u₀)
@@ -147,4 +147,5 @@ function lssolve(operator, b, alg::LSMR, λ_::Real=0)
             @info "LSMR lssolve in iter $numiter: convergence measure ‖ Aᴴ(b - A x) - λ^2 x ‖ = $(normres2string(absζ̄))"
         end
     end
+    return
 end
