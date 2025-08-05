@@ -188,24 +188,25 @@ struct EigSorter{F}
     by::F
     rev::Bool
 end
-EigSorter(f::F; rev=false) where {F} = EigSorter{F}(f, rev)
+EigSorter(f::F; rev = false) where {F} = EigSorter{F}(f, rev)
 
-const Selector = Union{Symbol,EigSorter}
+const Selector = Union{Symbol, EigSorter}
 
-function eigsolve(A::AbstractMatrix,
-                  howmany::Int=1,
-                  which::Selector=:LM,
-                  T::Type=eltype(A);
-                  kwargs...)
+function eigsolve(
+        A::AbstractMatrix, howmany::Int = 1, which::Selector = :LM, T::Type = eltype(A);
+        kwargs...
+    )
     x₀ = Random.rand!(similar(A, T, size(A, 1)))
     return eigsolve(A, x₀, howmany, which; kwargs...)
 end
 
-function eigsolve(f, n::Int, howmany::Int=1, which::Selector=:LM, T::Type=Float64;
-                  kwargs...)
+function eigsolve(
+        f, n::Int, howmany::Int = 1, which::Selector = :LM, T::Type = Float64;
+        kwargs...
+    )
     return eigsolve(f, rand(T, n), howmany, which; kwargs...)
 end
-function eigsolve(f, x₀, howmany::Int=1, which::Selector=:LM; kwargs...)
+function eigsolve(f, x₀, howmany::Int = 1, which::Selector = :LM; kwargs...)
     Tx = typeof(x₀)
     if Tx <: Block
         α₀ = inner(x₀[1], apply(f, x₀[1]))
@@ -214,7 +215,7 @@ function eigsolve(f, x₀, howmany::Int=1, which::Selector=:LM; kwargs...)
         α₀ = inner(x₀, apply(f, x₀))
         T = typeof(α₀)
     end
-    alg = eigselector(f, T; Tx=Tx, kwargs...)
+    alg = eigselector(f, T; Tx = Tx, kwargs...)
     checkwhich(which) || error("Unknown eigenvalue selector: which = $which")
     if alg isa Lanczos || alg isa BlockLanczos
         if which == :LI || which == :SI
@@ -230,91 +231,107 @@ function eigsolve(f, x₀, howmany::Int=1, which::Selector=:LM; kwargs...)
     if haskey(kwargs, :alg_rrule)
         alg_rrule = kwargs[:alg_rrule]
     else
-        alg_rrule = Arnoldi(; tol=alg.tol,
-                            krylovdim=alg.krylovdim,
-                            maxiter=alg.maxiter,
-                            eager=alg.eager,
-                            orth=alg.orth)
+        alg_rrule = Arnoldi(;
+            tol = alg.tol,
+            krylovdim = alg.krylovdim,
+            maxiter = alg.maxiter,
+            eager = alg.eager,
+            orth = alg.orth
+        )
     end
-    return eigsolve(f, x₀, howmany, which, alg; alg_rrule=alg_rrule)
+    return eigsolve(f, x₀, howmany, which, alg; alg_rrule = alg_rrule)
 end
 
-function eigselector(f,
-                     T::Type;
-                     Tx::Type=Nothing,
-                     issymmetric::Bool=false,
-                     ishermitian::Bool=issymmetric && (T <: Real),
-                     krylovdim::Int=KrylovDefaults.krylovdim[],
-                     maxiter::Int=KrylovDefaults.maxiter[],
-                     tol::Real=KrylovDefaults.tol[],
-                     qr_tol::Real=KrylovDefaults.tol[],
-                     orth::Orthogonalizer=KrylovDefaults.orth,
-                     eager::Bool=false,
-                     verbosity::Int=KrylovDefaults.verbosity[],
-                     alg_rrule=nothing)
+function eigselector(
+        f, T::Type;
+        Tx::Type = Nothing,
+        issymmetric::Bool = false,
+        ishermitian::Bool = issymmetric && (T <: Real),
+        krylovdim::Int = KrylovDefaults.krylovdim[],
+        maxiter::Int = KrylovDefaults.maxiter[],
+        tol::Real = KrylovDefaults.tol[],
+        qr_tol::Real = KrylovDefaults.tol[],
+        orth::Orthogonalizer = KrylovDefaults.orth,
+        eager::Bool = false,
+        verbosity::Int = KrylovDefaults.verbosity[],
+        alg_rrule = nothing
+    )
     if Tx <: Block
         !(issymmetric || ishermitian) &&
             error("BlockLanczos requires a symmetric or hermitian linear map. A BlockArnoldi method has not yet been implemented but will be in the future")
-        return BlockLanczos(; krylovdim=krylovdim,
-                            maxiter=maxiter,
-                            tol=tol,
-                            qr_tol=qr_tol,
-                            orth=orth,
-                            eager=eager,
-                            verbosity=verbosity)
+        return BlockLanczos(;
+            krylovdim = krylovdim,
+            maxiter = maxiter,
+            tol = tol,
+            qr_tol = qr_tol,
+            orth = orth,
+            eager = eager,
+            verbosity = verbosity
+        )
     elseif (T <: Real && issymmetric) || ishermitian
-        return Lanczos(; krylovdim=krylovdim,
-                       maxiter=maxiter,
-                       tol=tol,
-                       orth=orth,
-                       eager=eager,
-                       verbosity=verbosity)
+        return Lanczos(;
+            krylovdim = krylovdim,
+            maxiter = maxiter,
+            tol = tol,
+            orth = orth,
+            eager = eager,
+            verbosity = verbosity
+        )
     else
-        return Arnoldi(; krylovdim=krylovdim,
-                       maxiter=maxiter,
-                       tol=tol,
-                       orth=orth,
-                       eager=eager,
-                       verbosity=verbosity)
+        return Arnoldi(;
+            krylovdim = krylovdim,
+            maxiter = maxiter,
+            tol = tol,
+            orth = orth,
+            eager = eager,
+            verbosity = verbosity
+        )
     end
 end
-function eigselector(A::AbstractMatrix,
-                     T::Type;
-                     Tx::Type=Nothing,
-                     issymmetric::Bool=(T <: Real && LinearAlgebra.issymmetric(A)),
-                     ishermitian::Bool=issymmetric || LinearAlgebra.ishermitian(A),
-                     krylovdim::Int=KrylovDefaults.krylovdim[],
-                     maxiter::Int=KrylovDefaults.maxiter[],
-                     tol::Real=KrylovDefaults.tol[],
-                     qr_tol::Real=KrylovDefaults.tol[],
-                     orth::Orthogonalizer=KrylovDefaults.orth,
-                     eager::Bool=false,
-                     verbosity::Int=KrylovDefaults.verbosity[],
-                     alg_rrule=nothing)
+function eigselector(
+        A::AbstractMatrix, T::Type;
+        Tx::Type = Nothing,
+        issymmetric::Bool = (T <: Real && LinearAlgebra.issymmetric(A)),
+        ishermitian::Bool = issymmetric || LinearAlgebra.ishermitian(A),
+        krylovdim::Int = KrylovDefaults.krylovdim[],
+        maxiter::Int = KrylovDefaults.maxiter[],
+        tol::Real = KrylovDefaults.tol[],
+        qr_tol::Real = KrylovDefaults.tol[],
+        orth::Orthogonalizer = KrylovDefaults.orth,
+        eager::Bool = false,
+        verbosity::Int = KrylovDefaults.verbosity[],
+        alg_rrule = nothing
+    )
     if Tx <: Block
         !(issymmetric || ishermitian) &&
             error("BlockLanczos requires a symmetric or hermitian linear map. A BlockArnoldi method has not yet been implemented but will be in the future")
-        return BlockLanczos(; krylovdim=krylovdim,
-                            maxiter=maxiter,
-                            tol=tol,
-                            qr_tol=qr_tol,
-                            orth=orth,
-                            eager=eager,
-                            verbosity=verbosity)
+        return BlockLanczos(;
+            krylovdim = krylovdim,
+            maxiter = maxiter,
+            tol = tol,
+            qr_tol = qr_tol,
+            orth = orth,
+            eager = eager,
+            verbosity = verbosity
+        )
     elseif (T <: Real && issymmetric) || ishermitian
-        return Lanczos(; krylovdim=krylovdim,
-                       maxiter=maxiter,
-                       tol=tol,
-                       orth=orth,
-                       eager=eager,
-                       verbosity=verbosity)
+        return Lanczos(;
+            krylovdim = krylovdim,
+            maxiter = maxiter,
+            tol = tol,
+            orth = orth,
+            eager = eager,
+            verbosity = verbosity
+        )
     else
-        return Arnoldi(; krylovdim=krylovdim,
-                       maxiter=maxiter,
-                       tol=tol,
-                       orth=orth,
-                       eager=eager,
-                       verbosity=verbosity)
+        return Arnoldi(;
+            krylovdim = krylovdim,
+            maxiter = maxiter,
+            tol = tol,
+            orth = orth,
+            eager = eager,
+            verbosity = verbosity
+        )
     end
 end
 

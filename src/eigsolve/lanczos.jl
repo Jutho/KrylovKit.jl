@@ -1,9 +1,13 @@
-function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos;
-                  alg_rrule=Arnoldi(; tol=alg.tol,
-                                    krylovdim=alg.krylovdim,
-                                    maxiter=alg.maxiter,
-                                    eager=alg.eager,
-                                    orth=alg.orth))
+function eigsolve(
+        A, x₀, howmany::Int, which::Selector, alg::Lanczos;
+        alg_rrule = Arnoldi(;
+            tol = alg.tol,
+            krylovdim = alg.krylovdim,
+            maxiter = alg.maxiter,
+            eager = alg.eager,
+            orth = alg.orth
+        )
+    )
     krylovdim = alg.krylovdim
     maxiter = alg.maxiter
     if howmany > krylovdim
@@ -13,7 +17,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos;
     ## FIRST ITERATION: setting up
     # Initialize Lanczos factorization
     iter = LanczosIterator(A, x₀, alg.orth)
-    fact = initialize(iter; verbosity=alg.verbosity)
+    fact = initialize(iter; verbosity = alg.verbosity)
     numops = 1
     numiter = 1
     sizehint!(fact, krylovdim)
@@ -54,7 +58,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos;
                 end
                 D, U = tridiageigh!(T, U)
                 by, rev = eigsort(which)
-                p = sortperm(D; by=by, rev=rev)
+                p = sortperm(D; by = by, rev = rev)
                 D, U = permuteeig!(D, U, p)
                 mul!(f, view(U, K, :), β)
                 converged = 0
@@ -71,7 +75,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos;
         end
 
         if K < krylovdim # expand Krylov factorization
-            fact = expand!(iter, fact; verbosity=alg.verbosity)
+            fact = expand!(iter, fact; verbosity = alg.verbosity)
             numops += 1
         else ## shrink and restart
             if numiter == maxiter
@@ -107,7 +111,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos;
             B[keep + 1] = scale!!(r, 1 / β)
 
             # Shrink Lanczos factorization
-            fact = shrink!(fact, keep; verbosity=alg.verbosity)
+            fact = shrink!(fact, keep; verbosity = alg.verbosity)
             numiter += 1
         end
     end
@@ -146,7 +150,6 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos;
         * number of operations = $numops"""
     end
 
-    return values,
-           vectors,
-           ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
+    return values, vectors,
+        ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end

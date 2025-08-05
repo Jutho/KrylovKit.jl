@@ -1,4 +1,3 @@
-# BlockLanczos
 """
     x₀ = Block{S}(vec)
     x₀ = Block(vec)
@@ -28,8 +27,9 @@ Base.@propagate_inbounds function Base.setindex!(b::Block, v, i::Int)
     b.vec[i] = v
     return b
 end
-Base.@propagate_inbounds function Base.setindex!(b₁::Block, b₂::Block,
-                                                 idxs::AbstractVector{Int})
+Base.@propagate_inbounds function Base.setindex!(
+        b₁::Block, b₂::Block, idxs::AbstractVector{Int}
+    )
     b₁.vec[idxs] = b₂.vec
     return b₁
 end
@@ -84,7 +84,7 @@ because it is implemented in its `eigsolve`.
 See also [`BlockLanczosIterator`](@ref) for an iterator that constructs a progressively expanding
 BlockLanczos factorizations of a given linear map and a starting block.
 """
-mutable struct BlockLanczosFactorization{T,S<:Number,SR<:Real} <: KrylovFactorization{T,S}
+mutable struct BlockLanczosFactorization{T, S <: Number, SR <: Real} <: KrylovFactorization{T, S}
     k::Int
     V::OrthonormalBasis{T}      # BlockLanczos Basis
     H::Matrix{S}                # block tridiagonal matrix, and S is the matrix element type
@@ -129,34 +129,35 @@ Here, [`initialize(::KrylovIterator)`](@ref) produces the first Krylov factoriza
 and [`expand!(iter::KrylovIterator, fact::KrylovFactorization)`](@ref) expands the
 factorization in place.
 """
-struct BlockLanczosIterator{F,T,O<:Orthogonalizer,S<:Real} <: KrylovIterator{F,T}
+struct BlockLanczosIterator{F, T, O <: Orthogonalizer, S <: Real} <: KrylovIterator{F, T}
     operator::F
     x₀::Block{T}
     maxdim::Int
     orth::O
     qr_tol::S
-    function BlockLanczosIterator{F,T,O,S}(operator::F,
-                                           x₀::Block{T},
-                                           maxdim::Int,
-                                           orth::O,
-                                           qr_tol::S) where {F,T,O<:Orthogonalizer,S<:Real}
-        return new{F,T,O,S}(operator, x₀, maxdim, orth, qr_tol)
+    function BlockLanczosIterator{F, T, O, S}(
+            operator::F, x₀::Block{T}, maxdim::Int, orth::O, qr_tol::S
+        ) where {F, T, O <: Orthogonalizer, S <: Real}
+        return new{F, T, O, S}(operator, x₀, maxdim, orth, qr_tol)
     end
 end
-function BlockLanczosIterator(operator::F,
-                              x₀::Block{T},
-                              maxdim::Int,
-                              orth::O=KrylovDefaults.orth,
-                              qr_tol::Real=KrylovDefaults.tol[]) where {F,T,
-                                                                        O<:Orthogonalizer}
+function BlockLanczosIterator(
+        operator::F, x₀::Block{T}, maxdim::Int,
+        orth::O = KrylovDefaults.orth, qr_tol::Real = KrylovDefaults.tol[]
+    ) where {
+        F, T,
+        O <: Orthogonalizer,
+    }
     norm(x₀) < qr_tol && @error "initial vector should not have norm zero"
     orth != ModifiedGramSchmidt2() &&
         @error "BlockLanczosIterator only supports ModifiedGramSchmidt2 orthogonalizer"
-    return BlockLanczosIterator{F,T,O,typeof(qr_tol)}(operator, x₀, maxdim, orth, qr_tol)
+    return BlockLanczosIterator{F, T, O, typeof(qr_tol)}(operator, x₀, maxdim, orth, qr_tol)
 end
 
-function initialize(iter::BlockLanczosIterator;
-                    verbosity::Int=KrylovDefaults.verbosity[])
+function initialize(
+        iter::BlockLanczosIterator;
+        verbosity::Int = KrylovDefaults.verbosity[]
+    )
     X₀ = iter.x₀
     maxdim = iter.maxdim
     A = iter.operator
@@ -194,9 +195,10 @@ function initialize(iter::BlockLanczosIterator;
     return BlockLanczosFactorization(bs, V, BTD, AX₁, bs, norm_R)
 end
 
-function expand!(iter::BlockLanczosIterator,
-                 state::BlockLanczosFactorization;
-                 verbosity::Int=KrylovDefaults.verbosity[])
+function expand!(
+        iter::BlockLanczosIterator, state::BlockLanczosFactorization;
+        verbosity::Int = KrylovDefaults.verbosity[]
+    )
     k = state.k
     R = state.R[1:(state.R_size)]
     bs = length(R)
@@ -213,8 +215,10 @@ function expand!(iter::BlockLanczosIterator,
     Rnext, Mnext = block_lanczosrecurrence(iter.operator, V, B, iter.orth)
     verbosity >= WARN_LEVEL && warn_nonhermitian(Mnext)
 
-    state.H[(k + 1):(k + bs_next), (k + 1):(k + bs_next)] = view(Mnext, 1:bs_next,
-                                                                 1:bs_next)
+    state.H[(k + 1):(k + bs_next), (k + 1):(k + bs_next)] = view(
+        Mnext, 1:bs_next,
+        1:bs_next
+    )
     state.R.vec[1:bs_next] .= Rnext.vec
     state.norm_R = norm(Rnext)
     state.k += bs_next
@@ -226,8 +230,9 @@ function expand!(iter::BlockLanczosIterator,
     return state
 end
 
-function block_lanczosrecurrence(operator, V::OrthonormalBasis, B::AbstractMatrix,
-                                 orth::ModifiedGramSchmidt2)
+function block_lanczosrecurrence(
+        operator, V::OrthonormalBasis, B::AbstractMatrix, orth::ModifiedGramSchmidt2
+    )
     # Apply the operator and calculate the M. Get Xnext and Mnext.
     bs, bs_prev = size(B)
     S = eltype(B)
@@ -271,7 +276,7 @@ function block_reorthogonalize!(R::Block{T}, V::OrthonormalBasis{T}) where {T}
 end
 
 function warn_nonhermitian(M::AbstractMatrix)
-    if !isapprox(M, M'; atol=eps(real(eltype(M)))^(2 / 5))
+    return if !isapprox(M, M'; atol = eps(real(eltype(M)))^(2 / 5))
         @warn "ignoring the antihermitian part of the block triangular matrix: operator might not be hermitian?" M
     end
 end

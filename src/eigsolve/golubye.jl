@@ -189,9 +189,8 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
         * number of operations = $numops"""
     end
 
-    return values,
-           vectors,
-           ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
+    return values, vectors,
+        ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end
 
 function golubyerecurrence(f, ρ, V::OrthonormalBasis, β, orth::ClassicalGramSchmidt)
@@ -286,7 +285,7 @@ end
 
 function buildHB!(HB, V, BV)
     m = length(V)
-    @inbounds for j in 1:m
+    return @inbounds for j in 1:m
         HB[j, j] = checkposdef(inner(V[j], BV[j]))
         for i in (j + 1):m
             HB[i, j] = inner(V[i], BV[j])
