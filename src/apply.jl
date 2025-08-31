@@ -34,3 +34,25 @@ function apply_scalartype(f, x, as::Number...)
     T = Base.promote_op(inner, typeof(x), Tfx)
     return T <: Number ? T : typeof(inner(x, apply(f, x, as...)))
 end
+
+function genapply_scalartype(f, x)
+    Tfx = Base.promote_op(genapply, typeof(f), typeof(x))
+    if !(Tfx isa Tuple)
+        @error "cannot deduce scalartype: provided operator yields wrong type"
+        genapply(f, x)
+        error("this should never happen") # unreachable (?)
+    end
+
+    @assert length(fieldtypes(Tfx)) == 2
+    Tfx1, Tfx2 = fieldtypes(Tfx)
+    T1 = Base.promote_op(inner, typeof(x), Tfx1)
+    T2 = Base.promote_op(inner, typeof(x), Tfx2)
+    T = promote_type(T1, T2)
+
+    T <: Number && return T
+
+    fx1, fx2 = genapply(f, x)
+    α1 = inner(x, fx1)
+    α2 = inner(x, fx2)
+    return promote_type(typeof(α1), typeof(α2))
+end

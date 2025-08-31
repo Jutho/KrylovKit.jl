@@ -187,13 +187,7 @@ function geneigsolve(
 end
 
 function geneigsolve(f, x₀, howmany::Int = 1, which::Selector = :LM; kwargs...)
-    Tx = typeof(x₀)
-    Tfx = Core.Compiler.return_type(genapply, Tuple{typeof(f), Tx}) # should be a tuple type
-    Tfx1 = Base.tuple_type_head(Tfx)
-    Tfx2 = Base.tuple_type_head(Base.tuple_type_tail(Tfx))
-    T1 = Core.Compiler.return_type(dot, Tuple{Tx, Tfx1})
-    T2 = Core.Compiler.return_type(dot, Tuple{Tx, Tfx2})
-    T = promote_type(T1, T2)
+    T = genapply_scalartype(f, x₀)
     alg = geneigselector(f, T; kwargs...)
     if alg isa GolubYe && (which == :LI || which == :SI)
         error("Eigenvalue selector which = $which invalid: real eigenvalues expected with Lanczos algorithm")
