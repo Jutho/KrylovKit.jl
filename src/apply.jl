@@ -21,3 +21,16 @@ apply_adjoint(f, x) = f(x, Val(true))
 # generalized eigenvalue problem
 genapply((A, B)::Tuple{Any, Any}, x) = (apply(A, x), apply(B, x))
 genapply(f, x) = f(x)
+
+# attempt type inference first but fall back to actual values if failed
+function apply_scalartype(f, x, as::Number...)
+    0 <= length(as) <= 2 || throw(ArgumentError("unknown type of function application"))
+    Tfx = Base.promote_op(apply, typeof(f), typeof(x), typeof.(as)...)
+    if Tfx === Union{} # function errors - print warning then cause error
+        @error "cannot deduce scalartype: provided operator errors"
+        apply(f, x)
+        error("this should never happen") # unreachable (?)
+    end
+    T = Base.promote_op(inner, typeof(x), Tfx)
+    return T <: Number ? T : typeof(inner(x, apply(f, x, as...)))
+end

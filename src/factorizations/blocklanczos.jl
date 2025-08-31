@@ -38,6 +38,8 @@ LinearAlgebra.norm(b::Block) = norm(b.vec)
 
 apply(f, block::Block) = Block(map(Base.Fix1(apply, f), block.vec))
 
+apply_scalartype(f, x₀::Block, as::Number...) = apply_scalartype(f, first(x₀), as...)
+
 function block_inner(B₁::Block{T}, B₂::Block{T}) where {T}
     m₁₁ = inner(B₁[1], B₂[1])
     M = Matrix{typeof(m₁₁)}(undef, length(B₁), length(B₂))

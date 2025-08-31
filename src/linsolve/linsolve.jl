@@ -110,8 +110,7 @@ function linsolve(f, b, a₀::Number = 0, a₁::Number = 1; kwargs...)
 end
 
 function linsolve(f, b, x₀, a₀::Number = 0, a₁::Number = 1; kwargs...)
-    α₀ = inner(x₀, apply(f, x₀))
-    T = typeof(α₀)
+    T = apply_scalartype(f, x₀, a₀, a₁)
     alg = linselector(f, b, T; kwargs...)
     if haskey(kwargs, :alg_rrule)
         alg_rrule = kwargs[:alg_rrule]

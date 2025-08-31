@@ -207,15 +207,8 @@ function eigsolve(
     return eigsolve(f, rand(T, n), howmany, which; kwargs...)
 end
 function eigsolve(f, x₀, howmany::Int = 1, which::Selector = :LM; kwargs...)
-    Tx = typeof(x₀)
-    if Tx <: Block
-        α₀ = inner(x₀[1], apply(f, x₀[1]))
-        T = typeof(α₀)
-    else
-        α₀ = inner(x₀, apply(f, x₀))
-        T = typeof(α₀)
-    end
-    alg = eigselector(f, T; Tx = Tx, kwargs...)
+    T = apply_scalartype(f, x₀)
+    alg = eigselector(f, T; Tx = typeof(x₀), kwargs...)
     checkwhich(which) || error("Unknown eigenvalue selector: which = $which")
     if alg isa Lanczos || alg isa BlockLanczos
         if which == :LI || which == :SI
