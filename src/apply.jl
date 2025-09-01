@@ -26,31 +26,27 @@ genapply(f, x) = f(x)
 function apply_scalartype(f, x, as::Number...)
     0 <= length(as) <= 2 || throw(ArgumentError("unknown type of function application"))
     Tfx = Base.promote_op(apply, typeof(f), typeof(x), typeof.(as)...)
-    if Tfx === Union{} # function errors - print warning then cause error
-        @error "cannot deduce scalartype: provided operator errors"
-        apply(f, x)
-        error("this should never happen") # unreachable (?)
+    if Tfx !== Union{} && Tfx !== Any
+        T = Base.promote_op(inner, typeof(x), Tfx)
+        T <: Number && return T
     end
-    T = Base.promote_op(inner, typeof(x), Tfx)
-    return T <: Number ? T : typeof(inner(x, apply(f, x, as...)))
+    # if this is reached, type inference failed due to instability or error
+    # retry in value domain - will also give better stacktrace
+    return typeof(inner(x, apply(f, x, as...)))
 end
 
 function genapply_scalartype(f, x)
     Tfx = Base.promote_op(genapply, typeof(f), typeof(x))
-    if !(Tfx isa Tuple)
-        @error "cannot deduce scalartype: provided operator yields wrong type"
-        genapply(f, x)
-        error("this should never happen") # unreachable (?)
+    if Tfx <: Tuple
+        @assert length(fieldtypes(Tfx)) == 2
+        Tfx1, Tfx2 = fieldtypes(Tfx)
+        T1 = Base.promote_op(inner, typeof(x), Tfx1)
+        T2 = Base.promote_op(inner, typeof(x), Tfx2)
+        T = promote_type(T1, T2)
+        T <: Number && return T
     end
-
-    @assert length(fieldtypes(Tfx)) == 2
-    Tfx1, Tfx2 = fieldtypes(Tfx)
-    T1 = Base.promote_op(inner, typeof(x), Tfx1)
-    T2 = Base.promote_op(inner, typeof(x), Tfx2)
-    T = promote_type(T1, T2)
-
-    T <: Number && return T
-
+    # if this is reached, type inference failed due to instability or error
+    # retry in value domain - will also give better stacktrace
     fx1, fx2 = genapply(f, x)
     α1 = inner(x, fx1)
     α2 = inner(x, fx2)
