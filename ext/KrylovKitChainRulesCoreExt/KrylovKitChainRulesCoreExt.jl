@@ -13,4 +13,8 @@ include("linsolve.jl")
 include("eigsolve.jl")
 include("svdsolve.jl")
 
+# mark some functions as non-differentiable to help Zygote:
+@non_differentiable KrylovKit.apply_scalartype(args...)
+@non_differentiable KrylovKit.genapply_scalartype(args...)
+
 end # module
