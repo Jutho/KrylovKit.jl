@@ -190,7 +190,7 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
     end
 
     return values, vectors,
-        ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
+           ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end
 
 function golubyerecurrence(f, ρ, V::OrthonormalBasis, β, orth::ClassicalGramSchmidt)

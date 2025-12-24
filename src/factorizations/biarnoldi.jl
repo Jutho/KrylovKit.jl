@@ -1,6 +1,6 @@
-mutable struct BiArnoldiFactorization{T, S} <: KrylovFactorization{T, S}
-    VH::ArnoldiFactorization{T, S}
-    WK::ArnoldiFactorization{T, S}
+mutable struct BiArnoldiFactorization{T,S} <: KrylovFactorization{T,S}
+    VH::ArnoldiFactorization{T,S}
+    WK::ArnoldiFactorization{T,S}
 end
 
 Base.length(F::BiArnoldiFactorization) = length(F.VH)
@@ -10,7 +10,7 @@ Base.sizehint!(F::BiArnoldiFactorization, n) = begin
     return F
 end
 Base.eltype(F::BiArnoldiFactorization) = eltype(typeof(F))
-Base.eltype(::Type{<:BiArnoldiFactorization{<:Any, S}}) where {S} = S
+Base.eltype(::Type{<:BiArnoldiFactorization{<:Any,S}}) where {S} = S
 
 basis(F::BiArnoldiFactorization) = basis.((F.VH, F.WK))
 rayleighquotient(F::BiArnoldiFactorization) = rayleighquotient.((F.VH, F.WK))
@@ -18,20 +18,19 @@ residual(F::BiArnoldiFactorization) = residual.((F.VH, F.WK))
 normres(F::BiArnoldiFactorization) = normres.((F.VH, F.WK))
 rayleighextension(F::BiArnoldiFactorization) = rayleighextension.((F.VH, F.WK))
 
-struct BiArnoldiIterator{I1 <: ArnoldiIterator, I2 <: ArnoldiIterator}
+struct BiArnoldiIterator{I1<:ArnoldiIterator,I2<:ArnoldiIterator}
     iterVH::I1
     iterWK::I2
-    function BiArnoldiIterator(
-            f::F, v₀, w₀, orth1::Orthogonalizer, orth2::Orthogonalizer
-        ) where {F}
+    function BiArnoldiIterator(f::F, v₀, w₀, orth1::Orthogonalizer,
+                               orth2::Orthogonalizer) where {F}
         iterVH = ArnoldiIterator(Base.Fix1(apply_normal, f), v₀, orth1)
         iterWK = ArnoldiIterator(Base.Fix1(apply_adjoint, f), w₀, orth2)
         I1 = typeof(iterVH)
         I2 = typeof(iterWK)
-        return new{I1, I2}(iterVH, iterWK)
+        return new{I1,I2}(iterVH, iterWK)
     end
 end
-function BiArnoldiIterator(f, v₀, w₀ = v₀, orth = KrylovDefaults.orth)
+function BiArnoldiIterator(f, v₀, w₀=v₀, orth=KrylovDefaults.orth)
     return BiArnoldiIterator(f, v₀, w₀, orth, orth)
 end
 
@@ -52,32 +51,26 @@ function Base.iterate(iter::BiArnoldiIterator, state)
     end
 end
 
-function initialize(iter::BiArnoldiIterator; verbosity::Int = KrylovDefaults.verbosity[])
-    VH = initialize(iter.iterVH; verbosity = verbosity)
-    WK = initialize(iter.iterWK; verbosity = verbosity)
+function initialize(iter::BiArnoldiIterator; verbosity::Int=KrylovDefaults.verbosity[])
+    VH = initialize(iter.iterVH; verbosity=verbosity)
+    WK = initialize(iter.iterWK; verbosity=verbosity)
     return BiArnoldiFactorization(VH, WK)
 end
-function initialize!(
-        iter::BiArnoldiIterator, state::BiArnoldiFactorization;
-        verbosity::Int = KrylovDefaults.verbosity[]
-    )
-    state.VH = initialize!(iter.iterVH, state.VH; verbosity = verbosity)
-    state.WK = initialize!(iter.iterWK, state.WK; verbosity = verbosity)
+function initialize!(iter::BiArnoldiIterator, state::BiArnoldiFactorization;
+                     verbosity::Int=KrylovDefaults.verbosity[])
+    state.VH = initialize!(iter.iterVH, state.VH; verbosity=verbosity)
+    state.WK = initialize!(iter.iterWK, state.WK; verbosity=verbosity)
     return state
 end
-function expand!(
-        iter::BiArnoldiIterator, state::BiArnoldiFactorization;
-        verbosity::Int = KrylovDefaults.verbosity[]
-    )
-    state.VH = expand!(iter.iterVH, state.VH; verbosity = verbosity)
-    state.WK = expand!(iter.iterWK, state.WK; verbosity = verbosity)
+function expand!(iter::BiArnoldiIterator, state::BiArnoldiFactorization;
+                 verbosity::Int=KrylovDefaults.verbosity[])
+    state.VH = expand!(iter.iterVH, state.VH; verbosity=verbosity)
+    state.WK = expand!(iter.iterWK, state.WK; verbosity=verbosity)
     return state
 end
-function shrink!(
-        state::BiArnoldiFactorization, k;
-        verbosity::Int = KrylovDefaults.verbosity[]
-    )
-    state.VH = shrink!(state.VH, k; verbosity = verbosity)
-    state.WK = shrink!(state.WK, k; verbosity = verbosity)
+function shrink!(state::BiArnoldiFactorization, k;
+                 verbosity::Int=KrylovDefaults.verbosity[])
+    state.VH = shrink!(state.VH, k; verbosity=verbosity)
+    state.WK = shrink!(state.WK, k; verbosity=verbosity)
     return state
 end

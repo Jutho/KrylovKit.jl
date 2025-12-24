@@ -1,7 +1,7 @@
 # Test LSMR complete
 @testset "LSMR small problem ($mode)" for mode in (:vector, :inplace, :outplace, :mixed)
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
-        (ComplexF64,)
+                  (ComplexF64,)
     @testset for T in scalartypes
         A = rand(T, (2 * n, n))
         U, S, V = svd(A)
@@ -12,28 +12,20 @@
 
         b = rand(T, 2 * n)
         tol = tol = 10 * n * eps(real(T))
-        x, info = @constinferred lssolve(
-            wrapop(A, Val(mode)), wrapvec(b, Val(mode));
-            maxiter = 3, krylovdim = 1, verbosity = SILENT_LEVEL
-        ) # no reorthogonalization
+        x, info = @constinferred lssolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode));
+                                         maxiter=3, krylovdim=1, verbosity=SILENT_LEVEL) # no reorthogonalization
         r = b - A * unwrapvec(x)
         @test unwrapvec(info.residual) ≈ r
         @test info.normres ≈ norm(A' * r)
         @test info.converged == 0
-        @test_logs lssolve(
-            wrapop(A, Val(mode)), wrapvec(b, Val(mode)); maxiter = 3,
-            verbosity = SILENT_LEVEL
-        )
-        @test_logs (:warn,) lssolve(
-            wrapop(A, Val(mode)), wrapvec(b, Val(mode)); maxiter = 3,
-            verbosity = WARN_LEVEL
-        )
-        @test_logs (:info,) (:warn,) lssolve(
-            wrapop(A, Val(mode)), wrapvec(b, Val(mode));
-            maxiter = 3, verbosity = STARTSTOP_LEVEL
-        )
+        @test_logs lssolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)); maxiter=3,
+                           verbosity=SILENT_LEVEL)
+        @test_logs (:warn,) lssolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)); maxiter=3,
+                                    verbosity=WARN_LEVEL)
+        @test_logs (:info,) (:warn,) lssolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode));
+                                             maxiter=3, verbosity=STARTSTOP_LEVEL)
 
-        alg = LSMR(; maxiter = n, tol = tol, verbosity = SILENT_LEVEL, krylovdim = n)
+        alg = LSMR(; maxiter=n, tol=tol, verbosity=SILENT_LEVEL, krylovdim=n)
         # reorthogonalisation is essential here to converge in exactly n iterations
         x, info = @constinferred lssolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), alg)
 
@@ -41,27 +33,21 @@
         @test abs(inner(V[:, end], unwrapvec(x))) < alg.tol
         @test unwrapvec(x) ≈ V * Diagonal(invS) * U' * b
         @test_logs lssolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), alg)
-        alg = LSMR(; maxiter = 2 * n, tol = tol, verbosity = WARN_LEVEL)
+        alg = LSMR(; maxiter=2 * n, tol=tol, verbosity=WARN_LEVEL)
         @test_logs lssolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), alg)
-        alg = LSMR(; maxiter = 2 * n, tol = tol, verbosity = STARTSTOP_LEVEL)
-        @test_logs (:info,) (:info,) lssolve(
-            wrapop(A, Val(mode)), wrapvec(b, Val(mode)),
-            alg
-        )
-        alg = LSMR(; maxiter = 2 * n, tol = tol, verbosity = EACHITERATION_LEVEL)
-        @test_logs min_level = Logging.Warn lssolve(
-            wrapop(A, Val(mode)),
-            wrapvec(b, Val(mode)),
-            alg
-        )
+        alg = LSMR(; maxiter=2 * n, tol=tol, verbosity=STARTSTOP_LEVEL)
+        @test_logs (:info,) (:info,) lssolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)),
+                                             alg)
+        alg = LSMR(; maxiter=2 * n, tol=tol, verbosity=EACHITERATION_LEVEL)
+        @test_logs min_level = Logging.Warn lssolve(wrapop(A, Val(mode)),
+                                                    wrapvec(b, Val(mode)),
+                                                    alg)
 
         λ = rand(real(T))
-        alg = LSMR(; maxiter = n, tol = tol, verbosity = SILENT_LEVEL, krylovdim = n)
+        alg = LSMR(; maxiter=n, tol=tol, verbosity=SILENT_LEVEL, krylovdim=n)
         # reorthogonalisation is essential here to converge in exactly n iterations
-        x, info = @constinferred lssolve(
-            wrapop(A, Val(mode)), wrapvec(b, Val(mode)), alg,
-            λ
-        )
+        x, info = @constinferred lssolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), alg,
+                                         λ)
 
         r = b - A * unwrapvec(x)
         @test info.converged > 0
@@ -72,7 +58,7 @@
             B = rand(T, (2 * n, n)) .- one(T) / 2
             f = buildrealmap(A, B)
             # the effective linear problem has twice the size, so 4n x 2n
-            alg = LSMR(; maxiter = 2 * n, tol = tol, verbosity = SILENT_LEVEL, krylovdim = 2 * n)
+            alg = LSMR(; maxiter=2 * n, tol=tol, verbosity=SILENT_LEVEL, krylovdim=2 * n)
             xr, infor = @constinferred reallssolve(f, b, alg)
             @test infor.converged > 0
             y = (A * xr + B * conj(xr))
@@ -88,11 +74,9 @@ end
         b = rand(T, 2 * N) .- (one(T) / 2)
 
         tol = 10 * N * eps(real(T))
-        x, info = @constinferred lssolve(
-            wrapop(A, Val(mode)), wrapvec(b, Val(mode));
-            maxiter = N, tol = tol, verbosity = SILENT_LEVEL,
-            krylovdim = 5
-        )
+        x, info = @constinferred lssolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode));
+                                         maxiter=N, tol=tol, verbosity=SILENT_LEVEL,
+                                         krylovdim=5)
 
         r = b - A * unwrapvec(x)
         @test info.converged > 0
@@ -102,7 +86,7 @@ end
             A = rand(T, (2 * N, N)) .- one(T) / 2
             B = rand(T, (2 * N, N)) .- one(T) / 2
             f = buildrealmap(A, B)
-            alg = LSMR(; maxiter = N, tol = tol, verbosity = SILENT_LEVEL, krylovdim = 5)
+            alg = LSMR(; maxiter=N, tol=tol, verbosity=SILENT_LEVEL, krylovdim=5)
             xr, infor = @constinferred reallssolve(f, b, alg)
             @test infor.converged > 0
             y = (A * xr + B * conj(xr))

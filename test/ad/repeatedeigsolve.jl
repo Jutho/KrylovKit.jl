@@ -30,7 +30,7 @@ function build_mat_example(A, B, C, x, alg, alg_rrule)
         C̃ = C_fromvec(Cv)
         x̃ = x_fromvec(xv)
         M̃ = [zero(Ã) zero(Ã) C̃; Ã zero(Ã) zero(Ã); zero(Ã) B̃ zero(Ã)]
-        vals′, vecs′, info′ = eigsolve(M̃, x̃, howmany, which, alg; alg_rrule = alg_rrule)
+        vals′, vecs′, info′ = eigsolve(M̃, x̃, howmany, which, alg; alg_rrule=alg_rrule)
         info′.converged < howmany && println("eigsolve did not converge")
         catresults = vcat(vals′[1:howmany], vecs′[1:howmany]...)
         if eltype(catresults) <: Complex
@@ -47,7 +47,7 @@ function build_mat_example(A, B, C, x, alg, alg_rrule)
         x̃ = x_fromvec(xv)
         M̃ = [zero(Ã) zero(Ã) C̃; Ã zero(Ã) zero(Ã); zero(Ã) B̃ zero(Ã)]
         f = x -> M̃ * x
-        vals′, vecs′, info′ = eigsolve(f, x̃, howmany, which, alg; alg_rrule = alg_rrule)
+        vals′, vecs′, info′ = eigsolve(f, x̃, howmany, which, alg; alg_rrule=alg_rrule)
         info′.converged < howmany && println("eigsolve did not converge")
         catresults = vcat(vals′[1:howmany], vecs′[1:howmany]...)
         if eltype(catresults) <: Complex
@@ -64,7 +64,7 @@ function build_mat_example(A, B, C, x, alg, alg_rrule)
         x̃ = x_fromvec(xv)
         M̃ = [zero(Ã) zero(Ã) C̃; Ã zero(Ã) zero(Ã); zero(Ã) B̃ zero(Ã)]
         howmany′ = (eltype(Av) <: Complex ? 3 : 6) * howmany
-        vals′, vecs′, info′ = eigsolve(M̃, x̃, howmany′, which, alg; alg_rrule = alg_rrule)
+        vals′, vecs′, info′ = eigsolve(M̃, x̃, howmany′, which, alg; alg_rrule=alg_rrule)
         _, i = findmin(abs.(vals′ .- vals[1]))
         info′.converged < i && println("eigsolve did not converge")
         d = dot(vecs[1], vecs′[i])
@@ -80,7 +80,7 @@ function build_mat_example(A, B, C, x, alg, alg_rrule)
     end
 
     return mat_example, mat_example_fun, mat_example_fd, Avec, Bvec, Cvec, xvec, vals,
-        vecs
+           vecs
 end
 
 @timedtestset "Repeated eigsolve AD test with eltype=$T" for T in (Float64, ComplexF64)
@@ -95,39 +95,37 @@ end
     x = randn(T, N)
 
     tol = tolerance(T) #2 * N^2 * eps(real(T))
-    alg = Arnoldi(; tol = tol, krylovdim = 2n)
-    alg_rrule1 = Arnoldi(; tol = tol, krylovdim = 2n, verbosity = SILENT_LEVEL)
-    alg_rrule2 = GMRES(; tol = tol, krylovdim = 2n, verbosity = SILENT_LEVEL)
+    alg = Arnoldi(; tol=tol, krylovdim=2n)
+    alg_rrule1 = Arnoldi(; tol=tol, krylovdim=2n, verbosity=SILENT_LEVEL)
+    alg_rrule2 = GMRES(; tol=tol, krylovdim=2n, verbosity=SILENT_LEVEL)
     #! format: off
     mat_example1, mat_example_fun1, mat_example_fd, Avec, Bvec, Cvec, xvec, vals, vecs =
         build_mat_example(A, B, C, x, alg, alg_rrule1)
     mat_example2, mat_example_fun2, mat_example_fd, Avec, Bvec, Cvec, xvec, vals, vecs =
         build_mat_example(A, B, C, x, alg, alg_rrule2)
     #! format: on
-    (JA, JB, JC, Jx) = FiniteDifferences.jacobian(
-        fdm, mat_example_fd, Avec, Bvec,
-        Cvec, xvec
-    )
+    (JA, JB, JC, Jx) = FiniteDifferences.jacobian(fdm, mat_example_fd, Avec, Bvec,
+                                                  Cvec, xvec)
     (JA1, JB1, JC1, Jx1) = Zygote.jacobian(mat_example1, Avec, Bvec, Cvec, xvec)
     (JA2, JB2, JC2, Jx2) = Zygote.jacobian(mat_example_fun1, Avec, Bvec, Cvec, xvec)
     (JA3, JB3, JC3, Jx3) = Zygote.jacobian(mat_example2, Avec, Bvec, Cvec, xvec)
     (JA4, JB4, JC4, Jx4) = Zygote.jacobian(mat_example_fun2, Avec, Bvec, Cvec, xvec)
 
-    @test isapprox(JA, JA1; rtol = N * sqrt(eps(real(T))))
-    @test isapprox(JB, JB1; rtol = N * sqrt(eps(real(T))))
-    @test isapprox(JC, JC1; rtol = N * sqrt(eps(real(T))))
+    @test isapprox(JA, JA1; rtol=N * sqrt(eps(real(T))))
+    @test isapprox(JB, JB1; rtol=N * sqrt(eps(real(T))))
+    @test isapprox(JC, JC1; rtol=N * sqrt(eps(real(T))))
 
-    @test all(isapprox.(JA1, JA2; atol = n * eps(real(T))))
-    @test all(isapprox.(JB1, JB2; atol = n * eps(real(T))))
-    @test all(isapprox.(JC1, JC2; atol = n * eps(real(T))))
+    @test all(isapprox.(JA1, JA2; atol=n * eps(real(T))))
+    @test all(isapprox.(JB1, JB2; atol=n * eps(real(T))))
+    @test all(isapprox.(JC1, JC2; atol=n * eps(real(T))))
 
-    @test all(isapprox.(JA1, JA3; atol = tol))
-    @test all(isapprox.(JB1, JB3; atol = tol))
-    @test all(isapprox.(JC1, JC3; atol = tol))
+    @test all(isapprox.(JA1, JA3; atol=tol))
+    @test all(isapprox.(JB1, JB3; atol=tol))
+    @test all(isapprox.(JC1, JC3; atol=tol))
 
-    @test all(isapprox.(JA1, JA4; atol = tol))
-    @test all(isapprox.(JB1, JB4; atol = tol))
-    @test all(isapprox.(JC1, JC4; atol = tol))
+    @test all(isapprox.(JA1, JA4; atol=tol))
+    @test all(isapprox.(JB1, JB4; atol=tol))
+    @test all(isapprox.(JC1, JC4; atol=tol))
 
     @test norm(Jx, Inf) < N * sqrt(eps(real(T)))
     @test all(iszero, Jx1)
@@ -144,24 +142,24 @@ end
     ∂vecsC = complex.(JC1[1 .+ (1:N), :], JC1[N + 2 .+ (1:N), :])
     if T <: Complex # test holomorphicity / Cauchy-Riemann equations
         # for eigenvalues
-        @test real(∂valsA[1:2:(2n^2)]) ≈ +imag(∂valsA[2:2:(2n^2)])
-        @test imag(∂valsA[1:2:(2n^2)]) ≈ -real(∂valsA[2:2:(2n^2)])
-        @test real(∂valsB[1:2:(2n^2)]) ≈ +imag(∂valsB[2:2:(2n^2)])
-        @test imag(∂valsB[1:2:(2n^2)]) ≈ -real(∂valsB[2:2:(2n^2)])
-        @test real(∂valsC[1:2:(2n^2)]) ≈ +imag(∂valsC[2:2:(2n^2)])
-        @test imag(∂valsC[1:2:(2n^2)]) ≈ -real(∂valsC[2:2:(2n^2)])
+        @test real(∂valsA[1:2:(2n ^ 2)]) ≈ +imag(∂valsA[2:2:(2n ^ 2)])
+        @test imag(∂valsA[1:2:(2n ^ 2)]) ≈ -real(∂valsA[2:2:(2n ^ 2)])
+        @test real(∂valsB[1:2:(2n ^ 2)]) ≈ +imag(∂valsB[2:2:(2n ^ 2)])
+        @test imag(∂valsB[1:2:(2n ^ 2)]) ≈ -real(∂valsB[2:2:(2n ^ 2)])
+        @test real(∂valsC[1:2:(2n ^ 2)]) ≈ +imag(∂valsC[2:2:(2n ^ 2)])
+        @test imag(∂valsC[1:2:(2n ^ 2)]) ≈ -real(∂valsC[2:2:(2n ^ 2)])
         # and for eigenvectors
-        @test real(∂vecsA[:, 1:2:(2n^2)]) ≈ +imag(∂vecsA[:, 2:2:(2n^2)])
-        @test imag(∂vecsA[:, 1:2:(2n^2)]) ≈ -real(∂vecsA[:, 2:2:(2n^2)])
-        @test real(∂vecsB[:, 1:2:(2n^2)]) ≈ +imag(∂vecsB[:, 2:2:(2n^2)])
-        @test imag(∂vecsB[:, 1:2:(2n^2)]) ≈ -real(∂vecsB[:, 2:2:(2n^2)])
-        @test real(∂vecsC[:, 1:2:(2n^2)]) ≈ +imag(∂vecsC[:, 2:2:(2n^2)])
-        @test imag(∂vecsC[:, 1:2:(2n^2)]) ≈ -real(∂vecsC[:, 2:2:(2n^2)])
+        @test real(∂vecsA[:, 1:2:(2n ^ 2)]) ≈ +imag(∂vecsA[:, 2:2:(2n ^ 2)])
+        @test imag(∂vecsA[:, 1:2:(2n ^ 2)]) ≈ -real(∂vecsA[:, 2:2:(2n ^ 2)])
+        @test real(∂vecsB[:, 1:2:(2n ^ 2)]) ≈ +imag(∂vecsB[:, 2:2:(2n ^ 2)])
+        @test imag(∂vecsB[:, 1:2:(2n ^ 2)]) ≈ -real(∂vecsB[:, 2:2:(2n ^ 2)])
+        @test real(∂vecsC[:, 1:2:(2n ^ 2)]) ≈ +imag(∂vecsC[:, 2:2:(2n ^ 2)])
+        @test imag(∂vecsC[:, 1:2:(2n ^ 2)]) ≈ -real(∂vecsC[:, 2:2:(2n ^ 2)])
     end
     # test orthogonality of vecs and ∂vecs
-    @test all(isapprox.(abs.(vecs[1]' * ∂vecsA), 0; atol = sqrt(eps(real(T)))))
-    @test all(isapprox.(abs.(vecs[1]' * ∂vecsB), 0; atol = sqrt(eps(real(T)))))
-    @test all(isapprox.(abs.(vecs[1]' * ∂vecsC), 0; atol = sqrt(eps(real(T)))))
+    @test all(isapprox.(abs.(vecs[1]' * ∂vecsA), 0; atol=sqrt(eps(real(T)))))
+    @test all(isapprox.(abs.(vecs[1]' * ∂vecsB), 0; atol=sqrt(eps(real(T)))))
+    @test all(isapprox.(abs.(vecs[1]' * ∂vecsC), 0; atol=sqrt(eps(real(T)))))
 end
 
 end

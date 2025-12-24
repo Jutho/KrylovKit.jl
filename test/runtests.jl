@@ -79,10 +79,10 @@ end
 println("Tests finished in $t seconds")
 
 module AquaTests
-    using KrylovKit
-    using Aqua
-    Aqua.test_all(KrylovKit; ambiguities = false)
-    # treat ambiguities special because of ambiguities between ChainRulesCore and Base
-    Aqua.test_ambiguities([KrylovKit, Base, Core]; exclude = [Base.:(==)])
+using KrylovKit
+using Aqua
+Aqua.test_all(KrylovKit; ambiguities=false)
+# treat ambiguities special because of ambiguities between ChainRulesCore and Base
+Aqua.test_ambiguities([KrylovKit, Base, Core]; exclude=[Base.:(==)])
 
 end

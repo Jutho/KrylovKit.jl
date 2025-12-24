@@ -98,7 +98,7 @@ function expintegrator(A, t::Number, u₀, us...; kwargs...)
     return expintegrator(A, t, (u₀, us...), alg)
 end
 
-function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos, Arnoldi})
+function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos,Arnoldi})
     length(u) == 1 && return expintegrator(A, t, (u[1], zerovector(u[1])), alg)
 
     p = length(u) - 1
@@ -172,7 +172,7 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos, Arnoldi})
     else
         iter = ArnoldiIterator(A, w[p + 1], alg.orth)
     end
-    fact = initialize(iter; verbosity = alg.verbosity)
+    fact = initialize(iter; verbosity=alg.verbosity)
     numops += 1
     sizehint!(fact, krylovdim)
 
@@ -283,7 +283,7 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos, Arnoldi})
             end
         end
         if K < krylovdim
-            fact = expand!(iter, fact; verbosity = alg.verbosity)
+            fact = expand!(iter, fact; verbosity=alg.verbosity)
             numops += 1
         else
             for j in 1:p
@@ -314,7 +314,7 @@ function expintegrator(A, t::Number, u::Tuple, alg::Union{Lanczos, Arnoldi})
             else
                 iter = ArnoldiIterator(A, w[p + 1], alg.orth)
             end
-            fact = initialize!(iter, fact; verbosity = alg.verbosity)
+            fact = initialize!(iter, fact; verbosity=alg.verbosity)
             numops += 1
             numiter += 1
         end

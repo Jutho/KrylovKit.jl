@@ -81,4 +81,4 @@ for integrating a linear non-homogeneous ODE.
 function exponentiate end
 
 exponentiate(A, t::Number, v; kwargs...) = expintegrator(A, t, v; kwargs...)
-exponentiate(A, t::Number, v, alg::Union{Lanczos, Arnoldi}) = expintegrator(A, t, (v,), alg)
+exponentiate(A, t::Number, v, alg::Union{Lanczos,Arnoldi}) = expintegrator(A, t, (v,), alg)

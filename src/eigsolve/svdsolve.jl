@@ -120,38 +120,31 @@ to the Krylov-Schur factorization for eigenvalues.
 """
 function svdsolve end
 
-function svdsolve(
-        A::AbstractMatrix, howmany::Int = 1, which::Selector = :LR, T::Type = eltype(A);
-        kwargs...
-    )
+function svdsolve(A::AbstractMatrix, howmany::Int=1, which::Selector=:LR, T::Type=eltype(A);
+                  kwargs...)
     x₀ = Random.rand!(similar(A, T, size(A, 1)))
     return svdsolve(A, x₀, howmany, which; kwargs...)
 end
-function svdsolve(
-        f, n::Int, howmany::Int = 1, which::Selector = :LR, T::Type = Float64;
-        kwargs...
-    )
+function svdsolve(f, n::Int, howmany::Int=1, which::Selector=:LR, T::Type=Float64;
+                  kwargs...)
     return svdsolve(f, rand(T, n), howmany, which; kwargs...)
 end
 
-function svdsolve(f, x₀, howmany::Int = 1, which::Selector = :LR; kwargs...)
+function svdsolve(f, x₀, howmany::Int=1, which::Selector=:LR; kwargs...)
     which == :LR || which == :SR ||
         error("invalid specification of which singular values to target: which = $which")
     alg = GKL(; kwargs...)
     return svdsolve(f, x₀, howmany, which, alg)
 end
 
-function svdsolve(
-        A, x₀, howmany::Int, which::Symbol, alg::GKL;
-        alg_rrule = Arnoldi(;
-            tol = alg.tol,
-            krylovdim = alg.krylovdim,
-            maxiter = alg.maxiter,
-            eager = alg.eager,
-            orth = alg.orth,
-            verbosity = alg.verbosity
-        )
-    )
+function svdsolve(A, x₀, howmany::Int, which::Symbol, alg::GKL;
+                  alg_rrule=Arnoldi(;
+                                    tol=alg.tol,
+                                    krylovdim=alg.krylovdim,
+                                    maxiter=alg.maxiter,
+                                    eager=alg.eager,
+                                    orth=alg.orth,
+                                    verbosity=alg.verbosity))
     krylovdim = alg.krylovdim
     maxiter = alg.maxiter
     howmany > krylovdim &&
@@ -161,7 +154,7 @@ function svdsolve(
     numiter = 1
     # initialize GKL factorization
     iter = GKLIterator(A, x₀, alg.orth)
-    fact = initialize(iter; verbosity = alg.verbosity)
+    fact = initialize(iter; verbosity=alg.verbosity)
     numops = 2
     sizehint!(fact, krylovdim)
     β = normres(fact)
@@ -218,7 +211,7 @@ function svdsolve(
         end
 
         if K < krylovdim # expand
-            fact = expand!(iter, fact; verbosity = alg.verbosity)
+            fact = expand!(iter, fact; verbosity=alg.verbosity)
             numops += 2
         else ## shrink and restart
             if numiter == maxiter
@@ -271,7 +264,7 @@ function svdsolve(
                 fact.βs[j] = H[j + 1, j]
             end
             # Shrink GKL factorization
-            fact = shrink!(fact, keep; verbosity = alg.verbosity)
+            fact = shrink!(fact, keep; verbosity=alg.verbosity)
             numiter += 1
         end
     end
@@ -310,5 +303,5 @@ function svdsolve(
     end
 
     return values, leftvectors, rightvectors,
-        ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
+           ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end

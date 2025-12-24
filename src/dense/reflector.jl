@@ -1,5 +1,5 @@
 # Elementary Householder reflection
-struct Householder{T, V <: AbstractVector, R <: IndexRange}
+struct Householder{T,V<:AbstractVector,R<:IndexRange}
     β::T
     v::V
     r::R
@@ -7,21 +7,21 @@ end
 
 Base.adjoint(H::Householder) = Householder(conj(H.β), H.v, H.r)
 
-function householder(x::AbstractVector, r::IndexRange = axes(x, 1), k = first(r))
+function householder(x::AbstractVector, r::IndexRange=axes(x, 1), k=first(r))
     i = findfirst(isequal(k), r)
     i isa Nothing && error("k = $k should be in the range r = $r")
     β, v, ν = _householder!(x[r], i)
     return Householder(β, v, r), ν
 end
 # Householder reflector h that zeros the elements A[r,col] (except for A[k,col]) upon lmul!(A,h)
-function householder(A::AbstractMatrix, r::IndexRange, col::Int, k = first(r))
+function householder(A::AbstractMatrix, r::IndexRange, col::Int, k=first(r))
     i = findfirst(isequal(k), r)
     i isa Nothing && error("k = $k should be in the range r = $r")
     β, v, ν = _householder!(A[r, col], i)
     return Householder(β, v, r), ν
 end
 # Householder reflector that zeros the elements A[row,r] (except for A[row,k]) upon rmul!(A,h')
-function householder(A::AbstractMatrix, row::Int, r::IndexRange, k = first(r))
+function householder(A::AbstractMatrix, row::Int, r::IndexRange, k=first(r))
     i = findfirst(isequal(k), r)
     i isa Nothing && error("k = $k should be in the range r = $r")
     β, v, ν = _householder!(conj!(A[row, r]), i)
@@ -86,7 +86,7 @@ function LinearAlgebra.lmul!(H::Householder, x::AbstractVector)
     end
     return x
 end
-function LinearAlgebra.lmul!(H::Householder, A::AbstractMatrix, cols = axes(A, 2))
+function LinearAlgebra.lmul!(H::Householder, A::AbstractMatrix, cols=axes(A, 2))
     v = H.v
     r = H.r
     β = H.β
@@ -109,7 +109,7 @@ function LinearAlgebra.lmul!(H::Householder, A::AbstractMatrix, cols = axes(A, 2
     end
     return A
 end
-function LinearAlgebra.rmul!(A::AbstractMatrix, H::Householder, rows = axes(A, 1))
+function LinearAlgebra.rmul!(A::AbstractMatrix, H::Householder, rows=axes(A, 1))
     v = H.v
     r = H.r
     β = H.β

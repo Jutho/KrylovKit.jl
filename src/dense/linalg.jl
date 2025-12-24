@@ -1,7 +1,8 @@
 # Some modified wrappers for Lapack
 import LinearAlgebra: BlasFloat, BlasInt,
-    LAPACKException, DimensionMismatch, SingularException, PosDefException,
-    chkstride1, checksquare
+                      LAPACKException, DimensionMismatch, SingularException,
+                      PosDefException,
+                      chkstride1, checksquare
 import LinearAlgebra.BLAS: @blasfunc, BlasReal, BlasComplex
 import LinearAlgebra.LAPACK: chklapackerror
 @static if VERSION >= v"1.7"
@@ -15,15 +16,15 @@ end
 else
     function require_one_based_indexing(A...)
         return !Base.has_offset_axes(A...) ||
-            throw(ArgumentError("offset arrays are not supported but got an array with index other than 1"))
+               throw(ArgumentError("offset arrays are not supported but got an array with index other than 1"))
     end
 end
 
-struct RowIterator{A <: AbstractMatrix, R <: IndexRange}
+struct RowIterator{A<:AbstractMatrix,R<:IndexRange}
     a::A
     r::R
 end
-rows(a::AbstractMatrix, r::IndexRange = axes(a, 1)) = RowIterator(a, r)
+rows(a::AbstractMatrix, r::IndexRange=axes(a, 1)) = RowIterator(a, r)
 
 function Base.iterate(iter::RowIterator)
     next = iterate(iter.r)
@@ -47,15 +48,15 @@ end
 Base.IteratorSize(::Type{<:RowIterator}) = Base.HasLength()
 Base.IteratorEltype(::Type{<:RowIterator}) = Base.HasEltype()
 Base.length(iter::RowIterator) = length(iter.r)
-function Base.eltype(iter::RowIterator{A}) where {T, A <: DenseArray{T}}
-    return SubArray{T, 1, A, Tuple{Int, Base.Slice{Base.OneTo{Int}}}, true}
+function Base.eltype(iter::RowIterator{A}) where {T,A<:DenseArray{T}}
+    return SubArray{T,1,A,Tuple{Int,Base.Slice{Base.OneTo{Int}}},true}
 end
 
-struct ColumnIterator{A <: AbstractMatrix, R <: IndexRange}
+struct ColumnIterator{A<:AbstractMatrix,R<:IndexRange}
     a::A
     r::R
 end
-cols(a::AbstractMatrix, r::IndexRange = axes(a, 2)) = ColumnIterator(a, r)
+cols(a::AbstractMatrix, r::IndexRange=axes(a, 2)) = ColumnIterator(a, r)
 
 function Base.iterate(iter::ColumnIterator)
     next = iterate(iter.r)
@@ -79,8 +80,8 @@ end
 Base.IteratorSize(::Type{<:ColumnIterator}) = Base.HasLength()
 Base.IteratorEltype(::Type{<:ColumnIterator}) = Base.HasEltype()
 Base.length(iter::ColumnIterator) = length(iter.r)
-function Base.eltype(iter::ColumnIterator{A}) where {T, A <: DenseArray{T}}
-    return SubArray{T, 1, A, Tuple{Base.Slice{Base.OneTo{Int}}, Int}, true}
+function Base.eltype(iter::ColumnIterator{A}) where {T,A<:DenseArray{T}}
+    return SubArray{T,1,A,Tuple{Base.Slice{Base.OneTo{Int}},Int},true}
 end
 
 # # QR decomposition
@@ -93,7 +94,7 @@ end
 # end
 
 # Triangular division: for some reason this is faster than LAPACK's trsv
-function ldiv!(A::UpperTriangular, y::AbstractVector, r::UnitRange{Int} = 1:length(y))
+function ldiv!(A::UpperTriangular, y::AbstractVector, r::UnitRange{Int}=1:length(y))
     R = A.data
     @inbounds for j in reverse(r)
         R[j, j] == zero(R[j, j]) && throw(SingularException(j))
@@ -106,25 +107,23 @@ function ldiv!(A::UpperTriangular, y::AbstractVector, r::UnitRange{Int} = 1:leng
 end
 
 # Eigenvalue decomposition of SymTridiagonal matrix
-function tridiageigh!(A::SymTridiagonal{T}) where {T <: BlasFloat}
+function tridiageigh!(A::SymTridiagonal{T}) where {T<:BlasFloat}
     Z = copyto!(similar(A.ev, size(A)), LinearAlgebra.I)
     return tridiageigh!(A, Z)
 end
-function tridiageigh!(A::SymTridiagonal{T}, Z::StridedMatrix{T}) where {T <: BlasFloat}
+function tridiageigh!(A::SymTridiagonal{T}, Z::StridedMatrix{T}) where {T<:BlasFloat}
     return stegr!(A.dv, A.ev, Z)
 end # redefined
 
 # Generalized eigenvalue decomposition of symmetric / Hermitian problem
-function geneigh!(A::StridedMatrix{T}, B::StridedMatrix{T}) where {T <: BlasFloat}
+function geneigh!(A::StridedMatrix{T}, B::StridedMatrix{T}) where {T<:BlasFloat}
     return LAPACK.sygvd!(1, 'V', 'U', A, B)
 end
 
 # Singular value decomposition of a Bidiagonal matrix
-function bidiagsvd!(
-        B::Bidiagonal{T},
-        U::AbstractMatrix{T} = one(B),
-        VT::AbstractMatrix{T} = one(B)
-    ) where {T <: BlasReal}
+function bidiagsvd!(B::Bidiagonal{T},
+                    U::AbstractMatrix{T}=one(B),
+                    VT::AbstractMatrix{T}=one(B)) where {T<:BlasReal}
     s, Vt, U = LAPACK.bdsqr!(B.uplo, B.dv, B.ev, VT, U, similar(U, (size(B, 1), 0)))
     return U, s, Vt
 end
@@ -149,7 +148,7 @@ function reverserows!(V::AbstractVecOrMat)
 end
 
 # Schur factorization of a Hessenberg matrix
-function hschur!(H::AbstractMatrix{T}, Z::AbstractMatrix{T} = one(H)) where {T <: BlasFloat}
+function hschur!(H::AbstractMatrix{T}, Z::AbstractMatrix{T}=one(H)) where {T<:BlasFloat}
     return hseqr!(H, Z)
 end
 
@@ -335,9 +334,8 @@ end
 function permuteschur!(T::AbstractMatrix{<:BlasFloat}, p::AbstractVector{Int})
     return permuteschur!(T, one(T), p)
 end
-function permuteschur!(
-        T::AbstractMatrix{S}, Q::AbstractMatrix{S}, order::AbstractVector{Int}
-    ) where {S <: BlasComplex}
+function permuteschur!(T::AbstractMatrix{S}, Q::AbstractMatrix{S},
+                       order::AbstractVector{Int}) where {S<:BlasComplex}
     n = checksquare(T)
     p = collect(order) # makes copy cause will be overwritten
     @inbounds for i in 1:length(p)
@@ -353,9 +351,8 @@ function permuteschur!(
     return T, Q, schur2eigvals(T)
 end
 
-function permuteschur!(
-        T::AbstractMatrix{S}, Q::AbstractMatrix{S}, order::AbstractVector{Int}
-    ) where {S <: BlasReal}
+function permuteschur!(T::AbstractMatrix{S}, Q::AbstractMatrix{S},
+                       order::AbstractVector{Int}) where {S<:BlasReal}
     n = checksquare(T)
     p = collect(order) # makes copy cause will be overwritten
     i = 1
@@ -385,9 +382,8 @@ function permuteschur!(
     return T, Q, schur2eigvals(T)
 end
 
-function partitionschur!(
-        T::AbstractMatrix{S}, Q::AbstractMatrix{S}, select::AbstractVector{Bool}
-    ) where {S <: BlasFloat}
+function partitionschur!(T::AbstractMatrix{S}, Q::AbstractMatrix{S},
+                         select::AbstractVector{Bool}) where {S<:BlasFloat}
     T, Q, vals = trsen!('N', 'V', convert(Vector{BlasInt}, select), T, Q)
     return T, Q, vals
 end
@@ -395,9 +391,8 @@ end
 # redefine LAPACK interface to tridiagonal eigenvalue problem
 for (stegr, elty) in ((:dstegr_, :Float64), (:sstegr_, :Float32))
     @eval begin
-        function stegr!(
-                dv::AbstractVector{$elty}, ev::AbstractVector{$elty}, Z::AbstractMatrix{$elty}
-            )
+        function stegr!(dv::AbstractVector{$elty}, ev::AbstractVector{$elty},
+                        Z::AbstractMatrix{$elty})
             require_one_based_indexing(dv, ev, Z)
             chkstride1(dv, ev, Z)
             n = length(dv)
@@ -426,24 +421,20 @@ for (stegr, elty) in ((:dstegr_, :Float64), (:sstegr_, :Float32))
             liwork = BlasInt(-1)
             info = Ref{BlasInt}()
             for i in 1:2  # first call returns lwork as work[1] and liwork as iwork[1]
-                ccall(
-                    (@blasfunc($stegr), liblapack),
-                    Cvoid,
-                    (
-                        Ref{UInt8}, Ref{UInt8}, Ref{BlasInt},
-                        Ptr{$elty}, Ptr{$elty}, Ref{$elty}, Ref{$elty},
-                        Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ptr{BlasInt},
-                        Ptr{$elty}, Ptr{$elty}, Ref{BlasInt},
-                        Ptr{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Ref{BlasInt},
-                        Ptr{BlasInt}, Clong, Clong,
-                    ),
-                    jobz, range, n,
-                    dv, eev, vl, vu,
-                    il, iu, abstol, m,
-                    w, Z, ldz,
-                    isuppz, work, lwork, iwork, liwork,
-                    info, 1, 1
-                )
+                ccall((@blasfunc($stegr), liblapack),
+                      Cvoid,
+                      (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt},
+                       Ptr{$elty}, Ptr{$elty}, Ref{$elty}, Ref{$elty},
+                       Ref{BlasInt}, Ref{BlasInt}, Ptr{$elty}, Ptr{BlasInt},
+                       Ptr{$elty}, Ptr{$elty}, Ref{BlasInt},
+                       Ptr{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Ref{BlasInt},
+                       Ptr{BlasInt}, Clong, Clong),
+                      jobz, range, n,
+                      dv, eev, vl, vu,
+                      il, iu, abstol, m,
+                      w, Z, ldz,
+                      isuppz, work, lwork, iwork, liwork,
+                      info, 1, 1)
                 chklapackerror(info[])
                 if i == 1
                     lwork = BlasInt(work[1])
@@ -461,7 +452,7 @@ end
 for (hseqr, trevc, trsen, elty) in
     ((:dhseqr_, :dtrevc_, :dtrsen_, :Float64), (:shseqr_, :strevc_, :strsen_, :Float32))
     @eval begin
-        function hseqr!(H::StridedMatrix{$elty}, Z::StridedMatrix{$elty} = one(H))
+        function hseqr!(H::StridedMatrix{$elty}, Z::StridedMatrix{$elty}=one(H))
             require_one_based_indexing(H, Z)
             chkstride1(H, Z)
             n = checksquare(H)
@@ -478,18 +469,15 @@ for (hseqr, trevc, trsen, elty) in
             lwork = BlasInt(-1)
             info = Ref{BlasInt}()
             for i in 1:2  # first call returns lwork as work[1]
-                ccall(
-                    (@blasfunc($hseqr), liblapack),
-                    Cvoid,
-                    (
-                        Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt},
-                        Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt},
-                        Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Clong, Clong,
-                    ),
-                    job, compz, n, ilo, ihi,
-                    H, ldh, wr, wi, Z, ldz,
-                    work, lwork, info, 1, 1
-                )
+                ccall((@blasfunc($hseqr), liblapack),
+                      Cvoid,
+                      (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt},
+                       Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ptr{$elty},
+                       Ref{BlasInt},
+                       Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Clong, Clong),
+                      job, compz, n, ilo, ihi,
+                      H, ldh, wr, wi, Z, ldz,
+                      work, lwork, info, 1, 1)
                 chklapackerror(info[])
                 if i == 1
                     lwork = BlasInt(real(work[1]))
@@ -498,17 +486,16 @@ for (hseqr, trevc, trsen, elty) in
             end
             return H, Z, complex.(wr, wi)
         end
-        function trevc!(
-                side::Char, howmny::Char, select::StridedVector{BlasInt},
-                T::AbstractMatrix{$elty}, VL::AbstractMatrix{$elty}, VR::AbstractMatrix{$elty}
-            )
+        function trevc!(side::Char, howmny::Char, select::StridedVector{BlasInt},
+                        T::AbstractMatrix{$elty}, VL::AbstractMatrix{$elty},
+                        VR::AbstractMatrix{$elty})
             # Extract
             if side ∉ ['L', 'R', 'B']
                 throw(ArgumentError("side argument must be 'L' (left eigenvectors), 'R' (right eigenvectors), or 'B' (both), got $side"))
             end
             n = checksquare(T)
             mm = side == 'L' ? size(VL, 2) :
-                (side == 'R' ? size(VR, 2) : min(size(VL, 2), size(VR, 2)))
+                 (side == 'R' ? size(VR, 2) : min(size(VL, 2), size(VR, 2)))
             ldt, ldvl, ldvr = stride(T, 2), stride(VL, 2), stride(VR, 2)
 
             # Check
@@ -519,26 +506,22 @@ for (hseqr, trevc, trsen, elty) in
             work = Vector{$elty}(undef, 3n)
             info = Ref{BlasInt}()
 
-            ccall(
-                (@blasfunc($trevc), liblapack),
-                Cvoid,
-                (
-                    Ref{UInt8}, Ref{UInt8}, Ptr{BlasInt}, Ref{BlasInt},
-                    Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                    Ref{BlasInt}, Ptr{BlasInt}, Ptr{$elty}, Ptr{BlasInt}, Clong, Clong,
-                ),
-                side, howmny, select, n,
-                T, ldt, VL, ldvl, VR, ldvr,
-                mm, m, work, info, 1, 1
-            )
+            ccall((@blasfunc($trevc), liblapack),
+                  Cvoid,
+                  (Ref{UInt8}, Ref{UInt8}, Ptr{BlasInt}, Ref{BlasInt},
+                   Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt}, Ptr{$elty},
+                   Ref{BlasInt},
+                   Ref{BlasInt}, Ptr{BlasInt}, Ptr{$elty}, Ptr{BlasInt}, Clong, Clong),
+                  side, howmny, select, n,
+                  T, ldt, VL, ldvl, VR, ldvr,
+                  mm, m, work, info, 1, 1)
             chklapackerror(info[])
 
             return VL, VR, m
         end
-        function trsen!(
-                job::AbstractChar, compq::AbstractChar, select::AbstractVector{BlasInt},
-                T::AbstractMatrix{$elty}, Q::AbstractMatrix{$elty}
-            )
+        function trsen!(job::AbstractChar, compq::AbstractChar,
+                        select::AbstractVector{BlasInt},
+                        T::AbstractMatrix{$elty}, Q::AbstractMatrix{$elty})
             chkstride1(T, Q, select)
             n = checksquare(T)
             checksquare(Q) == n || throw(DimensionMismatch())
@@ -557,21 +540,17 @@ for (hseqr, trevc, trsen, elty) in
             s = Ref{$elty}(zero($elty))
             sep = Ref{$elty}(zero($elty))
             for i in 1:2  # first call returns lwork as work[1] and liwork as iwork[1]
-                ccall(
-                    (@blasfunc($trsen), liblapack), Cvoid,
-                    (
-                        Ref{UInt8}, Ref{UInt8}, Ptr{BlasInt}, Ref{BlasInt},
-                        Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
-                        Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ref{$elty}, Ref{$elty},
-                        Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Ref{BlasInt},
-                        Ptr{BlasInt}, Clong, Clong,
-                    ),
-                    job, compq, select, n,
-                    T, ldt, Q, ldq,
-                    wr, wi, m, s, sep,
-                    work, lwork, iwork, liwork,
-                    info, 1, 1
-                )
+                ccall((@blasfunc($trsen), liblapack), Cvoid,
+                      (Ref{UInt8}, Ref{UInt8}, Ptr{BlasInt}, Ref{BlasInt},
+                       Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ref{BlasInt},
+                       Ptr{$elty}, Ptr{$elty}, Ref{BlasInt}, Ref{$elty}, Ref{$elty},
+                       Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Ref{BlasInt},
+                       Ptr{BlasInt}, Clong, Clong),
+                      job, compq, select, n,
+                      T, ldt, Q, ldq,
+                      wr, wi, m, s, sep,
+                      work, lwork, iwork, liwork,
+                      info, 1, 1)
                 chklapackerror(info[])
                 if i == 1 # only estimated optimal lwork, liwork
                     lwork = BlasInt(real(work[1]))
@@ -586,12 +565,10 @@ for (hseqr, trevc, trsen, elty) in
 end
 
 for (hseqr, trevc, trsen, elty, relty) in
-    (
-        (:zhseqr_, :ztrevc_, :ztrsen_, :ComplexF64, :Float64),
-        (:chseqr_, :ctrevc_, :ctrsen_, :ComplexF32, :Float32),
-    )
+    ((:zhseqr_, :ztrevc_, :ztrsen_, :ComplexF64, :Float64),
+     (:chseqr_, :ctrevc_, :ctrsen_, :ComplexF32, :Float32))
     @eval begin
-        function hseqr!(H::AbstractMatrix{$elty}, Z::AbstractMatrix{$elty} = one(H))
+        function hseqr!(H::AbstractMatrix{$elty}, Z::AbstractMatrix{$elty}=one(H))
             require_one_based_indexing(H, Z)
             chkstride1(H, Z)
             n = checksquare(H)
@@ -607,18 +584,14 @@ for (hseqr, trevc, trsen, elty, relty) in
             lwork = BlasInt(-1)
             info = Ref{BlasInt}()
             for i in 1:2  # first call returns lwork as work[1]
-                ccall(
-                    (@blasfunc($hseqr), liblapack),
-                    Cvoid,
-                    (
-                        Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt},
-                        Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt},
-                        Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Clong, Clong,
-                    ),
-                    job, compz, n, ilo, ihi,
-                    H, ldh, w, Z, ldz,
-                    work, lwork, info, 1, 1
-                )
+                ccall((@blasfunc($hseqr), liblapack),
+                      Cvoid,
+                      (Ref{UInt8}, Ref{UInt8}, Ref{BlasInt}, Ref{BlasInt}, Ref{BlasInt},
+                       Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ptr{$elty}, Ref{BlasInt},
+                       Ptr{$elty}, Ref{BlasInt}, Ptr{BlasInt}, Clong, Clong),
+                      job, compz, n, ilo, ihi,
+                      H, ldh, w, Z, ldz,
+                      work, lwork, info, 1, 1)
                 chklapackerror(info[])
                 if i == 1
                     lwork = BlasInt(real(work[1]))
@@ -627,10 +600,9 @@ for (hseqr, trevc, trsen, elty, relty) in
             end
             return H, Z, w
         end
-        function trevc!(
-                side::Char, howmny::Char, select::AbstractVector{BlasInt},
-                T::AbstractMatrix{$elty}, VL::AbstractMatrix{$elty} = similar(T), VR::AbstractMatrix{$elty} = similar(T)
-            )
+        function trevc!(side::Char, howmny::Char, select::AbstractVector{BlasInt},
+                        T::AbstractMatrix{$elty}, VL::AbstractMatrix{$elty}=similar(T),
+                        VR::AbstractMatrix{$elty}=similar(T))
 
             # Check
             require_one_based_indexing(select, T, VL, VR)
@@ -642,7 +614,7 @@ for (hseqr, trevc, trsen, elty, relty) in
             end
             n = checksquare(T)
             mm = side == 'L' ? size(VL, 2) :
-                (side == 'R' ? size(VR, 2) : min(size(VL, 2), size(VR, 2)))
+                 (side == 'R' ? size(VR, 2) : min(size(VL, 2), size(VR, 2)))
             ldt, ldvl, ldvr = stride(T, 2), stride(VL, 2), stride(VR, 2)
 
             # Allocate
@@ -650,57 +622,51 @@ for (hseqr, trevc, trsen, elty, relty) in
             work = Vector{$elty}(undef, 2n)
             rwork = Vector{$relty}(undef, n)
             info = Ref{BlasInt}()
-            ccall(
-                (@blasfunc($trevc), liblapack),
-                Cvoid,
-                (
-                    Ref{UInt8},
-                    Ref{UInt8},
-                    Ptr{BlasInt},
-                    Ref{BlasInt},
-                    Ptr{$elty},
-                    Ref{BlasInt},
-                    Ptr{$elty},
-                    Ref{BlasInt},
-                    Ptr{$elty},
-                    Ref{BlasInt},
-                    Ref{BlasInt},
-                    Ptr{BlasInt},
-                    Ptr{$elty},
-                    Ptr{$relty},
-                    Ptr{BlasInt},
-                    Clong,
-                    Clong,
-                ),
-                side,
-                howmny,
-                select,
-                n,
-                T,
-                ldt,
-                VL,
-                ldvl,
-                VR,
-                ldvr,
-                mm,
-                m,
-                work,
-                rwork,
-                info,
-                1,
-                1
-            )
+            ccall((@blasfunc($trevc), liblapack),
+                  Cvoid,
+                  (Ref{UInt8},
+                   Ref{UInt8},
+                   Ptr{BlasInt},
+                   Ref{BlasInt},
+                   Ptr{$elty},
+                   Ref{BlasInt},
+                   Ptr{$elty},
+                   Ref{BlasInt},
+                   Ptr{$elty},
+                   Ref{BlasInt},
+                   Ref{BlasInt},
+                   Ptr{BlasInt},
+                   Ptr{$elty},
+                   Ptr{$relty},
+                   Ptr{BlasInt},
+                   Clong,
+                   Clong),
+                  side,
+                  howmny,
+                  select,
+                  n,
+                  T,
+                  ldt,
+                  VL,
+                  ldvl,
+                  VR,
+                  ldvr,
+                  mm,
+                  m,
+                  work,
+                  rwork,
+                  info,
+                  1,
+                  1)
             chklapackerror(info[])
 
             return VL, VR, m
         end
-        function trsen!(
-                job::Char,
-                compq::Char,
-                select::AbstractVector{BlasInt},
-                T::AbstractMatrix{$elty},
-                Q::AbstractMatrix{$elty}
-            )
+        function trsen!(job::Char,
+                        compq::Char,
+                        select::AbstractVector{BlasInt},
+                        T::AbstractMatrix{$elty},
+                        Q::AbstractMatrix{$elty})
             chkstride1(select, T, Q)
             n = checksquare(T)
             ldt = max(1, stride(T, 2))
@@ -714,42 +680,38 @@ for (hseqr, trevc, trsen, elty, relty) in
             s = Ref{$relty}(zero($relty))
             sep = Ref{$relty}(zero($relty))
             for i in 1:2  # first call returns lwork as work[1]
-                ccall(
-                    (@blasfunc($trsen), liblapack),
-                    Nothing,
-                    (
-                        Ref{UInt8},
-                        Ref{UInt8},
-                        Ptr{BlasInt},
-                        Ref{BlasInt},
-                        Ptr{$elty},
-                        Ref{BlasInt},
-                        Ptr{$elty},
-                        Ref{BlasInt},
-                        Ptr{$elty},
-                        Ref{BlasInt},
-                        Ref{$relty},
-                        Ref{$relty},
-                        Ptr{$elty},
-                        Ref{BlasInt},
-                        Ptr{BlasInt},
-                    ),
-                    job,
-                    compq,
-                    select,
-                    n,
-                    T,
-                    ldt,
-                    Q,
-                    ldq,
-                    w,
-                    m,
-                    s,
-                    sep,
-                    work,
-                    lwork,
-                    info
-                )
+                ccall((@blasfunc($trsen), liblapack),
+                      Nothing,
+                      (Ref{UInt8},
+                       Ref{UInt8},
+                       Ptr{BlasInt},
+                       Ref{BlasInt},
+                       Ptr{$elty},
+                       Ref{BlasInt},
+                       Ptr{$elty},
+                       Ref{BlasInt},
+                       Ptr{$elty},
+                       Ref{BlasInt},
+                       Ref{$relty},
+                       Ref{$relty},
+                       Ptr{$elty},
+                       Ref{BlasInt},
+                       Ptr{BlasInt}),
+                      job,
+                      compq,
+                      select,
+                      n,
+                      T,
+                      ldt,
+                      Q,
+                      ldq,
+                      w,
+                      m,
+                      s,
+                      sep,
+                      work,
+                      lwork,
+                      info)
                 chklapackerror(info[])
                 if i == 1 # only estimated optimal lwork, liwork
                     lwork = BlasInt(real(work[1]))

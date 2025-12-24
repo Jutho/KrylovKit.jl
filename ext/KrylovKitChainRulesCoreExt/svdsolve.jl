@@ -1,28 +1,21 @@
 # Reverse rule adopted from tsvd! rrule as found in TensorKit.jl
-function ChainRulesCore.rrule(
-        config::RuleConfig, ::typeof(svdsolve), f, x₀, howmany, which,
-        alg_primal::GKL;
-        alg_rrule = Arnoldi(;
-            tol = alg_primal.tol,
-            krylovdim = alg_primal.krylovdim,
-            maxiter = alg_primal.maxiter,
-            eager = alg_primal.eager,
-            orth = alg_primal.orth,
-            verbosity = alg_primal.verbosity
-        )
-    )
+function ChainRulesCore.rrule(config::RuleConfig, ::typeof(svdsolve), f, x₀, howmany, which,
+                              alg_primal::GKL;
+                              alg_rrule=Arnoldi(;
+                                                tol=alg_primal.tol,
+                                                krylovdim=alg_primal.krylovdim,
+                                                maxiter=alg_primal.maxiter,
+                                                eager=alg_primal.eager,
+                                                orth=alg_primal.orth,
+                                                verbosity=alg_primal.verbosity))
     vals, lvecs, rvecs, info = svdsolve(f, x₀, howmany, which, alg_primal)
-    svdsolve_pullback = make_svdsolve_pullback(
-        config, f, x₀, howmany, which, alg_primal,
-        alg_rrule, vals, lvecs, rvecs, info
-    )
+    svdsolve_pullback = make_svdsolve_pullback(config, f, x₀, howmany, which, alg_primal,
+                                               alg_rrule, vals, lvecs, rvecs, info)
     return (vals, lvecs, rvecs, info), svdsolve_pullback
 end
 
-function make_svdsolve_pullback(
-        config, f, x₀, howmany, which, alg_primal, alg_rrule, vals,
-        lvecs, rvecs, info
-    )
+function make_svdsolve_pullback(config, f, x₀, howmany, which, alg_primal, alg_rrule, vals,
+                                lvecs, rvecs, info)
     function svdsolve_pullback(ΔX)
         ∂self = NoTangent()
         ∂x₀ = ZeroTangent()
@@ -43,9 +36,9 @@ function make_svdsolve_pullback(
         # discard vals/vecs from n + 1 onwards if contribution is zero
         _n_vals = _Δvals isa AbstractZero ? nothing : findlast(!iszero, _Δvals)
         _n_lvecs = _Δlvecs isa AbstractZero ? nothing :
-            findlast(!Base.Fix2(isa, AbstractZero), _Δlvecs)
+                   findlast(!Base.Fix2(isa, AbstractZero), _Δlvecs)
         _n_rvecs = _Δrvecs isa AbstractZero ? nothing :
-            findlast(!Base.Fix2(isa, AbstractZero), _Δrvecs)
+                   findlast(!Base.Fix2(isa, AbstractZero), _Δrvecs)
         n_vals = isnothing(_n_vals) ? 0 : _n_vals
         n_lvecs = isnothing(_n_lvecs) ? 0 : _n_lvecs
         n_rvecs = isnothing(_n_rvecs) ? 0 : _n_rvecs
@@ -87,12 +80,11 @@ function make_svdsolve_pullback(
 
         # Compute actual pullback data:
         #------------------------------
-        xs, ys = compute_svdsolve_pullback_data(
-            Δvals, Δlvecs, Δrvecs,
-            view(vals, 1:n), view(lvecs, 1:n), view(rvecs, 1:n),
-            info, f, which,
-            alg_primal, alg_rrule
-        )
+        xs, ys = compute_svdsolve_pullback_data(Δvals, Δlvecs, Δrvecs,
+                                                view(vals, 1:n), view(lvecs, 1:n),
+                                                view(rvecs, 1:n),
+                                                info, f, which,
+                                                alg_primal, alg_rrule)
 
         # Return pullback in correct form:
         #---------------------------------
@@ -102,12 +94,10 @@ function make_svdsolve_pullback(
     return svdsolve_pullback
 end
 
-function compute_svdsolve_pullback_data(
-        Δvals, Δlvecs, Δrvecs,
-        vals, lvecs, rvecs,
-        info, f, which,
-        alg_primal, alg_rrule::Union{GMRES, BiCGStab}
-    )
+function compute_svdsolve_pullback_data(Δvals, Δlvecs, Δrvecs,
+                                        vals, lvecs, rvecs,
+                                        info, f, which,
+                                        alg_primal, alg_rrule::Union{GMRES,BiCGStab})
     xs = similar(lvecs, length(Δvals))
     ys = similar(rvecs, length(Δvals))
     for i in 1:length(vals)
@@ -147,7 +137,7 @@ function compute_svdsolve_pullback_data(
             end
         end
         if info.converged >= i && reverse_info.converged == 0 &&
-                alg_primal.verbosity >= WARN_LEVEL
+           alg_primal.verbosity >= WARN_LEVEL
             @warn "`svdsolve` cotangent linear problem ($i) did not converge, whereas the primal eigenvalue problem did: normres = $(reverse_info.normres)"
         end
         x = VectorInterface.add!!(x, u, Δs / 2)
@@ -157,12 +147,10 @@ function compute_svdsolve_pullback_data(
     end
     return xs, ys
 end
-function compute_svdsolve_pullback_data(
-        Δvals, Δlvecs, Δrvecs,
-        vals, lvecs, rvecs,
-        info, f, which,
-        alg_primal, alg_rrule::Arnoldi
-    )
+function compute_svdsolve_pullback_data(Δvals, Δlvecs, Δrvecs,
+                                        vals, lvecs, rvecs,
+                                        info, f, which,
+                                        alg_primal, alg_rrule::Arnoldi)
     @assert which == :LR "pullback currently only implemented for `which == :LR`"
     T = scalartype(lvecs)
     n = length(Δvals)
@@ -190,7 +178,7 @@ function compute_svdsolve_pullback_data(
             @warn "`svdsolve` cotangents for singular vectors are sensitive to gauge choice: (|gauge| = $gauge)"
     end
     UdΔAV = (aUdΔU .+ aVdΔV) .* safe_inv.(vals' .- vals, tol) .+
-        (aUdΔU .- aVdΔV) .* safe_inv.(vals' .+ vals, tol)
+            (aUdΔU .- aVdΔV) .* safe_inv.(vals' .+ vals, tol)
     if !(Δvals isa ZeroTangent)
         UdΔAV[diagind(UdΔAV)] .+= real.(Δvals)
     end
@@ -248,7 +236,7 @@ function compute_svdsolve_pullback_data(
         end
     end
     if info.converged >= n && reverse_info.converged < n &&
-            alg_primal.verbosity >= WARN_LEVEL
+       alg_primal.verbosity >= WARN_LEVEL
         @warn "`svdsolve` cotangent problem did not converge, whereas the primal singular value problem did"
     end
 
@@ -288,7 +276,7 @@ function construct∂f_svd(config, f, lvecs, rvecs, xs, ys)
     end
     return ∂f
 end
-function construct∂f_svd(config, (f, fᴴ)::Tuple{Any, Any}, lvecs, rvecs, xs, ys)
+function construct∂f_svd(config, (f, fᴴ)::Tuple{Any,Any}, lvecs, rvecs, xs, ys)
     config isa RuleConfig{>:HasReverseMode} ||
         throw(ArgumentError("`svdsolve` reverse-mode AD requires AD engine that supports calling back into AD"))
 
@@ -306,10 +294,8 @@ function construct∂f_svd(config, (f, fᴴ)::Tuple{Any, Any}, lvecs, rvecs, xs,
 end
 function construct∂f_svd(config, A::AbstractMatrix, lvecs, rvecs, xs, ys)
     if A isa StridedMatrix
-        return InplaceableThunk(
-            Ā -> _buildĀ_svd!(Ā, lvecs, rvecs, xs, ys),
-            @thunk(_buildĀ_svd!(zero(A), lvecs, rvecs, xs, ys))
-        )
+        return InplaceableThunk(Ā -> _buildĀ_svd!(Ā, lvecs, rvecs, xs, ys),
+                                @thunk(_buildĀ_svd!(zero(A), lvecs, rvecs, xs, ys)))
     else
         return @thunk(ProjectTo(A)(_buildĀ_svd!(zero(A), lvecs, rvecs, xs, ys)))
     end

@@ -36,7 +36,8 @@ export basis, rayleighquotient, residual, normres, rayleighextension
 export initialize, initialize!, expand!, shrink!
 export ClassicalGramSchmidt, ClassicalGramSchmidt2, ClassicalGramSchmidtIR
 export ModifiedGramSchmidt, ModifiedGramSchmidt2, ModifiedGramSchmidtIR
-export LanczosIterator, BlockLanczosIterator, ArnoldiIterator, GKLIterator, BiArnoldiIterator
+export LanczosIterator, BlockLanczosIterator, ArnoldiIterator, GKLIterator,
+       BiArnoldiIterator
 export CG, GMRES, BiCGStab, Lanczos, BlockLanczos, Arnoldi, GKL, GolubYe, LSMR, BiArnoldi
 export KrylovDefaults, EigSorter
 export RecursiveVec, InnerProductVec, Block
@@ -85,7 +86,7 @@ function splitrange(r::OrdinalRange, n::Integer)
     outerlength = n
     return SplitRange(start, stp, stop, innerlength, outerlength1, outerlength)
 end
-function Base.iterate(r::SplitRange, i = 1)
+function Base.iterate(r::SplitRange, i=1)
     step = r.step
     if i <= r.outerlength1
         offset = (i - 1) * (r.innerlength + 1) * step
@@ -146,7 +147,7 @@ function checkposdef(z)
         error("operator does not appear to be positive definite: diagonal element $z")
     return r
 end
-function checkhermitian(z, n = abs(z))
+function checkhermitian(z, n=abs(z))
     imag(z) <= sqrt(max(eps(n), eps(one(n)))) ||
         error("operator does not appear to be hermitian: diagonal element $z")
     return real(z)
@@ -209,7 +210,7 @@ Used to return information about the solution found by the iterative method.
   - `numiter`: the number of iterations (sometimes called restarts) used by the algorithm.
   - `numops`: the number of times the linear map or operator was applied
 """
-struct ConvergenceInfo{S, T}
+struct ConvergenceInfo{S,T}
     converged::Int # how many vectors have converged, 0 or 1 for linear systems, exponentiate, any integer for eigenvalue problems
     residual::T
     normres::S
@@ -222,9 +223,8 @@ function Base.show(io::IO, info::ConvergenceInfo)
     info.converged == 0 && print(io, "no converged values ")
     info.converged == 1 && print(io, "one converged value ")
     info.converged > 1 && print(io, "$(info.converged) converged values ")
-    println(
-        io, "after ", info.numiter, " iterations and ", info.numops, " applications of the linear map;"
-    )
+    println(io, "after ", info.numiter, " iterations and ", info.numops,
+            " applications of the linear map;")
     return print(io, "norms of residuals are given by ", normres2string(info.normres), ".")
 end
 
@@ -245,13 +245,13 @@ include("innerproductvec.jl")
 
 # support for real
 _realinner(v, w) = real(inner(v, w))
-const RealVec{V} = InnerProductVec{typeof(_realinner), V}
+const RealVec{V} = InnerProductVec{typeof(_realinner),V}
 RealVec(v) = InnerProductVec(v, _realinner)
 
 apply(A, x::RealVec) = RealVec(apply(A, x[]))
 
-apply_normal(f::Tuple{Any, Any}, x::RealVec) = RealVec(apply_normal(f, x[]))
-apply_adjoint(f::Tuple{Any, Any}, x::RealVec) = RealVec(apply_adjoint(f, x[]))
+apply_normal(f::Tuple{Any,Any}, x::RealVec) = RealVec(apply_normal(f, x[]))
+apply_adjoint(f::Tuple{Any,Any}, x::RealVec) = RealVec(apply_adjoint(f, x[]))
 apply_normal(f, x::RealVec) = RealVec(apply_normal(f, x[]))
 apply_adjoint(f, x::RealVec) = RealVec(apply_adjoint(f, x[]))
 

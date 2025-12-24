@@ -98,18 +98,16 @@ maximal number of CG iterations that can be used by the `CG` algorithm.
 """
 function linsolve end
 
-function linsolve(
-        A::AbstractMatrix, b::AbstractVector, a₀::Number = 0, a₁::Number = 1;
-        kwargs...
-    )
+function linsolve(A::AbstractMatrix, b::AbstractVector, a₀::Number=0, a₁::Number=1;
+                  kwargs...)
     return linsolve(A, b, (zero(a₀) * zero(a₁)) * b, a₀, a₁; kwargs...)
 end
 
-function linsolve(f, b, a₀::Number = 0, a₁::Number = 1; kwargs...)
+function linsolve(f, b, a₀::Number=0, a₁::Number=1; kwargs...)
     return linsolve(f, b, scale(b, zero(a₀) * zero(a₁)), a₀, a₁; kwargs...)
 end
 
-function linsolve(f, b, x₀, a₀::Number = 0, a₁::Number = 1; kwargs...)
+function linsolve(f, b, x₀, a₀::Number=0, a₁::Number=1; kwargs...)
     T = apply_scalartype(f, x₀, a₀, a₁)
     alg = linselector(f, b, T; kwargs...)
     if haskey(kwargs, :alg_rrule)
@@ -117,66 +115,60 @@ function linsolve(f, b, x₀, a₀::Number = 0, a₁::Number = 1; kwargs...)
     else
         alg_rrule = alg
     end
-    return linsolve(f, b, x₀, alg, a₀, a₁; alg_rrule = alg_rrule)
+    return linsolve(f, b, x₀, alg, a₀, a₁; alg_rrule=alg_rrule)
 end
 
-function linselector(
-        f, b, T::Type;
-        issymmetric::Bool = false,
-        ishermitian::Bool = (T <: Real && issymmetric),
-        isposdef::Bool = false,
-        krylovdim::Int = KrylovDefaults.krylovdim[],
-        maxiter::Int = KrylovDefaults.maxiter[],
-        rtol::Real = KrylovDefaults.tol[],
-        atol::Real = KrylovDefaults.tol[],
-        tol::Real = max(atol, rtol * norm(b)),
-        orth = KrylovDefaults.orth,
-        verbosity::Int = KrylovDefaults.verbosity[]
-    )
+function linselector(f, b, T::Type;
+                     issymmetric::Bool=false,
+                     ishermitian::Bool=(T <: Real && issymmetric),
+                     isposdef::Bool=false,
+                     krylovdim::Int=KrylovDefaults.krylovdim[],
+                     maxiter::Int=KrylovDefaults.maxiter[],
+                     rtol::Real=KrylovDefaults.tol[],
+                     atol::Real=KrylovDefaults.tol[],
+                     tol::Real=max(atol, rtol * norm(b)),
+                     orth=KrylovDefaults.orth,
+                     verbosity::Int=KrylovDefaults.verbosity[])
     if (T <: Real && issymmetric) || ishermitian
         if isposdef
-            return CG(; maxiter = krylovdim * maxiter, tol = tol, verbosity = verbosity)
+            return CG(; maxiter=krylovdim * maxiter, tol=tol, verbosity=verbosity)
         else
             # TODO: implement MINRES for symmetric but not posdef; for now use GRMES
             # return MINRES(krylovdim*maxiter, tol=tol)
         end
     end
     return GMRES(;
-        krylovdim = krylovdim,
-        maxiter = maxiter,
-        tol = tol,
-        orth = orth,
-        verbosity = verbosity
-    )
+                 krylovdim=krylovdim,
+                 maxiter=maxiter,
+                 tol=tol,
+                 orth=orth,
+                 verbosity=verbosity)
 end
-function linselector(
-        A::AbstractMatrix, b, T::Type;
-        issymmetric::Bool = (T <: Real && LinearAlgebra.issymmetric(A)),
-        ishermitian::Bool = issymmetric || LinearAlgebra.ishermitian(A),
-        isposdef::Bool = ishermitian ? LinearAlgebra.isposdef(A) : false,
-        krylovdim::Int = KrylovDefaults.krylovdim[],
-        maxiter::Int = KrylovDefaults.maxiter[],
-        rtol::Real = KrylovDefaults.tol[],
-        atol::Real = KrylovDefaults.tol[],
-        tol::Real = max(atol, rtol * norm(b)),
-        orth = KrylovDefaults.orth,
-        verbosity::Int = KrylovDefaults.verbosity[]
-    )
+function linselector(A::AbstractMatrix, b, T::Type;
+                     issymmetric::Bool=(T <: Real && LinearAlgebra.issymmetric(A)),
+                     ishermitian::Bool=issymmetric || LinearAlgebra.ishermitian(A),
+                     isposdef::Bool=ishermitian ? LinearAlgebra.isposdef(A) : false,
+                     krylovdim::Int=KrylovDefaults.krylovdim[],
+                     maxiter::Int=KrylovDefaults.maxiter[],
+                     rtol::Real=KrylovDefaults.tol[],
+                     atol::Real=KrylovDefaults.tol[],
+                     tol::Real=max(atol, rtol * norm(b)),
+                     orth=KrylovDefaults.orth,
+                     verbosity::Int=KrylovDefaults.verbosity[])
     if (T <: Real && issymmetric) || ishermitian
         if isposdef
-            return CG(; maxiter = krylovdim * maxiter, tol = tol, verbosity = verbosity)
+            return CG(; maxiter=krylovdim * maxiter, tol=tol, verbosity=verbosity)
         else
             # TODO: implement MINRES for symmetric but not posdef; for now use GRMES
             # return MINRES(krylovdim*maxiter, tol=tol)
         end
     end
     return GMRES(;
-        krylovdim = krylovdim,
-        maxiter = maxiter,
-        tol = tol,
-        orth = orth,
-        verbosity = verbosity
-    )
+                 krylovdim=krylovdim,
+                 maxiter=maxiter,
+                 tol=tol,
+                 orth=orth,
+                 verbosity=verbosity)
 end
 
 """
@@ -247,12 +239,10 @@ and our `maxiter` parameter counts the number of outer iterations, i.e. restart 
 used, and therefore no restarts are required. Therefore, we pass `krylovdim*maxiter` as the
 maximal number of CG iterations that can be used by the `CG` algorithm.
 """
-function reallinsolve(f, b, x₀, alg, a₀::Real = 0, a₁::Real = 1)
+function reallinsolve(f, b, x₀, alg, a₀::Real=0, a₁::Real=1)
     x, info = linsolve(f, RealVec(b), RealVec(x₀), alg, a₀, a₁)
 
-    newinfo = ConvergenceInfo(
-        info.converged, info.residual[], info.normres, info.numiter,
-        info.numops
-    )
+    newinfo = ConvergenceInfo(info.converged, info.residual[], info.normres, info.numiter,
+                              info.numops)
     return x[], newinfo
 end

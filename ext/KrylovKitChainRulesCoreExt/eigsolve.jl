@@ -1,20 +1,17 @@
-function ChainRulesCore.rrule(
-        config::RuleConfig,
-        ::typeof(eigsolve),
-        f,
-        x₀,
-        howmany,
-        which,
-        alg_primal;
-        alg_rrule = Arnoldi(;
-            tol = alg_primal.tol,
-            krylovdim = alg_primal.krylovdim,
-            maxiter = alg_primal.maxiter,
-            eager = alg_primal.eager,
-            orth = alg_primal.orth,
-            verbosity = alg_primal.verbosity
-        )
-    )
+function ChainRulesCore.rrule(config::RuleConfig,
+                              ::typeof(eigsolve),
+                              f,
+                              x₀,
+                              howmany,
+                              which,
+                              alg_primal;
+                              alg_rrule=Arnoldi(;
+                                                tol=alg_primal.tol,
+                                                krylovdim=alg_primal.krylovdim,
+                                                maxiter=alg_primal.maxiter,
+                                                eager=alg_primal.eager,
+                                                orth=alg_primal.orth,
+                                                verbosity=alg_primal.verbosity))
     (vals, vecs, info) = eigsolve(f, x₀, howmany, which, alg_primal)
     if alg_primal isa Lanczos
         fᴴ = f
@@ -25,17 +22,13 @@ function ChainRulesCore.rrule(
             v -> unthunk(pb(v)[2])
         end
     end
-    eigsolve_pullback = make_eigsolve_pullback(
-        config, f, fᴴ, x₀, howmany, which,
-        alg_primal, alg_rrule, vals, vecs, info
-    )
+    eigsolve_pullback = make_eigsolve_pullback(config, f, fᴴ, x₀, howmany, which,
+                                               alg_primal, alg_rrule, vals, vecs, info)
     return (vals, vecs, info), eigsolve_pullback
 end
 
-function make_eigsolve_pullback(
-        config, f, fᴴ, x₀, howmany, which, alg_primal, alg_rrule,
-        vals, vecs, info
-    )
+function make_eigsolve_pullback(config, f, fᴴ, x₀, howmany, which, alg_primal, alg_rrule,
+                                vals, vecs, info)
     function eigsolve_pullback(ΔX)
         ∂self = NoTangent()
         ∂x₀ = ZeroTangent()
@@ -55,7 +48,7 @@ function make_eigsolve_pullback(
         # discard vals/vecs from n + 1 onwards if contribution is zero
         _n_vals = _Δvals isa AbstractZero ? nothing : findlast(!iszero, _Δvals)
         _n_vecs = _Δvecs isa AbstractZero ? nothing :
-            findlast(!Base.Fix2(isa, AbstractZero), _Δvecs)
+                  findlast(!Base.Fix2(isa, AbstractZero), _Δvecs)
         n_vals = isnothing(_n_vals) ? 0 : _n_vals
         n_vecs = isnothing(_n_vecs) ? 0 : _n_vecs
         n = max(n_vals, n_vecs)
@@ -93,10 +86,8 @@ function make_eigsolve_pullback(
 
         # Compute actual pullback data:
         #------------------------------
-        ws = compute_eigsolve_pullback_data(
-            Δvals, Δvecs, view(vals, 1:n), view(vecs, 1:n),
-            info, which, fᴴ, alg_primal, alg_rrule
-        )
+        ws = compute_eigsolve_pullback_data(Δvals, Δvecs, view(vals, 1:n), view(vecs, 1:n),
+                                            info, which, fᴴ, alg_primal, alg_rrule)
 
         # Return pullback in correct form:
         #---------------------------------
@@ -106,10 +97,8 @@ function make_eigsolve_pullback(
     return eigsolve_pullback
 end
 
-function compute_eigsolve_pullback_data(
-        Δvals, Δvecs, vals, vecs, info, which, fᴴ,
-        alg_primal, alg_rrule::Union{GMRES, BiCGStab}
-    )
+function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which, fᴴ,
+                                        alg_primal, alg_rrule::Union{GMRES,BiCGStab})
     ws = similar(vecs, length(Δvecs))
     T = scalartype(vecs[1])
     @inbounds for i in 1:length(Δvecs)
@@ -157,21 +146,18 @@ function compute_eigsolve_pullback_data(
         end
         w, reverse_info = let λ = λ, v = v
             linsolve(b, zerovector(b), alg_rrule) do (x1, x2)
-                y1 = VectorInterface.add!!(
-                    VectorInterface.add!!(
-                        KrylovKit.apply(fᴴ, x1), x1, conj(λ), -1
-                    ),
-                    v, x2
-                )
+                y1 = VectorInterface.add!!(VectorInterface.add!!(KrylovKit.apply(fᴴ, x1),
+                                                                 x1, conj(λ), -1),
+                                           v, x2)
                 y2 = inner(v, x1)
                 return (y1, y2)
             end
         end
         if info.converged >= i && reverse_info.converged == 0 &&
-                alg_primal.verbosity >= WARN_LEVEL
+           alg_primal.verbosity >= WARN_LEVEL
             @warn "`eigsolve` cotangent linear problem ($i) did not converge, whereas the primal eigenvalue problem did: normres = $(reverse_info.normres)"
         elseif abs(w[2]) > (alg_rrule.tol * norm(w[1])) &&
-                alg_primal.verbosity >= WARN_LEVEL
+               alg_primal.verbosity >= WARN_LEVEL
             @warn "`eigsolve` cotangent linear problem ($i) returns unexpected result: error = $(w[2])"
         end
         ws[i] = w[1]
@@ -179,10 +165,8 @@ function compute_eigsolve_pullback_data(
     return ws
 end
 
-function compute_eigsolve_pullback_data(
-        Δvals, Δvecs, vals, vecs, info, which, fᴴ,
-        alg_primal::Arnoldi, alg_rrule::Arnoldi
-    )
+function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which, fᴴ,
+                                        alg_primal::Arnoldi, alg_rrule::Arnoldi)
     n = length(Δvecs)
     T = scalartype(vecs[1])
     G = zeros(T, n, n)
@@ -268,7 +252,7 @@ function compute_eigsolve_pullback_data(
     # TODO: is `realeigsolve` every used here, as there is a separate `alg_primal::Lanczos` method below
     solver = (T <: Real) ? KrylovKit.realeigsolve : KrylovKit.eigsolve # for `eigsolve`, `T` will always be a Complex subtype`
     rvals, Ws, reverse_info = let P = P, ΔV = sylvesterarg, shift = shift,
-            eigsort = EigSorter(v -> minimum(DistanceTo(conj(v)), vals))
+        eigsort = EigSorter(v -> minimum(DistanceTo(conj(v)), vals))
 
         solver(W₀, n, eigsort, alg_rrule) do (w, x)
             w₀ = P(w)
@@ -283,7 +267,7 @@ function compute_eigsolve_pullback_data(
         end
     end
     if info.converged >= n && reverse_info.converged < n &&
-            alg_primal.verbosity >= WARN_LEVEL
+       alg_primal.verbosity >= WARN_LEVEL
         @warn "`eigsolve` cotangent problem did not converge, whereas the primal eigenvalue problem did"
     end
 
@@ -315,10 +299,8 @@ end
 (d::DistanceTo)(y) = norm(y - d.x)
 
 # several simplications happen in the case of a Hermitian eigenvalue problem
-function compute_eigsolve_pullback_data(
-        Δvals, Δvecs, vals, vecs, info, which, fᴴ,
-        alg_primal::Lanczos, alg_rrule::Arnoldi
-    )
+function compute_eigsolve_pullback_data(Δvals, Δvecs, vals, vecs, info, which, fᴴ,
+                                        alg_primal::Lanczos, alg_rrule::Arnoldi)
     n = length(Δvecs)
     T = scalartype(vecs[1])
     VdΔV = zeros(T, n, n)
@@ -377,7 +359,7 @@ function compute_eigsolve_pullback_data(
     P = orthogonalprojector(vecs, n)
     solver = (T <: Real) ? KrylovKit.realeigsolve : KrylovKit.eigsolve
     rvals, Ws, reverse_info = let P = P, ΔV = sylvesterarg, shift = shift,
-            eigsort = EigSorter(v -> minimum(DistanceTo(conj(v)), vals))
+        eigsort = EigSorter(v -> minimum(DistanceTo(conj(v)), vals))
 
         solver(W₀, n, eigsort, alg_rrule) do (w, x)
             w₀ = P(w)
@@ -392,7 +374,7 @@ function compute_eigsolve_pullback_data(
         end
     end
     if info.converged >= n && reverse_info.converged < n &&
-            alg_primal.verbosity >= WARN_LEVEL
+       alg_primal.verbosity >= WARN_LEVEL
         @warn "`eigsolve` cotangent problem did not converge, whereas the primal eigenvalue problem did"
     end
 
@@ -434,10 +416,8 @@ function construct∂f_eig(config, f, vecs, ws)
 end
 function construct∂f_eig(config, A::AbstractMatrix, vecs, ws)
     if A isa StridedMatrix
-        return InplaceableThunk(
-            Ā -> _buildĀ_eig!(Ā, vecs, ws),
-            @thunk(_buildĀ_eig!(zero(A), vecs, ws))
-        )
+        return InplaceableThunk(Ā -> _buildĀ_eig!(Ā, vecs, ws),
+                                @thunk(_buildĀ_eig!(zero(A), vecs, ws)))
     else
         return @thunk(ProjectTo(A)(_buildĀ_eig!(zero(A), vecs, ws)))
     end

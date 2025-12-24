@@ -1,13 +1,10 @@
-function eigsolve(
-        A, x₀, howmany::Int, which::Selector, alg::Lanczos;
-        alg_rrule = Arnoldi(;
-            tol = alg.tol,
-            krylovdim = alg.krylovdim,
-            maxiter = alg.maxiter,
-            eager = alg.eager,
-            orth = alg.orth
-        )
-    )
+function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Lanczos;
+                  alg_rrule=Arnoldi(;
+                                    tol=alg.tol,
+                                    krylovdim=alg.krylovdim,
+                                    maxiter=alg.maxiter,
+                                    eager=alg.eager,
+                                    orth=alg.orth))
     krylovdim = alg.krylovdim
     maxiter = alg.maxiter
     if howmany > krylovdim
@@ -17,7 +14,7 @@ function eigsolve(
     ## FIRST ITERATION: setting up
     # Initialize Lanczos factorization
     iter = LanczosIterator(A, x₀, alg.orth)
-    fact = initialize(iter; verbosity = alg.verbosity)
+    fact = initialize(iter; verbosity=alg.verbosity)
     numops = 1
     numiter = 1
     sizehint!(fact, krylovdim)
@@ -58,7 +55,7 @@ function eigsolve(
                 end
                 D, U = tridiageigh!(T, U)
                 by, rev = eigsort(which)
-                p = sortperm(D; by = by, rev = rev)
+                p = sortperm(D; by=by, rev=rev)
                 D, U = permuteeig!(D, U, p)
                 mul!(f, view(U, K, :), β)
                 converged = 0
@@ -75,7 +72,7 @@ function eigsolve(
         end
 
         if K < krylovdim # expand Krylov factorization
-            fact = expand!(iter, fact; verbosity = alg.verbosity)
+            fact = expand!(iter, fact; verbosity=alg.verbosity)
             numops += 1
         else ## shrink and restart
             if numiter == maxiter
@@ -111,7 +108,7 @@ function eigsolve(
             B[keep + 1] = scale!!(r, 1 / β)
 
             # Shrink Lanczos factorization
-            fact = shrink!(fact, keep; verbosity = alg.verbosity)
+            fact = shrink!(fact, keep; verbosity=alg.verbosity)
             numiter += 1
         end
     end
@@ -151,5 +148,5 @@ function eigsolve(
     end
 
     return values, vectors,
-        ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
+           ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end

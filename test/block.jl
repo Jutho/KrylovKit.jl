@@ -1,7 +1,7 @@
 @testset "Block constructor" begin
     for mode in (:vector, :inplace, :outplace)
         scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
-            (ComplexF64,)
+                      (ComplexF64,)
         @testset for T in scalartypes
             x₀ = Block([wrapvec(rand(T, n), Val(mode)) for _ in 1:n])
             x₁ = Block([wrapvec(rand(T, n), Val(mode)) for _ in 1:n])
@@ -20,7 +20,7 @@ end
 @testset "apply on Block" begin
     for mode in (:vector, :inplace, :outplace)
         scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
-            (ComplexF64,)
+                      (ComplexF64,)
         @testset for T in scalartypes
             A = rand(T, n, n) .- one(T) / 2
             A = (A + A') / 2
@@ -28,7 +28,7 @@ end
             wy = KrylovKit.apply(wrapop(A, Val(mode)), wx₀)
             y = unwrapvec.(wy)
             x₀ = unwrapvec.(wx₀)
-            @test isapprox(hcat(y...), A * hcat(x₀...); atol = tolerance(T))
+            @test isapprox(hcat(y...), A * hcat(x₀...); atol=tolerance(T))
         end
     end
     T = ComplexF64
@@ -38,16 +38,14 @@ end
     Af(x::InnerProductVec) = KrylovKit.InnerProductVec(A * x[], x.dotf)
     x₀ = Block([InnerProductVec(rand(T, n), f) for _ in 1:n])
     y = KrylovKit.apply(Af, x₀)
-    @test isapprox(
-        hcat([y[i].vec for i in 1:n]...), A * hcat([x₀[i].vec for i in 1:n]...);
-        atol = tolerance(T)
-    )
+    @test isapprox(hcat([y[i].vec for i in 1:n]...), A * hcat([x₀[i].vec for i in 1:n]...);
+                   atol=tolerance(T))
 end
 
 @testset "copy for Block" begin
     for mode in (:vector, :inplace, :outplace)
         scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
-            (ComplexF64,)
+                      (ComplexF64,)
         @testset for T in scalartypes
             block0 = Block([wrapvec(rand(T, N), Val(mode)) for _ in 1:n])
             block1 = copy(block0)
@@ -81,7 +79,7 @@ M[i,j] = inner(x[i],y[j])
         BlockB = Block(wrapvec.(B, Val(mode)))
         M = KrylovKit.block_inner(BlockA, BlockB)
         @test eltype(M) == T
-        @test isapprox(M, M0; atol = relax_tol(T))
+        @test isapprox(M, M0; atol=relax_tol(T))
     end
 end
 
@@ -99,16 +97,14 @@ end
     Ym = hcat([Y[i].vec for i in 1:n]...)
     M0 = Xm' * H * Ym
     @test eltype(M) == T
-    @test isapprox(M, M0; atol = relax_tol(T))
+    @test isapprox(M, M0; atol=relax_tol(T))
 end
 
 @testset "block_reorthogonalize! for non-full vectors $mode" for mode in
-    (
-        :vector, :inplace,
-        :outplace,
-    )
+                                                                 (:vector, :inplace,
+                                                                  :outplace)
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
-        (ComplexF64,)
+                  (ComplexF64,)
     @testset for T in scalartypes
         A = rand(T, n, n) .- one(T) / 2
         A = (A + A') / 2
@@ -140,9 +136,9 @@ end
 end
 
 @testset "block_qr! for non-full vectors $mode" for mode in
-    (:vector, :inplace, :outplace)
+                                                    (:vector, :inplace, :outplace)
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
-        (ComplexF64,)
+                  (ComplexF64,)
     @testset for T in scalartypes
         A = rand(T, n, n) .- one(T) / 2
         B = copy(A)
@@ -155,8 +151,8 @@ end
         Av1 = [unwrapvec(wAv[i]) for i in gi]
         @test length(gi) < n
         @test eltype(R) == eltype(A) == T
-        @test isapprox(hcat(Av1...) * R, hcat(Bv...); atol = tolerance(T))
-        @test isapprox(hcat(Av1...)' * hcat(Av1...), I; atol = tolerance(T))
+        @test isapprox(hcat(Av1...) * R, hcat(Bv...); atol=tolerance(T))
+        @test isapprox(hcat(Av1...)' * hcat(Av1...), I; atol=tolerance(T))
     end
 end
 
@@ -175,9 +171,7 @@ end
     @test length(gi) < n
     @test eltype(R) == T
     BlockX = Block(X[gi])
-    @test isapprox(KrylovKit.block_inner(BlockX, BlockX), I; atol = tolerance(T))
-    @test isapprox(
-        hcat([X[i].vec for i in gi]...) * R,
-        hcat([Xcopy[i].vec for i in 1:n]...); atol = tolerance(T)
-    )
+    @test isapprox(KrylovKit.block_inner(BlockX, BlockX), I; atol=tolerance(T))
+    @test isapprox(hcat([X[i].vec for i in gi]...) * R,
+                   hcat([Xcopy[i].vec for i in 1:n]...); atol=tolerance(T))
 end

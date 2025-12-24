@@ -27,7 +27,7 @@ implementations, and [`KrylovIterator`](@ref) (with in particular [`LanczosItera
 and [`ArnoldiIterator`](@ref)) for iterators that construct progressively expanding Krylov
 factorizations of a given linear map and a starting vector.
 """
-abstract type KrylovFactorization{T, S} end
+abstract type KrylovFactorization{T,S} end
 
 """
     abstract type KrylovIterator{F,T}
@@ -43,7 +43,7 @@ of [`KrylovFactorization`](@ref), which can be immediately destructured into a
 See [`LanczosIterator`](@ref) and [`ArnoldiIterator`](@ref) for concrete implementations and
 more information.
 """
-abstract type KrylovIterator{F, T} end
+abstract type KrylovIterator{F,T} end
 
 """
         basis(fact::KrylovFactorization)

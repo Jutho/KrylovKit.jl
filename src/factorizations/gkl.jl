@@ -28,7 +28,7 @@ A GKL factorization `fact` can be destructured as `U, V, B, r, nr, b = fact` wit
 See also [`GKLIterator`](@ref) for an iterator that constructs a progressively expanding
 GKL factorizations of a given linear map and a starting vector `u₀`.
 """
-mutable struct GKLFactorization{TU, TV, S <: Real}
+mutable struct GKLFactorization{TU,TV,S<:Real}
     k::Int # current Krylov dimension
     U::OrthonormalBasis{TU} # basis of length k
     V::OrthonormalBasis{TV} # basis of length k
@@ -46,7 +46,7 @@ Base.sizehint!(F::GKLFactorization, n) = begin
     return F
 end
 Base.eltype(F::GKLFactorization) = eltype(typeof(F))
-Base.eltype(::Type{<:GKLFactorization{<:Any, <:Any, S}}) where {S} = S
+Base.eltype(::Type{<:GKLFactorization{<:Any,<:Any,S}}) where {S} = S
 
 # iteration for destructuring into components
 Base.iterate(F::GKLFactorization) = (basis(F, Val(:U)), Val(:V))
@@ -143,24 +143,22 @@ See also [`initialize!(::GKLIterator, ::GKLFactorization)`](@ref) to initialize 
 already existing factorization (most information will be discarded) and
 [`shrink!(::GKLIterator, k)`](@ref) to shrink an existing factorization down to length `k`.
 """
-struct GKLIterator{F, TU, O <: Orthogonalizer}
+struct GKLIterator{F,TU,O<:Orthogonalizer}
     operator::F
     u₀::TU
     orth::O
     keepvecs::Bool
-    function GKLIterator{F, TU, O}(
-            operator::F, u₀::TU, orth::O, keepvecs::Bool
-        ) where {F, TU, O <: Orthogonalizer}
+    function GKLIterator{F,TU,O}(operator::F, u₀::TU, orth::O,
+                                 keepvecs::Bool) where {F,TU,O<:Orthogonalizer}
         if !keepvecs && isa(orth, Reorthogonalizer)
             error("Cannot use reorthogonalization without keeping all Krylov vectors")
         end
-        return new{F, TU, O}(operator, u₀, orth, keepvecs)
+        return new{F,TU,O}(operator, u₀, orth, keepvecs)
     end
 end
-function GKLIterator(
-        operator::F, u₀::TU, orth::O = KrylovDefaults.orth, keepvecs::Bool = true
-    ) where {F, TU, O <: Orthogonalizer}
-    return GKLIterator{F, TU, O}(operator, u₀, orth, keepvecs)
+function GKLIterator(operator::F, u₀::TU, orth::O=KrylovDefaults.orth,
+                     keepvecs::Bool=true) where {F,TU,O<:Orthogonalizer}
+    return GKLIterator{F,TU,O}(operator, u₀, orth, keepvecs)
 end
 
 Base.IteratorSize(::Type{<:GKLIterator}) = Base.SizeUnknown()
@@ -180,7 +178,7 @@ function Base.iterate(iter::GKLIterator, state::GKLFactorization)
     end
 end
 
-function initialize(iter::GKLIterator; verbosity::Int = KrylovDefaults.verbosity[])
+function initialize(iter::GKLIterator; verbosity::Int=KrylovDefaults.verbosity[])
     # initialize without using eltype
     u₀ = iter.u₀
     β₀ = norm(u₀)
@@ -213,10 +211,8 @@ function initialize(iter::GKLIterator; verbosity::Int = KrylovDefaults.verbosity
     end
     return GKLFactorization(1, U, V, αs, βs, r)
 end
-function initialize!(
-        iter::GKLIterator, state::GKLFactorization;
-        verbosity::Int = KrylovDefaults.verbosity[]
-    )
+function initialize!(iter::GKLIterator, state::GKLFactorization;
+                     verbosity::Int=KrylovDefaults.verbosity[])
     U = state.U
     while length(U) > 1
         pop!(U)
@@ -243,10 +239,8 @@ function initialize!(
     end
     return state
 end
-function expand!(
-        iter::GKLIterator, state::GKLFactorization;
-        verbosity::Int = KrylovDefaults.verbosity[]
-    )
+function expand!(iter::GKLIterator, state::GKLFactorization;
+                 verbosity::Int=KrylovDefaults.verbosity[])
     βold = normres(state)
     U = state.U
     V = state.V
@@ -267,7 +261,7 @@ function expand!(
     end
     return state
 end
-function shrink!(state::GKLFactorization, k; verbosity::Int = KrylovDefaults.verbosity[])
+function shrink!(state::GKLFactorization, k; verbosity::Int=KrylovDefaults.verbosity[])
     length(state) == length(state.V) ||
         error("we cannot shrink GKLFactorization without keeping vectors")
     length(state) <= k && return state
@@ -291,9 +285,8 @@ function shrink!(state::GKLFactorization, k; verbosity::Int = KrylovDefaults.ver
 end
 
 # Golub-Kahan-Lanczos recurrence relation
-function gklrecurrence(
-        operator, U::OrthonormalBasis, V::OrthonormalBasis, β, orth::Union{ClassicalGramSchmidt, ModifiedGramSchmidt}
-    )
+function gklrecurrence(operator, U::OrthonormalBasis, V::OrthonormalBasis, β,
+                       orth::Union{ClassicalGramSchmidt,ModifiedGramSchmidt})
     u = U[end]
     v = apply_adjoint(operator, u)
     v = add!!(v, V[end], -β)
@@ -305,9 +298,8 @@ function gklrecurrence(
     β = norm(r)
     return v, r, α, β
 end
-function gklrecurrence(
-        operator, U::OrthonormalBasis, V::OrthonormalBasis, β, orth::ClassicalGramSchmidt2
-    )
+function gklrecurrence(operator, U::OrthonormalBasis, V::OrthonormalBasis, β,
+                       orth::ClassicalGramSchmidt2)
     u = U[end]
     v = apply_adjoint(operator, u)
     v = add!!(v, V[end], -β) # not necessary if we definitely reorthogonalize next step and previous step
@@ -321,9 +313,8 @@ function gklrecurrence(
     β = norm(r)
     return v, r, α, β
 end
-function gklrecurrence(
-        operator, U::OrthonormalBasis, V::OrthonormalBasis, β, orth::ModifiedGramSchmidt2
-    )
+function gklrecurrence(operator, U::OrthonormalBasis, V::OrthonormalBasis, β,
+                       orth::ModifiedGramSchmidt2)
     u = U[end]
     v = apply_adjoint(operator, u)
     v = add!!(v, V[end], -β)
@@ -344,9 +335,8 @@ function gklrecurrence(
     β = norm(r)
     return v, r, α, β
 end
-function gklrecurrence(
-        operator, U::OrthonormalBasis, V::OrthonormalBasis, β, orth::ClassicalGramSchmidtIR
-    )
+function gklrecurrence(operator, U::OrthonormalBasis, V::OrthonormalBasis, β,
+                       orth::ClassicalGramSchmidtIR)
     u = U[end]
     v = apply_adjoint(operator, u)
     v = add!!(v, V[end], -β)
@@ -371,9 +361,8 @@ function gklrecurrence(
 
     return v, r, α, β
 end
-function gklrecurrence(
-        operator, U::OrthonormalBasis, V::OrthonormalBasis, β, orth::ModifiedGramSchmidtIR
-    )
+function gklrecurrence(operator, U::OrthonormalBasis, V::OrthonormalBasis, β,
+                       orth::ModifiedGramSchmidtIR)
     u = U[end]
     v = apply_adjoint(operator, u)
     v = add!!(v, V[end], -β)

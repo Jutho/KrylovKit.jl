@@ -141,10 +141,10 @@ function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
         * number of operations = $numops"""
     end
     return TT, vectors, values,
-        ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
+           ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end
 
-function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi; alg_rrule = alg)
+function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi; alg_rrule=alg)
     T, U, fact, converged, numiter, numops = _schursolve(A, x₀, howmany, which, alg)
     howmany′ = howmany
     if eltype(T) <: Real && howmany < length(fact) && T[howmany + 1, howmany] != 0
@@ -180,7 +180,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi; alg_rrul
         * number of operations = $numops"""
     end
     return values, vectors,
-        ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
+           ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end
 
 """
@@ -290,10 +290,9 @@ The return value is always of the form `vals, vecs, info = eigsolve(...)` with
     No warning is printed if not all requested eigenvalues were converged, so always check
     if `info.converged >= howmany`.
 """
-function realeigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi; alg_rrule = alg)
-    T, U, fact, converged, numiter, numops = _schursolve(
-        A, RealVec(x₀), howmany, which, alg
-    )
+function realeigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi; alg_rrule=alg)
+    T, U, fact, converged, numiter, numops = _schursolve(A, RealVec(x₀), howmany, which,
+                                                         alg)
     i = 0
     while i < howmany
         i += 1
@@ -345,7 +344,7 @@ function realeigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi; alg_
         * number of operations = $numops"""
     end
     return values, vectors,
-        ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
+           ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end
 
 function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
@@ -358,7 +357,7 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     numiter = 1
     # initialize arnoldi factorization
     iter = ArnoldiIterator(A, x₀, alg.orth)
-    fact = initialize(iter; verbosity = alg.verbosity)
+    fact = initialize(iter; verbosity=alg.verbosity)
     numops = 1
     sizehint!(fact, krylovdim)
     β = normres(fact)
@@ -394,7 +393,7 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
             # compute dense schur factorization
             T, U, values = hschur!(H, U)
             by, rev = eigsort(which)
-            p = sortperm(values; by = by, rev = rev)
+            p = sortperm(values; by=by, rev=rev)
             T, U = permuteschur!(T, U, p)
             f .= conj.(view(U, K, :)) .* β
             converged = 0
@@ -413,7 +412,7 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
         end
 
         if K < krylovdim # expand
-            fact = expand!(iter, fact; verbosity = alg.verbosity)
+            fact = expand!(iter, fact; verbosity=alg.verbosity)
             numops += 1
         else # shrink
             numiter == maxiter && break
@@ -444,7 +443,7 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
             basistransform!(B, view(U, :, 1:keep))
             B[keep + 1] = scale!!(residual(fact), 1 / β)
             # Everything is set up to shrink Arnoldi factorization
-            fact = shrink!(fact, keep; verbosity = alg.verbosity)
+            fact = shrink!(fact, keep; verbosity=alg.verbosity)
             numiter += 1
         end
     end

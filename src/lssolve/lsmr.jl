@@ -1,4 +1,4 @@
-function lssolve(operator, b, alg::LSMR, λ_::Real = 0)
+function lssolve(operator, b, alg::LSMR, λ_::Real=0)
     # Initialisation: determine number type
     u₀ = b
     v₀ = apply_adjoint(operator, u₀)

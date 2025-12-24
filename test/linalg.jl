@@ -1,5 +1,5 @@
 using KrylovKit: OrthonormalBasis, householder, rows, cols, hschur!, schur2eigvals,
-    schur2eigvecs, permuteschur!
+                 schur2eigvecs, permuteschur!
 
 @testset "Orthonormalize with algorithm $alg" for alg in (cgs, mgs, cgs2, mgs2, cgsr, mgsr)
     @testset for S in (Float32, Float64, ComplexF32, ComplexF64)
@@ -75,12 +75,12 @@ end
         @test T * V2 ≈ V2 * Diagonal(w[select])
 
         # permuting / reordering schur: take permutations that keep 2x2 blocks together in real case
-        p = sortperm(w; by = real)
+        p = sortperm(w; by=real)
         T2, U2 = permuteschur!(copy(T), copy(U), p)
         @test H * U2 ≈ U2 * T2
         @test schur2eigvals(T2) ≈ w[p]
 
-        p = sortperm(w; by = abs)
+        p = sortperm(w; by=abs)
         T2, U2 = permuteschur!(copy(T), copy(U), p)
         @test H * U2 ≈ U2 * T2
         @test schur2eigvals(T2) ≈ w[p]

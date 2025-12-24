@@ -64,10 +64,10 @@ using VectorInterface: MinimalSVec, MinimalMVec, MinimalVec
 
 function wrapvec(v, ::Val{mode}) where {mode}
     return mode === :vector ? v :
-        mode === :inplace ? MinimalMVec(v) :
-        mode === :outplace ? MinimalSVec(v) :
-        mode === :mixed ? MinimalSVec(v) :
-        throw(ArgumentError("invalid mode ($mode)"))
+           mode === :inplace ? MinimalMVec(v) :
+           mode === :outplace ? MinimalSVec(v) :
+           mode === :mixed ? MinimalSVec(v) :
+           throw(ArgumentError("invalid mode ($mode)"))
 end
 function wrapvec2(v, ::Val{mode}) where {mode}
     return mode === :mixed ? MinimalMVec(v) : wrapvec(v, mode)
@@ -80,7 +80,7 @@ function wrapop(A, ::Val{mode}) where {mode}
     if mode === :vector
         return A
     elseif mode === :inplace || mode === :outplace
-        return function (v, flag = Val(false))
+        return function (v, flag=Val(false))
             if flag === Val(true)
                 return wrapvec(A' * unwrapvec(v), Val(mode))
             else
@@ -88,10 +88,8 @@ function wrapop(A, ::Val{mode}) where {mode}
             end
         end
     elseif mode === :mixed
-        return (
-            x -> wrapvec(A * unwrapvec(x), Val(mode)),
-            y -> wrapvec2(A' * unwrapvec(y), Val(mode)),
-        )
+        return (x -> wrapvec(A * unwrapvec(x), Val(mode)),
+                y -> wrapvec2(A' * unwrapvec(y), Val(mode)))
     else
         throw(ArgumentError("invalid mode ($mode)"))
     end

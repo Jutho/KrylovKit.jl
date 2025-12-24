@@ -1,4 +1,4 @@
-function linsolve(operator, b, x₀, alg::BiCGStab, a₀::Number = 0, a₁::Number = 1; alg_rrule = alg)
+function linsolve(operator, b, x₀, alg::BiCGStab, a₀::Number=0, a₁::Number=1; alg_rrule=alg)
     # Initial function operation and division defines number type
     y₀ = apply(operator, x₀)
     T = typeof(inner(b, y₀) / norm(b) * one(a₀) * one(a₁))

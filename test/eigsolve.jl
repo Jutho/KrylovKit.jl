@@ -1,6 +1,6 @@
 @testset "Lanczos - eigsolve full ($mode)" for mode in (:vector, :inplace, :outplace)
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
-        (ComplexF64,)
+                  (ComplexF64,)
     orths = mode === :vector ? (cgs2, mgs2, cgsr, mgsr) : (mgsr,)
     @testset for T in scalartypes
         @testset for orth in orths
@@ -9,68 +9,46 @@
             v = rand(T, (n,))
             n1 = div(n, 2)
             alg = Lanczos(;
-                orth = orth, krylovdim = n, maxiter = 1, tol = tolerance(T),
-                verbosity = STARTSTOP_LEVEL
-            )
-            D1, V1, info = @test_logs (:info,) eigsolve(
-                wrapop(A, Val(mode)),
-                wrapvec(v, Val(mode)), n1, :SR, alg
-            )
+                          orth=orth, krylovdim=n, maxiter=1, tol=tolerance(T),
+                          verbosity=STARTSTOP_LEVEL)
+            D1, V1, info = @test_logs (:info,) eigsolve(wrapop(A, Val(mode)),
+                                                        wrapvec(v, Val(mode)), n1, :SR, alg)
             alg = Lanczos(;
-                orth = orth, krylovdim = n, maxiter = 1, tol = tolerance(T),
-                verbosity = WARN_LEVEL
-            )
-            @test_logs eigsolve(
-                wrapop(A, Val(mode)),
-                wrapvec(v, Val(mode)), n1, :SR, alg
-            )
+                          orth=orth, krylovdim=n, maxiter=1, tol=tolerance(T),
+                          verbosity=WARN_LEVEL)
+            @test_logs eigsolve(wrapop(A, Val(mode)),
+                                wrapvec(v, Val(mode)), n1, :SR, alg)
             alg = Lanczos(;
-                orth = orth, krylovdim = n1 + 1, maxiter = 1, tol = tolerance(T),
-                verbosity = WARN_LEVEL
-            )
-            @test_logs (:warn,) eigsolve(
-                wrapop(A, Val(mode)),
-                wrapvec(v, Val(mode)), n1, :SR, alg
-            )
+                          orth=orth, krylovdim=n1 + 1, maxiter=1, tol=tolerance(T),
+                          verbosity=WARN_LEVEL)
+            @test_logs (:warn,) eigsolve(wrapop(A, Val(mode)),
+                                         wrapvec(v, Val(mode)), n1, :SR, alg)
             alg = Lanczos(;
-                orth = orth, krylovdim = n, maxiter = 1, tol = tolerance(T),
-                verbosity = STARTSTOP_LEVEL
-            )
-            @test_logs (:info,) eigsolve(
-                wrapop(A, Val(mode)),
-                wrapvec(v, Val(mode)), n1, :SR, alg
-            )
+                          orth=orth, krylovdim=n, maxiter=1, tol=tolerance(T),
+                          verbosity=STARTSTOP_LEVEL)
+            @test_logs (:info,) eigsolve(wrapop(A, Val(mode)),
+                                         wrapvec(v, Val(mode)), n1, :SR, alg)
             alg = Lanczos(;
-                orth = orth, krylovdim = n1, maxiter = 3, tol = tolerance(T),
-                verbosity = EACHITERATION_LEVEL
-            )
-            @test_logs(
-                (:info,), (:info,), (:info,), (:warn,),
-                eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), 1, :SR, alg)
-            )
+                          orth=orth, krylovdim=n1, maxiter=3, tol=tolerance(T),
+                          verbosity=EACHITERATION_LEVEL)
+            @test_logs((:info,), (:info,), (:info,), (:warn,),
+                       eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), 1, :SR, alg))
             alg = Lanczos(;
-                orth = orth, krylovdim = 4, maxiter = 1, tol = tolerance(T),
-                verbosity = EACHITERATION_LEVEL + 1
-            )
+                          orth=orth, krylovdim=4, maxiter=1, tol=tolerance(T),
+                          verbosity=EACHITERATION_LEVEL + 1)
             # since it is impossible to know exactly the size of the Krylov subspace after shrinking,
             # we only know the output for a sigle iteration
-            @test_logs(
-                (:info,), (:info,), (:info,), (:info,), (:info,), (:warn,),
-                eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), 1, :SR, alg)
-            )
+            @test_logs((:info,), (:info,), (:info,), (:info,), (:info,), (:warn,),
+                       eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), 1, :SR, alg))
 
-            @test KrylovKit.eigselector(
-                wrapop(A, Val(mode)), scalartype(v); krylovdim = n,
-                maxiter = 1,
-                tol = tolerance(T), ishermitian = true
-            ) isa Lanczos
+            @test KrylovKit.eigselector(wrapop(A, Val(mode)), scalartype(v); krylovdim=n,
+                                        maxiter=1,
+                                        tol=tolerance(T), ishermitian=true) isa Lanczos
             n2 = n - n1
-            alg = Lanczos(; krylovdim = 2 * n, maxiter = 1, tol = tolerance(T))
-            D2, V2, info = @constinferred eigsolve(
-                wrapop(A, Val(mode)),
-                wrapvec(v, Val(mode)),
-                n2, :LR, alg
-            )
+            alg = Lanczos(; krylovdim=2 * n, maxiter=1, tol=tolerance(T))
+            D2, V2, info = @constinferred eigsolve(wrapop(A, Val(mode)),
+                                                   wrapvec(v, Val(mode)),
+                                                   n2, :LR, alg)
             @test vcat(D1[1:n1], reverse(D2[1:n2])) ≊ eigvals(A)
 
             U1 = stack(unwrapvec, V1)
@@ -82,20 +60,17 @@
             @test A * U2 ≈ U2 * Diagonal(D2)
 
             alg = Lanczos(;
-                orth = orth, krylovdim = 2n, maxiter = 1, tol = tolerance(T),
-                verbosity = WARN_LEVEL
-            )
-            @test_logs (:warn,) (:warn,) eigsolve(
-                wrapop(A, Val(mode)),
-                wrapvec(v, Val(mode)), n + 1, :LM, alg
-            )
+                          orth=orth, krylovdim=2n, maxiter=1, tol=tolerance(T),
+                          verbosity=WARN_LEVEL)
+            @test_logs (:warn,) (:warn,) eigsolve(wrapop(A, Val(mode)),
+                                                  wrapvec(v, Val(mode)), n + 1, :LM, alg)
         end
     end
 end
 
 @testset "Lanczos - eigsolve iteratively ($mode)" for mode in (:vector, :inplace, :outplace)
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
-        (ComplexF64,)
+                  (ComplexF64,)
     orths = mode === :vector ? (cgs2, mgs2, cgsr, mgsr) : (mgsr,)
     @testset for T in scalartypes
         @testset for orth in orths
@@ -103,17 +78,12 @@ end
             A = (A + A') / 2
             v = rand(T, (N,))
             alg = Lanczos(;
-                krylovdim = 2 * n, maxiter = 10,
-                tol = tolerance(T), eager = true, verbosity = SILENT_LEVEL
-            )
-            D1, V1, info1 = @constinferred eigsolve(
-                wrapop(A, Val(mode)),
-                wrapvec(v, Val(mode)), n, :SR, alg
-            )
-            D2, V2, info2 = eigsolve(
-                wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n, :LR,
-                alg
-            )
+                          krylovdim=2 * n, maxiter=10,
+                          tol=tolerance(T), eager=true, verbosity=SILENT_LEVEL)
+            D1, V1, info1 = @constinferred eigsolve(wrapop(A, Val(mode)),
+                                                    wrapvec(v, Val(mode)), n, :SR, alg)
+            D2, V2, info2 = eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n, :LR,
+                                     alg)
 
             l1 = info1.converged
             l2 = info2.converged
@@ -137,77 +107,57 @@ end
 
 @testset "Arnoldi - eigsolve full ($mode)" for mode in (:vector, :inplace, :outplace)
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
-        (ComplexF64,)
+                  (ComplexF64,)
     orths = mode === :vector ? (cgs2, mgs2, cgsr, mgsr) : (mgsr,)
     @testset for T in scalartypes
         @testset for orth in orths
             A = rand(T, (n, n)) .- one(T) / 2
             v = rand(T, (n,))
             n1 = div(n, 2)
-            alg = Arnoldi(; orth = orth, krylovdim = n, maxiter = 1, tol = tolerance(T))
-            D1, V1, info1 = @constinferred eigsolve(
-                wrapop(A, Val(mode)),
-                wrapvec(v, Val(mode)), n1, :SR, alg
-            )
+            alg = Arnoldi(; orth=orth, krylovdim=n, maxiter=1, tol=tolerance(T))
+            D1, V1, info1 = @constinferred eigsolve(wrapop(A, Val(mode)),
+                                                    wrapvec(v, Val(mode)), n1, :SR, alg)
 
             alg = Arnoldi(;
-                orth = orth, krylovdim = n, maxiter = 1, tol = tolerance(T),
-                verbosity = SILENT_LEVEL
-            )
+                          orth=orth, krylovdim=n, maxiter=1, tol=tolerance(T),
+                          verbosity=SILENT_LEVEL)
             @test_logs eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n1, :SR, alg)
             alg = Arnoldi(;
-                orth = orth, krylovdim = n, maxiter = 1, tol = tolerance(T),
-                verbosity = WARN_LEVEL
-            )
+                          orth=orth, krylovdim=n, maxiter=1, tol=tolerance(T),
+                          verbosity=WARN_LEVEL)
             @test_logs eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n1, :SR, alg)
             alg = Arnoldi(;
-                orth = orth, krylovdim = n1 + 2, maxiter = 1, tol = tolerance(T),
-                verbosity = WARN_LEVEL
-            )
-            @test_logs (:warn,) eigsolve(
-                wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n1,
-                :SR, alg
-            )
+                          orth=orth, krylovdim=n1 + 2, maxiter=1, tol=tolerance(T),
+                          verbosity=WARN_LEVEL)
+            @test_logs (:warn,) eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n1,
+                                         :SR, alg)
             alg = Arnoldi(;
-                orth = orth, krylovdim = n, maxiter = 1, tol = tolerance(T),
-                verbosity = STARTSTOP_LEVEL
-            )
-            @test_logs (:info,) eigsolve(
-                wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n1,
-                :SR, alg
-            )
+                          orth=orth, krylovdim=n, maxiter=1, tol=tolerance(T),
+                          verbosity=STARTSTOP_LEVEL)
+            @test_logs (:info,) eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n1,
+                                         :SR, alg)
             alg = Arnoldi(;
-                orth = orth, krylovdim = n1, maxiter = 3, tol = tolerance(T),
-                verbosity = EACHITERATION_LEVEL
-            )
-            @test_logs(
-                (:info,), (:info,), (:info,), (:warn,),
-                eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), 1, :SR, alg)
-            )
+                          orth=orth, krylovdim=n1, maxiter=3, tol=tolerance(T),
+                          verbosity=EACHITERATION_LEVEL)
+            @test_logs((:info,), (:info,), (:info,), (:warn,),
+                       eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), 1, :SR, alg))
             alg = Arnoldi(;
-                orth = orth, krylovdim = 4, maxiter = 1, tol = tolerance(T),
-                verbosity = EACHITERATION_LEVEL + 1
-            )
+                          orth=orth, krylovdim=4, maxiter=1, tol=tolerance(T),
+                          verbosity=EACHITERATION_LEVEL + 1)
             # since it is impossible to know exactly the size of the Krylov subspace after shrinking,
             # we only know the output for a sigle iteration
-            @test_logs(
-                (:info,), (:info,), (:info,), (:info,), (:info,), (:warn,),
-                eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), 1, :SR, alg)
-            )
+            @test_logs((:info,), (:info,), (:info,), (:info,), (:info,), (:warn,),
+                       eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), 1, :SR, alg))
 
-            @test KrylovKit.eigselector(
-                wrapop(A, Val(mode)), eltype(v); orth = orth,
-                krylovdim = n, maxiter = 1,
-                tol = tolerance(T)
-            ) isa Arnoldi
+            @test KrylovKit.eigselector(wrapop(A, Val(mode)), eltype(v); orth=orth,
+                                        krylovdim=n, maxiter=1,
+                                        tol=tolerance(T)) isa Arnoldi
             n2 = n - n1
-            alg = Arnoldi(; orth = orth, krylovdim = 2 * n, maxiter = 1, tol = tolerance(T))
-            D2, V2, info2 = @constinferred eigsolve(
-                wrapop(A, Val(mode)),
-                wrapvec(v, Val(mode)), n2, :LR, alg
-            )
-            D = sort(sort(eigvals(A); by = imag, rev = true); alg = MergeSort, by = real)
-            D2′ = sort(sort(D2; by = imag, rev = true); alg = MergeSort, by = real)
+            alg = Arnoldi(; orth=orth, krylovdim=2 * n, maxiter=1, tol=tolerance(T))
+            D2, V2, info2 = @constinferred eigsolve(wrapop(A, Val(mode)),
+                                                    wrapvec(v, Val(mode)), n2, :LR, alg)
+            D = sort(sort(eigvals(A); by=imag, rev=true); alg=MergeSort, by=real)
+            D2′ = sort(sort(D2; by=imag, rev=true); alg=MergeSort, by=real)
             @test vcat(D1[1:n1], D2′[(end - n2 + 1):end]) ≈ D
 
             U1 = stack(unwrapvec, V1)
@@ -217,18 +167,14 @@ end
 
             if T <: Complex
                 n1 = div(n, 2)
-                D1, V1, info = eigsolve(
-                    wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n1,
-                    :SI,
-                    alg
-                )
+                D1, V1, info = eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n1,
+                                        :SI,
+                                        alg)
                 n2 = n - n1
-                D2, V2, info = eigsolve(
-                    wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n2,
-                    :LI,
-                    alg
-                )
-                D = sort(eigvals(A); by = imag)
+                D2, V2, info = eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n2,
+                                        :LI,
+                                        alg)
+                D = sort(eigvals(A); by=imag)
 
                 @test vcat(D1[1:n1], reverse(D2[1:n2])) ≊ D
 
@@ -239,42 +185,32 @@ end
             end
 
             alg = Arnoldi(;
-                orth = orth, krylovdim = 2n, maxiter = 1, tol = tolerance(T),
-                verbosity = WARN_LEVEL
-            )
-            @test_logs (:warn,) (:warn,) eigsolve(
-                wrapop(A, Val(mode)),
-                wrapvec(v, Val(mode)), n + 1, :LM, alg
-            )
+                          orth=orth, krylovdim=2n, maxiter=1, tol=tolerance(T),
+                          verbosity=WARN_LEVEL)
+            @test_logs (:warn,) (:warn,) eigsolve(wrapop(A, Val(mode)),
+                                                  wrapvec(v, Val(mode)), n + 1, :LM, alg)
         end
     end
 end
 
 @testset "Arnoldi - eigsolve iteratively ($mode)" for mode in (:vector, :inplace, :outplace)
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
-        (ComplexF64,)
+                  (ComplexF64,)
     orths = mode === :vector ? (cgs2, mgs2, cgsr, mgsr) : (mgsr,)
     @testset for T in scalartypes
         @testset for orth in orths
             A = rand(T, (N, N)) .- one(T) / 2
             v = rand(T, (N,))
             alg = Arnoldi(;
-                krylovdim = 3 * n, maxiter = 20,
-                tol = tolerance(T), eager = true, verbosity = SILENT_LEVEL
-            )
-            D1, V1, info1 = @constinferred eigsolve(
-                wrapop(A, Val(mode)),
-                wrapvec(v, Val(mode)), n, :SR, alg
-            )
-            D2, V2, info2 = eigsolve(
-                wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n, :LR,
-                alg
-            )
-            D3, V3, info3 = eigsolve(
-                wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n, :LM,
-                alg
-            )
-            D = sort(eigvals(A); by = imag, rev = true)
+                          krylovdim=3 * n, maxiter=20,
+                          tol=tolerance(T), eager=true, verbosity=SILENT_LEVEL)
+            D1, V1, info1 = @constinferred eigsolve(wrapop(A, Val(mode)),
+                                                    wrapvec(v, Val(mode)), n, :SR, alg)
+            D2, V2, info2 = eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n, :LR,
+                                     alg)
+            D3, V3, info3 = eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n, :LM,
+                                     alg)
+            D = sort(eigvals(A); by=imag, rev=true)
 
             l1 = info1.converged
             l2 = info2.converged
@@ -282,11 +218,11 @@ end
             @test l1 > 0
             @test l2 > 0
             @test l3 > 0
-            @test D1[1:l1] ≊ sort(D; alg = MergeSort, by = real)[1:l1]
-            @test D2[1:l2] ≊ sort(D; alg = MergeSort, by = real, rev = true)[1:l2]
+            @test D1[1:l1] ≊ sort(D; alg=MergeSort, by=real)[1:l1]
+            @test D2[1:l2] ≊ sort(D; alg=MergeSort, by=real, rev=true)[1:l2]
             # sorting by abs does not seem very reliable if two distinct eigenvalues are close
             # in absolute value, so we perform a second sort afterwards using the real part
-            @test D3[1:l3] ≊ sort(D; by = abs, rev = true)[1:l3]
+            @test D3[1:l3] ≊ sort(D; by=abs, rev=true)[1:l3]
 
             U1 = stack(unwrapvec, V1)
             U2 = stack(unwrapvec, V2)
@@ -299,22 +235,18 @@ end
             @test A * U3 ≈ U3 * Diagonal(D3) + R3
 
             if T <: Complex
-                D1, V1, info1 = eigsolve(
-                    wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n,
-                    :SI, alg
-                )
-                D2, V2, info2 = eigsolve(
-                    wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n,
-                    :LI, alg
-                )
+                D1, V1, info1 = eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n,
+                                         :SI, alg)
+                D2, V2, info2 = eigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n,
+                                         :LI, alg)
                 D = eigvals(A)
 
                 l1 = info1.converged
                 l2 = info2.converged
                 @test l1 > 0
                 @test l2 > 0
-                @test D1[1:l1] ≈ sort(D; by = imag)[1:l1]
-                @test D2[1:l2] ≈ sort(D; by = imag, rev = true)[1:l2]
+                @test D1[1:l1] ≈ sort(D; by=imag)[1:l1]
+                @test D2[1:l2] ≈ sort(D; by=imag, rev=true)[1:l2]
 
                 U1 = stack(unwrapvec, V1)
                 U2 = stack(unwrapvec, V2)
@@ -328,7 +260,7 @@ end
 end
 
 @testset "Arnoldi - realeigsolve iteratively ($mode)" for mode in
-    (:vector, :inplace, :outplace)
+                                                          (:vector, :inplace, :outplace)
     scalartypes = mode === :vector ? (Float32, Float64) : (Float64,)
     orths = mode === :vector ? (cgs2, mgs2, cgsr, mgsr) : (mgsr,)
     @testset for T in scalartypes
@@ -338,34 +270,27 @@ end
             A = V * Diagonal(D) / V
             v = rand(T, (N,))
             alg = Arnoldi(;
-                krylovdim = 3 * n, maxiter = 20,
-                tol = tolerance(T), eager = true, verbosity = SILENT_LEVEL
-            )
-            D1, V1, info1 = @constinferred realeigsolve(
-                wrapop(A, Val(mode)),
-                wrapvec(v, Val(mode)), n, :SR, alg
-            )
-            D2, V2, info2 = realeigsolve(
-                wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n,
-                :LR,
-                alg
-            )
-            D3, V3, info3 = realeigsolve(
-                wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n,
-                :LM,
-                alg
-            )
+                          krylovdim=3 * n, maxiter=20,
+                          tol=tolerance(T), eager=true, verbosity=SILENT_LEVEL)
+            D1, V1, info1 = @constinferred realeigsolve(wrapop(A, Val(mode)),
+                                                        wrapvec(v, Val(mode)), n, :SR, alg)
+            D2, V2, info2 = realeigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n,
+                                         :LR,
+                                         alg)
+            D3, V3, info3 = realeigsolve(wrapop(A, Val(mode)), wrapvec(v, Val(mode)), n,
+                                         :LM,
+                                         alg)
             l1 = info1.converged
             l2 = info2.converged
             l3 = info3.converged
             @test l1 > 0
             @test l2 > 0
             @test l3 > 0
-            @test D1[1:l1] ≊ sort(D; alg = MergeSort)[1:l1]
-            @test D2[1:l2] ≊ sort(D; alg = MergeSort, rev = true)[1:l2]
+            @test D1[1:l1] ≊ sort(D; alg=MergeSort)[1:l1]
+            @test D2[1:l2] ≊ sort(D; alg=MergeSort, rev=true)[1:l2]
             # sorting by abs does not seem very reliable if two distinct eigenvalues are close
             # in absolute value, so we perform a second sort afterwards using the real part
-            @test D3[1:l3] ≊ sort(D; by = abs, rev = true)[1:l3]
+            @test D3[1:l3] ≊ sort(D; by=abs, rev=true)[1:l3]
 
             @test eltype(D1) == T
             @test eltype(D2) == T
@@ -394,9 +319,8 @@ end
                 f = buildrealmap(A, B)
                 v = rand(complex(T), (N,))
                 alg = Arnoldi(;
-                    krylovdim = 3 * n, maxiter = 20,
-                    tol = tolerance(T), eager = true, verbosity = SILENT_LEVEL
-                )
+                              krylovdim=3 * n, maxiter=20,
+                              tol=tolerance(T), eager=true, verbosity=SILENT_LEVEL)
                 D1, V1, info1 = @constinferred realeigsolve(f, v, n, :SR, alg)
                 D2, V2, info2 = realeigsolve(f, v, n, :LR, alg)
                 D3, V3, info3 = realeigsolve(f, v, n, :LM, alg)
@@ -407,11 +331,11 @@ end
                 @test l1 > 0
                 @test l2 > 0
                 @test l3 > 0
-                @test D1[1:l1] ≊ sort(D; alg = MergeSort)[1:l1]
-                @test D2[1:l2] ≊ sort(D; alg = MergeSort, rev = true)[1:l2]
+                @test D1[1:l1] ≊ sort(D; alg=MergeSort)[1:l1]
+                @test D2[1:l2] ≊ sort(D; alg=MergeSort, rev=true)[1:l2]
                 # sorting by abs does not seem very reliable if two distinct eigenvalues are close
                 # in absolute value, so we perform a second sort afterwards using the real part
-                @test D3[1:l3] ≊ sort(D; by = abs, rev = true)[1:l3]
+                @test D3[1:l3] ≊ sort(D; by=abs, rev=true)[1:l3]
 
                 @test eltype(D1) == T
                 @test eltype(D2) == T
@@ -436,23 +360,16 @@ end
     A[2, 1] = 1.0e-9
     A[1, 2] = -1.0e-9
     v = ones(Float64, size(A, 1))
-    @test_logs realeigsolve(A, v, 1, :LM, Arnoldi(; tol = 1.0e-8, verbosity = SILENT_LEVEL))
-    @test_logs realeigsolve(A, v, 1, :LM, Arnoldi(; tol = 1.0e-8, verbosity = WARN_LEVEL))
-    @test_logs (:info,) realeigsolve(
-        A, v, 1, :LM,
-        Arnoldi(; tol = 1.0e-8, verbosity = STARTSTOP_LEVEL)
-    )
-    @test_logs (:warn,) realeigsolve(
-        A, v, 1, :LM,
-        Arnoldi(; tol = 1.0e-10, verbosity = WARN_LEVEL)
-    )
-    @test_logs (:warn,) (:info,) realeigsolve(
-        A, v, 1, :LM,
-        Arnoldi(;
-            tol = 1.0e-10,
-            verbosity = STARTSTOP_LEVEL
-        )
-    )
+    @test_logs realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1.0e-8, verbosity=SILENT_LEVEL))
+    @test_logs realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1.0e-8, verbosity=WARN_LEVEL))
+    @test_logs (:info,) realeigsolve(A, v, 1, :LM,
+                                     Arnoldi(; tol=1.0e-8, verbosity=STARTSTOP_LEVEL))
+    @test_logs (:warn,) realeigsolve(A, v, 1, :LM,
+                                     Arnoldi(; tol=1.0e-10, verbosity=WARN_LEVEL))
+    @test_logs (:warn,) (:info,) realeigsolve(A, v, 1, :LM,
+                                              Arnoldi(;
+                                                      tol=1.0e-10,
+                                                      verbosity=STARTSTOP_LEVEL))
 
     # this should not trigger a warning
     A[1, 2] = A[2, 1] = 0
@@ -460,12 +377,10 @@ end
     A[2, 2] = A[3, 3] = 0.99
     A[3, 2] = 1.0e-6
     A[2, 3] = -1.0e-6
-    @test_logs realeigsolve(A, v, 1, :LM, Arnoldi(; tol = 1.0e-12, verbosity = SILENT_LEVEL))
-    @test_logs realeigsolve(A, v, 1, :LM, Arnoldi(; tol = 1.0e-12, verbosity = WARN_LEVEL))
-    @test_logs (:info,) realeigsolve(
-        A, v, 1, :LM,
-        Arnoldi(; tol = 1.0e-12, verbosity = STARTSTOP_LEVEL)
-    )
+    @test_logs realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1.0e-12, verbosity=SILENT_LEVEL))
+    @test_logs realeigsolve(A, v, 1, :LM, Arnoldi(; tol=1.0e-12, verbosity=WARN_LEVEL))
+    @test_logs (:info,) realeigsolve(A, v, 1, :LM,
+                                     Arnoldi(; tol=1.0e-12, verbosity=STARTSTOP_LEVEL))
 end
 
 @testset "BlockLanczos - eigsolve for large sparse matrix and map input" begin
@@ -475,8 +390,8 @@ end
         li = LinearIndices((m, n))
         bottom(i, j) = li[mod1(i, m), mod1(j, n)] + m * n
         right(i, j) = li[mod1(i, m), mod1(j, n)]
-        xstrings = NTuple{4, Int}[]
-        zstrings = NTuple{4, Int}[]
+        xstrings = NTuple{4,Int}[]
+        zstrings = NTuple{4,Int}[]
         for i in 1:m, j in 1:n
             # plaquette
             push!(xstrings, (bottom(i, j + 1), right(i, j), bottom(i, j), right(i - 1, j)))
@@ -486,7 +401,7 @@ end
         return xstrings, zstrings
     end
 
-    function pauli_kron(n::Int, ops::Pair{Int, Char}...)
+    function pauli_kron(n::Int, ops::Pair{Int,Char}...)
         mat = sparse(1.0I, 2^n, 2^n)
         for (pos, op) in ops
             if op == 'X'
@@ -537,7 +452,7 @@ end
     h_mat = toric_code_hamiltonian_matrix(sites_num, sites_num)
 
     # matrix input
-    alg = BlockLanczos(; tol = tol, maxiter = 1)
+    alg = BlockLanczos(; tol=tol, maxiter=1)
     D, U, info = eigsolve(-h_mat, x₀, get_value_num, :SR, alg)
     @test count(x -> abs(x + 16.0) < 2.0 - tol, D[1:get_value_num]) == 4
     @test count(x -> abs(x + 16.0) < tol, D[1:get_value_num]) == 4
@@ -551,7 +466,7 @@ end
 # For user interface, input is a block.
 @testset "BlockLanczos - eigsolve full $mode" for mode in (:vector, :inplace, :outplace)
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
-        (ComplexF64,)
+                  (ComplexF64,)
     @testset for T in scalartypes
         block_size = 2
         A = mat_with_eigrepition(T, n, block_size)
@@ -559,46 +474,34 @@ end
         n1 = div(n, 2)  # eigenvalues to solve
         eigvalsA = eigvals(A)
         alg = BlockLanczos(;
-            krylovdim = n, maxiter = 1, tol = tolerance(T),
-            verbosity = STARTSTOP_LEVEL
-        )
-        D1, V1, info = @test_logs (:info,) eigsolve(
-            wrapop(A, Val(mode)),
-            x₀, n1, :SR, alg
-        )
+                           krylovdim=n, maxiter=1, tol=tolerance(T),
+                           verbosity=STARTSTOP_LEVEL)
+        D1, V1, info = @test_logs (:info,) eigsolve(wrapop(A, Val(mode)),
+                                                    x₀, n1, :SR, alg)
         alg = BlockLanczos(;
-            krylovdim = n, maxiter = 1, tol = tolerance(T),
-            verbosity = WARN_LEVEL
-        )
+                           krylovdim=n, maxiter=1, tol=tolerance(T),
+                           verbosity=WARN_LEVEL)
         @test_logs eigsolve(wrapop(A, Val(mode)), x₀, n1, :SR, alg)
         alg = BlockLanczos(;
-            krylovdim = n1 + 1, maxiter = 1, tol = tolerance(T),
-            verbosity = WARN_LEVEL
-        )
+                           krylovdim=n1 + 1, maxiter=1, tol=tolerance(T),
+                           verbosity=WARN_LEVEL)
         @test_logs (:warn,) eigsolve(wrapop(A, Val(mode)), x₀, n1, :SR, alg)
         alg = BlockLanczos(;
-            krylovdim = n, maxiter = 1, tol = tolerance(T),
-            verbosity = STARTSTOP_LEVEL
-        )
+                           krylovdim=n, maxiter=1, tol=tolerance(T),
+                           verbosity=STARTSTOP_LEVEL)
         @test_logs (:info,) eigsolve(wrapop(A, Val(mode)), x₀, n1, :SR, alg)
         alg = BlockLanczos(;
-            krylovdim = 3, maxiter = 3, tol = tolerance(T),
-            verbosity = EACHITERATION_LEVEL
-        )
-        @test_logs(
-            (:info,), (:info,), (:info,), (:warn,),
-            eigsolve(wrapop(A, Val(mode)), x₀, 1, :SR, alg)
-        )
+                           krylovdim=3, maxiter=3, tol=tolerance(T),
+                           verbosity=EACHITERATION_LEVEL)
+        @test_logs((:info,), (:info,), (:info,), (:warn,),
+                   eigsolve(wrapop(A, Val(mode)), x₀, 1, :SR, alg))
         alg = BlockLanczos(;
-            krylovdim = 4, maxiter = 1, tol = tolerance(T),
-            verbosity = EACHITERATION_LEVEL + 1
-        )
-        @test_logs(
-            (:info,), (:info,), (:info,), (:warn,),
-            eigsolve(wrapop(A, Val(mode)), x₀, 1, :SR, alg)
-        )
+                           krylovdim=4, maxiter=1, tol=tolerance(T),
+                           verbosity=EACHITERATION_LEVEL + 1)
+        @test_logs((:info,), (:info,), (:info,), (:warn,),
+                   eigsolve(wrapop(A, Val(mode)), x₀, 1, :SR, alg))
         n2 = n - n1
-        alg = BlockLanczos(; krylovdim = 2 * n, maxiter = 4, tol = tolerance(T))
+        alg = BlockLanczos(; krylovdim=2 * n, maxiter=4, tol=tolerance(T))
         D2, V2, info = eigsolve(wrapop(A, Val(mode)), x₀, n2, :LR, alg)
         @test vcat(D1[1:n1], reverse(D2[1:n2])) ≊ eigvalsA
 
@@ -612,17 +515,16 @@ end
         @test (x -> KrylovKit.apply(A, x)).(unwrapvec.(V2)) ≈ D2 .* unwrapvec.(V2)
 
         alg = BlockLanczos(;
-            krylovdim = 2n, maxiter = 1, tol = tolerance(T),
-            verbosity = WARN_LEVEL
-        )
+                           krylovdim=2n, maxiter=1, tol=tolerance(T),
+                           verbosity=WARN_LEVEL)
         @test_logs (:warn,) (:warn,) eigsolve(wrapop(A, Val(mode)), x₀, n + 1, :LM, alg)
     end
 end
 
 @testset "BlockLanczos - eigsolve iteratively $mode" for mode in
-    (:vector, :inplace, :outplace)
+                                                         (:vector, :inplace, :outplace)
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
-        (ComplexF64,)
+                  (ComplexF64,)
     @testset for T in scalartypes
         block_size = 4
         A = mat_with_eigrepition(T, N, block_size)
@@ -630,9 +532,8 @@ end
         eigvalsA = eigvals(A)
 
         alg = BlockLanczos(;
-            krylovdim = N, maxiter = 10, tol = tolerance(T),
-            eager = true, verbosity = SILENT_LEVEL
-        )
+                           krylovdim=N, maxiter=10, tol=tolerance(T),
+                           eager=true, verbosity=SILENT_LEVEL)
         D1, V1, info1 = eigsolve(wrapop(A, Val(mode)), x₀, n, :SR, alg)
         D2, V2, info2 = eigsolve(wrapop(A, Val(mode)), x₀, n, :LR, alg)
 
@@ -652,9 +553,9 @@ end
         @test U1' * U1 ≈ I
         @test U2' * U2 ≈ I
         @test hcat([KrylovKit.apply(A, U1[:, i]) for i in 1:l1]...) ≈
-            U1 * Diagonal(D1) + R1
+              U1 * Diagonal(D1) + R1
         @test hcat([KrylovKit.apply(A, U2[:, i]) for i in 1:l2]...) ≈
-            U2 * Diagonal(D2) + R2
+              U2 * Diagonal(D2) + R2
     end
 end
 
@@ -667,13 +568,10 @@ end
     Hip(x::Vector, y::Vector) = x' * H * y
     x₀ = Block([InnerProductVec(rand(T, n), Hip) for _ in 1:block_size])
     Aip(x::InnerProductVec) = InnerProductVec(H * x.vec, Hip)
-    D, V, info = eigsolve(
-        Aip, x₀, eig_num, :SR,
-        BlockLanczos(;
-            krylovdim = n, maxiter = 1, tol = tolerance(T),
-            verbosity = SILENT_LEVEL
-        )
-    )
+    D, V, info = eigsolve(Aip, x₀, eig_num, :SR,
+                          BlockLanczos(;
+                                       krylovdim=n, maxiter=1, tol=tolerance(T),
+                                       verbosity=SILENT_LEVEL))
     D_true = eigvals(H)
     BlockV = KrylovKit.Block(V)
     @test D[1:eig_num] ≈ D_true[1:eig_num]
@@ -683,9 +581,9 @@ end
 
 # with the same krylovdim, BlockLanczos has lower accuracy with the size of block larger than 1.
 @testset "Compare Lanczos and BlockLanczos $mode" for mode in
-    (:vector, :inplace, :outplace)
+                                                      (:vector, :inplace, :outplace)
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
-        (ComplexF64,)
+                  (ComplexF64,)
     @testset for T in scalartypes
         A = rand(T, (2N, 2N)) .- one(T) / 2
         A = (A + A') / 2
@@ -693,28 +591,22 @@ end
         x₀_block = Block([wrapvec(rand(T, 2N), Val(mode)) for _ in 1:block_size])
         x₀_lanczos = x₀_block[1]
         alg1 = Lanczos(;
-            krylovdim = 2n, maxiter = 10, tol = tolerance(T),
-            verbosity = SILENT_LEVEL
-        )
+                       krylovdim=2n, maxiter=10, tol=tolerance(T),
+                       verbosity=SILENT_LEVEL)
         alg2 = BlockLanczos(;
-            krylovdim = 2n, maxiter = 10, tol = tolerance(T),
-            verbosity = SILENT_LEVEL
-        )
+                            krylovdim=2n, maxiter=10, tol=tolerance(T),
+                            verbosity=SILENT_LEVEL)
         evals1, _, info1 = eigsolve(wrapop(A, Val(mode)), x₀_lanczos, n, :SR, alg1)
         evals2, _, info2 = eigsolve(wrapop(A, Val(mode)), x₀_block, n, :SR, alg2)
         @test info1.converged == info2.converged
         @test info1.numiter == info2.numiter
         @test info1.numops + 1 == info2.numops # one extra operation for the BlockLanczos initialization
-        @test isapprox(info1.normres, info2.normres, atol = tolerance(T))
-        @test isapprox(
-            unwrapvec.(info1.residual[1:(info1.converged)])[2],
-            unwrapvec.(info2.residual[1:(info2.converged)])[2];
-            atol = tolerance(T)
-        )
-        @test isapprox(
-            evals1[1:(info1.converged)], evals2[1:(info2.converged)];
-            atol = tolerance(T)
-        )
+        @test isapprox(info1.normres, info2.normres, atol=tolerance(T))
+        @test isapprox(unwrapvec.(info1.residual[1:(info1.converged)])[2],
+                       unwrapvec.(info2.residual[1:(info2.converged)])[2];
+                       atol=tolerance(T))
+        @test isapprox(evals1[1:(info1.converged)], evals2[1:(info2.converged)];
+                       atol=tolerance(T))
     end
     @testset for T in (Float64, ComplexF64)
         A = rand(T, (2N, 2N)) .- one(T) / 2
@@ -726,13 +618,11 @@ end
         x₀_lanczos = wrapvec(x₀, Val(mode))
         x₀_block = Block([wrapvec(x₀, Val(mode)), wrapvec(x₁, Val(mode))])
         alg1 = Lanczos(;
-            krylovdim = 2n, maxiter = 1, tol = tolerance(T),
-            verbosity = SILENT_LEVEL
-        )
+                       krylovdim=2n, maxiter=1, tol=tolerance(T),
+                       verbosity=SILENT_LEVEL)
         alg2 = BlockLanczos(;
-            krylovdim = 2n, maxiter = 1, tol = tolerance(T),
-            verbosity = SILENT_LEVEL
-        )
+                            krylovdim=2n, maxiter=1, tol=tolerance(T),
+                            verbosity=SILENT_LEVEL)
         vals1, vecs1, info1 = eigsolve(wrapop(A, Val(mode)), x₀_lanczos, n, :SR, alg1)
         vals2, vecs2, info2 = eigsolve(wrapop(A, Val(mode)), x₀_block, n, :SR, alg2)
         @test vals1 ≈ vals2
@@ -743,12 +633,10 @@ end
 
 # Test effectiveness of shrink!() in BlockLanczos
 @testset "Test effectiveness of shrink!() in BlockLanczos $mode" for mode in
-    (
-        :vector, :inplace,
-        :outplace,
-    )
+                                                                     (:vector, :inplace,
+                                                                      :outplace)
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
-        (ComplexF64,)
+                  (ComplexF64,)
     @testset for T in scalartypes
         block_size = 5
         A = mat_with_eigrepition(T, N, block_size)
@@ -756,15 +644,13 @@ end
         values0 = eigvals(A)[1:n]
         n1 = n ÷ 2
         alg = BlockLanczos(;
-            krylovdim = 3 * n ÷ 2, maxiter = 1, tol = 1.0e-12,
-            verbosity = SILENT_LEVEL
-        )
+                           krylovdim=3 * n ÷ 2, maxiter=1, tol=1.0e-12,
+                           verbosity=SILENT_LEVEL)
         values, _, _ = eigsolve(wrapop(A, Val(mode)), x₀, n, :SR, alg)
         error1 = norm(values[1:n1] - values0[1:n1])
         alg_shrink = BlockLanczos(;
-            krylovdim = 3 * n ÷ 2, maxiter = 2, tol = 1.0e-12,
-            verbosity = SILENT_LEVEL
-        )
+                                  krylovdim=3 * n ÷ 2, maxiter=2, tol=1.0e-12,
+                                  verbosity=SILENT_LEVEL)
         values_shrink, _, _ = eigsolve(wrapop(A, Val(mode)), x₀, n, :SR, alg_shrink)
         error2 = norm(values_shrink[1:n1] - values0[1:n1])
         @test error2 < error1
@@ -772,9 +658,9 @@ end
 end
 
 @testset "BlockLanczos - eigsolve without alg $mode" for mode in
-    (:vector, :inplace, :outplace)
+                                                         (:vector, :inplace, :outplace)
     scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
-        (ComplexF64,)
+                  (ComplexF64,)
     @testset for T in scalartypes
         block_size = 2
         A = mat_with_eigrepition(T, n, block_size)
