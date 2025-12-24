@@ -1,10 +1,13 @@
-function eigsolve(A, x₀::Block{T}, howmany::Int, which::Selector, alg::BlockLanczos;
-                  alg_rrule=Arnoldi(;
-                                    tol=alg.tol,
-                                    krylovdim=alg.krylovdim,
-                                    maxiter=alg.maxiter,
-                                    eager=alg.eager,
-                                    orth=alg.orth)) where {T}
+function eigsolve(
+        A, x₀::Block{T}, howmany::Int, which::Selector, alg::BlockLanczos;
+        alg_rrule = Arnoldi(;
+            tol = alg.tol,
+            krylovdim = alg.krylovdim,
+            maxiter = alg.maxiter,
+            eager = alg.eager,
+            orth = alg.orth
+        )
+    ) where {T}
     maxiter = alg.maxiter
     krylovdim = alg.krylovdim
     if howmany > krylovdim
@@ -15,7 +18,7 @@ function eigsolve(A, x₀::Block{T}, howmany::Int, which::Selector, alg::BlockLa
 
     bs = length(x₀)
     iter = BlockLanczosIterator(A, x₀, krylovdim + bs, alg.orth, alg.qr_tol)
-    fact = initialize(iter; verbosity=verbosity)  # Returns a BlockLanczosFactorization
+    fact = initialize(iter; verbosity = verbosity)  # Returns a BlockLanczosFactorization
     numops = bs + 1 # Number of matrix-vector multiplications (for logging)
     numiter = 1
 
@@ -38,7 +41,7 @@ function eigsolve(A, x₀::Block{T}, howmany::Int, which::Selector, alg::BlockLa
             BTD = view(fact.H, 1:K, 1:K)
             D, U = eigen(Hermitian(BTD))
             by, rev = eigsort(which)
-            p = sortperm(D; by=by, rev=rev)
+            p = sortperm(D; by = by, rev = rev)
             D, U = permuteeig!(D, U, p)
 
             # Detect convergence by computing the residuals
@@ -60,7 +63,7 @@ function eigsolve(A, x₀::Block{T}, howmany::Int, which::Selector, alg::BlockLa
         end
 
         if K < krylovdim
-            expand!(iter, fact; verbosity=verbosity)
+            expand!(iter, fact; verbosity = verbosity)
             numops += fact.R_size
         else # Shrink and restart following the shrinking method of `Lanczos`.
             numiter >= maxiter && break
@@ -137,5 +140,5 @@ function eigsolve(A, x₀::Block{T}, howmany::Int, which::Selector, alg::BlockLa
     end
 
     return values, vectors,
-           ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
+        ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end

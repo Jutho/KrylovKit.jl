@@ -7,23 +7,25 @@
 A custom struct to store a Hessenberg matrix in a packed format (without zeros). Hereto, the
 non-zero entries are stored sequentially in vector `data` of length `n(n+1)/2`.
 """
-struct PackedHessenberg{T,V<:AbstractVector{T}} <: AbstractMatrix{T}
+struct PackedHessenberg{T, V <: AbstractVector{T}} <: AbstractMatrix{T}
     data::V
     n::Int
-    function PackedHessenberg{T,V}(data::V, n::Int) where {T,V<:AbstractVector{T}}
+    function PackedHessenberg{T, V}(data::V, n::Int) where {T, V <: AbstractVector{T}}
         @assert length(data) >= ((n * n + 3 * n - 2) >> 1)
-        return new{T,V}(data, n)
+        return new{T, V}(data, n)
     end
 end
 function PackedHessenberg(data::AbstractVector, n::Int)
-    return PackedHessenberg{eltype(data),typeof(data)}(data, n)
+    return PackedHessenberg{eltype(data), typeof(data)}(data, n)
 end
 Base.size(A::PackedHessenberg) = (A.n, A.n)
 
-function Base.replace_in_print_matrix(A::PackedHessenberg,
-                                      i::Integer,
-                                      j::Integer,
-                                      s::AbstractString)
+function Base.replace_in_print_matrix(
+        A::PackedHessenberg,
+        i::Integer,
+        j::Integer,
+        s::AbstractString
+    )
     return i <= j + 1 ? s : Base.replace_with_centered_mark(s)
 end
 

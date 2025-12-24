@@ -101,28 +101,36 @@ See also: [`eigsolve`](@ref), [`realeigsolve`](@ref), [`BiArnoldi`](@ref)
 """
 function bieigsolve end
 
-function bieigsolve(A::AbstractMatrix, howmany::Int=1, which::Selector=:LM,
-                    T::Type=eltype(A);
-                    kwargs...)
+function bieigsolve(
+        A::AbstractMatrix, howmany::Int = 1, which::Selector = :LM,
+        T::Type = eltype(A);
+        kwargs...
+    )
     v₀ = Random.rand!(similar(A, T, size(A, 1)))
     w₀ = Random.rand!(similar(A, T, size(A, 1)))
     return bieigsolve(A, v₀, w₀, howmany, which; kwargs...)
 end
 
-function bieigsolve(f, n::Int, howmany::Int=1, which::Selector=:LM, T::Type=Float64;
-                    kwargs...)
+function bieigsolve(
+        f, n::Int, howmany::Int = 1, which::Selector = :LM, T::Type = Float64;
+        kwargs...
+    )
     return bieigsolve(f, rand(T, n), rand(T, n), howmany, which; kwargs...)
 end
 
-function bieigsolve(f, v₀, w₀, howmany::Int=1, which::Selector=:LM;
-                    krylovdim::Int=KrylovDefaults.krylovdim[],
-                    maxiter::Int=KrylovDefaults.maxiter[],
-                    eager::Bool=false,
-                    tol::Real=KrylovDefaults.tol[],
-                    orth::Orthogonalizer=KrylovDefaults.orth,
-                    verbosity::Int=KrylovDefaults.verbosity[])
-    return bieigsolve(f, v₀, w₀, howmany, which,
-                      BiArnoldi(; orth, krylovdim, maxiter, tol, eager, verbosity))
+function bieigsolve(
+        f, v₀, w₀, howmany::Int = 1, which::Selector = :LM;
+        krylovdim::Int = KrylovDefaults.krylovdim[],
+        maxiter::Int = KrylovDefaults.maxiter[],
+        eager::Bool = false,
+        tol::Real = KrylovDefaults.tol[],
+        orth::Orthogonalizer = KrylovDefaults.orth,
+        verbosity::Int = KrylovDefaults.verbosity[]
+    )
+    return bieigsolve(
+        f, v₀, w₀, howmany, which,
+        BiArnoldi(; orth, krylovdim, maxiter, tol, eager, verbosity)
+    )
 end
 
 function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi)
@@ -202,7 +210,7 @@ function _bischursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArno
     numiter = 1
     # initialize arnoldi factorization
     iter = BiArnoldiIterator(f, v₀, w₀, alg.orth)
-    fact = initialize(iter; verbosity=alg.verbosity)
+    fact = initialize(iter; verbosity = alg.verbosity)
     numops = 1
     sizehint!(fact, krylovdim)
     βv, βw = normres(fact)
@@ -300,8 +308,8 @@ function _bischursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArno
 
             # Step 6 - Order the Schur decompositions
             by, rev = eigsort(which)
-            pH = sortperm(valuesH; by=by, rev=rev)
-            pK = sortperm(valuesK; by=by ∘ conj, rev=rev)
+            pH = sortperm(valuesH; by = by, rev = rev)
+            pK = sortperm(valuesK; by = by ∘ conj, rev = rev)
 
             S, Q = permuteschur!(S, Q, pH)
             T, Z = permuteschur!(T, Z, pK)
@@ -340,7 +348,7 @@ function _bischursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArno
         end
 
         if L < krylovdim # expand
-            fact = expand!(iter, fact; verbosity=alg.verbosity)
+            fact = expand!(iter, fact; verbosity = alg.verbosity)
             V, W = basis(fact)
 
             # update M with the new basis vectors
@@ -433,7 +441,7 @@ function _bischursolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArno
             copy!(view(MM, 1:keep, 1:keep), ZMQ)
 
             # Shrink BiArnoldi factorization
-            fact = shrink!(fact, keep; verbosity=alg.verbosity)
+            fact = shrink!(fact, keep; verbosity = alg.verbosity)
             numiter += 1
         end
     end

@@ -5,7 +5,7 @@
             A = rand(T, (n, n))
             v = rand(T, (n,))
             v2 = (v, zero(v))
-            alg = Lanczos(; orth=orth, krylovdim=2 * n, maxiter=1, tol=tolerance(T))
+            alg = Lanczos(; orth = orth, krylovdim = 2 * n, maxiter = 1, tol = tolerance(T))
             D, V, info = eigsolve(v2, n, :LR, alg) do x
                 x1, x2 = x
                 y1 = A * x2
@@ -29,7 +29,7 @@ end
             v = rand(T, (N,))
             w = rand(T, (2 * N,))
             v2 = (v, w)
-            alg = Lanczos(; orth=orth, krylovdim=n, maxiter=300, tol=tolerance(T))
+            alg = Lanczos(; orth = orth, krylovdim = n, maxiter = 300, tol = tolerance(T))
             n1 = div(n, 2)
             D, V, info = eigsolve(v2, n1, :LR, alg) do x
                 x1, x2 = x

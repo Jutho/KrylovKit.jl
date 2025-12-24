@@ -98,12 +98,14 @@ Currently, only [`LSMR`](@ref) is available and thus selected.
 """
 function lssolve end
 
-function lssolve(f, b, λ::Real=0;
-                 rtol::Real=KrylovDefaults.tol[],
-                 atol::Real=KrylovDefaults.tol[],
-                 tol::Real=max(atol, rtol * norm(b)),
-                 kwargs...)
-    alg = LSMR(; tol=tol, kwargs...)
+function lssolve(
+        f, b, λ::Real = 0;
+        rtol::Real = KrylovDefaults.tol[],
+        atol::Real = KrylovDefaults.tol[],
+        tol::Real = max(atol, rtol * norm(b)),
+        kwargs...
+    )
+    alg = LSMR(; tol = tol, kwargs...)
     return lssolve(f, b, alg, λ)
 end
 
@@ -185,9 +187,11 @@ The final (expert) method, without default values and keyword arguments, is the 
 finally called, and can also be used directly. Here, one specifies the algorithm explicitly.
 Currently, only [`LSMR`](@ref) is available and thus selected.
 """
-function reallssolve(f, b, alg, λ::Real=0)
+function reallssolve(f, b, alg, λ::Real = 0)
     x, info = lssolve(f, RealVec(b), alg, λ)
-    newinfo = ConvergenceInfo(info.converged, info.residual[], info.normres, info.numiter,
-                              info.numops)
+    newinfo = ConvergenceInfo(
+        info.converged, info.residual[], info.normres, info.numiter,
+        info.numops
+    )
     return x[], newinfo
 end

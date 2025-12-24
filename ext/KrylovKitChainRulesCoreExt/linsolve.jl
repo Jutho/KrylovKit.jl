@@ -1,15 +1,19 @@
-function ChainRulesCore.rrule(config::RuleConfig,
-                              ::typeof(linsolve),
-                              f,
-                              b,
-                              x₀,
-                              alg_primal,
-                              a₀,
-                              a₁; alg_rrule=alg_primal)
+function ChainRulesCore.rrule(
+        config::RuleConfig,
+        ::typeof(linsolve),
+        f,
+        b,
+        x₀,
+        alg_primal,
+        a₀,
+        a₁; alg_rrule = alg_primal
+    )
     (x, info) = linsolve(f, b, x₀, alg_primal, a₀, a₁)
     fᴴ, construct∂f = lin_preprocess(config, f, x)
-    linsolve_pullback = make_linsolve_pullback(fᴴ, b, a₀, a₁, alg_rrule, construct∂f, x,
-                                               info)
+    linsolve_pullback = make_linsolve_pullback(
+        fᴴ, b, a₀, a₁, alg_rrule, construct∂f, x,
+        info
+    )
     return (x, info), linsolve_pullback
 end
 
@@ -28,14 +32,22 @@ function make_linsolve_pullback(fᴴ, b, a₀, a₁, alg_rrule, construct∂f, x
             return ∂self, ∂f, ∂b, ∂x₀, ∂algorithm, ∂a₀, ∂a₁
         end
 
-        x̄₀ = zerovector(x̄,
-                         VectorInterface.promote_scale(scalartype(x̄),
-                                                       VectorInterface.promote_scale(a₀,
-                                                                                     a₁)))
-        ∂b, reverse_info = linsolve(fᴴ, x̄, x̄₀, alg_rrule, conj(a₀),
-                                    conj(a₁))
+        x̄₀ = zerovector(
+            x̄,
+            VectorInterface.promote_scale(
+                scalartype(x̄),
+                VectorInterface.promote_scale(
+                    a₀,
+                    a₁
+                )
+            )
+        )
+        ∂b, reverse_info = linsolve(
+            fᴴ, x̄, x̄₀, alg_rrule, conj(a₀),
+            conj(a₁)
+        )
         if info.converged > 0 && reverse_info.converged == 0 &&
-           alg_primal.verbosity >= WARN_LEVEL
+                alg_primal.verbosity >= WARN_LEVEL
             @warn "`linsolve` cotangent problem did not converge, whereas the primal linear problem did: normres = $(reverse_info.normres)"
         end
         x∂b = inner(x, ∂b)
@@ -60,8 +72,10 @@ end
 function lin_preprocess(config, A::AbstractMatrix, x)
     fᴴ = adjoint(A)
     if A isa StridedMatrix
-        construct∂f_lin = w -> InplaceableThunk(Ā -> _buildĀ_lin!(Ā, x, w),
-                                                @thunk(_buildĀ_lin!(zero(A), x, w)))
+        construct∂f_lin = w -> InplaceableThunk(
+            Ā -> _buildĀ_lin!(Ā, x, w),
+            @thunk(_buildĀ_lin!(zero(A), x, w))
+        )
     else
         construct∂f_lin = let project_A = ProjectTo(A)
             w -> @thunk(project_A(_buildĀ_lin!(zero(A), x, w)))
