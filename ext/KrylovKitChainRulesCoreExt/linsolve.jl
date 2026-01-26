@@ -11,13 +11,13 @@ function ChainRulesCore.rrule(
     (x, info) = linsolve(f, b, x₀, alg_primal, a₀, a₁)
     fᴴ, construct∂f = lin_preprocess(config, f, x)
     linsolve_pullback = make_linsolve_pullback(
-        fᴴ, b, a₀, a₁, alg_rrule, construct∂f, x,
+        fᴴ, b, a₀, a₁, alg_primal, alg_rrule, construct∂f, x,
         info
     )
     return (x, info), linsolve_pullback
 end
 
-function make_linsolve_pullback(fᴴ, b, a₀, a₁, alg_rrule, construct∂f, x, info)
+function make_linsolve_pullback(fᴴ, b, a₀, a₁, alg_primal, alg_rrule, construct∂f, x, info)
     return function linsolve_pullback(X̄)
         x̄ = unthunk(X̄[1])
         @assert X̄[2] isa AbstractZero "No cotangent of the `info` output is supported."
