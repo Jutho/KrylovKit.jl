@@ -79,6 +79,82 @@ struct ModifiedGramSchmidtIR{S <: Real} <: Reorthogonalizer
 end
 ModifiedGramSchmidtIR() = ModifiedGramSchmidtIR(1 / sqrt(2)) # Daniel-Gragg-Kaufman-Stewart
 
+# Skew-orthogonalization for symplectic bases
+"""
+    abstract type SkewOrthogonalizer
+
+Supertype for representing different skew-orthogonalization strategies or algorithms that
+produce symplectic (Darboux) bases. A symplectic basis satisfies the relations
+`⟨u_{2m-1}, u_{2n}⟩ = δ_{mn}`, `⟨u_{2m}, u_{2n}⟩ = 0`, and `⟨u_{2m-1}, u_{2n-1}⟩ = 0`.
+
+See also: [`ClassicalSymplecticGramSchmidt`](@ref), [`ModifiedSymplecticGramSchmidt`](@ref),
+[`ClassicalSymplecticGramSchmidt2`](@ref), [`ModifiedSymplecticGramSchmidt2`](@ref),
+[`ClassicalSymplecticGramSchmidtIR`](@ref), [`ModifiedSymplecticGramSchmidtIR`](@ref).
+"""
+abstract type SkewOrthogonalizer end
+abstract type SkewReorthogonalizer <: SkewOrthogonalizer end
+
+# Simple
+"""
+    ClassicalSymplecticGramSchmidt()
+
+Represents the classical symplectic Gram Schmidt algorithm for skew-orthogonalizing vectors
+to produce a symplectic (Darboux) basis, typically not an optimal choice.
+"""
+struct ClassicalSymplecticGramSchmidt <: SkewOrthogonalizer end
+
+"""
+    ModifiedSymplecticGramSchmidt()
+
+Represents the modified symplectic Gram Schmidt algorithm for skew-orthogonalizing vectors
+to produce a symplectic (Darboux) basis.
+"""
+struct ModifiedSymplecticGramSchmidt <: SkewOrthogonalizer end
+
+# A single reorthogonalization always
+"""
+    ClassicalSymplecticGramSchmidt2()
+
+Represents the classical symplectic Gram Schmidt algorithm with a second reskew-
+orthogonalization step always taking place.
+"""
+struct ClassicalSymplecticGramSchmidt2 <: SkewReorthogonalizer end
+
+"""
+    ModifiedSymplecticGramSchmidt2()
+
+Represents the modified symplectic Gram Schmidt algorithm with a second reskew-
+orthogonalization step always taking place.
+"""
+struct ModifiedSymplecticGramSchmidt2 <: SkewReorthogonalizer end
+
+# Iterative reorthogonalization
+"""
+    ClassicalSymplecticGramSchmidtIR(η::Real = 1/sqrt(2))
+
+Represents the classical symplectic Gram Schmidt algorithm with iterative (i.e. zero or
+more) reskew-orthogonalization until the norm of the vector after a skew-orthogonalization
+step has not decreased by a factor smaller than `η` with respect to the norm before the
+step. The default value corresponds to the Daniel-Gragg-Kaufman-Stewart condition.
+"""
+struct ClassicalSymplecticGramSchmidtIR{S <: Real} <: SkewReorthogonalizer
+    η::S
+end
+ClassicalSymplecticGramSchmidtIR() = ClassicalSymplecticGramSchmidtIR(1 / sqrt(2))
+
+"""
+    ModifiedSymplecticGramSchmidtIR(η::Real = 1/sqrt(2))
+
+Represents the modified symplectic Gram Schmidt algorithm with iterative (i.e. zero or
+more) reskew-orthogonalization until the norm of the vector after a skew-orthogonalization
+step has not decreased by a factor smaller than `η` with respect to the norm before the
+step. The default value corresponds to the Daniel-Gragg-Kaufman-Stewart condition.
+"""
+struct ModifiedSymplecticGramSchmidtIR{S <: Real} <: SkewReorthogonalizer
+    η::S
+end
+ModifiedSymplecticGramSchmidtIR() = ModifiedSymplecticGramSchmidtIR(1 / sqrt(2))
+
 # Solving eigenvalue problems
 abstract type KrylovAlgorithm end
 
@@ -145,7 +221,7 @@ The initial block size determines the maximum multiplicity of the target eigenva
 
 The iteration stops when either the norm of the residual is below `tol` or a sufficient number of eigenvectors have converged. [Reference](https://www.netlib.org/utk/people/JackDongarra/etemplates/node250.html)
 
-Use `Arnoldi` for non-symmetric or non-Hermitian linear operators. 
+Use `Arnoldi` for non-symmetric or non-Hermitian linear operators.
 
 See also: [Factorization types](@ref), [`eigsolve`](@ref), [`Arnoldi`](@ref), [`Orthogonalizer`](@ref)
 """
@@ -357,7 +433,7 @@ end
 """
     GMRES(; krylovdim=KrylovDefaults.krylovdim[],
             maxiter=KrylovDefaults.maxiter[],
-            tol=KrylovDefaults.tol[], 
+            tol=KrylovDefaults.tol[],
             orth::Orthogonalizer=KrylovDefaults.orth,
             verbosity=KrylovDefaults.verbosity[])
 
@@ -460,7 +536,7 @@ end
     Construct an instance of the Biconjugate gradient algorithm with specified parameters,
     which can be passed to `linsolve` in order to iteratively solve a linear system general
     linear map. The `BiCGStab` method will search for the optimal `x` in a Krylov subspace
-    of maximal size `maxiter`, or stop when `norm(A*x - b) < tol`. The default verbosity level 
+    of maximal size `maxiter`, or stop when `norm(A*x - b) < tol`. The default verbosity level
     `verbosity` amounts to printing warnings upon lack of convergence.
 
 See also: [`linsolve`](@ref), [`GMRES`](@ref), [`CG`](@ref), [`BiCG`](@ref), [`LSMR`](@ref),
@@ -484,7 +560,7 @@ abstract type LeastSquaresSolver <: KrylovAlgorithm end
 """
     LSMR(; krylovdim=1,
             maxiter=KrylovDefaults.maxiter[],
-            tol=KrylovDefaults.tol[], 
+            tol=KrylovDefaults.tol[],
             orth::Orthogonalizer=ModifiedGramSchmidt(),
             verbosity=KrylovDefaults.verbosity[])
 
@@ -495,7 +571,7 @@ algebraically equivalent to applying MINRES to the normal equations
 ``(A^*A + λ^2I)x = A^*b``, but has better numerical properties,
 especially if ``A`` is ill-conditioned.
 
-The `LSMR` method will search for the optimal ``x`` in a Krylov subspace of maximal size 
+The `LSMR` method will search for the optimal ``x`` in a Krylov subspace of maximal size
 `maxiter`, or stop when ``norm(A'*(A*x - b) + λ^2 * x) < tol``. The parameter `krylovdim`
 does in this case not indicate that a subspace of that size will be built, but represents the
 number of most recent vectors that will be kept to which the next vector will be reorthogonalized.

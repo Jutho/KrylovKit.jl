@@ -32,14 +32,19 @@ export linsolve, reallinsolve, lssolve, reallssolve
 export eigsolve, geneigsolve, realeigsolve, schursolve, svdsolve, bieigsolve
 export exponentiate, expintegrator
 export orthogonalize, orthogonalize!!, orthonormalize, orthonormalize!!
+export skeworthogonalize, skeworthogonalize!!, skeworthonormalize, skeworthonormalize!!
 export basis, rayleighquotient, residual, normres, rayleighextension
 export initialize, initialize!, expand!, shrink!
 export ClassicalGramSchmidt, ClassicalGramSchmidt2, ClassicalGramSchmidtIR
 export ModifiedGramSchmidt, ModifiedGramSchmidt2, ModifiedGramSchmidtIR
+export ClassicalSymplecticGramSchmidt, ClassicalSymplecticGramSchmidt2
+export ClassicalSymplecticGramSchmidtIR
+export ModifiedSymplecticGramSchmidt, ModifiedSymplecticGramSchmidt2
+export ModifiedSymplecticGramSchmidtIR
 export LanczosIterator, BlockLanczosIterator, ArnoldiIterator, GKLIterator, BiArnoldiIterator
 export CG, GMRES, BiCGStab, Lanczos, BlockLanczos, Arnoldi, GKL, GolubYe, LSMR, BiArnoldi
 export KrylovDefaults, EigSorter
-export RecursiveVec, InnerProductVec, Block
+export RecursiveVec, InnerProductVec, Block, SymplecticBasis, numpairs
 
 # Multithreading
 const _NTHREADS = Ref(1)
