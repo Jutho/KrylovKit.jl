@@ -5,8 +5,10 @@
     domain = 0:(n - 1)
     w(x) = 1
 
-    skew_dot(u, v) = sum(ε(x, y) * w(x) * w(y) * u[x + 1] * v[y + 1]
-        for x in domain, y in domain)
+    skew_dot(u, v) = sum(
+        ε(x, y) * w(x) * w(y) * u[x + 1] * v[y + 1]
+            for x in domain, y in domain
+    )
 
     function run_symplectic_arnoldi(orth)
         v₀ = InnerProductVec(fill(1 / sqrt(sum(w, domain)), n), skew_dot, norm)
@@ -48,6 +50,6 @@
 
     for alg in algs
         W = run_symplectic_arnoldi(alg)
-        @test max_symplectic_error(W) < 1e-8
+        @test max_symplectic_error(W) < 1.0e-8
     end
 end
