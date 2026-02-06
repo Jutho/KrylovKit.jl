@@ -159,7 +159,7 @@ function initialize(iter::ArnoldiIterator; verbosity::Int = KrylovDefaults.verbo
             r = add!!(r, v, -dα)
             β = norm(r)
         elseif iter.orth isa Union{ClassicalGramSchmidtIR, ModifiedGramSchmidtIR}
-            while eps(one(β)) < β < alg.η * βold
+            while eps(one(β)) < β < iter.orth.η * βold
                 βold = β
                 dα = inner(v, r)
                 α += dα
@@ -245,7 +245,7 @@ function shrink!(state::ArnoldiFactorization, k; verbosity::Int = KrylovDefaults
     r = pop!(V)
     resize!(H, (k * k + 3 * k) >> 1)
     state.k = k
-    if iter.orth isa Orthogonalizer
+    if V isa OrthonormalBasis
         β = normres(state)
     else
         β = iseven(k) ? normres(state) : norm(r)
