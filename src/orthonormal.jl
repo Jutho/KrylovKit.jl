@@ -604,11 +604,6 @@ Base.empty!(b::SymplecticBasis) = (empty!(b.basis); return b)
 Base.sizehint!(b::SymplecticBasis, k::Int) = (sizehint!(b.basis, k); return b)
 Base.resize!(b::SymplecticBasis, k::Int) = (resize!(b.basis, k); return b)
 
-"""
-    numpairs(b::SymplecticBasis) -> Int
-
-Return the number of symplectic pairs in the basis `b`. This equals `div(length(b), 2)`.
-"""
 numpairs(b::SymplecticBasis) = div(length(b), 2)
 
 # Skew-orthogonalization of a vector against a given SymplecticBasis

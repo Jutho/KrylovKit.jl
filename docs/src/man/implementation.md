@@ -13,6 +13,11 @@ that case, the specific implementation `OrthonormalBasis{T}` can be used:
 KrylovKit.OrthonormalBasis
 ```
 
+For symplectic (Darboux) bases, the specific implementation `SymplecticBasis{T}` can be used:
+```@docs
+KrylovKit.SymplecticBasis
+```
+
 We can orthogonalize or orthonormalize a given vector to another vector (assumed normalized)
 or to a given [`KrylovKit.OrthonormalBasis`](@ref) using
 ```@docs
@@ -23,6 +28,26 @@ or using the possibly in-place versions
 ```@docs
 KrylovKit.orthogonalize!!
 KrylovKit.orthonormalize!!
+```
+
+For symplectic bases, the corresponding skew-orthogonalization and skew-orthonormalization
+interfaces are
+```@docs
+KrylovKit.skeworthogonalize
+KrylovKit.skeworthonormalize
+KrylovKit.skeworthogonalize!!
+KrylovKit.skeworthonormalize!!
+```
+
+The available skew-orthogonalization algorithms are
+```@docs
+KrylovKit.SkewOrthogonalizer
+KrylovKit.ClassicalSymplecticGramSchmidt
+KrylovKit.ModifiedSymplecticGramSchmidt
+KrylovKit.ClassicalSymplecticGramSchmidt2
+KrylovKit.ModifiedSymplecticGramSchmidt2
+KrylovKit.ClassicalSymplecticGramSchmidtIR
+KrylovKit.ModifiedSymplecticGramSchmidtIR
 ```
 
 The expansion coefficients of a general vector in terms of a given orthonormal basis can be obtained as
