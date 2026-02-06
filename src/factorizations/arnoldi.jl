@@ -181,7 +181,7 @@ function initialize(iter::ArnoldiIterator; verbosity::Int = KrylovDefaults.verbo
 end
 
 function initialize!(
-        iter::ArnoldiIterator{<:Any, <:Any, <:Orthogonalizer}, state::ArnoldiFactorization;
+        iter::ArnoldiIterator, state::ArnoldiFactorization;
         verbosity::Int = KrylovDefaults.verbosity[]
     )
     x₀ = iter.x₀
