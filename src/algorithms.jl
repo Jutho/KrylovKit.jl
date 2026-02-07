@@ -80,6 +80,19 @@ end
 ModifiedGramSchmidtIR() = ModifiedGramSchmidtIR(1 / sqrt(2)) # Daniel-Gragg-Kaufman-Stewart
 
 # Skew-orthogonalization for symplectic bases
+# TODO: implement ESR3
+"""
+    @enum ESR ESR1 ESR2 ESR3
+
+Enum for selecting Elementary Symplectic factorization (ESR) variant:
+- `ESR1`: r11 = ||x₁||, r12 = 0
+- `ESR2`: r11 = ||x₁||, r12 = s₁ᵀx₂ (most stable, s₁ and s₂ orthogonal)
+- `ESR3`: r11 = ||⟨x₁, x₂⟩||, r12 = 0 (TODO)
+
+See https://journal.austms.org.au/ojs/index.php/ANZIAMJ/article/view/9380/1920, page 2 for details.
+"""
+@enum ESR ESR1 ESR2# ESR3
+
 """
     abstract type SkewOrthogonalizer
 
@@ -96,64 +109,84 @@ abstract type SkewReorthogonalizer <: SkewOrthogonalizer end
 
 # Simple
 """
-    ClassicalSymplecticGramSchmidt()
+    ClassicalSymplecticGramSchmidt(esr::ESR = ESR2)
 
 Represents the classical symplectic Gram Schmidt algorithm for skew-orthogonalizing vectors
-to produce a symplectic (Darboux) basis, typically not an optimal choice.
+to produce a symplectic (Darboux) basis, typically not an optimal choice. The `esr` parameter
+selects the Elementary Symplectic factorization variant (default: ESR2, most stable).
 """
-struct ClassicalSymplecticGramSchmidt <: SkewOrthogonalizer end
+struct ClassicalSymplecticGramSchmidt <: SkewOrthogonalizer
+    esr::ESR
+end
+ClassicalSymplecticGramSchmidt() = ClassicalSymplecticGramSchmidt(ESR2)
 
 """
-    ModifiedSymplecticGramSchmidt()
+    ModifiedSymplecticGramSchmidt(esr::ESR = ESR2)
 
 Represents the modified symplectic Gram Schmidt algorithm for skew-orthogonalizing vectors
-to produce a symplectic (Darboux) basis.
+to produce a symplectic (Darboux) basis. The `esr` parameter selects the Elementary
+Symplectic factorization variant (default: ESR2, most stable).
 """
-struct ModifiedSymplecticGramSchmidt <: SkewOrthogonalizer end
+struct ModifiedSymplecticGramSchmidt <: SkewOrthogonalizer
+    esr::ESR
+end
+ModifiedSymplecticGramSchmidt() = ModifiedSymplecticGramSchmidt(ESR2)
 
 # A single reorthogonalization always
 """
-    ClassicalSymplecticGramSchmidt2()
+    ClassicalSymplecticGramSchmidt2(esr::ESR = ESR2)
 
 Represents the classical symplectic Gram Schmidt algorithm with a second reskew-
-orthogonalization step always taking place.
+orthogonalization step always taking place. The `esr` parameter selects the Elementary
+Symplectic factorization variant (default: ESR2, most stable).
 """
-struct ClassicalSymplecticGramSchmidt2 <: SkewReorthogonalizer end
+struct ClassicalSymplecticGramSchmidt2 <: SkewReorthogonalizer
+    esr::ESR
+end
+ClassicalSymplecticGramSchmidt2() = ClassicalSymplecticGramSchmidt2(ESR2)
 
 """
-    ModifiedSymplecticGramSchmidt2()
+    ModifiedSymplecticGramSchmidt2(esr::ESR = ESR2)
 
 Represents the modified symplectic Gram Schmidt algorithm with a second reskew-
-orthogonalization step always taking place.
+orthogonalization step always taking place. The `esr` parameter selects the Elementary
+Symplectic factorization variant (default: ESR2, most stable).
 """
-struct ModifiedSymplecticGramSchmidt2 <: SkewReorthogonalizer end
+struct ModifiedSymplecticGramSchmidt2 <: SkewReorthogonalizer
+    esr::ESR
+end
+ModifiedSymplecticGramSchmidt2() = ModifiedSymplecticGramSchmidt2(ESR2)
 
 # Iterative reorthogonalization
 """
-    ClassicalSymplecticGramSchmidtIR(η::Real = 1/sqrt(2))
+    ClassicalSymplecticGramSchmidtIR(η::Real = 1/sqrt(2), esr::ESR = ESR2)
 
 Represents the classical symplectic Gram Schmidt algorithm with iterative (i.e. zero or
 more) reskew-orthogonalization until the norm of the vector after a skew-orthogonalization
 step has not decreased by a factor smaller than `η` with respect to the norm before the
-step. The default value corresponds to the Daniel-Gragg-Kaufman-Stewart condition.
+step. The default value corresponds to the Daniel-Gragg-Kaufman-Stewart condition. The `esr`
+parameter selects the Elementary Symplectic factorization variant (default: ESR2, most stable).
 """
 struct ClassicalSymplecticGramSchmidtIR{S <: Real} <: SkewReorthogonalizer
     η::S
+    esr::ESR
 end
-ClassicalSymplecticGramSchmidtIR() = ClassicalSymplecticGramSchmidtIR(1 / sqrt(2))
+ClassicalSymplecticGramSchmidtIR(η::Real = 1 / sqrt(2)) = ClassicalSymplecticGramSchmidtIR(η, ESR2)
 
 """
-    ModifiedSymplecticGramSchmidtIR(η::Real = 1/sqrt(2))
+    ModifiedSymplecticGramSchmidtIR(η::Real = 1/sqrt(2), esr::ESR = ESR2)
 
 Represents the modified symplectic Gram Schmidt algorithm with iterative (i.e. zero or
 more) reskew-orthogonalization until the norm of the vector after a skew-orthogonalization
 step has not decreased by a factor smaller than `η` with respect to the norm before the
-step. The default value corresponds to the Daniel-Gragg-Kaufman-Stewart condition.
+step. The default value corresponds to the Daniel-Gragg-Kaufman-Stewart condition. The `esr`
+parameter selects the Elementary Symplectic factorization variant (default: ESR2, most stable).
 """
 struct ModifiedSymplecticGramSchmidtIR{S <: Real} <: SkewReorthogonalizer
     η::S
+    esr::ESR
 end
-ModifiedSymplecticGramSchmidtIR() = ModifiedSymplecticGramSchmidtIR(1 / sqrt(2))
+ModifiedSymplecticGramSchmidtIR(η::Real = 1 / sqrt(2)) = ModifiedSymplecticGramSchmidtIR(η, ESR2)
 
 # Solving eigenvalue problems
 abstract type KrylovAlgorithm end

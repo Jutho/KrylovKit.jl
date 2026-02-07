@@ -172,7 +172,13 @@ function initialize(iter::ArnoldiIterator; verbosity::Int = KrylovDefaults.verbo
     else
         iszero(α) && throw(ArgumentError("initial vector and its image are symplectically orthogonal"))
         V = SymplecticBasis([v])
-        H = T[zero(α), α]
+        if iter.orth.esr == ESR2
+            r12 = standard_dot(v, r)
+            r = add!!(r, v, -r12)
+            H = T[r12, α]
+        else
+            H = T[zero(α), α]
+        end
     end
     if verbosity > EACHITERATION_LEVEL
         @info "Arnoldi initiation at dimension 1: subspace normres = $(normres2string(β))"
@@ -201,7 +207,13 @@ function initialize!(
         α = inner(V[1], w)
         iszero(α) && throw(ArgumentError("initial vector and its image are symplectically orthogonal"))
         r = w
-        push!(H, zero(α), α)
+        if iter.orth.esr == ESR2
+            r12 = standard_dot(V[1], r)
+            r = add!!(r, V[1], -r12)
+            push!(H, r12, α)
+        else
+            push!(H, zero(α), α)
+        end
     end
     state.k = 1
     state.r = r
@@ -253,13 +265,12 @@ function shrink!(state::ArnoldiFactorization, k; verbosity::Int = KrylovDefaults
     if verbosity > EACHITERATION_LEVEL
         @info "Arnoldi reduction to dimension $k: subspace normres = $(normres2string(β))"
     end
-    state.r = scale!!(r, β)
     return state
 end
 
 # Arnoldi recurrence: simply use provided orthonormalization routines
 function arnoldirecurrence!!(
-        operator, V::OrthonormalBasis, h::AbstractVector, orth::Orthogonalizer
+        operator, V::OrthonormalBasis, h::AbstractVector, orth::Orthogonalizer,
     )
     w = apply(operator, last(V))
     r, h = orthogonalize!!(w, V, h, orth)
@@ -267,7 +278,7 @@ function arnoldirecurrence!!(
 end
 
 function arnoldirecurrence!!(
-        operator, V::SymplecticBasis, h::AbstractVector, orth::SkewOrthogonalizer
+        operator, V::SymplecticBasis, h::AbstractVector, orth::SkewOrthogonalizer,
     )
     w = apply(operator, last(V))
     r, h = skeworthogonalize!!(w, V, h, orth)

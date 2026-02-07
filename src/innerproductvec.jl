@@ -144,3 +144,6 @@ end
 
 VectorInterface.norm(v::InnerProductVec{F, Nothing}) where {F} = sqrt(real(inner(v, v)))
 VectorInterface.norm(v::InnerProductVec) = v.normf(v.vec)
+
+standard_dot(v::InnerProductVec, w::InnerProductVec) = dot(v.vec, w.vec)
+standard_dot(v, w) = dot(v, w)

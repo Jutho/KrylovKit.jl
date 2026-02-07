@@ -37,6 +37,7 @@ export basis, rayleighquotient, residual, normres, rayleighextension
 export initialize, initialize!, expand!, shrink!
 export ClassicalGramSchmidt, ClassicalGramSchmidt2, ClassicalGramSchmidtIR
 export ModifiedGramSchmidt, ModifiedGramSchmidt2, ModifiedGramSchmidtIR
+export ESR, ESR1, ESR2, ESR3
 export ClassicalSymplecticGramSchmidt, ClassicalSymplecticGramSchmidt2
 export ClassicalSymplecticGramSchmidtIR
 export ModifiedSymplecticGramSchmidt, ModifiedSymplecticGramSchmidt2

@@ -1,7 +1,6 @@
 @testset "Symplectic Arnoldi" begin
     ε(x, y) = sign(y - x) / 2
 
-    n = 8
     domain = 0:(n - 1)
     w(x) = 1
 
@@ -10,7 +9,7 @@
             for x in domain, y in domain
     )
 
-    function run_symplectic_arnoldi(orth)
+    function run_symplectic_arnoldi(orth, inplace_init)
         v₀ = InnerProductVec(fill(1 / sqrt(sum(w, domain)), n), skew_dot, norm)
         itr = ArnoldiIterator(
             u -> InnerProductVec(domain .* u[], u.dotf, u.normf),
@@ -18,10 +17,13 @@
             orth,
         )
         fact = initialize(itr)
-        for _ in 1:(n - 1)
+        if inplace_init
+            fact = initialize!(itr, fact)
+        end
+        for i in 1:(n - 1)
             expand!(itr, fact)
         end
-        return stack(getindex, basis(fact).basis)
+        return stack(getindex, basis(fact).basis), rayleighquotient(fact), residual(fact), rayleighextension(fact)
     end
 
     function max_symplectic_error(W)
@@ -39,17 +41,34 @@
         return max_err
     end
 
-    algs = (
-        ClassicalSymplecticGramSchmidt(),
-        ModifiedSymplecticGramSchmidt(),
-        ClassicalSymplecticGramSchmidt2(),
-        ModifiedSymplecticGramSchmidt2(),
-        ClassicalSymplecticGramSchmidtIR(0.75),
-        ModifiedSymplecticGramSchmidtIR(0.75),
-    )
+    for esr in (ESR1, ESR2)
+        algs = (
+            ClassicalSymplecticGramSchmidt(esr),
+            ModifiedSymplecticGramSchmidt(esr),
+            ClassicalSymplecticGramSchmidt2(esr),
+            ModifiedSymplecticGramSchmidt2(esr),
+            ClassicalSymplecticGramSchmidtIR(0.75, esr),
+            ModifiedSymplecticGramSchmidtIR(0.75, esr),
+        )
+        @testset "$alg" for alg in algs
+            W1, H1, r1, b1 = run_symplectic_arnoldi(alg, false)
+            @test max_symplectic_error(W1) < 1.0e-8
+            if alg == ClassicalSymplecticGramSchmidt2(ESR1)
+                @test_broken Diagonal(domain) * W1 ≈ W1 * H1 + r1[] * b1' atol = 1.0e-8
+            else
+                @test Diagonal(domain) * W1 ≈ W1 * H1 + r1[] * b1' atol = 1.0e-8
+            end
 
-    for alg in algs
-        W = run_symplectic_arnoldi(alg)
-        @test max_symplectic_error(W) < 1.0e-8
+            W2, H2, r2, b2 = run_symplectic_arnoldi(alg, true)
+            @test W1 ≈ W2
+            @test H1 ≈ H2
+            @test r1[] ≈ r2[] atol = 1.0e-8
+            @test max_symplectic_error(W2) < 1.0e-8
+            if alg == ClassicalSymplecticGramSchmidt2(ESR1)
+                @test_broken Diagonal(domain) * W2 ≈ W2 * H2 + r2[] * b2' atol = 1.0e-8
+            else
+                @test Diagonal(domain) * W2 ≈ W2 * H2 + r2[] * b2' atol = 1.0e-8
+            end
+        end
     end
 end

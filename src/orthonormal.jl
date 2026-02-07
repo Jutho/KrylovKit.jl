@@ -619,19 +619,26 @@ end
 
 # See pages 3-4 of https://people.math.ethz.ch/%7Eacannas/Papers/lsg.pdf
 function skeworthogonalize!!(
-        v::T, b::SymplecticBasis{T}, x::AbstractVector, ::ClassicalSymplecticGramSchmidt
+        v::T, b::SymplecticBasis{T}, x::AbstractVector, alg::ClassicalSymplecticGramSchmidt
     ) where {T}
     np = numpairs(b)
     idx_odd = 1:2:(2np - 1)
     idx_even = 2:2:2np
     project!!(view(x, idx_odd), b, v, -1, 0, idx_even)
     project!!(view(x, idx_even), b, v, 1, 0, idx_odd)
+    if isodd(length(b))
+        if alg.esr == ESR2
+            x[2np + 1] = standard_dot(last(b), v)
+        else
+            x[2np + 1] = zero(eltype(x))
+        end
+    end
     v = unproject!!(v, b, x, -1, 1)
     return (v, x)
 end
 
 function reskeworthogonalize!!(
-        v::T, b::SymplecticBasis{T}, x::AbstractVector, ::ClassicalSymplecticGramSchmidt
+        v::T, b::SymplecticBasis{T}, x::AbstractVector, alg::ClassicalSymplecticGramSchmidt
     ) where {T}
     s = similar(x) ## EXTRA ALLOCATION
     (v, x) = skeworthogonalize!!(v, b, s, ClassicalSymplecticGramSchmidt())
@@ -640,28 +647,30 @@ function reskeworthogonalize!!(
 end
 
 function skeworthogonalize!!(
-        v::T, b::SymplecticBasis{T}, x::AbstractVector, ::ClassicalSymplecticGramSchmidt2
+        v::T, b::SymplecticBasis{T}, x::AbstractVector, alg::ClassicalSymplecticGramSchmidt2
     ) where {T}
-    (v, x) = skeworthogonalize!!(v, b, x, ClassicalSymplecticGramSchmidt())
-    return reskeworthogonalize!!(v, b, x, ClassicalSymplecticGramSchmidt())
+    csgs = ClassicalSymplecticGramSchmidt(alg.esr)
+    (v, x) = skeworthogonalize!!(v, b, x, csgs)
+    return reskeworthogonalize!!(v, b, x, csgs)
 end
 
 function skeworthogonalize!!(
         v::T, b::SymplecticBasis{T}, x::AbstractVector, alg::ClassicalSymplecticGramSchmidtIR
     ) where {T}
+    csgs = ClassicalSymplecticGramSchmidt(alg.esr)
     nold = norm(v)
-    (v, x) = skeworthogonalize!!(v, b, x, ClassicalSymplecticGramSchmidt())
+    (v, x) = skeworthogonalize!!(v, b, x, csgs)
     nnew = norm(v)
     while eps(one(nnew)) < nnew < alg.η * nold
         nold = nnew
-        (v, x) = reskeworthogonalize!!(v, b, x, ClassicalSymplecticGramSchmidt())
+        (v, x) = reskeworthogonalize!!(v, b, x, csgs)
         nnew = norm(v)
     end
     return (v, x)
 end
 
 function skeworthogonalize!!(
-        v::T, b::SymplecticBasis{T}, x::AbstractVector, ::ModifiedSymplecticGramSchmidt
+        v::T, b::SymplecticBasis{T}, x::AbstractVector, alg::ModifiedSymplecticGramSchmidt
     ) where {T}
     np = numpairs(b)
     for m in 1:np
@@ -674,11 +683,19 @@ function skeworthogonalize!!(
         v = add!!(v, b[i_odd], h_f)
         v = add!!(v, b[i_even], -h_e)
     end
+    if isodd(length(b))
+        if alg.esr == ESR2
+            x[2np + 1] = standard_dot(last(b), v)
+            v = add!!(v, last(b), -x[2np + 1])
+        else
+            x[2np + 1] = zero(eltype(x))
+        end
+    end
     return (v, x)
 end
 
 function reskeworthogonalize!!(
-        v::T, b::SymplecticBasis{T}, x::AbstractVector, ::ModifiedSymplecticGramSchmidt
+        v::T, b::SymplecticBasis{T}, x::AbstractVector, alg::ModifiedSymplecticGramSchmidt
     ) where {T}
     np = numpairs(b)
     for m in 1:np
@@ -693,25 +710,32 @@ function reskeworthogonalize!!(
         v = add!!(v, b[i_odd], h_f)
         v = add!!(v, b[i_even], -h_e)
     end
+    if isodd(length(b)) && alg.esr == ESR2
+        r11 = standard_dot(last(b), v)
+        x[2np + 1] += r11
+        v = add!!(v, last(b), -r11)
+    end
     return (v, x)
 end
 
 function skeworthogonalize!!(
-        v::T, b::SymplecticBasis{T}, x::AbstractVector, ::ModifiedSymplecticGramSchmidt2
+        v::T, b::SymplecticBasis{T}, x::AbstractVector, alg::ModifiedSymplecticGramSchmidt2
     ) where {T}
-    (v, x) = skeworthogonalize!!(v, b, x, ModifiedSymplecticGramSchmidt())
-    return reskeworthogonalize!!(v, b, x, ModifiedSymplecticGramSchmidt())
+    msgs = ModifiedSymplecticGramSchmidt(alg.esr)
+    (v, x) = skeworthogonalize!!(v, b, x, msgs)
+    return reskeworthogonalize!!(v, b, x, msgs)
 end
 
 function skeworthogonalize!!(
         v::T, b::SymplecticBasis{T}, x::AbstractVector, alg::ModifiedSymplecticGramSchmidtIR
     ) where {T}
+    msgs = ModifiedSymplecticGramSchmidt(alg.esr)
     nold = norm(v)
-    (v, x) = skeworthogonalize!!(v, b, x, ModifiedSymplecticGramSchmidt())
+    (v, x) = skeworthogonalize!!(v, b, x, msgs)
     nnew = norm(v)
     while eps(one(nnew)) < nnew < alg.η * nold
         nold = nnew
-        (v, x) = reskeworthogonalize!!(v, b, x, ModifiedSymplecticGramSchmidt())
+        (v, x) = reskeworthogonalize!!(v, b, x, msgs)
         nnew = norm(v)
     end
     return (v, x)
