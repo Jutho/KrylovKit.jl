@@ -641,7 +641,7 @@ function reskeworthogonalize!!(
         v::T, b::SymplecticBasis{T}, x::AbstractVector, alg::ClassicalSymplecticGramSchmidt
     ) where {T}
     s = similar(x) ## EXTRA ALLOCATION
-    (v, x) = skeworthogonalize!!(v, b, s, ClassicalSymplecticGramSchmidt())
+    (v, s) = skeworthogonalize!!(v, b, s, ClassicalSymplecticGramSchmidt())
     x .+= s
     return (v, x)
 end
@@ -703,10 +703,8 @@ function reskeworthogonalize!!(
         i_even = 2m
         h_e = inner(b[i_odd], v)
         h_f = inner(b[i_even], v)
-        s_odd = -h_f
-        s_even = h_e
-        x[i_odd] += s_odd
-        x[i_even] += s_even
+        x[i_odd] -= h_f
+        x[i_even] += h_e
         v = add!!(v, b[i_odd], h_f)
         v = add!!(v, b[i_even], -h_e)
     end

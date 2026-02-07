@@ -47,7 +47,7 @@ Base.eltype(::Type{<:ArnoldiFactorization{<:Any, S}}) where {S} = S
 basis(F::ArnoldiFactorization) = F.V
 rayleighquotient(F::ArnoldiFactorization) = PackedHessenberg(F.H, F.k)
 residual(F::ArnoldiFactorization) = F.r
-@inbounds normres(F::ArnoldiFactorization) = abs(F.H[end])
+@inbounds normres(F::ArnoldiFactorization) = F.H[end]
 rayleighextension(F::ArnoldiFactorization) = SimpleBasisVector(F.k, F.k)
 
 # Arnoldi iteration for constructing the orthonormal basis of a Krylov subspace.
@@ -135,7 +135,11 @@ end
 function initialize(iter::ArnoldiIterator; verbosity::Int = KrylovDefaults.verbosity[])
     # initialize without using eltype
     x₀ = iter.x₀
-    β₀ = norm(x₀)
+    if iter.orth isa Orthogonalizer || iter.orth.esr != ESR3
+        β₀ = norm(x₀)
+    else
+        β₀ = one(scalartype(x₀))
+    end
     iszero(β₀) && throw(ArgumentError("initial vector should not have norm zero"))
     Ax₀ = apply(iter.operator, x₀)
     α = inner(x₀, Ax₀) / (β₀ * β₀)
@@ -197,7 +201,12 @@ function initialize!(
     end
     H = empty!(state.H)
 
-    V[1] = scale!!(V[1], x₀, 1 / norm(x₀))
+    if iter.orth isa Orthogonalizer || iter.orth.esr != ESR3
+        β₀ = norm(x₀)
+    else
+        β₀ = one(scalartype(x₀))
+    end
+    V[1] = scale!!(V[1], x₀, 1 / β₀)
     w = apply(iter.operator, V[1])
     if iter.orth isa Orthogonalizer
         r, α = orthogonalize!!(w, V[1], iter.orth)
@@ -231,7 +240,7 @@ function expand!(
     V = state.V
     H = state.H
     r = state.r
-    if iter.orth isa Orthogonalizer
+    if iter.orth isa Orthogonalizer || iter.orth.esr == ESR3
         β = normres(state)
     else
         β = iseven(k) ? normres(state) : norm(r)
@@ -282,5 +291,5 @@ function arnoldirecurrence!!(
     )
     w = apply(operator, last(V))
     r, h = skeworthogonalize!!(w, V, h, orth)
-    return r, iseven(length(V)) ? norm(r) : inner(last(V), r)
+    return r, iseven(length(V)) ? (orth.esr == ESR3 ? one(scalartype(r)) : norm(r)) : inner(last(V), r)
 end

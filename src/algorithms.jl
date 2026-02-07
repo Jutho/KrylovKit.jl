@@ -80,18 +80,17 @@ end
 ModifiedGramSchmidtIR() = ModifiedGramSchmidtIR(1 / sqrt(2)) # Daniel-Gragg-Kaufman-Stewart
 
 # Skew-orthogonalization for symplectic bases
-# TODO: implement ESR3
 """
     @enum ESR ESR1 ESR2 ESR3
 
 Enum for selecting Elementary Symplectic factorization (ESR) variant:
 - `ESR1`: r11 = ||x₁||, r12 = 0
 - `ESR2`: r11 = ||x₁||, r12 = s₁ᵀx₂ (most stable, s₁ and s₂ orthogonal)
-- `ESR3`: r11 = ||⟨x₁, x₂⟩||, r12 = 0 (TODO)
+- `ESR3m`: r11 = 1, r12 = 0, r22 = ⟨x₁, x₂⟩ (original ESR3: r11 = ||⟨x₁, x₂⟩||, r12 = 0, r22 = ±1)
 
 See https://journal.austms.org.au/ojs/index.php/ANZIAMJ/article/view/9380/1920, page 2 for details.
 """
-@enum ESR ESR1 ESR2# ESR3
+@enum ESR ESR1 ESR2 ESR3m
 
 """
     abstract type SkewOrthogonalizer

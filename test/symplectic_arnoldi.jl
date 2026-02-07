@@ -41,7 +41,7 @@
         return max_err
     end
 
-    for esr in (ESR1, ESR2)
+    for esr in (ESR1, ESR2, ESR3m)
         algs = (
             ClassicalSymplecticGramSchmidt(esr),
             ModifiedSymplecticGramSchmidt(esr),
@@ -53,22 +53,14 @@
         @testset "$alg" for alg in algs
             W1, H1, r1, b1 = run_symplectic_arnoldi(alg, false)
             @test max_symplectic_error(W1) < 1.0e-8
-            if alg == ClassicalSymplecticGramSchmidt2(ESR1)
-                @test_broken Diagonal(domain) * W1 ≈ W1 * H1 + r1[] * b1' atol = 1.0e-8
-            else
-                @test Diagonal(domain) * W1 ≈ W1 * H1 + r1[] * b1' atol = 1.0e-8
-            end
+            @test Diagonal(domain) * W1 ≈ W1 * H1 + r1[] * b1' atol = 1.0e-8
 
             W2, H2, r2, b2 = run_symplectic_arnoldi(alg, true)
             @test W1 ≈ W2
             @test H1 ≈ H2
             @test r1[] ≈ r2[] atol = 1.0e-8
             @test max_symplectic_error(W2) < 1.0e-8
-            if alg == ClassicalSymplecticGramSchmidt2(ESR1)
-                @test_broken Diagonal(domain) * W2 ≈ W2 * H2 + r2[] * b2' atol = 1.0e-8
-            else
-                @test Diagonal(domain) * W2 ≈ W2 * H2 + r2[] * b2' atol = 1.0e-8
-            end
+            @test Diagonal(domain) * W2 ≈ W2 * H2 + r2[] * b2' atol = 1.0e-8
         end
     end
 end
