@@ -135,7 +135,7 @@ end
 function initialize(iter::ArnoldiIterator; verbosity::Int = KrylovDefaults.verbosity[])
     # initialize without using eltype
     x₀ = iter.x₀
-    if iter.orth isa Orthogonalizer || iter.orth.esr != ESR3
+    if iter.orth isa Orthogonalizer || iter.orth.esr != ESR3m
         β₀ = norm(x₀)
     else
         β₀ = one(scalartype(x₀))
@@ -201,7 +201,7 @@ function initialize!(
     end
     H = empty!(state.H)
 
-    if iter.orth isa Orthogonalizer || iter.orth.esr != ESR3
+    if iter.orth isa Orthogonalizer || iter.orth.esr != ESR3m
         β₀ = norm(x₀)
     else
         β₀ = one(scalartype(x₀))
@@ -240,7 +240,7 @@ function expand!(
     V = state.V
     H = state.H
     r = state.r
-    if iter.orth isa Orthogonalizer || iter.orth.esr == ESR3
+    if iter.orth isa Orthogonalizer || iter.orth.esr == ESR3m
         β = normres(state)
     else
         β = iseven(k) ? normres(state) : norm(r)
@@ -291,5 +291,5 @@ function arnoldirecurrence!!(
     )
     w = apply(operator, last(V))
     r, h = skeworthogonalize!!(w, V, h, orth)
-    return r, iseven(length(V)) ? (orth.esr == ESR3 ? one(scalartype(r)) : norm(r)) : inner(last(V), r)
+    return r, iseven(length(V)) ? (orth.esr == ESR3m ? one(scalartype(r)) : norm(r)) : inner(last(V), r)
 end

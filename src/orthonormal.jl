@@ -744,11 +744,11 @@ end
 # For even vectors: scale so that ω(partner, v) = 1
 skeworthonormalize(v, args...) = skeworthonormalize!!(scale(v, VectorInterface.One()), args...)
 
-function skeworthonormalize!!(v, b::SymplecticBasis, args...)
-    out = skeworthogonalize!!(v, b, args...) # out[1] === v
+function skeworthonormalize!!(v, b::SymplecticBasis, x::AbstractVector, alg::SkewOrthogonalizer)
+    out = skeworthogonalize!!(v, b, x, alg)
     if iseven(length(b))
         # Adding odd vector: normalize with standard norm
-        β = norm(v)
+        β = alg.esr == ESR3m ? one(scalartype(v)) : norm(v)
         v = scale!!(v, inv(β))
     else
         # Adding even vector: scale so that ω(partner, v) = 1
@@ -756,7 +756,7 @@ function skeworthonormalize!!(v, b::SymplecticBasis, args...)
         β = inner(last(b), v)
         v = scale!!(v, inv(β))
     end
-    return tuple(v, β, Base.tail(out)...)
+    return (v, β, Base.tail(out)...)
 end
 
 """

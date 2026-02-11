@@ -81,7 +81,7 @@ ModifiedGramSchmidtIR() = ModifiedGramSchmidtIR(1 / sqrt(2)) # Daniel-Gragg-Kauf
 
 # Skew-orthogonalization for symplectic bases
 """
-    @enum ESR ESR1 ESR2 ESR3
+    @enum ESR ESR1 ESR2 ESR3m
 
 Enum for selecting Elementary Symplectic factorization (ESR) variant:
 - `ESR1`: r11 = ||x₁||, r12 = 0
