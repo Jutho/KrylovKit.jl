@@ -45,7 +45,8 @@ export ModifiedSymplecticGramSchmidtIR
 export LanczosIterator, BlockLanczosIterator, ArnoldiIterator, GKLIterator, BiArnoldiIterator
 export CG, GMRES, BiCGStab, Lanczos, BlockLanczos, Arnoldi, GKL, GolubYe, LSMR, BiArnoldi
 export KrylovDefaults, EigSorter
-export RecursiveVec, InnerProductVec, Block, SymplecticBasis, numpairs
+export RecursiveVec, InnerProductVec, SymplecticFormVec, Block, SymplecticBasis, numpairs
+export symplecticform
 
 # Multithreading
 const _NTHREADS = Ref(1)

@@ -10,9 +10,9 @@
     )
 
     function run_symplectic_arnoldi(orth, inplace_init)
-        v₀ = InnerProductVec(fill(1 / sqrt(sum(w, domain)), n), skew_dot, norm)
+        v₀ = SymplecticFormVec(fill(1 / sqrt(sum(w, domain)), n), skew_dot)
         itr = ArnoldiIterator(
-            u -> InnerProductVec(domain .* u[], u.dotf, u.normf),
+            u -> SymplecticFormVec(domain .* u[], u.skewf),
             v₀,
             orth,
         )

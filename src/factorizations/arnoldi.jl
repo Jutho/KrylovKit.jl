@@ -142,7 +142,11 @@ function initialize(iter::ArnoldiIterator; verbosity::Int = KrylovDefaults.verbo
     end
     iszero(β₀) && throw(ArgumentError("initial vector should not have norm zero"))
     Ax₀ = apply(iter.operator, x₀)
-    α = inner(x₀, Ax₀) / (β₀ * β₀)
+    if iter.orth isa Orthogonalizer
+        α = inner(x₀, Ax₀) / (β₀ * β₀)
+    else
+        α = symplecticform(x₀, Ax₀) / (β₀ * β₀)
+    end
     T = typeof(α) # scalar type of the Rayleigh quotient
     # this line determines the vector type that we will henceforth use
     # vector scalar type can be different from `T`, e.g. for real inner products
@@ -177,7 +181,7 @@ function initialize(iter::ArnoldiIterator; verbosity::Int = KrylovDefaults.verbo
         iszero(α) && throw(ArgumentError("initial vector and its image are symplectically orthogonal"))
         V = SymplecticBasis([v])
         if iter.orth.esr == ESR2
-            r12 = standard_dot(v, r)
+            r12 = inner(v, r)
             r = add!!(r, v, -r12)
             H = T[r12, α]
         else
@@ -213,11 +217,11 @@ function initialize!(
         β = norm(r)
         push!(H, α, β)
     else
-        α = inner(V[1], w)
+        α = symplecticform(V[1], w)
         iszero(α) && throw(ArgumentError("initial vector and its image are symplectically orthogonal"))
         r = w
         if iter.orth.esr == ESR2
-            r12 = standard_dot(V[1], r)
+            r12 = inner(V[1], r)
             r = add!!(r, V[1], -r12)
             push!(H, r12, α)
         else
@@ -291,5 +295,5 @@ function arnoldirecurrence!!(
     )
     w = apply(operator, last(V))
     r, h = skeworthogonalize!!(w, V, h, orth)
-    return r, iseven(length(V)) ? (orth.esr == ESR3m ? one(scalartype(r)) : norm(r)) : inner(last(V), r)
+    return r, iseven(length(V)) ? (orth.esr == ESR3m ? one(scalartype(r)) : norm(r)) : symplecticform(last(V), r)
 end

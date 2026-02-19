@@ -74,20 +74,23 @@ end
 
 """
     project!!(y::AbstractVector, b::Basis, x,
-        [α::Number = 1, β::Number = 0, r = Base.OneTo(length(b))])
+        [α::Number = 1, β::Number = 0, r = Base.OneTo(length(b))];
+        innerfun = inner)
 
 For a given basis `b`, compute the expansion coefficients `y` resulting from
 projecting the vector `x` onto the subspace spanned by `b`; more specifically this computes
 
 ```
-    y[j] = β*y[j] + α * inner(b[r[j]], x)
+    y[j] = β*y[j] + α * innerfun(b[r[j]], x)
 ```
 
-for all ``j ∈ r``.
+for all ``j ∈ r``. The keyword `innerfun` allows using a custom bilinear form instead of
+the default `inner`.
 """
 function project!!(
         y::AbstractVector, b::Basis, x,
-        α::Number = true, β::Number = false, r = Base.OneTo(length(b))
+        α::Number = true, β::Number = false, r = Base.OneTo(length(b));
+        innerfun = inner
     )
     # no specialized routine for IndexLinear x because reduction dimension is large dimension
     length(y) == length(r) || throw(DimensionMismatch())
@@ -96,9 +99,9 @@ function project!!(
             Threads.@spawn for j in $J
                 @inbounds begin
                     if β == 0
-                        y[j] = α * inner(b[r[j]], x)
+                        y[j] = α * innerfun(b[r[j]], x)
                     else
-                        y[j] = β * y[j] + α * inner(b[r[j]], x)
+                        y[j] = β * y[j] + α * innerfun(b[r[j]], x)
                     end
                 end
             end
@@ -107,9 +110,9 @@ function project!!(
         for j in 1:length(r)
             @inbounds begin
                 if β == 0
-                    y[j] = α * inner(b[r[j]], x)
+                    y[j] = α * innerfun(b[r[j]], x)
                 else
-                    y[j] = β * y[j] + α * inner(b[r[j]], x)
+                    y[j] = β * y[j] + α * innerfun(b[r[j]], x)
                 end
             end
         end
@@ -624,11 +627,11 @@ function skeworthogonalize!!(
     np = numpairs(b)
     idx_odd = 1:2:(2np - 1)
     idx_even = 2:2:2np
-    project!!(view(x, idx_odd), b, v, -1, 0, idx_even)
-    project!!(view(x, idx_even), b, v, 1, 0, idx_odd)
+    project!!(view(x, idx_odd), b, v, -1, 0, idx_even; innerfun = symplecticform)
+    project!!(view(x, idx_even), b, v, 1, 0, idx_odd; innerfun = symplecticform)
     if isodd(length(b))
         if alg.esr == ESR2
-            x[2np + 1] = standard_dot(last(b), v)
+            x[2np + 1] = inner(last(b), v)
         else
             x[2np + 1] = zero(eltype(x))
         end
@@ -676,8 +679,8 @@ function skeworthogonalize!!(
     for m in 1:np
         i_odd = 2m - 1
         i_even = 2m
-        h_e = inner(b[i_odd], v)
-        h_f = inner(b[i_even], v)
+        h_e = symplecticform(b[i_odd], v)
+        h_f = symplecticform(b[i_even], v)
         x[i_odd] = -h_f
         x[i_even] = h_e
         v = add!!(v, b[i_odd], h_f)
@@ -685,7 +688,7 @@ function skeworthogonalize!!(
     end
     if isodd(length(b))
         if alg.esr == ESR2
-            x[2np + 1] = standard_dot(last(b), v)
+            x[2np + 1] = inner(last(b), v)
             v = add!!(v, last(b), -x[2np + 1])
         else
             x[2np + 1] = zero(eltype(x))
@@ -701,15 +704,15 @@ function reskeworthogonalize!!(
     for m in 1:np
         i_odd = 2m - 1
         i_even = 2m
-        h_e = inner(b[i_odd], v)
-        h_f = inner(b[i_even], v)
+        h_e = symplecticform(b[i_odd], v)
+        h_f = symplecticform(b[i_even], v)
         x[i_odd] -= h_f
         x[i_even] += h_e
         v = add!!(v, b[i_odd], h_f)
         v = add!!(v, b[i_even], -h_e)
     end
     if isodd(length(b)) && alg.esr == ESR2
-        r11 = standard_dot(last(b), v)
+        r11 = inner(last(b), v)
         x[2np + 1] += r11
         v = add!!(v, last(b), -r11)
     end
@@ -753,7 +756,7 @@ function skeworthonormalize!!(v, b::SymplecticBasis, x::AbstractVector, alg::Ske
     else
         # Adding even vector: scale so that ω(partner, v) = 1
         # The partner is the last vector in b (the odd vector of the current pair)
-        β = inner(last(b), v)
+        β = symplecticform(last(b), v)
         v = scale!!(v, inv(β))
     end
     return (v, β, Base.tail(out)...)
@@ -767,10 +770,10 @@ Skew-orthogonalize vector `v` against all the vectors in the symplectic basis `b
 skew-orthogonalization algorithm `alg` of type [`SkewOrthogonalizer`](@ref), and return the
 resulting vector `w` and the overlap coefficients `x` of `v` with the basis vectors in `b`.
 
-The skew-orthogonalization uses the skew-symmetric form `ω = inner`, which is expected to
-satisfy `ω(u, v) = -ω(v, u)` when vectors are appropriately wrapped (e.g., using
-`InnerProductVec`). For a symplectic basis with pairs `(u_{2m-1}, u_{2m})` where
-`ω(u_{2m-1}, u_{2m}) = 1`, the skew-orthogonalization ensures:
+The skew-orthogonalization uses the symplectic form [`symplecticform`](@ref), which is
+expected to satisfy `ω(u, v) = -ω(v, u)`. For vectors wrapped in `SymplecticFormVec`, a
+custom form function can be provided. For a symplectic basis with pairs `(u_{2m-1}, u_{2m})`
+where `ω(u_{2m-1}, u_{2m}) = 1`, the skew-orthogonalization ensures:
 - `ω(u_{2m-1}, w) = 0` for all `m`
 - `ω(u_{2m}, w) = 0` for all `m`
 
