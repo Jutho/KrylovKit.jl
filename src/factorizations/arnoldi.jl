@@ -47,7 +47,8 @@ Base.eltype(::Type{<:ArnoldiFactorization{<:Any, S}}) where {S} = S
 basis(F::ArnoldiFactorization) = F.V
 rayleighquotient(F::ArnoldiFactorization) = PackedHessenberg(F.H, F.k)
 residual(F::ArnoldiFactorization) = F.r
-@inbounds normres(F::ArnoldiFactorization) = F.H[end]
+@inbounds normres(F::ArnoldiFactorization{<:Any, <:Any, <:OrthonormalBasis}) = abs(F.H[end])
+@inbounds normres(F::ArnoldiFactorization{<:Any, <:Any, <:SymplecticBasis}) = F.H[end]
 rayleighextension(F::ArnoldiFactorization) = SimpleBasisVector(F.k, F.k)
 
 # Arnoldi iteration for constructing the orthonormal basis of a Krylov subspace.
