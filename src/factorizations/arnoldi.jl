@@ -279,6 +279,7 @@ function shrink!(state::ArnoldiFactorization, k; verbosity::Int = KrylovDefaults
     if verbosity > EACHITERATION_LEVEL
         @info "Arnoldi reduction to dimension $k: subspace normres = $(normres2string(β))"
     end
+    state.r = scale!!(r, β)
     return state
 end
 
