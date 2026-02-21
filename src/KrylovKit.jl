@@ -174,6 +174,9 @@ include("algorithms.jl")
 # OrthonormalBasis, orthogonalization and orthonormalization methods
 include("orthonormal.jl")
 
+# SymplecticBasis, skew-orthogonalization and skew-orthonormalization methods
+include("skeworthonormal.jl")
+
 # Dense linear algebra structures and functions used in the algorithms below
 include("dense/givens.jl")
 include("dense/linalg.jl")
@@ -249,6 +252,9 @@ end
 
 # vectors with modified inner product
 include("innerproductvec.jl")
+
+# vectors with custom symplectic form
+include("symplecticformvec.jl")
 
 # support for real
 _realinner(v, w) = real(inner(v, w))

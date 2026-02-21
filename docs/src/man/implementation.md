@@ -50,11 +50,31 @@ KrylovKit.ClassicalSymplecticGramSchmidtIR
 KrylovKit.ModifiedSymplecticGramSchmidtIR
 ```
 
+The skew-orthogonalization algorithms require a symplectic form to be defined for the
+vector type. This can be done by defining `KrylovKit.symplecticform(v, w)` for your vector
+type, or by wrapping your vectors in [`SymplecticFormVec`](@ref):
+```@docs
+KrylovKit.symplecticform
+KrylovKit.SymplecticFormVec
+```
+
+The normalization step in skew-orthonormalization is controlled by the elementary symplectic
+reflection (ESR) variant:
+```@docs
+KrylovKit.ESR
+```
+
 The expansion coefficients of a general vector in terms of a given orthonormal basis can be obtained as
 ```@docs
 KrylovKit.project!!
 ```
-whereas the inverse calculation is obtained as
+
+For symplectic bases, the analogous projection using the symplectic form is
+```@docs
+KrylovKit.skewproject!!
+```
+
+The inverse calculation, reconstructing a vector from expansion coefficients, is obtained as
 ```@docs
 KrylovKit.unproject!!
 ```
