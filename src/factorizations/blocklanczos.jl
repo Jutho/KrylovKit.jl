@@ -173,8 +173,7 @@ function initialize(
     X₁ = Block(map(Base.Fix2(scale, one(α)), X₀.vec))
 
     # Orthogonalization of the initial block
-    _, good_idx, is_drift = block_qr!(X₁, iter.qr_tol)
-    is_drift && @warn "Block size may be more than operator's rank. Please decrease Krylovdim or increase qr_tol."
+    _, good_idx, _ = block_qr!(X₁, iter.qr_tol)
     X₁ = X₁[good_idx]
     V = OrthonormalBasis(X₁.vec)
     bs = length(X₁) # block size of the first block
@@ -215,7 +214,6 @@ function expand!(
         _, good_idx, is_drift = block_qr!(R, iter.qr_tol)
         B = block_inner(R[good_idx], Rcopy) # Make sure R = XB
     end
-    is_drift && @warn "Block size may be more than operator's rank. Please decrease Krylovdim or increase qr_tol."
 
     bs_next = length(good_idx)
     push!(V, R[good_idx])
