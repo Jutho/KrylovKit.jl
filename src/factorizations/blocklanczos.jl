@@ -336,7 +336,6 @@ function block_qr!(block::Block, tol::Real)
             continue
         else
             R[j, j] = β
-            block[j] = scale!!(block[j], 1 / β)
             # DGKS reorthogonalization
             if β < 100 * tol
                 is_drift = true
@@ -353,6 +352,8 @@ function block_qr!(block::Block, tol::Real)
                     R[j, j] = β
                     block[j] = scale!!(block[j], 1 / β)
                 end
+            else
+                block[j] = scale!!(block[j], 1 / β)
             end
         end
     end
