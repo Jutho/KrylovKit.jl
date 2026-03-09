@@ -96,6 +96,42 @@ function _use_batched_component_kernel(::Type{<:OrthonormalBasis{<:AbstractVecto
 end
 
 """
+    KrylovKit.batched_inner!(y, b, x, α, β, r) -> y
+
+Compute `y[j] = β*y[j] + α*inner(b[r[j]], x)` for all `j in 1:length(r)`.
+
+The default implementation calls `inner` sequentially and is always correct. It also
+provides fast paths for non-CPU `AbstractArray{<:Number}` types (e.g., `CuArray`) and
+`AbstractVector` of such types (e.g., `Vector{CuArray}`), where
+`VectorInterface.inner` is guaranteed to reduce to the standard `dot` product and a
+single batched matrix-vector multiply can replace `k` sequential kernel launches.
+
+This function can be overloaded for user-defined types to exploit type-specific batching
+strategies.  In particular, types that define a non-standard `inner` product and also
+want GPU-style batching should provide their own method here.
+"""
+function batched_inner!(y::AbstractVector, b::OrthonormalBasis, x, α::Number, β::Number, r)
+    if _use_matrix_array_kernel(x)
+        return _project_matrix!(y, b, x, α, β, r)
+    elseif _use_batched_component_kernel(x)
+        return _project_batched_components!(y, b, x, α, β, r)
+    end
+    # Default: sequential inner calls — correct for any inner product, including
+    # InnerProductVec wrappers with custom dotf.  (InnerProductVec is not a subtype of
+    # AbstractArray{<:Number}, so _use_matrix_array_kernel returns false for it.)
+    for j in 1:length(r)
+        @inbounds begin
+            if β == false
+                y[j] = α * inner(b[r[j]], x)
+            else
+                y[j] = β * y[j] + α * inner(b[r[j]], x)
+            end
+        end
+    end
+    return y
+end
+
+"""
     project!!(y::AbstractVector, b::OrthonormalBasis, x,
         [α::Number = 1, β::Number = 0, r = Base.OneTo(length(b))])
 
@@ -114,16 +150,11 @@ function project!!(
     )
     # no specialized routine for IndexLinear x because reduction dimension is large dimension
     length(y) == length(r) || throw(DimensionMismatch())
-    if _use_matrix_array_kernel(x)
-        return project_matrix!(y, b, x, α, β, r)
-    elseif _use_batched_component_kernel(x)
-        return project_batched_components!(y, b, x, α, β, r)
-    end
-    if get_num_threads() > 1
+    if get_num_threads() > 1 && _use_multithreaded_array_kernel(x)
         @sync for J in splitrange(1:length(r), get_num_threads())
             Threads.@spawn for j in $J
                 @inbounds begin
-                    if β == 0
+                    if β == false
                         y[j] = α * inner(b[r[j]], x)
                     else
                         y[j] = β * y[j] + α * inner(b[r[j]], x)
@@ -131,22 +162,13 @@ function project!!(
                 end
             end
         end
-    else
-        for j in 1:length(r)
-            @inbounds begin
-                if β == 0
-                    y[j] = α * inner(b[r[j]], x)
-                else
-                    y[j] = β * y[j] + α * inner(b[r[j]], x)
-                end
-            end
-        end
+        return y
     end
-    return y
+    return batched_inner!(y, b, x, α, β, r)
 end
 # project using BLAS level-2 matrix-vector multiply (for non-CPU AbstractArrays like GPU arrays)
 # replaces k sequential dot products with a single batched matrix-vector multiply
-function project_matrix!(y::AbstractVector, b::OrthonormalBasis, x, α::Number, β::Number, r)
+function _project_matrix!(y::AbstractVector, b::OrthonormalBasis, x, α::Number, β::Number, r)
     n = length(r)
     n == 0 && return y
     # Stack basis vectors as columns of a matrix (all on the same device as x)
@@ -168,7 +190,7 @@ function project_matrix!(y::AbstractVector, b::OrthonormalBasis, x, α::Number, 
 end
 # project using component-wise batching (for Vector of non-CPU arrays, e.g., Vector{CuArray})
 # for each component, batches k dot products into one matrix-vector multiply
-function project_batched_components!(y::AbstractVector, b::OrthonormalBasis, x, α::Number, β::Number, r)
+function _project_batched_components!(y::AbstractVector, b::OrthonormalBasis, x, α::Number, β::Number, r)
     n = length(r)
     n == 0 && return y
     nc = length(x)
@@ -211,9 +233,8 @@ function unproject!!(
         return unproject_linear_multithreaded!(y, b, x, α, β, r)
     end
     # general case: using only vector operations, i.e. axpy! (similar to BLAS level 1)
-    # Note: for GPU arrays, sequential axpy calls are efficient because they do not require
-    # synchronization and can be pipelined by the GPU driver. A matrix-based approach
-    # (hcat + GEMV) would incur large allocation overhead and is not beneficial here.
+    # For GPU arrays, sequential axpy! calls can be pipelined by the driver without
+    # requiring synchronization, so there is no need for a separate batched path here.
     length(x) == length(r) || throw(DimensionMismatch())
     if β == 0
         y = scale!!(y, false) # should be hard zero
@@ -270,48 +291,6 @@ function unproject_linear_kernel!(
             end
         end
     end
-end
-# unproject using BLAS level-2 matrix-vector multiply (for non-CPU AbstractArrays like GPU arrays)
-# replaces k sequential axpy operations with a single batched matrix-vector multiply
-function unproject_matrix!(y, b::OrthonormalBasis, x::AbstractVector, α::Number, β::Number, r)
-    n = length(r)
-    length(x) == n || throw(DimensionMismatch())
-    n == 0 && return β == false ? zerovector!(y) : β == true ? y : scale!!(y, β)
-    # Copy CPU coefficient vector to device
-    x_dev = similar(y, eltype(x), n)
-    copyto!(x_dev, x)
-    # Stack basis vectors as columns of a matrix (all on device)
-    B = hcat((@inbounds b[ri] for ri in r)...)  # size: length(y) × n
-    # y = β*y + α * B * x_dev (all on device via a single GEMV call)
-    mul!(y, B, x_dev, α, β == false ? false : β)
-    return y
-end
-# unproject using component-wise batching (for Vector of non-CPU arrays, e.g., Vector{CuArray})
-# for each component, batches k axpy operations into one matrix-vector multiply
-function unproject_batched_components!(y, b::OrthonormalBasis, x::AbstractVector, α::Number, β::Number, r)
-    n = length(r)
-    length(x) == n || throw(DimensionMismatch())
-    nc = length(y)
-    n == 0 && return β == false ? zerovector!(y) : β == true ? y : scale!!(y, β)
-    # Copy CPU coefficient vector to device
-    x_dev = similar(y[1], eltype(x), n)
-    copyto!(x_dev, x)
-    # Apply β scaling to each component first
-    if β == false
-        for c in 1:nc
-            zerovector!(y[c])
-        end
-    elseif β != true
-        for c in 1:nc
-            scale!(y[c], β)
-        end
-    end
-    # For each component, update with batched matrix-vector multiply
-    for c in 1:nc
-        B_c = hcat((@inbounds b[ri][c] for ri in r)...)  # device matrix N_c × n
-        mul!(y[c], B_c, x_dev, α, true)  # y[c] += α * B_c * x_dev
-    end
-    return y
 end
 
 """
