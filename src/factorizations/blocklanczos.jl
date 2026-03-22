@@ -305,7 +305,8 @@ The function returns a matrix of size `(r, p)`, a vector of indices goodidx and 
 and `r` is the numerical rank of the input block. The matrix represents the upper-triangular factor of the QR decomposition,
 restricted to the `r` linearly independent components. The vector `goodidx` contains the indices of the non-zero
 (i.e., numerically independent) vectors in the orthonormalized block.
-If a small value of β is detected, the function will carry out an additional reorthogonalization step to further ensure the input block vectors are orthonormalized.
+If a small value of β (the norm of a vector after first orthogonalization) is detected, the function will carry out an additional
+reorthogonalization step to further ensure the input block vectors are orthonormalized.
 In such cases, is_drift is set to true to indicate potential numerical instability.
 """
 function block_qr!(block::Block, tol::Real)
