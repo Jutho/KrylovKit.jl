@@ -50,7 +50,9 @@ function basis(F::LanczosFactorization)
     return length(F.V) == F.k ? F.V :
         error("Not keeping vectors during Lanczos factorization")
 end
-rayleighquotient(F::LanczosFactorization) = SymTridiagonal(F.αs, F.βs)
+function rayleighquotient(F::LanczosFactorization)
+    return SymTridiagonal(view(F.αs, 1:(F.k)), view(F.βs, 1:(F.k - 1)))
+end
 residual(F::LanczosFactorization) = F.r
 @inbounds normres(F::LanczosFactorization) = F.βs[F.k]
 rayleighextension(F::LanczosFactorization) = SimpleBasisVector(F.k, F.k)
