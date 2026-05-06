@@ -27,3 +27,10 @@ end
     @test info.numops == 2
     @test info.normres == 0.0
 end
+
+# https://github.com/Jutho/KrylovKit.jl/issues/156
+@testset "Issue #156" begin
+    vals, vecs, info = eigsolve([1 0; 0 1])
+    @test info.converged ≥ 1
+    @test all(≈(1.0), vals[1:(info.converged)])
+end
