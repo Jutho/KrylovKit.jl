@@ -52,7 +52,7 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number = 0, a₁::Number 
         lmul!(gs[1], y)
         β = convert(S, abs(y[2]))
 
-        while (β > tol && length(fact) < krylovdim) # inner arnoldi loop
+        while (!iszero(R[k, k]) && β > tol && length(fact) < krylovdim) # inner arnoldi loop
             if alg.verbosity >= EACHITERATION_LEVEL
                 @info "GMRES linsolve in iteration $numiter; step $k: normres = $(normres2string(β))"
             end
@@ -69,24 +69,37 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number = 0, a₁::Number 
                 R[k, k] = α₀ + α₁ * H[k, k]
             end
 
-            # Apply Givens rotations
+            # Apply old Givens rotations
             Rk = view(R, :, k)
             @inbounds for i in 1:(k - 1)
                 lmul!(gs[i], Rk)
             end
-            gs[k], R[k, k] = givens(R[k, k], α₁ * normres(fact), k, k + 1)
 
-            # Apply Givens rotations to right hand side
-            y[k + 1] = zero(T)
-            lmul!(gs[k], y)
+            # Compute new Givens rotations for final row and also apply to right hand side
+            if hypot(R[k, k], α₁ * normres(fact)) < tol
+                if alg.verbosity >= WARN_LEVEL
+                    @warn "GMRES linsolve in iteration $numiter; step $k: linear operator is singular in Krylov subspace"
+                end
+                # rotate all the weight into y[k + 1]
+                gs[k], y[k + 1] = givens(zero(T), y[k], k + 1, k)
+                y[k] = zero(T)
+                R[k, k] = zero(T)
+            else
+                gs[k], R[k, k] = givens(R[k, k], α₁ * normres(fact), k, k + 1)
+                y[k + 1] = zero(T)
+                lmul!(gs[k], y)
+            end
 
             # New error
             β = convert(S, abs(y[k + 1]))
         end
 
         # Solve upper triangular system
-        y2 = copy(y)
-        ldiv!(UpperTriangular(R), y, 1:k)
+        if iszero(R[k, k]) && iszero(y[k])
+            ldiv!(UpperTriangular(R), y, 1:(k - 1))
+        else
+            ldiv!(UpperTriangular(R), y, 1:k)
+        end
 
         # Update x
         V = basis(fact)
@@ -94,7 +107,7 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number = 0, a₁::Number 
             x = add!!(x, V[i], y[i])
         end
 
-        if β > tol
+        if β > tol && numiter < maxiter
             # Recompute residual without reevaluating operator
             w = residual(fact)
             push!(V, scale!!(w, 1 / normres(fact)))
