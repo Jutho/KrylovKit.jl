@@ -228,7 +228,7 @@ function expand!(
         Mnext, 1:bs_next,
         1:bs_next
     )
-    state.R.vec[1:bs_next] .= Rnext.vec
+    state.R.vec[1:bs_next] = Rnext.vec
     state.norm_R = norm(Rnext)
     state.k += bs_next
     state.R_size = bs_next
@@ -301,7 +301,7 @@ This function performs a QR factorization of a block of abstract vectors using t
 It takes as input a block of abstract vectors and a tolerance parameter, which is used to determine whether a vector is considered numerically zero.
 The operation is performed in-place, transforming the input block into a block of orthonormal vectors.
 
-The function returns a matrix of size `(r, p)`, a vector of indices goodidx and a boolean flag is_drift. Here, `p` denotes the number of input vectors,
+The function returns a matrix of size `(r, p)`, a vector of indices `goodidx` and a boolean flag `is_drift`. Here, `p` denotes the number of input vectors,
 and `r` is the numerical rank of the input block. The matrix represents the upper-triangular factor of the QR decomposition,
 restricted to the `r` linearly independent components. The vector `goodidx` contains the indices of the non-zero
 (i.e., numerically independent) vectors in the orthonormalized block.
