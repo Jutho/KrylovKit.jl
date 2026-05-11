@@ -331,31 +331,21 @@ function block_qr!(block::Block, tol::Real)
         end
         β = norm(block[j])
 
+        if tol < β < 100 * tol # DGKS reorthogonalization
+            is_drift = true
+            for i in 1:(j - 1)
+                δ = inner(block[i], block[j])
+                R[i, j] += δ
+                block[j] = add!!(block[j], block[i], -δ)
+            end
+            β = norm(block[j])
+        end
         if β < tol
             block[j] = zerovector!!(block[j])
             idx[j] = false
-            continue
         else
             R[j, j] = β
-            # DGKS reorthogonalization
-            if β < 100 * tol
-                is_drift = true
-                for i in 1:(j - 1)
-                    δ = inner(block[i], block[j])
-                    R[i, j] += δ
-                    block[j] = add!!(block[j], block[i], -δ)
-                end
-                β = norm(block[j])
-                if β < tol
-                    block[j] = zerovector!!(block[j])
-                    idx[j] = false
-                else
-                    R[j, j] = β
-                    block[j] = scale!!(block[j], 1 / β)
-                end
-            else
-                block[j] = scale!!(block[j], 1 / β)
-            end
+            block[j] = scale!!(block[j], 1 / β)
         end
     end
     good_idx = findall(idx)
