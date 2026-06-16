@@ -711,10 +711,7 @@ end
             unwrapvec.(info2.residual[1:(info2.converged)])[2];
             atol = tolerance(T)
         )
-        @test isapprox(
-            evals1[1:(info1.converged)], evals2[1:(info2.converged)];
-            atol = tolerance(T)
-        )
+        @test evals1[1:(info1.converged)] ≈ evals2[1:(info2.converged)]
     end
     @testset for T in (Float64, ComplexF64)
         A = rand(T, (2N, 2N)) .- one(T) / 2
