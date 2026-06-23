@@ -528,7 +528,7 @@ struct JacobiDavidson <: EigenSolver end
 # Default values
 """
     module KrylovDefaults
-        const orth = KrylovKit.ModifiedGramSchmidtIR()
+        const orth = KrylovKit.ModifiedGramSchmidt2()
         const krylovdim = Ref(30)
         const maxiter = Ref(100)
         const blockkrylovdim = Ref(100)
@@ -538,7 +538,7 @@ struct JacobiDavidson <: EigenSolver end
 
 A module listing the default values for the typical parameters in Krylov based algorithms:
 
-  - `orth = ModifiedGramSchmidtIR()`: the orthogonalization routine used to orthogonalize
+  - `orth = ModifiedGramSchmidt2()`: the orthogonalization routine used to orthogonalize
     the Krylov basis in the `Lanczos` or `Arnoldi` iteration
   - `krylovdim = 30`: the maximal dimension of the Krylov subspace that will be constructed
   - `maxiter = 100`: the maximal number of outer iterations, i.e. the maximum number of
