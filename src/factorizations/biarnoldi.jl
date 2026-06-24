@@ -1,6 +1,6 @@
-mutable struct BiArnoldiFactorization{T, S} <: KrylovFactorization{T, S}
-    VH::ArnoldiFactorization{T, S}
-    WK::ArnoldiFactorization{T, S}
+mutable struct BiArnoldiFactorization{T, S, B} <: KrylovFactorization{T, S}
+    VH::ArnoldiFactorization{T, S, B}
+    WK::ArnoldiFactorization{T, S, B}
 end
 
 Base.length(F::BiArnoldiFactorization) = length(F.VH)
