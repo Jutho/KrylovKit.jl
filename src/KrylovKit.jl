@@ -32,14 +32,21 @@ export linsolve, reallinsolve, lssolve, reallssolve
 export eigsolve, geneigsolve, realeigsolve, schursolve, svdsolve, bieigsolve
 export exponentiate, expintegrator
 export orthogonalize, orthogonalize!!, orthonormalize, orthonormalize!!
+export skeworthogonalize, skeworthogonalize!!, skeworthonormalize, skeworthonormalize!!
 export basis, rayleighquotient, residual, normres, rayleighextension
 export initialize, initialize!, expand!, shrink!
 export ClassicalGramSchmidt, ClassicalGramSchmidt2, ClassicalGramSchmidtIR
 export ModifiedGramSchmidt, ModifiedGramSchmidt2, ModifiedGramSchmidtIR
+export ESR, ESR1, ESR2, ESR3m
+export ClassicalSymplecticGramSchmidt, ClassicalSymplecticGramSchmidt2
+export ClassicalSymplecticGramSchmidtIR
+export ModifiedSymplecticGramSchmidt, ModifiedSymplecticGramSchmidt2
+export ModifiedSymplecticGramSchmidtIR
 export LanczosIterator, BlockLanczosIterator, ArnoldiIterator, GKLIterator, BiArnoldiIterator
 export CG, GMRES, BiCGStab, Lanczos, BlockLanczos, Arnoldi, GKL, GolubYe, LSMR, BiArnoldi
 export KrylovDefaults, EigSorter
-export RecursiveVec, InnerProductVec, Block
+export RecursiveVec, InnerProductVec, SymplecticFormVec, Block, SymplecticBasis, numpairs
+export symplecticform
 
 # Multithreading
 const _NTHREADS = Ref(1)
@@ -167,6 +174,9 @@ include("algorithms.jl")
 # OrthonormalBasis, orthogonalization and orthonormalization methods
 include("orthonormal.jl")
 
+# SymplecticBasis, skew-orthogonalization and skew-orthonormalization methods
+include("skeworthonormal.jl")
+
 # Dense linear algebra structures and functions used in the algorithms below
 include("dense/givens.jl")
 include("dense/linalg.jl")
@@ -242,6 +252,9 @@ end
 
 # vectors with modified inner product
 include("innerproductvec.jl")
+
+# vectors with custom symplectic form
+include("symplecticformvec.jl")
 
 # support for real
 _realinner(v, w) = real(inner(v, w))
