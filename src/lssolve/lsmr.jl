@@ -7,6 +7,24 @@ function lssolve(operator, b, alg::LSMR, λ_::Real = 0)
     v = scale(v₀, one(T))
     β = norm(u)
     S = typeof(β)
+    tol::S = alg.tol
+
+    # Check for early return, before normalising: ‖Aᴴb‖ = α * β vanishes whenever
+    # `b` or `Aᴴb` does, and then `x = 0` solves the (damped) least-squares problem
+    absζ̄ = norm(v)
+    if absζ̄ <= tol
+        if alg.verbosity > STARTSTOP_LEVEL
+            @info """LSMR lssolve converged without any iterations:
+            * ‖b - A * x ‖ = $(normres2string(β))
+            * ‖[b - A * x; λ * x] ‖ = $(normres2string(β))
+            * ‖ Aᴴ(b - A x) - λ^2 x ‖ = $(normres2string(absζ̄))
+            * number of operations = 1"""
+        end
+        return (zerovector(v), ConvergenceInfo(1, u, absζ̄, 0, 1))
+    elseif alg.verbosity >= STARTSTOP_LEVEL
+        @info "LSMR lssolve starts with convergence measure ‖ Aᴴ(b - A x) - λ^2 x ‖ = $(normres2string(absζ̄))"
+    end
+
     u = scale!!(u, 1 / β)
     v = scale!!(v, 1 / β)
     α = norm(v)
@@ -41,22 +59,7 @@ function lssolve(operator, b, alg::LSMR, λ_::Real = 0)
     numiter = 0
     numops = 1 # One (adjoint) function application for v
     maxiter = alg.maxiter
-    tol::S = alg.tol
     λ::S = convert(S, λ_)
-
-    # Check for early return
-    if absζ̄ < tol
-        if alg.verbosity > STARTSTOP_LEVEL
-            @info """LSMR lssolve converged without any iterations:
-            * ‖b - A * x ‖ = $(normres2string(β))
-            * ‖[b - A * x; λ * x] ‖ = $(normres2string(β))
-            * ‖ Aᴴ(b - A x) - λ^2 x ‖ = $(normres2string(absζ̄))
-            * number of operations = $numops"""
-        end
-        return (x, ConvergenceInfo(1, r, absζ̄, numiter, numops))
-    elseif alg.verbosity >= STARTSTOP_LEVEL
-        @info "LSMR lssolve starts with convergence measure ‖ Aᴴ(b - A x) - λ^2 x ‖ = $(normres2string(absζ̄))"
-    end
 
     while true
         numiter += 1

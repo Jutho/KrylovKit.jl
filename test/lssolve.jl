@@ -111,3 +111,23 @@ end
         end
     end
 end
+@testset "LSMR with Aᴴb = 0 ($mode)" for mode in (:vector, :inplace, :outplace, :mixed)
+    scalartypes = mode === :vector ? (Float32, Float64, ComplexF32, ComplexF64) :
+        (ComplexF64,)
+    @testset for T in scalartypes
+        # the last n rows of A vanish, so both b = 0 and b supported on them give Aᴴb = 0
+        A = vcat(rand(T, (n, n)), zeros(T, (n, n)))
+        for b in (zeros(T, 2 * n), vcat(zeros(T, n), rand(T, n))), tol in (0, 1.0e-8)
+            for λ in (0, rand(real(T)))
+                x, info = @constinferred lssolve(
+                    wrapop(A, Val(mode)), wrapvec(b, Val(mode)),
+                    LSMR(; tol, verbosity = SILENT_LEVEL), λ
+                )
+                @test iszero(unwrapvec(x))
+                @test unwrapvec(info.residual) == b
+                @test info.converged == 1
+                @test info.numops == 1
+            end
+        end
+    end
+end
