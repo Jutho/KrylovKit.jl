@@ -12,7 +12,7 @@ function lssolve(operator, b, alg::LSMR, λ_::Real = 0)
     # Check for early return, before normalising: ‖Aᴴb‖ = α * β vanishes whenever
     # `b` or `Aᴴb` does, and then `x = 0` solves the (damped) least-squares problem
     absζ̄ = norm(v)
-    if absζ̄ < tol || iszero(absζ̄)
+    if absζ̄ <= tol
         if alg.verbosity > STARTSTOP_LEVEL
             @info """LSMR lssolve converged without any iterations:
             * ‖b - A * x ‖ = $(normres2string(β))
