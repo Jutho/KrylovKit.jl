@@ -70,6 +70,9 @@ function eigsolve(
             # Use the current residual block size `bs_R`, which can be smaller than `bs`:
             # only the last `bs_R` rows of U couple to the residual.
             keep = max(div(3 * krylovdim + 2 * converged, 5 * bs_R), 1) * bs_R
+            # Rounding down to a multiple of the block size can drop converged Ritz vectors;
+            # then use the unrounded `Lanczos` value, which satisfies `converged <= keep < krylovdim`.
+            keep < converged && (keep = div(3 * krylovdim + 2 * converged, 5))
             H = zeros(eltype(fact.H), keep + bs_R, keep)
             # The last bs_R rows of U contribute to calculate errors of Ritz values.
             @inbounds for j in 1:keep
