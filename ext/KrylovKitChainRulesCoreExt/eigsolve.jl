@@ -85,7 +85,7 @@ function make_eigsolve_pullback(
             if n_vecs > 0
                 for i in 1:n_vecs
                     if !(_Δvecs[i] isa AbstractZero)
-                        Δvecs[i] = _Δvecs[i]
+                        Δvecs[i] = unthunk(_Δvecs[i])
                     end
                 end
             end
