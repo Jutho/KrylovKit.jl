@@ -67,21 +67,26 @@ function eigsolve(
             numops += fact.R_size
         else # Shrink and restart following the shrinking method of `Lanczos`.
             numiter >= maxiter && break
-            keep = max(div(3 * krylovdim + 2 * converged, 5 * bs), 1) * bs
-            H = zeros(eltype(fact.H), keep + bs, keep)
-            # The last bs rows of U contribute to calculate errors of Ritz values.
+            # Use the current residual block size `bs_R`, which can be smaller than `bs`:
+            # only the last `bs_R` rows of U couple to the residual.
+            keep = max(div(3 * krylovdim + 2 * converged, 5 * bs_R), 1) * bs_R
+            # Rounding down to a multiple of the block size can drop converged Ritz vectors;
+            # then use the unrounded `Lanczos` value, which satisfies `converged <= keep < krylovdim`.
+            keep < converged && (keep = div(3 * krylovdim + 2 * converged, 5))
+            H = zeros(eltype(fact.H), keep + bs_R, keep)
+            # The last bs_R rows of U contribute to calculate errors of Ritz values.
             @inbounds for j in 1:keep
                 H[j, j] = D[j]
-                H[(keep + 1):end, j] = view(U, (K - bs + 1):K, j)
+                H[(keep + 1):end, j] = view(U, (K - bs_R + 1):K, j)
             end
             # Turn diagonal matrix D into a block tridiagonal matrix, and make sure
             # The residual of krylov subspace keeps the form of [0,..,0,R]
             @inbounds for j in keep:-1:1
-                h, ν = householder(H, j + bs, 1:j, j)
-                H[j + bs, j] = ν
-                H[j + bs, 1:(j - 1)] .= zero(eltype(H))
+                h, ν = householder(H, j + bs_R, 1:j, j)
+                H[j + bs_R, j] = ν
+                H[j + bs_R, 1:(j - 1)] .= zero(eltype(H))
                 lmul!(h, H)
-                rmul!(view(H, 1:(j + bs - 1), :), h')
+                rmul!(view(H, 1:(j + bs_R - 1), :), h')
                 rmul!(U, h')
             end
             # Transform the basis and update the residual and update the BTD.
@@ -92,7 +97,7 @@ function eigsolve(
             basistransform!(B, view(U, :, 1:keep))
 
             R_new = OrthonormalBasis(fact.R.vec[1:bs_R])
-            view_H = view(H, (keep + bs - bs_R + 1):(keep + bs), (keep - bs_R + 1):keep)
+            view_H = view(H, (keep + 1):(keep + bs_R), (keep - bs_R + 1):keep)
             basistransform!(R_new, view_H)
             fact.R.vec[1:bs_R] = R_new[1:bs_R]
 
