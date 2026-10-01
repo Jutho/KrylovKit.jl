@@ -78,10 +78,10 @@ function make_svdsolve_pullback(
             Δlvecs = fill(zerovector(lvecs[1]), n)
             Δrvecs = fill(zerovector(rvecs[1]), n)
             if n_lvecs > 0
-                Δlvecs[1:n_lvecs] .= view(_Δlvecs, 1:n_lvecs)
+                Δlvecs[1:n_lvecs] .= unthunk.(view(_Δlvecs, 1:n_lvecs))
             end
             if n_rvecs > 0
-                Δrvecs[1:n_rvecs] .= view(_Δrvecs, 1:n_rvecs)
+                Δrvecs[1:n_rvecs] .= unthunk.(view(_Δrvecs, 1:n_rvecs))
             end
         end
 

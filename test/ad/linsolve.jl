@@ -49,7 +49,7 @@ function ChainRulesCore.rrule(
     y = testfunthunk(args...)
     function thunkedpb(dy)
         pb = rrule_via_ad(config, testfun, args...)[2]
-        return map(z -> @thunk(z), pb(dy))
+        return map(z -> @thunk(unthunk(z)), pb(dy))
     end
     return y, thunkedpb
 end
