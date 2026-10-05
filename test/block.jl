@@ -181,3 +181,12 @@ end
         hcat([Xcopy[i].vec for i in 1:n]...); atol = tolerance(T)
     )
 end
+
+@testset "block_qr! rank detection for parallel vectors of different norms" begin
+    r = normalize(rand(N))
+    X = [b * r + 1.0e-16 * rand(N) for b in (1.0e-9, 1.0e-3, 1.0e-2)]
+    for Y in (X, reverse(X))
+        _, gi = KrylovKit.block_qr!(Block(deepcopy(Y)), tolerance(Float64))
+        @test length(gi) == 1
+    end
+end

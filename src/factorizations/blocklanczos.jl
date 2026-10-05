@@ -292,7 +292,8 @@ end
 """
     block_qr!(block::Block{T,S}, tol::Real) where {T,S}
 
-This function performs a QR factorization of a block of abstract vectors using the modified Gram-Schmidt process.
+This function performs a QR factorization of a block of abstract vectors using the modified Gram-Schmidt process
+with column pivoting, i.e. the remaining vector with the largest norm is processed first.
 
 ```
     [v₁,..,vₚ] -> [u₁,..,uᵣ] * R
@@ -302,9 +303,9 @@ It takes as input a block of abstract vectors and a tolerance parameter, which i
 The operation is performed in-place, transforming the input block into a block of orthonormal vectors.
 
 The function returns a matrix of size `(r, p)`, a vector of indices `goodidx` and a boolean flag `is_drift`. Here, `p` denotes the number of input vectors,
-and `r` is the numerical rank of the input block. The matrix represents the upper-triangular factor of the QR decomposition,
+and `r` is the numerical rank of the input block. The matrix represents the upper-triangular factor of the QR decomposition, up to a column permutation,
 restricted to the `r` linearly independent components. The vector `goodidx` contains the indices of the non-zero
-(i.e., numerically independent) vectors in the orthonormalized block.
+(i.e., numerically independent) vectors in the orthonormalized block, in pivot order.
 If a small value of β (the norm of a vector after first orthogonalization) is detected, the function will carry out an additional
 reorthogonalization step to further ensure the input block vectors are orthonormalized.
 In such cases, is_drift is set to true to indicate potential numerical instability.
@@ -312,42 +313,34 @@ In such cases, is_drift is set to true to indicate potential numerical instabili
 function block_qr!(block::Block, tol::Real)
     n = length(block)
     is_drift = false
-    idx = trues(n)
     r₁₁ = inner(block[1], block[1])
     R = zeros(typeof(r₁₁), n, n)
-    β = sqrt(real(r₁₁)) # norm(block[1])
-    if β > tol
-        R[1, 1] = β
-        block[1] = scale!!(block[1], 1 / β)
-    else
-        block[1] = zerovector!!(block[1])
-        idx[1] = false
-    end
-    for j in 2:n
-        # first MGS
-        for i in 1:(j - 1)
-            R[i, j] = inner(block[i], block[j])
-            block[j] = add!!(block[j], block[i], -R[i, j])
-        end
+    remaining = collect(1:n)
+    good_idx = Int[]
+    while !isempty(remaining)
+        j = popat!(remaining, argmax([norm(block[l]) for l in remaining]))
         β = norm(block[j])
-
         if tol < β < 100 * tol # DGKS reorthogonalization
             is_drift = true
-            for i in 1:(j - 1)
+            for (s, i) in enumerate(good_idx)
                 δ = inner(block[i], block[j])
-                R[i, j] += δ
+                R[s, j] += δ
                 block[j] = add!!(block[j], block[i], -δ)
             end
             β = norm(block[j])
         end
         if β < tol
             block[j] = zerovector!!(block[j])
-            idx[j] = false
-        else
-            R[j, j] = β
-            block[j] = scale!!(block[j], 1 / β)
+            continue
+        end
+        push!(good_idx, j)
+        s = length(good_idx)
+        R[s, j] = β
+        block[j] = scale!!(block[j], 1 / β)
+        for l in remaining # MGS
+            R[s, l] = inner(block[j], block[l])
+            block[l] = add!!(block[l], block[j], -R[s, l])
         end
     end
-    good_idx = findall(idx)
-    return R[good_idx, :], good_idx, is_drift
+    return R[1:length(good_idx), :], good_idx, is_drift
 end
