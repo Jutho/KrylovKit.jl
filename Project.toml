@@ -1,7 +1,7 @@
 name = "KrylovKit"
 uuid = "0b1a1467-8014-51b9-945f-bf0ae24f4b77"
 authors = ["Jutho Haegeman"]
-version = "0.10.4"
+version = "0.10.5"
 
 [deps]
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
@@ -28,7 +28,7 @@ Printf = "1"
 Random = "1"
 Test = "1"
 TestExtras = "0.2,0.3"
-VectorInterface = "0.5, 0.6"
+VectorInterface = "0.5, 0.6, 0.7"
 Zygote = "0.6, 0.7"
 julia = "1.6"
 SparseArrays = "1"
