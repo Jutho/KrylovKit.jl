@@ -129,7 +129,7 @@ function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     end
     normresiduals = [normres(fact) * abs(last(u)) for u in cols(U, 1:howmany′)]
 
-    if (converged < howmany) && alg.verbosity >= WARN_LEVEL
+    if (converged < min(howmany, size(T, 1))) && alg.verbosity >= WARN_LEVEL # all values are converged after an invariant subspace
         @warn """Arnoldi schursolve stopped without convergence after $numiter iterations:
         * $converged eigenvalues converged
         * norm of residuals = $(normres2string(normresiduals))
@@ -168,7 +168,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi; alg_rrul
     end
     normresiduals = [normres(fact) * abs(last(v)) for v in cols(V)]
 
-    if (converged < howmany) && alg.verbosity >= WARN_LEVEL
+    if (converged < min(howmany, size(T, 1))) && alg.verbosity >= WARN_LEVEL # all values are converged after an invariant subspace
         @warn """Arnoldi eigsolve stopped without convergence after $numiter iterations:
         * $converged eigenvalues converged
         * norm of residuals = $(normres2string(normresiduals))
@@ -380,7 +380,9 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
         if β <= tol && K < howmany
             if alg.verbosity >= WARN_LEVEL
                 msg = "Invariant subspace of dimension $K (up to requested tolerance `tol = $tol`), "
-                msg *= "which is smaller than the number of requested eigenvalues (i.e. `howmany == $howmany`)."
+                msg *= "which is smaller than the number of requested eigenvalues (`howmany = $howmany`): "
+                msg *= "returning $K eigenvalues. The Krylov subspace of a single start vector "
+                msg *= "contains only one eigenvector per distinct eigenvalue, so degenerate eigenvalues can be the cause."
                 @warn msg
             end
         end

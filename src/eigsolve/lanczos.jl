@@ -38,7 +38,9 @@ function eigsolve(
         if β <= tol && K < howmany
             if alg.verbosity >= WARN_LEVEL
                 msg = "Invariant subspace of dimension $K (up to requested tolerance `tol = $tol`), "
-                msg *= "which is smaller than the number of requested eigenvalues (i.e. `howmany == $howmany`)."
+                msg *= "which is smaller than the number of requested eigenvalues (`howmany = $howmany`): "
+                msg *= "returning $K eigenvalues. The Krylov subspace of a single start vector "
+                msg *= "contains only one eigenvector per distinct eigenvalue, so degenerate eigenvalues can be the cause."
                 @warn msg
             end
         end
@@ -138,7 +140,7 @@ function eigsolve(
         map(i -> abs(f[i]), 1:howmany′)
     end
 
-    if (converged < howmany) && alg.verbosity >= WARN_LEVEL
+    if (converged < howmany′) && alg.verbosity >= WARN_LEVEL # all values are converged after an invariant subspace
         @warn """Lanczos eigsolve stopped without convergence after $numiter iterations:
         * $converged eigenvalues converged
         * norm of residuals = $(normres2string(normresiduals))

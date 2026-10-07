@@ -85,10 +85,12 @@
                 orth = orth, krylovdim = 2n, maxiter = 1, tol = tolerance(T),
                 verbosity = WARN_LEVEL
             )
-            @test_logs (:warn,) (:warn,) eigsolve(
+            # an invariant subspace of dimension n: a single warning, all n values converged
+            D, = @test_logs (:warn, r"returning \d+ eigenvalues") eigsolve(
                 wrapop(A, Val(mode)),
                 wrapvec(v, Val(mode)), n + 1, :LM, alg
             )
+            @test length(D) == n
         end
     end
 end
@@ -242,10 +244,12 @@ end
                 orth = orth, krylovdim = 2n, maxiter = 1, tol = tolerance(T),
                 verbosity = WARN_LEVEL
             )
-            @test_logs (:warn,) (:warn,) eigsolve(
+            # an invariant subspace of dimension n: a single warning, all n values converged
+            D, = @test_logs (:warn, r"returning \d+ eigenvalues") eigsolve(
                 wrapop(A, Val(mode)),
                 wrapvec(v, Val(mode)), n + 1, :LM, alg
             )
+            @test length(D) == n
         end
     end
 end
@@ -615,7 +619,9 @@ end
             krylovdim = 2n, maxiter = 1, tol = tolerance(T),
             verbosity = WARN_LEVEL
         )
-        @test_logs (:warn,) (:warn,) eigsolve(wrapop(A, Val(mode)), x₀, n + 1, :LM, alg)
+        # an invariant subspace of dimension n: a single warning, all n values converged
+        D, = @test_logs (:warn, r"returning \d+ eigenvalues") eigsolve(wrapop(A, Val(mode)), x₀, n + 1, :LM, alg)
+        @test length(D) == n
     end
 end
 
