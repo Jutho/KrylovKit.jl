@@ -294,6 +294,7 @@ function realeigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi; alg_
     T, U, fact, converged, numiter, numops = _schursolve(
         A, RealVec(x₀), howmany, which, alg
     )
+    howmany = min(howmany, size(T, 1)) # invariant subspace smaller than `howmany`
     i = 0
     while i < howmany
         i += 1

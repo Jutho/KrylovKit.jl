@@ -279,6 +279,8 @@ function svdsolve(
     end
     if converged > howmany
         howmany = converged
+    elseif length(S) < howmany # invariant subspace smaller than `howmany`
+        howmany = length(S)
     end
     values = S[1:howmany]
 

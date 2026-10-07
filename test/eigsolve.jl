@@ -799,3 +799,17 @@ end
         end
     end
 end
+
+@testset "Arnoldi - realeigsolve with an invariant subspace smaller than howmany" begin
+    # with degenerate eigenvalues, the Krylov subspace of a single start vector becomes
+    # invariant after one direction per distinct eigenvalue
+    A = Diagonal([1.0, 1.0, 2.0, 2.0, 3.0, 3.0])
+    alg = Arnoldi(; krylovdim = 6, tol = 1.0e-12, verbosity = SILENT_LEVEL)
+    D, V, info = realeigsolve(A, ones(6), 4, :LM, alg)
+    @test D ≈ [3.0, 2.0, 1.0]
+    @test length(V) == length(info.normres) == 3
+    @test info.converged == 3
+    for (d, v) in zip(D, V)
+        @test A * v ≈ d * v
+    end
+end
