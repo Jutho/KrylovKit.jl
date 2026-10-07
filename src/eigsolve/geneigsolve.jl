@@ -59,7 +59,10 @@ arithmetic will be used even though `T<:Real` was specified.
 The return value is always of the form `vals, vecs, info = geneigsolve(...)` with
 
   - `vals`: a `Vector` containing the eigenvalues, of length at least `howmany`, but could
-    be longer if more eigenvalues were converged at the same cost.
+    be longer if more eigenvalues were converged at the same cost. It is shorter if the
+    Krylov subspace becomes invariant at a dimension smaller than `howmany`, e.g. because the
+    problem has degenerate eigenvalues: a single start vector yields only one eigenvector
+    per distinct eigenvalue.
 
   - `vecs`: a `Vector` of corresponding eigenvectors, of the same length as `vals`.
     Note that eigenvectors are not returned as a matrix, as the linear map could act on any

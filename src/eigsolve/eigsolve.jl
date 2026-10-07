@@ -78,7 +78,10 @@ to `by(λ) != by(conj(λ))`.
 The return value is always of the form `vals, vecs, info = eigsolve(...)` with
 
   - `vals`: a `Vector` containing the eigenvalues, of length at least `howmany`, but could
-    be longer if more eigenvalues were converged at the same cost. Eigenvalues will be real
+    be longer if more eigenvalues were converged at the same cost. It is shorter if the
+    Krylov subspace becomes invariant at a dimension smaller than `howmany`, e.g. because the
+    linear map has degenerate eigenvalues: a single start vector yields only one eigenvector
+    per distinct eigenvalue. Eigenvalues will be real
     if [`Lanczos`](@ref) or [`BlockLanczos`](@ref) was used and complex if [`Arnoldi`](@ref) was used (see below).
   - `vecs`: a `Vector` of corresponding eigenvectors, of the same length as `vals`. Note
     that eigenvectors are not returned as a matrix, as the linear map could act on any
