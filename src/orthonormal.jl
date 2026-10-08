@@ -68,7 +68,7 @@ _use_multithreaded_array_kernel(::Type) = false
 function _use_multithreaded_array_kernel(::Type{<:Array{T}}) where {T <: Number}
     return isbitstype(T) && get_num_threads() > 1
 end
-function _use_multithreaded_array_kernel(::Type{<:OrthonormalBasis{T}}) where {T}
+function _use_multithreaded_array_kernel(::Type{<:Basis{T}}) where {T}
     return _use_multithreaded_array_kernel(T)
 end
 
@@ -84,6 +84,9 @@ projecting the vector `x` onto the subspace spanned by `b`; more specifically th
 ```
 
 for all ``j ∈ r``.
+
+See also the method for [`SymplecticBasis`](@ref) which uses [`symplecticform`](@ref)
+instead of `inner`.
 """
 function project!!(
         y::AbstractVector, b::OrthonormalBasis, x,
@@ -118,10 +121,10 @@ function project!!(
 end
 
 """
-    unproject!!(y, b::OrthonormalBasis, x::AbstractVector,
+    unproject!!(y, b::Basis, x::AbstractVector,
         [α::Number = 1, β::Number = 0, r = Base.OneTo(length(b))])
 
-For a given orthonormal basis `b`, reconstruct the vector-like object `y` that is defined by
+For a given basis `b`, reconstruct the vector-like object `y` that is defined by
 expansion coefficients with respect to the basis vectors in `b` in `x`; more specifically
 this computes
 
@@ -130,7 +133,7 @@ this computes
 ```
 """
 function unproject!!(
-        y, b::OrthonormalBasis, x::AbstractVector,
+        y, b::Basis, x::AbstractVector,
         α::Number = true, β::Number = false, r = Base.OneTo(length(b))
     )
     if _use_multithreaded_array_kernel(y)
@@ -149,7 +152,7 @@ function unproject!!(
     return y
 end
 function unproject_linear_multithreaded!(
-        y::AbstractArray, b::OrthonormalBasis{<:AbstractArray}, x::AbstractVector,
+        y::AbstractArray, b::Basis{<:AbstractArray}, x::AbstractVector,
         α::Number = true, β::Number = false, r = Base.OneTo(length(b))
     )
     # multi-threaded implementation, similar to BLAS level 2 matrix vector multiplication
@@ -172,7 +175,7 @@ function unproject_linear_multithreaded!(
     return y
 end
 function unproject_linear_kernel!(
-        y::AbstractArray, b::OrthonormalBasis{<:AbstractArray}, x::AbstractVector,
+        y::AbstractArray, b::Basis{<:AbstractArray}, x::AbstractVector,
         I, α::Number, β::Number, r
     )
     return @inbounds begin
