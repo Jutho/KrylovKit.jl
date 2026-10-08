@@ -240,6 +240,24 @@ function normres2string(β)
     return s
 end
 
+# warning for a Krylov subspace that becomes invariant at a dimension `K < howmany`
+function _warn_invariant_subspace(K, tol, howmany; blocksize::Int = 1, singular::Bool = false)
+    vals = singular ? "singular values" : "eigenvalues"
+    msg = "Invariant subspace of dimension $K (up to requested tolerance `tol = $tol`), "
+    msg *= "which is smaller than the number of requested $vals (`howmany = $howmany`): "
+    msg *= "returning $K $vals. The Krylov subspace of "
+    if singular
+        msg *= "a single start vector contains only one pair of singular vectors per distinct singular value, "
+    elseif blocksize == 1
+        msg *= "a single start vector contains only one eigenvector per distinct eigenvalue, "
+    else
+        msg *= "a block of $blocksize start vectors contains at most $blocksize eigenvectors per distinct eigenvalue, "
+    end
+    msg *= "so degenerate $vals can be the cause."
+    @warn msg
+    return nothing
+end
+
 # vectors with modified inner product
 include("innerproductvec.jl")
 

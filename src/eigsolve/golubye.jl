@@ -51,11 +51,7 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
         β = norm(r)
         if β <= tol && K < howmany
             if alg.verbosity >= WARN_LEVEL
-                msg = "Invariant subspace of dimension $K (up to requested tolerance `tol = $tol`), "
-                msg *= "which is smaller than the number of requested eigenvalues (`howmany = $howmany`): "
-                msg *= "returning $K eigenvalues. The Krylov subspace of a single start vector "
-                msg *= "contains only one eigenvector per distinct eigenvalue, so degenerate eigenvalues can be the cause."
-                @warn msg
+                _warn_invariant_subspace(K, tol, howmany)
             end
             howmany = K
         end
