@@ -51,10 +51,7 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
         β = norm(r)
         if β <= tol && K < howmany
             if alg.verbosity >= WARN_LEVEL
-                msg = "Invariant subspace of dimension $K (up to requested tolerance `tol = $tol`), "
-                msg *= "which is smaller than the number of requested eigenvalues (i.e. `howmany == $howmany`);"
-                msg *= "setting `howmany = $K`."
-                @warn msg
+                _warn_invariant_subspace(K, tol, howmany)
             end
             howmany = K
         end

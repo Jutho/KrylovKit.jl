@@ -129,7 +129,7 @@ function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     end
     normresiduals = [normres(fact) * abs(last(u)) for u in cols(U, 1:howmany′)]
 
-    if (converged < howmany) && alg.verbosity >= WARN_LEVEL
+    if (converged < min(howmany, size(T, 1))) && alg.verbosity >= WARN_LEVEL # all values are converged after an invariant subspace
         @warn """Arnoldi schursolve stopped without convergence after $numiter iterations:
         * $converged eigenvalues converged
         * norm of residuals = $(normres2string(normresiduals))
@@ -168,7 +168,7 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi; alg_rrul
     end
     normresiduals = [normres(fact) * abs(last(v)) for v in cols(V)]
 
-    if (converged < howmany) && alg.verbosity >= WARN_LEVEL
+    if (converged < min(howmany, size(T, 1))) && alg.verbosity >= WARN_LEVEL # all values are converged after an invariant subspace
         @warn """Arnoldi eigsolve stopped without convergence after $numiter iterations:
         * $converged eigenvalues converged
         * norm of residuals = $(normres2string(normresiduals))
@@ -264,7 +264,10 @@ the `pullback` of `realeigsolve` in the context of reverse-mode automatic differ
 The return value is always of the form `vals, vecs, info = eigsolve(...)` with
 
   - `vals`: a `Vector` containing the eigenvalues, of length at least `howmany`, but could
-    be longer if more eigenvalues were converged at the same cost. Eigenvalues will be real,
+    be longer if more eigenvalues were converged at the same cost. It is shorter if the
+    Krylov subspace becomes invariant at a dimension smaller than `howmany`, e.g. because the
+    linear map has degenerate eigenvalues: a single start vector yields only one eigenvector
+    per distinct eigenvalue. Eigenvalues will be real,
     an `ArgumentError` will be thrown if the first `howmany` eigenvalues ordered according
     to `which` of the linear map are not all real.
   - `vecs`: a `Vector` of corresponding eigenvectors, of the same length as `vals`. Note
@@ -294,6 +297,7 @@ function realeigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi; alg_
     T, U, fact, converged, numiter, numops = _schursolve(
         A, RealVec(x₀), howmany, which, alg
     )
+    howmany = min(howmany, size(T, 1)) # invariant subspace smaller than `howmany`
     i = 0
     while i < howmany
         i += 1
@@ -379,9 +383,7 @@ function _schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
 
         if β <= tol && K < howmany
             if alg.verbosity >= WARN_LEVEL
-                msg = "Invariant subspace of dimension $K (up to requested tolerance `tol = $tol`), "
-                msg *= "which is smaller than the number of requested eigenvalues (i.e. `howmany == $howmany`)."
-                @warn msg
+                _warn_invariant_subspace(K, tol, howmany)
             end
         end
         if K == krylovdim || β <= tol || (alg.eager && K >= howmany) # process

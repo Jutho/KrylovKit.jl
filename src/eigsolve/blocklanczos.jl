@@ -30,9 +30,7 @@ function eigsolve(
         β = normres(fact)
 
         if β < tol && K < howmany && verbosity >= WARN_LEVEL
-            msg = "Invariant subspace of dimension $(K) (up to requested tolerance `tol = $tol`), "
-            msg *= "which is smaller than the number of requested eigenvalues (i.e. `howmany == $howmany`)."
-            @warn msg
+            _warn_invariant_subspace(K, tol, howmany; blocksize = bs)
         end
         # BlockLanczos can access the case of K = 1 and doesn't need extra processing
         if K >= krylovdim || β <= tol || (alg.eager && K >= howmany)
@@ -130,7 +128,7 @@ function eigsolve(
     end
     normresiduals = normresiduals[1:howmany_actual]
 
-    if (converged < howmany) && verbosity >= WARN_LEVEL
+    if (converged < howmany_actual) && verbosity >= WARN_LEVEL # all values are converged after an invariant subspace
         @warn """BlockLanczos eigsolve stopped without full convergence after $(K) iterations:
         * $converged eigenvalues converged
         * norm of residuals = $(normres2string(normresiduals))
