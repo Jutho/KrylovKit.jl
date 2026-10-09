@@ -105,7 +105,7 @@ end
     # invariant after one direction per distinct singular value
     A = Diagonal([1.0, 1.0, 2.0, 2.0, 3.0, 3.0])
     alg = GKL(; krylovdim = 6, tol = 1.0e-12, verbosity = WARN_LEVEL)
-    S, lvecs, rvecs, info = @test_logs (:warn, r"returning 3 singular values") svdsolve(A, ones(6), 4, :LR, alg)
+    S, lvecs, rvecs, info = @test_logs (:warn, r"returning 3 values") svdsolve(A, ones(6), 4, :LR, alg)
     @test S ≈ [3.0, 2.0, 1.0]
     @test length(lvecs) == length(rvecs) == length(info.normres) == 3
     @test info.converged == 3

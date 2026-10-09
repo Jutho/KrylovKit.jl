@@ -86,7 +86,7 @@
                 verbosity = WARN_LEVEL
             )
             # an invariant subspace of dimension n: a single warning, all n values converged
-            D, = @test_logs (:warn, r"returning \d+ eigenvalues") eigsolve(
+            D, = @test_logs (:warn, r"returning \d+ values") eigsolve(
                 wrapop(A, Val(mode)),
                 wrapvec(v, Val(mode)), n + 1, :LM, alg
             )
@@ -245,7 +245,7 @@ end
                 verbosity = WARN_LEVEL
             )
             # an invariant subspace of dimension n: a single warning, all n values converged
-            D, = @test_logs (:warn, r"returning \d+ eigenvalues") eigsolve(
+            D, = @test_logs (:warn, r"returning \d+ values") eigsolve(
                 wrapop(A, Val(mode)),
                 wrapvec(v, Val(mode)), n + 1, :LM, alg
             )
@@ -620,7 +620,7 @@ end
             verbosity = WARN_LEVEL
         )
         # an invariant subspace of dimension n: a single warning, all n values converged
-        D, = @test_logs (:warn, r"returning \d+ eigenvalues") eigsolve(wrapop(A, Val(mode)), x₀, n + 1, :LM, alg)
+        D, = @test_logs (:warn, r"returning \d+ values") eigsolve(wrapop(A, Val(mode)), x₀, n + 1, :LM, alg)
         @test length(D) == n
     end
 end

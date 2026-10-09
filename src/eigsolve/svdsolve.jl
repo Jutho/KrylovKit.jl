@@ -184,7 +184,7 @@ function svdsolve(
 
         if β <= tol && K < howmany
             if alg.verbosity >= WARN_LEVEL
-                _warn_invariant_subspace(K, tol, howmany; singular = true)
+                _warn_invariant_subspace(K, tol, howmany)
             end
         end
         if K == krylovdim || β <= tol || (alg.eager && K >= howmany)
