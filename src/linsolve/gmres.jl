@@ -146,6 +146,7 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number = 0, a₁::Number 
         # Restart Arnoldi factorization with new r
         iter = ArnoldiIterator(operator, r, alg.orth)
         fact = initialize!(iter, fact; verbosity = SILENT_LEVEL)
+        numops += 1 # initialize! applies operator once
     end
     return
 end
