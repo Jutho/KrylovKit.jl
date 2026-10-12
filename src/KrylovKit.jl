@@ -245,7 +245,11 @@ function _warn_invariant_subspace(K, tol, howmany; blocksize::Int = 1)
     msg = "Invariant subspace of dimension $K (up to requested tolerance `tol = $tol`), "
     msg *= "which is smaller than the number of requested values (`howmany = $howmany`): "
     msg *= "returning $K values.\n"
-    msg *= "The Krylov subspace does not capture degenerate vectors past its block size ($blocksize)."
+    if blocksize == 1
+        msg *= "A Krylov method cannot be expected to resolve degeneracies and will generically yield a single eigenvector or singular vector with every distinct value."
+    else
+        msg *= "A blocked Krylov method cannot be expected to resolve degeneracies beyond the chosen block size (=$blocksize)."
+    end
     @warn msg
     return nothing
 end
