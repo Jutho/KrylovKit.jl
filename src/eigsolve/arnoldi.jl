@@ -129,7 +129,8 @@ function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     end
     normresiduals = [normres(fact) * abs(last(u)) for u in cols(U, 1:howmany′)]
 
-    if (converged < min(howmany, size(T, 1))) && alg.verbosity >= WARN_LEVEL # all values are converged after an invariant subspace
+    # `howmany′ = howmany + 1` keeps a 2x2 Schur block together, which `converged` never splits
+    if (converged < howmany′) && alg.verbosity >= WARN_LEVEL # all values are converged after an invariant subspace
         @warn """Arnoldi schursolve stopped without convergence after $numiter iterations:
         * $converged eigenvalues converged
         * norm of residuals = $(normres2string(normresiduals))
@@ -168,7 +169,8 @@ function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi; alg_rrul
     end
     normresiduals = [normres(fact) * abs(last(v)) for v in cols(V)]
 
-    if (converged < min(howmany, size(T, 1))) && alg.verbosity >= WARN_LEVEL # all values are converged after an invariant subspace
+    # `howmany′ = howmany + 1` keeps a 2x2 Schur block together, which `converged` never splits
+    if (converged < howmany′) && alg.verbosity >= WARN_LEVEL # all values are converged after an invariant subspace
         @warn """Arnoldi eigsolve stopped without convergence after $numiter iterations:
         * $converged eigenvalues converged
         * norm of residuals = $(normres2string(normresiduals))
@@ -297,9 +299,9 @@ function realeigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi; alg_
     T, U, fact, converged, numiter, numops = _schursolve(
         A, RealVec(x₀), howmany, which, alg
     )
-    howmany = min(howmany, size(T, 1)) # invariant subspace smaller than `howmany`
+    howmany′ = min(howmany, size(T, 1)) # invariant subspace smaller than `howmany`
     i = 0
-    while i < howmany
+    while i < howmany′
         i += 1
         if i < length(fact)
             if abs(T[i + 1, i]) > alg.tol && alg.verbosity >= WARN_LEVEL
@@ -322,13 +324,13 @@ function realeigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi; alg_
             end
         end
     end
-    howmany = i
-    converged = min(converged, howmany)
-    TT = view(T, 1:howmany, 1:howmany)
+    howmany′ = i
+    converged = min(converged, howmany′)
+    TT = view(T, 1:howmany′, 1:howmany′)
     values = diag(TT)
 
     # Compute eigenvectors
-    V = view(U, :, 1:howmany) * schur2realeigvecs(TT)
+    V = view(U, :, 1:howmany′) * schur2realeigvecs(TT)
     vectors = let B = basis(fact)
         [(B * v)[] for v in cols(V)]
     end
@@ -337,7 +339,7 @@ function realeigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi; alg_
     end
     normresiduals = [normres(fact) * abs(last(v)) for v in cols(V)]
 
-    if (converged < howmany) && alg.verbosity >= WARN_LEVEL
+    if (converged < howmany′) && alg.verbosity >= WARN_LEVEL
         @warn """Arnoldi realeigsolve stopped without convergence after $numiter iterations:
         * $converged eigenvalues converged
         * norm of residuals = $(normres2string(normresiduals))

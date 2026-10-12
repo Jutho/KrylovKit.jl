@@ -276,16 +276,17 @@ function svdsolve(
             numiter += 1
         end
     end
+    howmany′ = howmany
     if converged > howmany
-        howmany = converged
+        howmany′ = converged
     elseif length(S) < howmany # invariant subspace smaller than `howmany`
-        howmany = length(S)
+        howmany′ = length(S)
     end
-    values = S[1:howmany]
+    values = S[1:howmany′]
 
     # Compute schur vectors
-    Pv = view(P, :, 1:howmany)
-    Qv = view(Q, 1:howmany, :)
+    Pv = view(P, :, 1:howmany′)
+    Qv = view(Q, 1:howmany′, :)
 
     # Compute convergence information
     leftvectors = let U = basis(fact, Val(:U))
@@ -298,9 +299,9 @@ function svdsolve(
         [scale(r, last(v)) for v in cols(Qv')]
     end
     normresiduals = let f = f
-        map(i -> abs(f[i]), 1:howmany)
+        map(i -> abs(f[i]), 1:howmany′)
     end
-    if (converged < howmany) && alg.verbosity >= WARN_LEVEL
+    if (converged < howmany′) && alg.verbosity >= WARN_LEVEL
         @warn """GKL svdsolve finished without convergence after $numiter iterations:
         * $converged singular values converged
         * norm of residuals = $(normres2string(normresiduals))

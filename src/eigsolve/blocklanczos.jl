@@ -105,30 +105,30 @@ function eigsolve(
         end
     end
 
-    howmany_actual = howmany
+    howmany′ = howmany
     if converged > howmany
-        howmany_actual = converged
+        howmany′ = converged
     elseif length(D) < howmany
-        howmany_actual = length(D)
+        howmany′ = length(D)
     end
-    values = D[1:howmany_actual]
-    U1 = view(U, :, 1:howmany_actual)
+    values = D[1:howmany′]
+    U1 = view(U, :, 1:howmany′)
     vectors = let V = basis(fact)
         [V * u for u in cols(U1)]
     end
     bs_R = fact.R_size
     K = length(fact)
-    U2 = view(U, (K - bs_R + 1):K, 1:howmany_actual)
+    U2 = view(U, (K - bs_R + 1):K, 1:howmany′)
     R = fact.R
-    residuals = [zerovector(R[1]) for _ in 1:howmany_actual]
-    @inbounds for i in 1:howmany_actual
+    residuals = [zerovector(R[1]) for _ in 1:howmany′]
+    @inbounds for i in 1:howmany′
         for j in 1:bs_R
             residuals[i] = add!!(residuals[i], R[j], U2[j, i])
         end
     end
-    normresiduals = normresiduals[1:howmany_actual]
+    normresiduals = normresiduals[1:howmany′]
 
-    if (converged < howmany_actual) && verbosity >= WARN_LEVEL # all values are converged after an invariant subspace
+    if (converged < howmany′) && verbosity >= WARN_LEVEL # all values are converged after an invariant subspace
         @warn """BlockLanczos eigsolve stopped without full convergence after $(K) iterations:
         * $converged eigenvalues converged
         * norm of residuals = $(normres2string(normresiduals))
