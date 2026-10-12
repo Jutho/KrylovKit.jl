@@ -52,9 +52,7 @@ The return value is always of the form `vals, lvecs, rvecs, info = svdsolve(...)
 
   - `vals`: a `Vector{<:Real}` containing the singular values, of length at least `howmany`,
     but could be longer if more singular values were converged at the same cost. It is
-    shorter if the Krylov subspace becomes invariant at a dimension smaller than `howmany`,
-    e.g. because the linear map has degenerate singular values: a single start vector yields
-    only one pair of singular vectors per distinct singular value.
+    shorter if the Krylov subspace becomes invariant at a dimension smaller than `howmany`.
   - `lvecs`: a `Vector` of corresponding left singular vectors, of the same length as
     `vals`.
   - `rvecs`: a `Vector` of corresponding right singular vectors, of the same length as

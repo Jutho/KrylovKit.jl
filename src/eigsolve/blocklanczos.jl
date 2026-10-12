@@ -30,7 +30,7 @@ function eigsolve(
         β = normres(fact)
 
         if β < tol && K < howmany && verbosity >= WARN_LEVEL
-            _warn_invariant_subspace(K, tol, howmany; blocksize = bs)
+            _warn_invariant_subspace(K, tol, howmany)
         end
         # BlockLanczos can access the case of K = 1 and doesn't need extra processing
         if K >= krylovdim || β <= tol || (alg.eager && K >= howmany)
