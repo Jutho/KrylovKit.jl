@@ -276,12 +276,7 @@ function svdsolve(
             numiter += 1
         end
     end
-    howmany′ = howmany
-    if converged > howmany
-        howmany′ = converged
-    elseif length(S) < howmany # invariant subspace smaller than `howmany`
-        howmany′ = length(S)
-    end
+    howmany′ = max(converged, min(howmany, length(S)))
     values = S[1:howmany′]
 
     # Compute schur vectors

@@ -109,15 +109,11 @@ restarts where a part of the current Krylov subspace is kept.
 """
 function schursolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi)
     T, U, fact, converged, numiter, numops = _schursolve(A, x₀, howmany, which, alg)
-    howmany′ = howmany
-    if eltype(T) <: Real && howmany < length(fact) && T[howmany + 1, howmany] != 0
+    howmany′ = min(howmany, size(T, 1))
+    if eltype(T) <: Real && howmany′ < length(fact) && T[howmany′ + 1, howmany′] != 0
         howmany′ += 1
-    elseif size(T, 1) < howmany
-        howmany′ = size(T, 1)
     end
-    if converged > howmany
-        howmany′ = converged
-    end
+    howmany′ = max(converged, howmany′)
     TT = view(T, 1:howmany′, 1:howmany′)
     values = schur2eigvals(TT)
 
@@ -147,15 +143,11 @@ end
 
 function eigsolve(A, x₀, howmany::Int, which::Selector, alg::Arnoldi; alg_rrule = alg)
     T, U, fact, converged, numiter, numops = _schursolve(A, x₀, howmany, which, alg)
-    howmany′ = howmany
-    if eltype(T) <: Real && howmany < length(fact) && T[howmany + 1, howmany] != 0
+    howmany′ = min(howmany, size(T, 1))
+    if eltype(T) <: Real && howmany′ < length(fact) && T[howmany′ + 1, howmany′] != 0
         howmany′ += 1
-    elseif size(T, 1) < howmany
-        howmany′ = size(T, 1)
     end
-    if converged > howmany
-        howmany′ = converged
-    end
+    howmany′ = max(converged, howmany′)
     TT = view(T, 1:howmany′, 1:howmany′)
     values = schur2eigvals(TT)
 

@@ -114,12 +114,7 @@ function eigsolve(
         end
     end
 
-    howmany′ = howmany
-    if converged > howmany
-        howmany′ = converged
-    elseif length(D) < howmany
-        howmany′ = length(D)
-    end
+    howmany′ = max(converged, min(howmany, length(D)))
     values = D[1:howmany′]
 
     # Compute eigenvectors
