@@ -47,16 +47,14 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
     if alg.verbosity >= EACHITERATION_LEVEL + 1
         @info "Golub-Ye iteration $numiter, step $K: normres = $(normres2string(β))"
     end
+    howmany′ = howmany
     while true
         β = norm(r)
-        if β <= tol && K < howmany
+        if β <= tol && K < howmany′
             if alg.verbosity >= WARN_LEVEL
-                msg = "Invariant subspace of dimension $K (up to requested tolerance `tol = $tol`), "
-                msg *= "which is smaller than the number of requested eigenvalues (i.e. `howmany == $howmany`);"
-                msg *= "setting `howmany = $K`."
-                @warn msg
+                _warn_invariant_subspace(K, tol, howmany)
             end
-            howmany = K
+            howmany′ = K
         end
         if K == krylovdim - converged || β <= tol # process
             if numiter > 1
@@ -124,12 +122,12 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
                 push!(vectors, v)
                 push!(residuals, r)
                 push!(normresiduals, β)
-                if (k == howmany && numiter == maxiter)
+                if (k == howmany′ && numiter == maxiter)
                     break
                 end
             end
-            if converged >= howmany
-                howmany = converged
+            if converged >= howmany′
+                howmany′ = converged
                 break
             end
             if alg.verbosity >= EACHITERATION_LEVEL
@@ -177,7 +175,7 @@ function geneigsolve(f, x₀, howmany::Int, which::Selector, alg::GolubYe)
             end
         end
     end
-    if (converged < howmany) && alg.verbosity >= WARN_LEVEL
+    if (converged < howmany′) && alg.verbosity >= WARN_LEVEL
         @warn """Golub-Ye geneigsolve stopped without convergence after $numiter iterations:
         * $converged eigenvalues converged
         * norm of residuals = $(normres2string(normresiduals))

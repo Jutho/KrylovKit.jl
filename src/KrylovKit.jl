@@ -240,6 +240,15 @@ function normres2string(β)
     return s
 end
 
+# warning for a Krylov subspace that becomes invariant at a dimension `K < howmany`
+function _warn_invariant_subspace(K, tol, howmany)
+    msg = "Invariant subspace of dimension $K (up to requested tolerance `tol = $tol`), "
+    msg *= "which is smaller than the number of requested values (`howmany = $howmany`): "
+    msg *= "returning $K values."
+    @warn msg
+    return nothing
+end
+
 # vectors with modified inner product
 include("innerproductvec.jl")
 

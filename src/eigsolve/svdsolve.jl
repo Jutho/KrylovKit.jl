@@ -51,7 +51,8 @@ values should be targeted. Valid specifications of `which` are
 The return value is always of the form `vals, lvecs, rvecs, info = svdsolve(...)` with
 
   - `vals`: a `Vector{<:Real}` containing the singular values, of length at least `howmany`,
-    but could be longer if more singular values were converged at the same cost.
+    but could be longer if more singular values were converged at the same cost. It is
+    shorter if the Krylov subspace becomes invariant at a dimension smaller than `howmany`.
   - `lvecs`: a `Vector` of corresponding left singular vectors, of the same length as
     `vals`.
   - `rvecs`: a `Vector` of corresponding right singular vectors, of the same length as
@@ -181,9 +182,7 @@ function svdsolve(
 
         if β <= tol && K < howmany
             if alg.verbosity >= WARN_LEVEL
-                msg = "Invariant subspace of dimension $K (up to requested tolerance `tol = $tol`), "
-                msg *= "which is smaller than the number of requested eigenvalues (i.e. `howmany == $howmany`)."
-                @warn msg
+                _warn_invariant_subspace(K, tol, howmany)
             end
         end
         if K == krylovdim || β <= tol || (alg.eager && K >= howmany)
@@ -275,14 +274,12 @@ function svdsolve(
             numiter += 1
         end
     end
-    if converged > howmany
-        howmany = converged
-    end
-    values = S[1:howmany]
+    howmany′ = max(converged, min(howmany, length(S)))
+    values = S[1:howmany′]
 
     # Compute schur vectors
-    Pv = view(P, :, 1:howmany)
-    Qv = view(Q, 1:howmany, :)
+    Pv = view(P, :, 1:howmany′)
+    Qv = view(Q, 1:howmany′, :)
 
     # Compute convergence information
     leftvectors = let U = basis(fact, Val(:U))
@@ -295,9 +292,9 @@ function svdsolve(
         [scale(r, last(v)) for v in cols(Qv')]
     end
     normresiduals = let f = f
-        map(i -> abs(f[i]), 1:howmany)
+        map(i -> abs(f[i]), 1:howmany′)
     end
-    if (converged < howmany) && alg.verbosity >= WARN_LEVEL
+    if (converged < howmany′) && alg.verbosity >= WARN_LEVEL
         @warn """GKL svdsolve finished without convergence after $numiter iterations:
         * $converged singular values converged
         * norm of residuals = $(normres2string(normresiduals))

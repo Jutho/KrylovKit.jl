@@ -138,15 +138,11 @@ function bieigsolve(f, v₀, w₀, howmany::Int, which::Selector, alg::BiArnoldi
         _bischursolve(f, v₀, w₀, howmany, which, alg)
     #! format: on
 
-    howmany′ = howmany
-    if eltype(T) <: Real && howmany < size(T, 1) && !iszero(T[howmany + 1, howmany])
+    howmany′ = min(howmany, size(T, 1))
+    if eltype(T) <: Real && howmany′ < size(T, 1) && !iszero(T[howmany′ + 1, howmany′])
         howmany′ += 1
-    elseif size(T, 1) < howmany
-        howmany′ = size(T, 1)
     end
-    if converged > howmany
-        howmany′ = converged
-    end
+    howmany′ = max(converged, howmany′)
 
     # Compute the eigenvalues and eigenvectors of the reduced matrices
     SS = view(S, 1:howmany′, 1:howmany′)
