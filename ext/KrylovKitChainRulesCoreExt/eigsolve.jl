@@ -112,6 +112,12 @@ function compute_eigsolve_pullback_data(
     )
     ws = similar(vecs, length(Δvecs))
     T = scalartype(vecs[1])
+    # w = V a + y with y ⊥ V: the orthogonal complement of the kept eigenvectors V is invariant
+    # under fᴴ, so only y needs a linear solve (V is not orthonormal if f is not Hermitian)
+    n = length(vals)
+    G = [inner(vecs[j], vecs[k]) for j in 1:n, k in 1:n]
+    Gc = cholesky!(Hermitian(G))
+    Q = orthogonalcomplementprojector(vecs, n, Gc)
     @inbounds for i in 1:length(Δvecs)
         Δλ = Δvals[i]
         Δv = Δvecs[i]
@@ -144,7 +150,7 @@ function compute_eigsolve_pullback_data(
         # end
 
         if isa(Δv, AbstractZero)
-            b = (zerovector(v), convert(T, Δλ))
+            r = zerovector(v)
         else
             vdΔv = inner(v, Δv)
             if alg_rrule.verbosity >= WARN_LEVEL
@@ -152,29 +158,28 @@ function compute_eigsolve_pullback_data(
                 gauge > alg_primal.tol &&
                     @warn "`eigsolve` cotangent for eigenvector $i is sensitive to gauge choice: (|gauge| = $gauge)"
             end
-            Δv = add(Δv, v, -vdΔv)
-            b = (Δv, convert(T, Δλ))
+            r = add(Δv, v, -vdΔv)
         end
-        w, reverse_info = let λ = λ, v = v
-            linsolve(b, zerovector(b), alg_rrule) do (x1, x2)
-                y1 = VectorInterface.add!!(
-                    VectorInterface.add!!(
-                        KrylovKit.apply(fᴴ, x1), x1, conj(λ), -1
-                    ),
-                    v, x2
-                )
-                y2 = inner(v, x1)
-                return (y1, y2)
+        # (λ̄ - fᴴ) w = r and vᴴ w = Δλ give b = Vᴴ w = G a in closed form
+        b = [j == i ? convert(T, Δλ) : safe_inv(conj(λ - vals[j]), alg_primal.tol) * inner(vecs[j], r) for j in 1:n]
+        a = Gc \ b
+        Va = scale(vecs[1], a[1])
+        for j in 2:n
+            Va = VectorInterface.add!!(Va, vecs[j], a[j])
+        end
+        # (λ̄ - fᴴ) y = Q r + Q fᴴ V a, where Q fᴴ V a = 0 if f is Hermitian
+        rhs = Q(r)
+        alg_primal isa Lanczos || (rhs = VectorInterface.add!!(rhs, Q(KrylovKit.apply(fᴴ, Va)), 1))
+        y, reverse_info = let λ = λ
+            linsolve(rhs, zerovector(rhs), alg_rrule) do x
+                return VectorInterface.add!!(Q(KrylovKit.apply(fᴴ, x)), x, conj(λ), -1)
             end
         end
         if info.converged >= i && reverse_info.converged == 0 &&
                 alg_primal.verbosity >= WARN_LEVEL
             @warn "`eigsolve` cotangent linear problem ($i) did not converge, whereas the primal eigenvalue problem did: normres = $(reverse_info.normres)"
-        elseif abs(w[2]) > (alg_rrule.tol * norm(w[1])) &&
-                alg_primal.verbosity >= WARN_LEVEL
-            @warn "`eigsolve` cotangent linear problem ($i) returns unexpected result: error = $(w[2])"
         end
-        ws[i] = w[1]
+        ws[i] = VectorInterface.add!!(y, Va, 1)
     end
     return ws
 end
