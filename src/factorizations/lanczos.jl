@@ -328,11 +328,8 @@ function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ModifiedGram
     w = add!!(w, V[end - 1], -β)
     w, α = orthogonalize!!(w, v, ModifiedGramSchmidt())
 
-    s = α
-    for q in V
-        w, s = orthogonalize!!(w, q, ModifiedGramSchmidt())
-    end
-    α += s
+    w, s = orthogonalize!!(w, V, ModifiedGramSchmidt())
+    α += s[end]
     β = norm(w)
     return w, α, β
 end
@@ -365,11 +362,8 @@ function lanczosrecurrence(operator, V::OrthonormalBasis, β, orth::ModifiedGram
     nold = sqrt(abs2(β) + ab2)
     while eps(one(β)) < β < orth.η * nold
         nold = β
-        s = zero(α)
-        for q in V
-            w, s = orthogonalize!!(w, q, ModifiedGramSchmidt())
-        end
-        α += s
+        w, s = orthogonalize!!(w, V, ModifiedGramSchmidt())
+        α += s[end]
         β = norm(w)
     end
     return w, α, β
