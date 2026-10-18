@@ -29,6 +29,9 @@ t = time()
 @testset "Krylov factorisations" verbose = true begin
     include("factorize.jl")
 end
+@testset "Symplectic Arnoldi" verbose = true begin
+    include("symplectic_arnoldi.jl")
+end
 @testset "Linear problems with linsolve" verbose = true begin
     include("linsolve.jl")
 end
