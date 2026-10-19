@@ -1,20 +1,18 @@
 using JLArrays
-using Random: Xoshiro
 using KrylovKit: OrthonormalBasis, project!!, unproject!!, basistransform!,
     orthogonalize!!, reorthogonalize!!
 
 @testset "Orthogonalization against a GPU array basis ($T)" for T in (Float64, ComplexF64)
-    rng = Xoshiro(1234)
     m, k = 3N ÷ 2, 7
     bc = OrthonormalBasis{Vector{T}}()
     for _ in 1:k
-        w, = orthonormalize(randn(rng, T, m), bc, mgs2)
+        w, = orthonormalize(randn(T, m), bc, mgs2)
         push!(bc, w)
     end
     bg = OrthonormalBasis(JLArray.(bc.basis))
 
     @testset "$alg" for alg in (cgs, mgs, cgs2, mgs2, cgsr, mgsr)
-        v = randn(rng, T, m)
+        v = randn(T, m)
         wc, xc = orthogonalize(v, bc, alg)
         wg, xg = orthogonalize!!(JLArray(v), bg, alg)
         @test wg isa JLArray
@@ -22,8 +20,8 @@ using KrylovKit: OrthonormalBasis, project!!, unproject!!, basistransform!,
         @test xg ≈ xc
     end
     @testset "reorthogonalize!! $alg" for alg in (cgs, mgs)
-        v = randn(rng, T, m)
-        x0 = randn(rng, T, k)
+        v = randn(T, m)
+        x0 = randn(T, k)
         wc, xc = reorthogonalize!!(copy(v), bc, copy(x0), alg)
         wg, xg = reorthogonalize!!(JLArray(v), bg, copy(x0), alg)
         @test Array(wg) ≈ wc
@@ -31,27 +29,27 @@ using KrylovKit: OrthonormalBasis, project!!, unproject!!, basistransform!,
     end
 
     @testset "project!! and unproject!!" begin
-        v = randn(rng, T, m)
+        v = randn(T, m)
         α, β = T(0.5), T(-2)
         r = 2:5
-        y0 = randn(rng, T, length(r))
+        y0 = randn(T, length(r))
         @test project!!(copy(y0), bg, JLArray(v), α, β, r) ≈ project!!(copy(y0), bc, v, α, β, r)
         @test project!!(zeros(T, k), bg, JLArray(v)) ≈ project!!(zeros(T, k), bc, v)
-        c = randn(rng, T, length(r))
+        c = randn(T, length(r))
         @test Array(unproject!!(JLArray(v), bg, c, α, β, r)) ≈ unproject!!(copy(v), bc, c, α, β, r)
-        c = randn(rng, T, k)
+        c = randn(T, k)
         @test Array(bg * c) ≈ bc * c
         for r in ([1, 3, 6], 4:-1:2, 2:1)
-            y0 = randn(rng, T, length(r))
+            y0 = randn(T, length(r))
             @test project!!(copy(y0), bg, JLArray(v), α, β, r) ≈ project!!(copy(y0), bc, v, α, β, r)
-            c = randn(rng, T, length(r))
+            c = randn(T, length(r))
             @test Array(unproject!!(JLArray(v), bg, c, α, β, r)) ≈ unproject!!(copy(v), bc, c, α, β, r)
             @test Array(unproject!!(JLArray(v), bg, c, α, zero(T), r)) ≈ unproject!!(copy(v), bc, c, α, zero(T), r)
         end
     end
 
     @testset "empty basis, $alg" for alg in (cgs, mgs, cgs2, mgs2)
-        v = randn(rng, T, m)
+        v = randn(T, m)
         b0 = OrthonormalBasis{typeof(JLArray(v))}()
         w, x = orthogonalize!!(JLArray(v), b0, alg)
         @test Array(w) ≈ v
@@ -59,7 +57,7 @@ using KrylovKit: OrthonormalBasis, project!!, unproject!!, basistransform!,
     end
 
     @testset "basistransform!" begin
-        U = Matrix(qr(randn(rng, T, k, k)).Q)[:, 1:4]
+        U = Matrix(qr(randn(T, k, k)).Q)[:, 1:4]
         bc′ = OrthonormalBasis(copy(bc.basis))
         bg′ = OrthonormalBasis(copy(bg.basis))
         olds = Array.(bg′.basis)
@@ -67,14 +65,14 @@ using KrylovKit: OrthonormalBasis, project!!, unproject!!, basistransform!,
         basistransform!(bg′, U)
         @test all(Array(bg′[j]) ≈ bc′[j] for j in 1:k)
         @test all(Array(bg.basis[j]) == olds[j] for j in 1:k)
-        v = randn(rng, T, m)
+        v = randn(T, m)
         @test project!!(zeros(T, k), bg′, JLArray(v)) ≈ project!!(zeros(T, k), bc′, v)
     end
 
     @testset "mutating the basis" begin
         bc′ = OrthonormalBasis(copy(bc.basis))
         bg′ = OrthonormalBasis(copy(bg.basis))
-        v = randn(rng, T, m)
+        v = randn(T, m)
         project!!(zeros(T, k), bg′, JLArray(v))
         bc′[2] = scale!!(bc′[2], -1)
         bg′[2] = scale!!(bg′[2], -1)
@@ -91,13 +89,12 @@ using KrylovKit: OrthonormalBasis, project!!, unproject!!, basistransform!,
 end
 
 @testset "Krylov solvers with GPU arrays ($T)" for T in (Float64, ComplexF64)
-    rng = Xoshiro(5678)
     m = 3N ÷ 2
-    A = rand(rng, T, (m, m)) .- one(T) / 2
+    A = rand(T, (m, m)) .- one(T) / 2
     H = (A + A') / 2
     Ag = JLArray(A)
     Hg = JLArray(H)
-    v = rand(rng, T, m)
+    v = rand(T, m)
     vg = JLArray(v)
 
     @testset "Lanczos eigsolve, $orth" for orth in (cgs2, mgs2, cgsr, mgsr)
@@ -125,7 +122,7 @@ end
 
     @testset "GMRES linsolve, $orth" for orth in (cgs2, mgs2, cgsr, mgsr)
         alg = GMRES(; orth, krylovdim = n, maxiter = 50, tol = 10 * m * eps(real(T)))
-        b = rand(rng, T, m)
+        b = rand(T, m)
         a₁ = -one(T) / (4 * norm(A))
         x, info = linsolve(y -> Ag * y, JLArray(b), zerovector(JLArray(b)), alg, one(T), a₁)
         xc, infoc = linsolve(y -> A * y, b, zerovector(b), alg, one(T), a₁)
