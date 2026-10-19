@@ -156,7 +156,7 @@ function build_fun_example(A, x, c, d, howmany::Int, alg, alg_rrule)
     return fun_example_ad, fun_example_fd, Avec, xvec, cvec, dvec, vals, lvecs, rvecs
 end
 
-@timedtestset "Small svdsolve AD test with eltype=$T" for T in
+@testset "Small svdsolve AD test with eltype=$T" for T in
     (
         Float32, Float64, ComplexF32,
         ComplexF64,
@@ -486,7 +486,7 @@ end
         end
     end
 end
-@timedtestset "Large svdsolve AD test with eltype=$T" for T in (Float64, ComplexF64)
+@testset "Large svdsolve AD test with eltype=$T" for T in (Float64, ComplexF64)
     which = :LR
     A = rand(T, (N, N + n)) .- one(T) / 2
     A = I[1:N, 1:(N + n)] - (9 // 10) * A / maximum(svdvals(A))
