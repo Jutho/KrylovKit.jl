@@ -1,9 +1,9 @@
 module SvdsolveAD
 using KrylovKit, LinearAlgebra
 using KrylovKit: SILENT_LEVEL, WARN_LEVEL, STARTSTOP_LEVEL, EACHITERATION_LEVEL
-using Random, Test, TestExtras
+using Random, Test, TestExtras, StableRNGs
 using ChainRulesCore, ChainRulesTestUtils, Zygote, FiniteDifferences
-Random.seed!(123456789)
+const rng = StableRNG(4)
 
 fdm = ChainRulesTestUtils._fdm
 n = 10
@@ -161,8 +161,8 @@ end
         Float32, Float64, ComplexF32,
         ComplexF64,
     )
-    A = 2 * (rand(T, (n, 2 * n)) .- one(T) / 2)
-    x = 2 * (rand(T, n) .- one(T) / 2)
+    A = 2 * (rand(rng, T, (n, 2 * n)) .- one(T) / 2)
+    x = 2 * (rand(rng, T, n) .- one(T) / 2)
     x /= norm(x)
     condA = cond(A)
 
@@ -488,12 +488,12 @@ end
 end
 @testset "Large svdsolve AD test with eltype=$T" for T in (Float64, ComplexF64)
     which = :LR
-    A = rand(T, (N, N + n)) .- one(T) / 2
+    A = rand(rng, T, (N, N + n)) .- one(T) / 2
     A = I[1:N, 1:(N + n)] - (9 // 10) * A / maximum(svdvals(A))
-    x = 2 * (rand(T, N) .- one(T) / 2)
+    x = 2 * (rand(rng, T, N) .- one(T) / 2)
     x /= norm(x)
-    c = 2 * (rand(T, N) .- one(T) / 2)
-    d = 2 * (rand(T, N + n) .- one(T) / 2)
+    c = 2 * (rand(rng, T, N) .- one(T) / 2)
+    d = 2 * (rand(rng, T, N + n) .- one(T) / 2)
 
     howmany = 2
     tol = 2 * N^2 * eps(real(T))

@@ -1,8 +1,9 @@
 module LinsolveAD
 using KrylovKit, LinearAlgebra
-using Random, Test, TestExtras
+using Random, Test, TestExtras, StableRNGs
 using ChainRulesCore, ChainRulesTestUtils, Zygote, FiniteDifferences
 using ..TestSetup
+const rng = StableRNG(37)
 
 fdm = ChainRulesTestUtils._fdm
 n = 10
@@ -84,10 +85,10 @@ end
         Float32, Float64, ComplexF32,
         ComplexF64,
     )
-    A = 2 * (rand(T, (n, n)) .- one(T) / 2)
-    b = 2 * (rand(T, n) .- one(T) / 2)
+    A = 2 * (rand(rng, T, (n, n)) .- one(T) / 2)
+    b = 2 * (rand(rng, T, n) .- one(T) / 2)
     b /= norm(b)
-    x = 2 * (rand(T, n) .- one(T) / 2)
+    x = 2 * (rand(rng, T, n) .- one(T) / 2)
 
     condA = cond(A)
     tol = tolerance(T) #condA * (T <: Real ? eps(T) : 4 * eps(real(T)))
@@ -111,13 +112,13 @@ end
 end
 
 @testset "Large linsolve AD test with eltype=$T" for T in (Float64, ComplexF64)
-    A = rand(T, (N, N)) .- one(T) / 2
+    A = rand(rng, T, (N, N)) .- one(T) / 2
     A = I - (9 // 10) * A / maximum(abs, eigvals(A))
-    b = 2 * (rand(T, N) .- one(T) / 2)
-    c = 2 * (rand(T, N) .- one(T) / 2)
-    d = 2 * (rand(T, N) .- one(T) / 2)
-    e = rand(T)
-    f = rand(T)
+    b = 2 * (rand(rng, T, N) .- one(T) / 2)
+    c = 2 * (rand(rng, T, N) .- one(T) / 2)
+    d = 2 * (rand(rng, T, N) .- one(T) / 2)
+    e = rand(rng, T)
+    f = rand(rng, T)
 
     # mix algorithms]
     tol = tolerance(T) # N^2 * eps(real(T))
