@@ -77,7 +77,10 @@ function build_mat_example(A, x, howmany::Int, alg, alg_rrule)
             dr = dot(rvecs[i], rvecs′[i])
             @assert abs(dl) > sqrt(eps(real(eltype(A))))
             @assert abs(dr) > sqrt(eps(real(eltype(A))))
-            phasefix = sqrt(abs(dl * dr) / (dl * dr))
+            # the gauge freedom is a common phase of the left and right vector, so fix the full phase
+            # (a square root would leave a joint sign flip undetected)
+            dlr = dl + dr
+            phasefix = abs(dlr) / dlr
             lvecs′[i] = lvecs′[i] * phasefix
             rvecs′[i] = rvecs′[i] * phasefix
         end
@@ -142,7 +145,10 @@ function build_fun_example(A, x, c, d, howmany::Int, alg, alg_rrule)
             dr = dot(rvecs[i], rvecs′[i])
             @assert abs(dl) > sqrt(eps(real(eltype(A))))
             @assert abs(dr) > sqrt(eps(real(eltype(A))))
-            phasefix = sqrt(abs(dl * dr) / (dl * dr))
+            # the gauge freedom is a common phase of the left and right vector, so fix the full phase
+            # (a square root would leave a joint sign flip undetected)
+            dlr = dl + dr
+            phasefix = abs(dlr) / dlr
             lvecs′[i] = lvecs′[i] * phasefix
             rvecs′[i] = rvecs′[i] * phasefix
         end
