@@ -438,7 +438,7 @@ end
                 howmany, :LR, alg;
                 alg_rrule = alg_rrule
             )
-            @test_logs (:warn,) (:info,) (:info,) (:warn,) (:info,) (:info,) pb(
+            @test_logs (:warn,) (:info,) (:warn,) (:info,) pb(
                 (
                     ZeroTangent(),
                     im .*
@@ -448,7 +448,7 @@ end
                     NoTangent(),
                 )
             )
-            @test_logs (:warn,) (:info,) (:info,) (:warn,) (:info,) (:info,) pb(
+            @test_logs (:warn,) (:info,) (:warn,) (:info,) pb(
                 (
                     ZeroTangent(),
                     lvecs[2:-1:1],
@@ -459,7 +459,7 @@ end
                     NoTangent(),
                 )
             )
-            @test_logs (:info,) (:info,) (:info,) (:info,) pb(
+            @test_logs (:info,) (:info,) pb(
                 (
                     ZeroTangent(),
                     lvecs[1:2] .+ lvecs[2:-1:1],
@@ -467,7 +467,7 @@ end
                     NoTangent(),
                 )
             )
-            @test_logs (:warn,) (:info,) (:info,) (:warn,) (:info,) (:info,) pb(
+            @test_logs (:warn,) (:info,) (:warn,) (:info,) pb(
                 (
                     ZeroTangent(),
                     im .*
@@ -479,7 +479,7 @@ end
                     NoTangent(),
                 )
             )
-            @test_logs (:info,) (:info,) (:info,) (:info,) pb(
+            @test_logs (:info,) (:info,) pb(
                 (
                     ZeroTangent(),
                     (1 + im) .* lvecs[1:2] .+
