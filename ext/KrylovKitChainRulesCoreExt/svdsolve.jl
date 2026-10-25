@@ -110,6 +110,8 @@ function compute_svdsolve_pullback_data(
     )
     xs = similar(lvecs, length(Δvals))
     ys = similar(rvecs, length(Δvals))
+    QU = orthogonalcomplementprojector(lvecs, length(vals))
+    QV = orthogonalcomplementprojector(rvecs, length(vals))
     for i in 1:length(vals)
         Δσ = Δvals[i]
         Δu = Δlvecs[i]
@@ -136,15 +138,24 @@ function compute_svdsolve_pullback_data(
         else
             Δs = real(Δσ)
         end
-        b = (add(Δu, u, -udΔu), add(Δv, v, -vdΔv))
-        (x, y), reverse_info = let σ = σ, u = u, v = v
+        # solve on the orthogonal complement of all kept singular vectors
+        b = (QU(Δu), QV(Δv))
+        (x, y), reverse_info = let σ = σ
             linsolve(b, zerovector(b), alg_rrule) do (x, y)
-                x′ = VectorInterface.add!!(apply_normal(f, y), x, σ, -1)
-                y′ = VectorInterface.add!!(apply_adjoint(f, x), y, σ, -1)
-                x′ = VectorInterface.add!!(x′, u, -inner(u, x′))
-                y′ = VectorInterface.add!!(y′, v, -inner(v, y′))
+                x′ = VectorInterface.add!!(QU(apply_normal(f, y)), x, σ, -1)
+                y′ = VectorInterface.add!!(QV(apply_adjoint(f, x)), y, σ, -1)
                 return (x′, y′)
             end
+        end
+        # the components along the other kept singular vectors in closed form:
+        # σ α - σⱼ β = uⱼᴴ Δu, σ β - σⱼ α = vⱼᴴ Δv
+        for j in 1:length(vals)
+            j == i && continue
+            ujΔu, vjΔv = inner(lvecs[j], Δu), inner(rvecs[j], Δv)
+            c₋ = safe_inv(σ - vals[j], alg_primal.tol) * (ujΔu + vjΔv) / 2
+            c₊ = (ujΔu - vjΔv) / (2 * (σ + vals[j]))
+            x = VectorInterface.add!!(x, lvecs[j], c₋ + c₊)
+            y = VectorInterface.add!!(y, rvecs[j], c₋ - c₊)
         end
         if info.converged >= i && reverse_info.converged == 0 &&
                 alg_primal.verbosity >= WARN_LEVEL
