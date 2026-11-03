@@ -111,7 +111,7 @@ function tridiageigh!(A::SymTridiagonal{T}) where {T <: BlasFloat}
     return tridiageigh!(A, Z)
 end
 function tridiageigh!(A::SymTridiagonal{T}, Z::StridedMatrix{T}) where {T <: BlasFloat}
-    dv, ev = copy(A.dv), copy(A.ev) # stegr! overwrites its input, also if it fails
+    dv, ev = copy(A.dv), copy(A.ev) # stegr! may overwrite its input, also if it fails
     try
         return stegr!(A.dv, A.ev, Z)
     catch e
