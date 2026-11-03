@@ -122,7 +122,7 @@ end
     @test S[1:3] ≈ svdvals(A)[1:3]
     @test norm(A * rvecs[1] - S[1] * lvecs[1]) < 1.0e-12
 
-    # whether the values blow up depends on rounding, but `V` always loses orthogonality
+    # whether the values blow up depends on rounding, but `V` reliably loses orthogonality
     iter = GKLIterator(A, ones(10), cgs2)
     fact = initialize(iter)
     for _ in 2:9
