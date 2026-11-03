@@ -111,7 +111,15 @@ function tridiageigh!(A::SymTridiagonal{T}) where {T <: BlasFloat}
     return tridiageigh!(A, Z)
 end
 function tridiageigh!(A::SymTridiagonal{T}, Z::StridedMatrix{T}) where {T <: BlasFloat}
-    return stegr!(A.dv, A.ev, Z)
+    dv, ev = copy(A.dv), copy(A.ev) # stegr! overwrites its input, also if it fails
+    try
+        return stegr!(A.dv, A.ev, Z)
+    catch e
+        e isa LAPACKException || rethrow()
+        # MRRR can fail on tight eigenvalue clusters (#57); QL iteration is slower but robust
+        D, Q = LAPACK.stev!('V', dv, ev)
+        return D, copyto!(Z, Q)
+    end
 end # redefined
 
 # Generalized eigenvalue decomposition of symmetric / Hermitian problem
