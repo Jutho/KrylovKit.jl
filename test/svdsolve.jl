@@ -114,3 +114,11 @@ end
         @test A' * u ≈ s * v
     end
 end
+
+@testset "GKL - svdsolve with cgs2 on an ill-conditioned matrix" begin
+    # without reorthogonalizing `v`, the values below blow up to about 1e48
+    A = [1 / (i + j - 1) for i in 1:10, j in 1:10]
+    S, lvecs, rvecs, info = svdsolve(A, ones(10), 3, :LR, GKL(; orth = cgs2))
+    @test S[1:3] ≈ svdvals(A)[1:3]
+    @test norm(A * rvecs[1] - S[1] * lvecs[1]) < 1.0e-12
+end
