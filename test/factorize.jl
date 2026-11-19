@@ -401,3 +401,40 @@ end
         end
     end
 end
+
+# Test BlockLanczos factorization from a MatrixBlock
+@testset "BlockLanczos factorization from a MatrixBlock" begin
+    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
+        block_size = 5
+        A = mat_with_eigrepition(T, N, block_size)
+        x₀ = MatrixBlock(rand(T, N, block_size))
+        for op in (A, x -> A * x)
+            iter = @constinferred BlockLanczosIterator(
+                op, x₀, N, KrylovKit.KrylovDefaults.orth, tolerance(T)
+            )
+            fact = @constinferred initialize(iter)
+            @test_logs (:info,) initialize(iter; verbosity = EACHITERATION_LEVEL + 1)
+            @test_logs (:info,) expand!(iter, initialize(iter); verbosity = EACHITERATION_LEVEL + 1)
+            while fact.norm_R > eps(float(real(T))) && fact.k < n
+                @constinferred expand!(iter, fact)
+                k = fact.k
+                V = reduce(hcat, [b.data for b in fact.V.blocks])
+                r = fact.R.data
+                rs = fact.R_size
+                H = fact.H[1:k, 1:k]
+                e = hcat(zeros(T, rs, k - rs), I)
+                @test size(V, 2) == k == length(fact.V)
+                @test size(r, 2) == rs
+                @test V' * V ≈ I
+                @test norm(r) ≈ fact.norm_R
+                @test A * V ≈ V * H + r * e
+            end
+        end
+    end
+    T = ComplexF64 # warnings for non-hermitian matrices
+    B = rand(T, (N, N))
+    iter = BlockLanczosIterator(B, MatrixBlock(rand(T, N, 2)), N, KrylovKit.KrylovDefaults.orth, tolerance(T))
+    @test_logs (:warn,) initialize(iter)
+    fact = initialize(iter; verbosity = SILENT_LEVEL)
+    @test_logs (:warn,) expand!(iter, fact)
+end

@@ -664,6 +664,55 @@ end
     end
 end
 
+@testset "BlockLanczos - eigsolve with a MatrixBlock" begin
+    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
+        # full: the Krylov space reaches the whole space
+        block_size = 2
+        A = mat_with_eigrepition(T, n, block_size)
+        X₀ = rand(T, n, block_size)
+        n1 = div(n, 2)
+        alg = BlockLanczos(; krylovdim = n, maxiter = 1, tol = tolerance(T))
+        D1, V1, info1 = eigsolve(A, MatrixBlock(X₀), n1, :SR, alg)
+        @test V1 isa MatrixBlock
+        @test D1[1:n1] ≈ eigvals(A)[1:n1]
+        @test V1.data' * V1.data ≈ I
+        @test A * V1.data ≈ V1.data * Diagonal(D1)
+        @test_logs (:info,) eigsolve(
+            A, MatrixBlock(X₀), n1, :SR,
+            BlockLanczos(; krylovdim = n, maxiter = 1, tol = tolerance(T), verbosity = STARTSTOP_LEVEL)
+        )
+
+        # iterative, with restarts; the same iteration as a Block of the same vectors
+        block_size = 4
+        A = mat_with_eigrepition(T, N, block_size)
+        X₀ = rand(T, N, block_size)
+        alg = BlockLanczos(; krylovdim = 3 * n, maxiter = 20, tol = tolerance(T), eager = true)
+        for which in (:SR, :LR)
+            D1, V1, info1 = eigsolve(A, MatrixBlock(X₀), n, which, alg)
+            D2, V2, info2 = eigsolve(x -> A * x, MatrixBlock(X₀), n, which, alg)
+            D3, V3, info3 = eigsolve(A, Block([X₀[:, i] for i in 1:block_size]), n, which, alg)
+            @test info1.converged ≥ n
+            @test D1[1:n] ≈ (which === :SR ? eigvals(A)[1:n] : eigvals(A)[N:-1:(N - n + 1)])
+            @test D2 ≈ D1
+            @test D3[1:n] ≈ D1[1:n]
+            l = info1.converged
+            U = V1.data[:, 1:l]
+            R = info1.residual.data[:, 1:l]
+            @test U' * U ≈ I
+            @test A * U ≈ U * Diagonal(D1[1:l]) + R
+            @test isapprox([norm(R[:, i]) for i in 1:l], info1.normres[1:l]; atol = tolerance(T))
+        end
+    end
+    # a rank-deficient start block and a real start block for a complex operator
+    A = mat_with_eigrepition(ComplexF64, N, 2)
+    X₀ = rand(Float64, N, 3)
+    X₀[:, 3] = X₀[:, 1] + X₀[:, 2]
+    alg = BlockLanczos(; krylovdim = N, maxiter = 1, tol = tolerance(Float64))
+    D, V, info = eigsolve(A, MatrixBlock(X₀), 2, :SR, alg)
+    @test eltype(V.data) == ComplexF64
+    @test D[1:2] ≈ eigvals(A)[1:2]
+end
+
 @testset "BlockLanczos - eigsolve for abstract type" begin
     T = ComplexF64
     block_size = 2

@@ -1,4 +1,12 @@
 """
+    abstract type AbstractBlock
+
+Supertype of the blocks of vectors that [`BlockLanczos`](@ref) works on: [`Block`](@ref), a list of
+vectors, and [`MatrixBlock`](@ref), the columns of a single matrix-like object.
+"""
+abstract type AbstractBlock end
+
+"""
     x₀ = Block{S}(vec)
     x₀ = Block(vec)
 
@@ -7,7 +15,7 @@ while `S` represents the type of inner products between vectors. To create an in
 one can specify `S` explicitly and use `Block{S}(vec)`, or use `Block(vec)` directly, in which case an
 inner product is performed to infer `S`.
 """
-struct Block{T}
+struct Block{T} <: AbstractBlock
     vec::Vector{T}
     function Block{T}(vec::Vector{T}) where {T}
         length(vec) > 0 || throw(ArgumentError("blocklength must be >(0)"))
@@ -64,6 +72,123 @@ Base.iterate(b::Block) = iterate(b.vec)
 Base.iterate(b::Block, state) = iterate(b.vec, state)
 
 """
+    x₀ = MatrixBlock(X)
+
+A block whose vectors are the columns of a single matrix-like object `X`, such as a `Matrix`.
+[`BlockLanczos`](@ref) then applies the linear map to the whole block at once, as `A * X` if `A`
+is an `AbstractMatrix` and as `A(X)` otherwise, and computes inner products, linear combinations
+and orthonormalizations of the block with matrix products and dense factorizations. The
+eigenvectors and residuals that `eigsolve` returns are again `MatrixBlock`s, one column per
+eigenvalue.
+
+Every `AbstractMatrix` is supported (the orthonormalization uses `qr!` and `lmul!` with its `Q`).
+Another matrix-like type `M`, whose columns are vectors with the Euclidean inner product, needs
+methods for `MatrixBlock{M}` of `length` (the number of columns), `LinearAlgebra.norm`, `copy`,
+[`block_inner`](@ref), [`block_mul!`](@ref), [`block_mul`](@ref) and [`block_orth!`](@ref).
+"""
+struct MatrixBlock{M} <: AbstractBlock
+    data::M
+end
+
+Base.length(b::MatrixBlock{<:AbstractMatrix}) = size(b.data, 2)
+LinearAlgebra.norm(b::MatrixBlock) = norm(b.data)
+Base.copy(b::MatrixBlock) = MatrixBlock(copy(b.data))
+
+apply(A::AbstractMatrix, b::MatrixBlock) = MatrixBlock(A * b.data)
+apply(f, b::MatrixBlock) = MatrixBlock(f(b.data))
+
+function apply_scalartype(f, x₀::MatrixBlock)
+    Tfx = Base.promote_op(apply, typeof(f), typeof(x₀))
+    if Tfx !== Union{} && Tfx !== Any
+        T = eltype(Base.promote_op(block_inner, typeof(x₀), Tfx))
+        T <: Number && return T
+    end
+    return eltype(block_inner(x₀, apply(f, x₀)))
+end
+
+"""
+    block_inner(X::MatrixBlock, Y::MatrixBlock) -> AbstractMatrix
+
+The matrix of inner products `Xᴴ Y` of the columns of `X` and `Y`, as a `Matrix`.
+"""
+block_inner(X::MatrixBlock{<:AbstractMatrix}, Y::MatrixBlock{<:AbstractMatrix}) =
+    convert(Matrix, X.data' * Y.data)
+
+"""
+    block_mul!(Y::MatrixBlock, X::MatrixBlock, C::AbstractMatrix, α, β) -> Y
+
+`Y = β Y + α X C` in place, for a `Matrix` `C`.
+"""
+function block_mul!(Y::MatrixBlock{<:AbstractMatrix}, X::MatrixBlock{<:AbstractMatrix}, C::AbstractMatrix, α, β)
+    mul!(Y.data, X.data, _blocklike(X.data, C), α, β)
+    return Y
+end
+
+"""
+    block_mul(X::MatrixBlock, C::AbstractMatrix) -> MatrixBlock
+
+The new block `X C`, for a `Matrix` `C`.
+"""
+block_mul(X::MatrixBlock{<:AbstractMatrix}, C::AbstractMatrix) = MatrixBlock(X.data * _blocklike(X.data, C))
+
+# the small matrix `C` with the storage of the block `X`
+_blocklike(::Array, C::AbstractMatrix) = C
+_blocklike(X::AbstractMatrix, C::AbstractMatrix) = copyto!(similar(X, eltype(C), size(C)), C)
+
+"""
+    block_orth!(X::MatrixBlock, tol::Real) -> Q, B, is_drift
+
+Orthonormal basis `Q` of the range of `X` with `X = Q B` up to the directions whose singular value
+is below `tol`, which are dropped (`B` has as many rows as `Q` has columns). `X` may be
+overwritten. `is_drift` is `true` if the smallest kept singular value is below `100 * tol`, so
+that `Q` may have lost orthogonality to vectors that were projected out of `X` before.
+"""
+function block_orth!(X::MatrixBlock{<:AbstractMatrix}, tol::Real)
+    A = X.data
+    F = qr!(A)
+    U, σ, W = svd!(convert(Matrix, F.R))
+    r = count(>(tol), σ)
+    Q = fill!(similar(A, size(A, 1), r), zero(eltype(A)))
+    copyto!(view(Q, 1:size(U, 1), :), view(U, :, 1:r))
+    lmul!(F.Q, Q)
+    B = Diagonal(view(σ, 1:r)) * view(W, :, 1:r)'
+    return MatrixBlock(Q), B, r > 0 && σ[r] < 100 * tol
+end
+
+"""
+    MatrixBlockBasis{M}
+
+Orthonormal basis of a [`BlockLanczosFactorization`](@ref) started from a [`MatrixBlock`](@ref):
+the list of its blocks, whose columns together are orthonormal.
+"""
+struct MatrixBlockBasis{M}
+    blocks::Vector{MatrixBlock{M}}
+end
+Base.length(V::MatrixBlockBasis) = sum(length, V.blocks; init = 0)
+Base.push!(V::MatrixBlockBasis{M}, b::MatrixBlock{M}) where {M} = (push!(V.blocks, b); V)
+
+# `V U`, as one block; `U` has a row per basis vector
+function basis_mul(V::MatrixBlockBasis, U::AbstractMatrix)
+    b₁ = first(V.blocks)
+    i = length(b₁)
+    Y = block_mul(b₁, view(U, 1:i, :))
+    for b in Iterators.drop(V.blocks, 1)
+        k = length(b)
+        block_mul!(Y, b, view(U, (i + 1):(i + k), :), true, true)
+        i += k
+    end
+    return Y
+end
+
+# R - V Vᴴ R in place, one modified Gram-Schmidt step per block of V
+function block_reorthogonalize!(R::MatrixBlock, V::MatrixBlockBasis)
+    for b in V.blocks
+        block_mul!(R, b, block_inner(b, R), -1, true)
+    end
+    return R
+end
+
+"""
     mutable struct BlockLanczosFactorization{T,S<:Number,SR<:Real} <: KrylovFactorization{T,S}
 
 Structure to store a BlockLanczos factorization of a real symmetric or complex hermitian linear
@@ -86,18 +211,30 @@ because it is implemented in its `eigsolve`.
 See also [`BlockLanczosIterator`](@ref) for an iterator that constructs a progressively expanding
 BlockLanczos factorizations of a given linear map and a starting block.
 """
-mutable struct BlockLanczosFactorization{T, S <: Number, SR <: Real} <: KrylovFactorization{T, S}
+mutable struct BlockLanczosFactorization{T, S <: Number, SR <: Real, VB, RB <: AbstractBlock} <: KrylovFactorization{T, S}
     k::Int
-    V::OrthonormalBasis{T}      # BlockLanczos Basis
+    V::VB                       # BlockLanczos Basis: OrthonormalBasis{T}, or MatrixBlockBasis{T} for a MatrixBlock
     H::Matrix{S}                # block tridiagonal matrix, and S is the matrix element type
-    R::Block{T}                 # residual block
+    R::RB                       # residual block
     R_size::Int                 # size of the residual block
     norm_R::SR                  # norm of the residual block
 end
+function BlockLanczosFactorization(
+        k::Int, V::OrthonormalBasis{T}, H::Matrix{S}, R::Block{T}, R_size::Int, norm_R::SR
+    ) where {T, S, SR}
+    return BlockLanczosFactorization{T, S, SR, typeof(V), typeof(R)}(k, V, H, R, R_size, norm_R)
+end
+function BlockLanczosFactorization(
+        k::Int, V::MatrixBlockBasis{T}, H::Matrix{S}, R::MatrixBlock{T}, R_size::Int, norm_R::SR
+    ) where {T, S, SR}
+    return BlockLanczosFactorization{T, S, SR, typeof(V), typeof(R)}(k, V, H, R, R_size, norm_R)
+end
+const MatrixBlockLanczosFactorization = BlockLanczosFactorization{T, S, SR, VB, <:MatrixBlock} where {T, S <: Number, SR <: Real, VB}
 Base.length(fact::BlockLanczosFactorization) = fact.k
 normres(fact::BlockLanczosFactorization) = fact.norm_R
 basis(fact::BlockLanczosFactorization) = fact.V
 residual(fact::BlockLanczosFactorization) = fact.R[1:(fact.R_size)]
+residual(fact::MatrixBlockLanczosFactorization) = fact.R
 
 """
     struct BlockLanczosIterator{F,T,S<:Real,O<:Orthogonalizer} <: KrylovIterator{F,T}
@@ -131,20 +268,20 @@ Here, [`initialize(::KrylovIterator)`](@ref) produces the first Krylov factoriza
 and [`expand!(iter::KrylovIterator, fact::KrylovFactorization)`](@ref) expands the
 factorization in place.
 """
-struct BlockLanczosIterator{F, T, O <: Orthogonalizer, S <: Real} <: KrylovIterator{F, T}
+struct BlockLanczosIterator{F, T, O <: Orthogonalizer, S <: Real, B <: AbstractBlock} <: KrylovIterator{F, T}
     operator::F
-    x₀::Block{T}
+    x₀::B
     maxdim::Int
     orth::O
     qr_tol::S
     function BlockLanczosIterator{F, T, O, S}(
-            operator::F, x₀::Block{T}, maxdim::Int, orth::O, qr_tol::S
-        ) where {F, T, O <: Orthogonalizer, S <: Real}
-        return new{F, T, O, S}(operator, x₀, maxdim, orth, qr_tol)
+            operator::F, x₀::B, maxdim::Int, orth::O, qr_tol::S
+        ) where {F, T, O <: Orthogonalizer, S <: Real, B <: Union{Block{T}, MatrixBlock{T}}}
+        return new{F, T, O, S, B}(operator, x₀, maxdim, orth, qr_tol)
     end
 end
 function BlockLanczosIterator(
-        operator::F, x₀::Block{T}, maxdim::Int,
+        operator::F, x₀::Union{Block{T}, MatrixBlock{T}}, maxdim::Int,
         orth::O = KrylovDefaults.orth, qr_tol::Real = KrylovDefaults.tol[]
     ) where {
         F, T,
@@ -155,6 +292,7 @@ function BlockLanczosIterator(
         @error "BlockLanczosIterator only supports ModifiedGramSchmidt2 orthogonalizer"
     return BlockLanczosIterator{F, T, O, typeof(qr_tol)}(operator, x₀, maxdim, orth, qr_tol)
 end
+const MatrixBlockLanczosIterator = BlockLanczosIterator{F, T, O, S, <:MatrixBlock} where {F, T, O <: Orthogonalizer, S <: Real}
 
 function initialize(
         iter::BlockLanczosIterator;
@@ -260,6 +398,72 @@ function block_lanczosrecurrence(
     end
     block_reorthogonalize!(AX, V)
     return AX, M
+end
+
+# A MatrixBlock: the same recurrence with one application of the operator and matrix products per block
+function initialize(
+        iter::MatrixBlockLanczosIterator;
+        verbosity::Int = KrylovDefaults.verbosity[]
+    )
+    iszero(norm(iter.x₀)) && throw(ArgumentError("initial vector should not have norm zero"))
+    X₁, = block_orth!(copy(iter.x₀), iter.qr_tol)
+    AX₁ = apply(iter.operator, X₁)
+    M₁ = block_inner(X₁, AX₁)
+    S = eltype(M₁)
+    scalartype(X₁.data) == S || (X₁ = MatrixBlock(scale(X₁.data, one(S))))
+    bs = length(X₁)
+    BTD = zeros(S, iter.maxdim, iter.maxdim)
+    BTD[1:bs, 1:bs] = M₁
+    verbosity >= WARN_LEVEL && warn_nonhermitian(M₁)
+
+    R = block_mul!(AX₁, X₁, M₁, -1, true)
+    norm_R = norm(R)
+    if verbosity > EACHITERATION_LEVEL
+        @info "BlockLanczos initiation at dimension $bs: subspace normres = $(normres2string(norm_R))"
+    end
+    return BlockLanczosFactorization(bs, MatrixBlockBasis([X₁]), BTD, R, bs, norm_R)
+end
+
+function expand!(
+        iter::MatrixBlockLanczosIterator,
+        state::MatrixBlockLanczosFactorization;
+        verbosity::Int = KrylovDefaults.verbosity[]
+    )
+    k = state.k
+    V = state.V
+    bs = length(state.R)
+
+    # the next block X and B with R = X B
+    X, B, is_drift = block_orth!(state.R, iter.qr_tol)
+    if is_drift # the directions with small singular values may have drifted back into the basis
+        block_reorthogonalize!(X, V)
+        X, B′, = block_orth!(X, iter.qr_tol)
+        B = B′ * B
+    end
+    bs_next = length(X)
+    Xprev = V.blocks[end]
+    push!(V, X)
+    state.H[(k + 1):(k + bs_next), (k - bs + 1):k] = B
+    state.H[(k - bs + 1):k, (k + 1):(k + bs_next)] = B'
+
+    # the residual of the next block, with full reorthogonalization
+    R = apply(iter.operator, X)
+    M = block_inner(X, R)
+    verbosity >= WARN_LEVEL && warn_nonhermitian(M)
+    block_mul!(R, X, M, -1, true)
+    block_mul!(R, Xprev, B', -1, true)
+    block_reorthogonalize!(R, V)
+
+    state.H[(k + 1):(k + bs_next), (k + 1):(k + bs_next)] = M
+    state.R = R
+    state.norm_R = norm(R)
+    state.k += bs_next
+    state.R_size = bs_next
+
+    if verbosity > EACHITERATION_LEVEL
+        @info "BlockLanczos expansion to dimension $(state.k): subspace normres = $(normres2string(state.norm_R))"
+    end
+    return state
 end
 
 """

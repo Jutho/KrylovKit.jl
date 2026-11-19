@@ -39,7 +39,7 @@ export ModifiedGramSchmidt, ModifiedGramSchmidt2, ModifiedGramSchmidtIR
 export LanczosIterator, BlockLanczosIterator, ArnoldiIterator, GKLIterator, BiArnoldiIterator
 export CG, GMRES, BiCGStab, Lanczos, BlockLanczos, Arnoldi, GKL, GolubYe, LSMR, BiArnoldi
 export KrylovDefaults, EigSorter
-export RecursiveVec, InnerProductVec, Block
+export RecursiveVec, InnerProductVec, Block, MatrixBlock
 
 # Multithreading
 const _NTHREADS = Ref(1)

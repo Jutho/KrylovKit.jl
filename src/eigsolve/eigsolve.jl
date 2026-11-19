@@ -6,9 +6,9 @@
     eigsolve(f, x₀, howmany, which, algorithm; alg_rrule=...)
 
     # block version:
-    eigsolve(f, x₀::Block, [howmany = 1, which = :LM]; kwargs...)
+    eigsolve(f, x₀::Union{Block, MatrixBlock}, [howmany = 1, which = :LM]; kwargs...)
     # expert block version:
-    eigsolve(f, x₀::Block, howmany, which, algorithm; alg_rrule=...)
+    eigsolve(f, x₀::Union{Block, MatrixBlock}, howmany, which, algorithm; alg_rrule=...)
 
 Compute at least `howmany` eigenvalues from the linear map encoded in the matrix `A` or by
 the function `f`. Return eigenvalues, eigenvectors and a `ConvergenceInfo` structure.
@@ -62,7 +62,10 @@ targeted. Valid specifications of `which` are given by
     The [`BlockLanczos`](@ref) method has been implemented to compute repeated
     eigenvalues and their corresponding eigenvectors more reliably. Given a starting block `x₀`
     with length `p`, which is the number of vectors in `x₀`, the method can at most simultaneously
-    determine `p`-fold repeated eigenvalues and their associated eigenvectors.
+    determine `p`-fold repeated eigenvalues and their associated eigenvectors. A starting block
+    [`MatrixBlock`](@ref)`(X)` holds the vectors as the columns of one matrix `X`: the linear
+    map is then applied to the whole block at once, and the eigenvectors and residuals are
+    returned as the columns of a `MatrixBlock`.
 
 The argument `T` acts as a hint in which `Number` type the computation should be performed,
 but is not restrictive. If the linear map automatically produces complex values, complex
@@ -241,7 +244,7 @@ function eigselector(
         Tx::Type = Nothing,
         issymmetric::Bool = false,
         ishermitian::Bool = issymmetric && (T <: Real),
-        krylovdim::Int = Tx <: Block ? KrylovDefaults.blockkrylovdim[] : KrylovDefaults.krylovdim[],
+        krylovdim::Int = Tx <: AbstractBlock ? KrylovDefaults.blockkrylovdim[] : KrylovDefaults.krylovdim[],
         maxiter::Int = KrylovDefaults.maxiter[],
         tol::Real = KrylovDefaults.tol[],
         qr_tol::Real = KrylovDefaults.tol[],
@@ -250,7 +253,7 @@ function eigselector(
         verbosity::Int = KrylovDefaults.verbosity[],
         alg_rrule = nothing
     )
-    if Tx <: Block
+    if Tx <: AbstractBlock
         !(issymmetric || ishermitian) &&
             error("BlockLanczos requires a symmetric or hermitian linear map. A BlockArnoldi method has not yet been implemented but will be in the future")
         return BlockLanczos(;
@@ -287,7 +290,7 @@ function eigselector(
         Tx::Type = Nothing,
         issymmetric::Bool = (T <: Real && LinearAlgebra.issymmetric(A)),
         ishermitian::Bool = issymmetric || LinearAlgebra.ishermitian(A),
-        krylovdim::Int = Tx <: Block ? KrylovDefaults.blockkrylovdim[] : KrylovDefaults.krylovdim[],
+        krylovdim::Int = Tx <: AbstractBlock ? KrylovDefaults.blockkrylovdim[] : KrylovDefaults.krylovdim[],
         maxiter::Int = KrylovDefaults.maxiter[],
         tol::Real = KrylovDefaults.tol[],
         qr_tol::Real = KrylovDefaults.tol[],
@@ -296,7 +299,7 @@ function eigselector(
         verbosity::Int = KrylovDefaults.verbosity[],
         alg_rrule = nothing
     )
-    if Tx <: Block
+    if Tx <: AbstractBlock
         !(issymmetric || ishermitian) &&
             error("BlockLanczos requires a symmetric or hermitian linear map. A BlockArnoldi method has not yet been implemented but will be in the future")
         return BlockLanczos(;
