@@ -131,9 +131,9 @@ The new block `X C`, for a `Matrix` `C`.
 """
 block_mul(X::MatrixBlock{<:AbstractMatrix}, C::AbstractMatrix) = MatrixBlock(X.data * _blocklike(X.data, C))
 
-# the small matrix `C` with the storage of the block `X`
+# the small matrix `C` with the storage of the block `X` (copied contiguously first: GPU copies need a dense source)
 _blocklike(::Array, C::AbstractMatrix) = C
-_blocklike(X::AbstractMatrix, C::AbstractMatrix) = copyto!(similar(X, eltype(C), size(C)), C)
+_blocklike(X::AbstractMatrix, C::AbstractMatrix) = copyto!(similar(X, eltype(C), size(C)), Matrix(C))
 
 """
     block_orth!(X::MatrixBlock, tol::Real) -> Q, B, is_drift
@@ -149,7 +149,7 @@ function block_orth!(X::MatrixBlock{<:AbstractMatrix}, tol::Real)
     U, σ, W = svd!(convert(Matrix, F.R))
     r = count(>(tol), σ)
     Q = fill!(similar(A, size(A, 1), r), zero(eltype(A)))
-    copyto!(view(Q, 1:size(U, 1), :), view(U, :, 1:r))
+    view(Q, 1:size(U, 1), :) .= _blocklike(A, view(U, :, 1:r))
     lmul!(F.Q, Q)
     B = Diagonal(view(σ, 1:r)) * view(W, :, 1:r)'
     return MatrixBlock(Q), B, r > 0 && σ[r] < 100 * tol
