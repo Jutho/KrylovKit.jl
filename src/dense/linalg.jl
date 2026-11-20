@@ -111,7 +111,14 @@ function tridiageigh!(A::SymTridiagonal{T}) where {T <: BlasFloat}
     return tridiageigh!(A, Z)
 end
 function tridiageigh!(A::SymTridiagonal{T}, Z::StridedMatrix{T}) where {T <: BlasFloat}
-    return stegr!(A.dv, A.ev, Z)
+    dv, ev = copy(A.dv), copy(A.ev) # stegr! may overwrite its input, also if it fails
+    try
+        return stegr!(A.dv, A.ev, Z)
+    catch e
+        e isa LAPACKException || rethrow()
+        # MRRR can fail on tight eigenvalue clusters (#57); QL iteration is slower but robust
+        return stev!(dv, ev, Z)
+    end
 end # redefined
 
 # Generalized eigenvalue decomposition of symmetric / Hermitian problem
@@ -393,7 +400,7 @@ function partitionschur!(
 end
 
 # redefine LAPACK interface to tridiagonal eigenvalue problem
-for (stegr, elty) in ((:dstegr_, :Float64), (:sstegr_, :Float32))
+for (stegr, stev, elty) in ((:dstegr_, :dstev_, :Float64), (:sstegr_, :sstev_, :Float32))
     @eval begin
         function stegr!(
                 dv::AbstractVector{$elty}, ev::AbstractVector{$elty}, Z::AbstractMatrix{$elty}
@@ -453,6 +460,32 @@ for (stegr, elty) in ((:dstegr_, :Float64), (:sstegr_, :Float32))
                 end
             end
             return w, Z
+        end
+        function stev!(
+                dv::AbstractVector{$elty}, ev::AbstractVector{$elty}, Z::AbstractMatrix{$elty}
+            )
+            require_one_based_indexing(dv, ev, Z)
+            chkstride1(dv, ev, Z)
+            n = length(dv)
+            if length(ev) != n - 1 && length(ev) != n
+                throw(DimensionMismatch("ev has length $(length(ev)) but needs length $(n - 1) or $n"))
+            end
+            checksquare(Z) == n || throw(DimensionMismatch())
+            ldz = max(1, stride(Z, 2))
+            jobz = 'V'
+            work = Vector{$elty}(undef, max(1, 2n - 2))
+            info = Ref{BlasInt}()
+            ccall(
+                (@blasfunc($stev), liblapack),
+                Cvoid,
+                (
+                    Ref{UInt8}, Ref{BlasInt}, Ptr{$elty}, Ptr{$elty},
+                    Ptr{$elty}, Ref{BlasInt}, Ptr{$elty}, Ptr{BlasInt}, Clong,
+                ),
+                jobz, n, dv, ev, Z, ldz, work, info, 1
+            )
+            chklapackerror(info[])
+            return dv, Z
         end
     end
 end

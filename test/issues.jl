@@ -1,3 +1,19 @@
+# https://github.com/Jutho/KrylovKit.jl/issues/57
+@testset "Issue #57" begin
+    @testset for T in (
+            SymTridiagonal(zeros(6), [1.0e10, 1.0e10, 1.0e-4, 1.0e10, 1.0e10]),
+            SymTridiagonal(ones(3), fill(1.0e-20, 2)),
+        )
+        n = size(T, 1)
+        Z = view(zeros(n + 2, n), 1:n, :) # eigsolve passes Z as a view into a larger matrix
+        D, U = KrylovKit.tridiageigh!(copy(T), Z)
+        @test T * U ≈ U * Diagonal(D)
+        @test U' * U ≈ I
+    end
+    D, = eigsolve(Diagonal(1.0e10 .* (1.0:3)), ones(3), 1, :LM; orth = mgs)
+    @test D[1] ≈ 3.0e10
+end
+
 # https://github.com/Jutho/KrylovKit.jl/issues/100
 @testset "Issue #100" begin
     N = 32 # needs to be large enough to trigger shrinking
