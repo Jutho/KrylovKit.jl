@@ -4,7 +4,9 @@
             SymTridiagonal(zeros(6), [1.0e10, 1.0e10, 1.0e-4, 1.0e10, 1.0e10]),
             SymTridiagonal(ones(3), fill(1.0e-20, 2)),
         )
-        D, U = KrylovKit.tridiageigh!(copy(T))
+        n = size(T, 1)
+        Z = view(zeros(n + 2, n), 1:n, :) # eigsolve passes Z as a view into a larger matrix
+        D, U = KrylovKit.tridiageigh!(copy(T), Z)
         @test T * U ≈ U * Diagonal(D)
         @test U' * U ≈ I
     end
