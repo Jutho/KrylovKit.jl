@@ -47,7 +47,7 @@ function eigsolve(
             r = residual(fact)
             UU = view(U, (K - bs_R + 1):K, :)  # The last bs_R rows of U, used to compute the residuals
             normresiduals = let R = block_inner(r, r)
-                map(u -> sqrt(real(dot(u, R, u))), cols(UU))
+                map(u -> sqrt(max(real(dot(u, R, u)), 0)), cols(UU)) # (round-off can make it negative)
             end
             converged = 0
             while converged < K && normresiduals[converged + 1] <= tol
