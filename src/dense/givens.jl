@@ -10,7 +10,7 @@ using LinearAlgebra: Givens
 # end
 
 function LinearAlgebra.rmul!(b::OrthonormalBasis{T}, G::Givens) where {T}
-    if T isa AbstractArray && IndexStyle(T) isa IndexLinear
+    if T <: Array
         return _rmul_linear!(b, G)
     else
         return _rmul!(b, G)
