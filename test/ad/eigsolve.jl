@@ -1,10 +1,10 @@
 module EigsolveAD
 using KrylovKit, LinearAlgebra
 using KrylovKit: SILENT_LEVEL, WARN_LEVEL, STARTSTOP_LEVEL, EACHITERATION_LEVEL
-using Random, Test, TestExtras
+using Random, Test, TestExtras, StableRNGs
 using ChainRulesCore, ChainRulesTestUtils, Zygote, FiniteDifferences
 using ..TestSetup
-Random.seed!(987654321)
+const rng = StableRNG(33)
 
 fdm = ChainRulesTestUtils._fdm
 n = 10
@@ -215,7 +215,7 @@ function build_hermitianfun_example(A, x, c, howmany::Int, which, alg, alg_rrule
     return fun_example, fun_example_fd, Avec, xvec, cvec, vals, vecs, howmany
 end
 
-@timedtestset "Small eigsolve AD test for eltype=$T" for T in
+@testset "Small eigsolve AD test for eltype=$T" for T in
     (
         Float32, Float64, ComplexF32,
         ComplexF64,
@@ -225,8 +225,8 @@ end
     else
         whichlist = (:LM, :SR, :LR)
     end
-    A = 2 * (rand(T, (n, n)) .- one(T) / 2)
-    x = 2 * (rand(T, n) .- one(T) / 2)
+    A = 2 * (rand(rng, T, (n, n)) .- one(T) / 2)
+    x = 2 * (rand(rng, T, n) .- one(T) / 2)
     x /= norm(x)
 
     howmany = 3
@@ -261,7 +261,7 @@ end
 
         for alg_rrule in (alg_rrule1, alg_rrule2)
             #! format: off
-            mat_example, mat_example_fun, mat_example_fd, Avec, xvec, vals, vecs, howmany = 
+            mat_example, mat_example_fun, mat_example_fd, Avec, xvec, vals, vecs, howmany′ = 
                 build_mat_example(A, x, howmany, which, alg, alg_rrule)
             #! format: on
             (JA, Jx) = FiniteDifferences.jacobian(fdm, mat_example_fd, Avec, xvec)
@@ -276,11 +276,11 @@ end
             @test all(iszero, Jx2)
 
             # some analysis
-            ∂vals = complex.(JA1[1:howmany, :], JA1[howmany * (n + 1) .+ (1:howmany), :])
-            ∂vecs = map(1:howmany) do i
+            ∂vals = complex.(JA1[1:howmany′, :], JA1[howmany′ * (n + 1) .+ (1:howmany′), :])
+            ∂vecs = map(1:howmany′) do i
                 return complex.(
-                    JA1[(howmany + (i - 1) * n) .+ (1:n), :],
-                    JA1[(howmany * (n + 2) + (i - 1) * n) .+ (1:n), :]
+                    JA1[(howmany′ + (i - 1) * n) .+ (1:n), :],
+                    JA1[(howmany′ * (n + 2) + (i - 1) * n) .+ (1:n), :]
                 )
             end
             if eltype(A) <: Complex # test holomorphicity / Cauchy-Riemann equations
@@ -288,13 +288,13 @@ end
                 @test real(∂vals[:, 1:2:(2n^2)]) ≈ +imag(∂vals[:, 2:2:(2n^2)])
                 @test imag(∂vals[:, 1:2:(2n^2)]) ≈ -real(∂vals[:, 2:2:(2n^2)])
                 # and for eigenvectors
-                for i in 1:howmany
+                for i in 1:howmany′
                     @test real(∂vecs[i][:, 1:2:(2n^2)]) ≈ +imag(∂vecs[i][:, 2:2:(2n^2)])
                     @test imag(∂vecs[i][:, 1:2:(2n^2)]) ≈ -real(∂vecs[i][:, 2:2:(2n^2)])
                 end
             end
             # test orthogonality of vecs and ∂vecs
-            for i in 1:howmany
+            for i in 1:howmany′
                 @test all(isapprox.(abs.(vecs[i]' * ∂vecs[i]), 0; atol = sqrt(eps(real(T)))))
             end
         end
@@ -385,19 +385,19 @@ end
         end
     end
 end
-@timedtestset "Large eigsolve AD test with eltype=$T" for T in (Float64, ComplexF64)
+@testset "Large eigsolve AD test with eltype=$T" for T in (Float64, ComplexF64)
     if T <: Complex
         whichlist = (:LM, :SI)
     else
         whichlist = (:LM, :SR)
     end
     @testset for which in whichlist
-        A = rand(T, (N, N)) .- one(T) / 2
+        A = rand(rng, T, (N, N)) .- one(T) / 2
         A = I - (9 // 10) * A / maximum(abs, eigvals(A))
-        x = 2 * (rand(T, N) .- one(T) / 2)
+        x = 2 * (rand(rng, T, N) .- one(T) / 2)
         x /= norm(x)
-        c = 2 * (rand(T, N) .- one(T) / 2)
-        d = 2 * (rand(T, N) .- one(T) / 2)
+        c = 2 * (rand(rng, T, N) .- one(T) / 2)
+        d = 2 * (rand(rng, T, N) .- one(T) / 2)
 
         howmany = 2
         tol = tolerance(T) # 2 * N^2 * eps(real(T))
@@ -423,15 +423,15 @@ end
         end
     end
 end
-@timedtestset "Large Hermitian eigsolve AD test with eltype=$T" for T in
+@testset "Large Hermitian eigsolve AD test with eltype=$T" for T in
     (Float64, ComplexF64)
     whichlist = (:LR, :SR)
     @testset for which in whichlist
-        A = rand(T, (N, N)) .- one(T) / 2
+        A = rand(rng, T, (N, N)) .- one(T) / 2
         A = I - (9 // 10) * A / maximum(abs, eigvals(A))
-        x = 2 * (rand(T, N) .- one(T) / 2)
+        x = 2 * (rand(rng, T, N) .- one(T) / 2)
         x /= norm(x)
-        c = 2 * (rand(T, N) .- one(T) / 2)
+        c = 2 * (rand(rng, T, N) .- one(T) / 2)
 
         howmany = 2
         tol = tolerance(T)

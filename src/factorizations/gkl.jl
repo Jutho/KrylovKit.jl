@@ -310,8 +310,8 @@ function gklrecurrence(
     )
     u = U[end]
     v = apply_adjoint(operator, u)
-    v = add!!(v, V[end], -β) # not necessary if we definitely reorthogonalize next step and previous step
-    # v, = orthogonalize!(v, V, ClassicalGramSchmidt())
+    v = add!!(v, V[end], -β)
+    v, = orthogonalize!!(v, V, ClassicalGramSchmidt())
     α = norm(v)
     v = scale!!(v, inv(α))
 

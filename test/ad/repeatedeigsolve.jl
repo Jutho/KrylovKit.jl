@@ -2,10 +2,10 @@ module RepeatedEigsolveAD
 
 using KrylovKit, LinearAlgebra
 using KrylovKit: SILENT_LEVEL, WARN_LEVEL, STARTSTOP_LEVEL, EACHITERATION_LEVEL
-using Random, Test, TestExtras
+using Random, Test, TestExtras, StableRNGs
 using ChainRulesCore, ChainRulesTestUtils, Zygote, FiniteDifferences
 using ..TestSetup
-Random.seed!(987654321)
+const rng = StableRNG(33)
 
 fdm = ChainRulesTestUtils._fdm
 n = 10
@@ -83,16 +83,16 @@ function build_mat_example(A, B, C, x, alg, alg_rrule)
         vecs
 end
 
-@timedtestset "Repeated eigsolve AD test with eltype=$T" for T in (Float64, ComplexF64)
+@testset "Repeated eigsolve AD test with eltype=$T" for T in (Float64, ComplexF64)
     n = 10
     N = 3n
 
-    A = randn(T, n, n)
-    B = randn(T, n, n)
-    C = randn(T, n, n)
+    A = randn(rng, T, n, n)
+    B = randn(rng, T, n, n)
+    C = randn(rng, T, n, n)
 
     M = [zeros(T, n, 2n) A; B zeros(T, n, 2n); zeros(T, n, n) C zeros(T, n, n)]
-    x = randn(T, N)
+    x = randn(rng, T, N)
 
     tol = tolerance(T) #2 * N^2 * eps(real(T))
     alg = Arnoldi(; tol = tol, krylovdim = 2n)
