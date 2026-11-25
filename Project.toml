@@ -30,7 +30,7 @@ Test = "1"
 TestExtras = "0.2,0.3"
 VectorInterface = "0.5, 0.6, 0.7"
 Zygote = "0.6, 0.7"
-julia = "1.6"
+julia = "1.10"
 SparseArrays = "1"
 StableRNGs = "1"
 
