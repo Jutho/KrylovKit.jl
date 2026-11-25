@@ -10,7 +10,7 @@ using LinearAlgebra: Givens
 # end
 
 function LinearAlgebra.rmul!(b::OrthonormalBasis{T}, G::Givens) where {T}
-    if T isa AbstractArray && IndexStyle(T) isa IndexLinear
+    if T <: Array
         return _rmul_linear!(b, G)
     else
         return _rmul!(b, G)
@@ -21,7 +21,7 @@ end
     q1, q2 = b[G.i1], b[G.i2]
     c = G.c
     s = G.s
-    @inbounds @simd for i in 1:length(q1)
+    for i in eachindex(q1, q2)
         q1[i], q2[i] = c * q1[i] - conj(s) * q2[i], s * q1[i] + c * q2[i]
     end
     return b
