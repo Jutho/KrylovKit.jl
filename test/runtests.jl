@@ -69,6 +69,9 @@ end
 @testset "block" verbose = true begin
     include("block.jl")
 end
+@testset "GPU array bases" verbose = true begin
+    include("gpuarrays.jl")
+end
 t = time() - t
 
 # Issues
