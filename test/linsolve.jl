@@ -284,16 +284,16 @@ end
     end
 end
 
-# Test GMRES constructors with and without ndeflate
+# Test GMRES constructors with and without deflationdim
 @testset "GMRES-DR constructors" begin
     orth = KrylovDefaults.orth
     alg = GMRES(orth, KrylovDefaults.maxiter[], KrylovDefaults.krylovdim[], 1.0e-10, WARN_LEVEL)
-    @test alg.ndeflate == 0
+    @test alg.deflationdim == 0
     @test alg == GMRES(; tol = 1.0e-10, verbosity = WARN_LEVEL)
-    @test GMRES{typeof(orth), Float64}(orth, 10, 20, 1.0e-10, WARN_LEVEL).ndeflate == 0
-    @test GMRES(; krylovdim = 30, ndeflate = 10).ndeflate == 10
-    @test_throws ArgumentError GMRES(; krylovdim = 10, ndeflate = 10)
-    @test_throws ArgumentError GMRES(; ndeflate = -1)
+    @test GMRES{typeof(orth), Float64}(orth, 10, 20, 1.0e-10, WARN_LEVEL).deflationdim == 0
+    @test GMRES(; krylovdim = 30, deflationdim = 10).deflationdim == 10
+    @test_throws ArgumentError GMRES(; krylovdim = 10, deflationdim = 10)
+    @test_throws ArgumentError GMRES(; deflationdim = -1)
 end
 
 # Test GMRES-DR without restart
@@ -304,7 +304,7 @@ end
         A = rand(T, (n, n)) .- one(T) / 2
         b = rand(T, n)
         alg = GMRES(;
-            krylovdim = n, ndeflate = div(n, 3), maxiter = 2, tol = tolerance(T) * norm(b),
+            krylovdim = n, deflationdim = div(n, 3), maxiter = 2, tol = tolerance(T) * norm(b),
             verbosity = SILENT_LEVEL
         )
         x, info = @constinferred linsolve(
@@ -331,7 +331,7 @@ end
             wrapvec(zerovector(b), Val(mode)), alg
         )
         alg = GMRES(;
-            krylovdim = n, ndeflate = div(n, 3), maxiter = 2, tol = tolerance(T) * norm(b),
+            krylovdim = n, deflationdim = div(n, 3), maxiter = 2, tol = tolerance(T) * norm(b),
             verbosity = WARN_LEVEL
         )
         @test_logs linsolve(
@@ -339,7 +339,7 @@ end
             wrapvec(zerovector(b), Val(mode)), alg
         )
         alg = GMRES(;
-            krylovdim = n, ndeflate = div(n, 3), maxiter = 2, tol = tolerance(T) * norm(b),
+            krylovdim = n, deflationdim = div(n, 3), maxiter = 2, tol = tolerance(T) * norm(b),
             verbosity = STARTSTOP_LEVEL
         )
         @test_logs (:info,) (:info,) linsolve(
@@ -347,7 +347,7 @@ end
             wrapvec(zerovector(b), Val(mode)), alg
         )
         alg = GMRES(;
-            krylovdim = n, ndeflate = div(n, 3), maxiter = 2, tol = tolerance(T) * norm(b),
+            krylovdim = n, deflationdim = div(n, 3), maxiter = 2, tol = tolerance(T) * norm(b),
             verbosity = EACHITERATION_LEVEL
         )
         @test_logs min_level = Logging.Warn linsolve(
@@ -356,7 +356,7 @@ end
         )
 
         alg = GMRES(;
-            krylovdim = n, ndeflate = div(n, 3), maxiter = 2, tol = tolerance(T) * norm(b),
+            krylovdim = n, deflationdim = div(n, 3), maxiter = 2, tol = tolerance(T) * norm(b),
             verbosity = SILENT_LEVEL
         )
         x, info = @constinferred linsolve(
@@ -365,14 +365,14 @@ end
         )
         @test info.numops == 1
         alg = GMRES(;
-            krylovdim = n, ndeflate = div(n, 3), maxiter = 2, tol = tolerance(T) * norm(b),
+            krylovdim = n, deflationdim = div(n, 3), maxiter = 2, tol = tolerance(T) * norm(b),
             verbosity = STARTSTOP_LEVEL
         )
         @test_logs (:info,) linsolve(wrapop(A, Val(mode)), wrapvec(b, Val(mode)), x, alg)
 
         nreal = (T <: Real) ? n : 2n
         algr = GMRES(;
-            krylovdim = nreal, ndeflate = div(nreal, 3), maxiter = 2, tol = tolerance(T) * norm(b),
+            krylovdim = nreal, deflationdim = div(nreal, 3), maxiter = 2, tol = tolerance(T) * norm(b),
             verbosity = SILENT_LEVEL
         )
         xr, infor = @constinferred reallinsolve(
@@ -386,7 +386,7 @@ end
         α₀ = rand(T)
         α₁ = -rand(T)
         alg = GMRES(;
-            krylovdim = n, ndeflate = div(n, 3), maxiter = 2, tol = tolerance(T) * norm(b),
+            krylovdim = n, deflationdim = div(n, 3), maxiter = 2, tol = tolerance(T) * norm(b),
             verbosity = SILENT_LEVEL
         )
         x, info = @constinferred(linsolve(A, b, zerovector(b), alg, α₀, α₁))
@@ -420,7 +420,7 @@ end
         x₀ = zerovector(b)
         tol = tolerance(T) * norm(b)
         algg = GMRES(; krylovdim = n, maxiter = 50, tol, verbosity = SILENT_LEVEL)
-        alg = GMRES(; krylovdim = n, ndeflate = 4, maxiter = 50, tol, verbosity = SILENT_LEVEL)
+        alg = GMRES(; krylovdim = n, deflationdim = 4, maxiter = 50, tol, verbosity = SILENT_LEVEL)
 
         xg, infog = linsolve(
             wrapop(A, Val(mode)), wrapvec(b, Val(mode)), wrapvec(x₀, Val(mode)), algg
@@ -434,16 +434,16 @@ end
         @test unwrapvec(b) ≈ A * unwrapvec(x)
         @test unwrapvec(b) ≈ A * unwrapvec(x) + unwrapvec(info.residual)
 
-        alg2 = GMRES(; krylovdim = n, ndeflate = 4, maxiter = 2, tol, verbosity = SILENT_LEVEL)
+        alg2 = GMRES(; krylovdim = n, deflationdim = 4, maxiter = 2, tol, verbosity = SILENT_LEVEL)
         @test_logs linsolve(
             wrapop(A, Val(mode)), wrapvec(b, Val(mode)), wrapvec(x₀, Val(mode)), alg2
         )
-        alg2 = GMRES(; krylovdim = n, ndeflate = 4, maxiter = 2, tol, verbosity = WARN_LEVEL)
+        alg2 = GMRES(; krylovdim = n, deflationdim = 4, maxiter = 2, tol, verbosity = WARN_LEVEL)
         @test_logs (:warn,) linsolve(
             wrapop(A, Val(mode)), wrapvec(b, Val(mode)), wrapvec(x₀, Val(mode)), alg2
         )
         alg2 = GMRES(;
-            krylovdim = n, ndeflate = 4, maxiter = 2, tol, verbosity = STARTSTOP_LEVEL
+            krylovdim = n, deflationdim = 4, maxiter = 2, tol, verbosity = STARTSTOP_LEVEL
         )
         @test_logs (:info,) (:warn,) linsolve(
             wrapop(A, Val(mode)), wrapvec(b, Val(mode)), wrapvec(x₀, Val(mode)), alg2
@@ -451,7 +451,7 @@ end
 
         x, info = @constinferred linsolve(
             wrapop(A, Val(mode)), wrapvec(b, Val(mode)), wrapvec(x₀, Val(mode));
-            krylovdim = n, ndeflate = 4, maxiter = 50, rtol = tolerance(T)
+            krylovdim = n, deflationdim = 4, maxiter = 50, rtol = tolerance(T)
         )
         @test info.converged == 1
         @test unwrapvec(b) ≈ A * unwrapvec(x)
@@ -470,7 +470,7 @@ end
         # as a real linear map, A has twice as many eigenvalues close to zero for complex T
         nreal = (T <: Real) ? 1 : 2
         algr = GMRES(;
-            krylovdim = nreal * n, ndeflate = nreal * 4, maxiter = 50, tol,
+            krylovdim = nreal * n, deflationdim = nreal * 4, maxiter = 50, tol,
             verbosity = SILENT_LEVEL
         )
         xr, infor = @constinferred reallinsolve(

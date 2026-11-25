@@ -1,6 +1,6 @@
 function linsolve(operator, b, x₀, alg::GMRES, a₀::Number = 0, a₁::Number = 1; alg_rrule = alg)
-    ndeflate = alg.ndeflate
-    name = ndeflate > 0 ? "GMRES-DR" : "GMRES"
+    deflationdim = alg.deflationdim
+    name = deflationdim > 0 ? "GMRES-DR" : "GMRES"
 
     # Initial function operation and division defines number type
     y₀ = apply(operator, x₀)
@@ -104,8 +104,8 @@ function linsolve(operator, b, x₀, alg::GMRES, a₀::Number = 0, a₁::Number 
 
         kept = 0 # length of the factorization kept by a deflated restart
         if β > tol && numiter < maxiter
-            if ndeflate > 0 && k == krylovdim && !iszero(R[k, k])
-                kept = _gmresdr_deflate!(fact, y, gs, α₀, α₁, ndeflate)
+            if deflationdim > 0 && k == krylovdim && !iszero(R[k, k])
+                kept = _gmresdr_deflate!(fact, y, gs, α₀, α₁, deflationdim)
             end
             if kept == 0
                 # Recompute residual without reevaluating operator
@@ -174,7 +174,7 @@ end
 # Deflated restart of GMRES-DR (R. B. Morgan, SIAM J. Sci. Comput. 24, 20 (2002)): shrink the
 # Arnoldi factorization `fact` of length m, with Hessenberg matrix G = α₀ + α₁ * H of the shifted
 # map and g = α₁ * normres(fact), to length k, in four steps:
-# 1. U: orthonormal Schur basis of the `ndeflate` harmonic Ritz values of smallest modulus, the
+# 1. U: orthonormal Schur basis of the `deflationdim` harmonic Ritz values of smallest modulus, the
 #    eigenvalues of G + |g|² G⁻ᴴ eₘ eₘᵀ (complex conjugate pairs are kept together);
 # 2. w: unit vector along [-conj(g) G⁻ᴴ eₘ; 1], which spans the orthogonal complement of the
 #    range of [G; g eₘᵀ] and thus contains the GMRES residual, orthogonalized against [U; 0];
@@ -182,7 +182,7 @@ end
 #    restored to Arnoldi form, such that A * V * U = V * U * Hk + [V v] * w * hk';
 # 4. the residual coordinates, the basis [V v] * [[U; 0] w] and the factorization.
 # Returns k, with the residual coordinates in y[1:(k + 1)], or 0 if this is not possible.
-function _gmresdr_deflate!(fact::ArnoldiFactorization, y, gs, α₀, α₁, ndeflate)
+function _gmresdr_deflate!(fact::ArnoldiFactorization, y, gs, α₀, α₁, deflationdim)
     m = length(fact)
     T = eltype(y)
     H = Matrix{T}(rayleighquotient(fact))
@@ -200,7 +200,7 @@ function _gmresdr_deflate!(fact::ArnoldiFactorization, y, gs, α₀, α₁, ndef
     view(M, :, m) .+= abs2(g) .* f
     M, Q, vals = hschur!(M, Matrix{T}(I, m, m))
     select = fill(false, m)
-    select[view(sortperm(vals; by = abs), 1:ndeflate)] .= true
+    select[view(sortperm(vals; by = abs), 1:deflationdim)] .= true
     for i in 1:(m - 1) # keep 2x2 blocks of a real Schur form together
         if !iszero(M[i + 1, i]) && select[i] != select[i + 1]
             select[i] = select[i + 1] = count(select) < m - 1

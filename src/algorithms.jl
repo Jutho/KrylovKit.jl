@@ -360,7 +360,7 @@ end
             tol=KrylovDefaults.tol[], 
             orth::Orthogonalizer=KrylovDefaults.orth,
             verbosity=KrylovDefaults.verbosity[],
-            ndeflate::Integer=0)
+            deflationdim::Integer=0)
 
 Construct an instance of the GMRES algorithm with specified parameters, which can be passed
 to `linsolve` in order to iteratively solve a linear system. The `GMRES` method will search
@@ -375,18 +375,18 @@ to as the restart parameter, and `maxiter` is the number of outer iterations, i.
 cycles. The total iteration count, i.e. the number of expansion steps, is roughly
 `krylovdim` times the number of iterations.
 
-With `ndeflate > 0`, `GMRES` uses deflated restarting, GMRES-DR(m, k) with `m = krylovdim` and
-`k = ndeflate` (R. B. Morgan, SIAM J. Sci. Comput. 24, 20 (2002)). At a restart, instead of
-keeping only the residual, it keeps the `ndeflate` harmonic Ritz vectors of the linear map whose
+With `deflationdim > 0`, `GMRES` uses deflated restarting, GMRES-DR(m, k) with `m = krylovdim` and
+`k = deflationdim` (R. B. Morgan, SIAM J. Sci. Comput. 24, 20 (2002)). At a restart, instead of
+keeping only the residual, it keeps the `deflationdim` harmonic Ritz vectors of the linear map whose
 harmonic Ritz values have the smallest modulus, together with the residual, so that the next
-cycle continues from a Krylov subspace of dimension `ndeflate + 1`. This removes the stagnation
+cycle continues from a Krylov subspace of dimension `deflationdim + 1`. This removes the stagnation
 of restarted GMRES caused by eigenvalues close to zero, at the cost of storing the same
 `krylovdim + 1` vectors. Every cycle after the first then applies the linear map
-`krylovdim - ndeflate` times. For a real linear map, a complex conjugate pair of harmonic Ritz
-values is kept or discarded together, so that one more or one fewer vector than `ndeflate` may
-be kept. `ndeflate` should satisfy `0 <= ndeflate < krylovdim`, and deflated restarts require
+`krylovdim - deflationdim` times. For a real linear map, a complex conjugate pair of harmonic Ritz
+values is kept or discarded together, so that one more or one fewer vector than `deflationdim` may
+be kept. `deflationdim` should satisfy `0 <= deflationdim < krylovdim`, and deflated restarts require
 the scalar type of the problem to be a `BlasFloat`. A typical choice is
-`ndeflate = div(krylovdim, 3)`.
+`deflationdim = div(krylovdim, 3)`.
 
 See also: [`linsolve`](@ref), [`BiCG`](@ref), [`BiCGStab`](@ref), [`CG`](@ref), [`LSMR`](@ref),
 [`MINRES`](@ref)
@@ -397,9 +397,9 @@ struct GMRES{O <: Orthogonalizer, S <: Real} <: LinearSolver
     krylovdim::Int
     tol::S
     verbosity::Int
-    ndeflate::Int
+    deflationdim::Int
 end
-# positional constructors without `ndeflate`, for backward compatibility
+# positional constructors without `deflationdim`, for backward compatibility
 GMRES(orth, maxiter, krylovdim, tol, verbosity) = GMRES(orth, maxiter, krylovdim, tol, verbosity, 0)
 function GMRES{O, S}(orth, maxiter, krylovdim, tol, verbosity) where {O, S}
     return GMRES{O, S}(orth, maxiter, krylovdim, tol, verbosity, 0)
@@ -410,11 +410,11 @@ function GMRES(;
         tol::Real = KrylovDefaults.tol[],
         orth::Orthogonalizer = KrylovDefaults.orth,
         verbosity::Int = KrylovDefaults.verbosity[],
-        ndeflate::Integer = 0
+        deflationdim::Integer = 0
     )
-    0 <= ndeflate < krylovdim ||
-        throw(ArgumentError("`ndeflate` should satisfy `0 <= ndeflate < krylovdim`"))
-    return GMRES(orth, maxiter, krylovdim, tol, verbosity, ndeflate)
+    0 <= deflationdim < krylovdim ||
+        throw(ArgumentError("`deflationdim` should satisfy `0 <= deflationdim < krylovdim`"))
+    return GMRES(orth, maxiter, krylovdim, tol, verbosity, deflationdim)
 end
 
 # TODO
