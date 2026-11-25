@@ -61,13 +61,15 @@ Keyword arguments are given by:
     further details on the algorithms.
   - `orth::Orthogonalizer`: the orthogonalization method to be used, see
     [`Orthogonalizer`](@ref)
+  - `deflationdim::Integer`: the number of harmonic Ritz vectors kept across a restart of `GMRES`,
+    see [`GMRES`](@ref)
   - `issymmetric::Bool`: if the linear map is symmetric, only meaningful if `T<:Real`
   - `ishermitian::Bool`: if the linear map is hermitian
   - `isposdef::Bool`: if the linear map is positive definite
 
 The default values are given by `atol = KrylovDefaults.tol[]`, `rtol = KrylovDefaults.tol[]`,
 `tol = max(atol, rtol*norm(b))`, `krylovdim = KrylovDefaults.krylovdim[]`,
-`maxiter = KrylovDefaults.maxiter[]`, `orth = KrylovDefaults.orth`;
+`maxiter = KrylovDefaults.maxiter[]`, `orth = KrylovDefaults.orth`, `deflationdim = 0`;
 see [`KrylovDefaults`](@ref) for details.
 
 The default value for the last three parameters depends on the method. If an
@@ -131,7 +133,8 @@ function linselector(
         atol::Real = KrylovDefaults.tol[],
         tol::Real = max(atol, rtol * norm(b)),
         orth = KrylovDefaults.orth,
-        verbosity::Int = KrylovDefaults.verbosity[]
+        verbosity::Int = KrylovDefaults.verbosity[],
+        deflationdim::Int = 0
     )
     if (T <: Real && issymmetric) || ishermitian
         if isposdef
@@ -146,7 +149,8 @@ function linselector(
         maxiter = maxiter,
         tol = tol,
         orth = orth,
-        verbosity = verbosity
+        verbosity = verbosity,
+        deflationdim = deflationdim
     )
 end
 function linselector(
@@ -160,7 +164,8 @@ function linselector(
         atol::Real = KrylovDefaults.tol[],
         tol::Real = max(atol, rtol * norm(b)),
         orth = KrylovDefaults.orth,
-        verbosity::Int = KrylovDefaults.verbosity[]
+        verbosity::Int = KrylovDefaults.verbosity[],
+        deflationdim::Int = 0
     )
     if (T <: Real && issymmetric) || ishermitian
         if isposdef
@@ -175,7 +180,8 @@ function linselector(
         maxiter = maxiter,
         tol = tol,
         orth = orth,
-        verbosity = verbosity
+        verbosity = verbosity,
+        deflationdim = deflationdim
     )
 end
 
