@@ -190,3 +190,47 @@ end
         @test length(gi) == 1
     end
 end
+
+@testset "MatrixBlock interface" begin
+    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
+        X = MatrixBlock(rand(T, N, n))
+        Y = MatrixBlock(rand(T, N, n))
+        @test length(X) == n
+        @test KrylovKit.block_inner(X, Y) ≈ X.data' * Y.data
+        A = rand(T, N, N)
+        @test KrylovKit.apply(A, X).data ≈ A * X.data
+        @test KrylovKit.apply(x -> A * x, X).data ≈ A * X.data
+        C = rand(T, n, n)
+        @test KrylovKit.block_mul(X, C).data ≈ X.data * C
+        Z = copy(Y)
+        KrylovKit.block_mul!(Z, X, C, T(2), T(3))
+        @test Z.data ≈ 3 * Y.data + 2 * X.data * C
+    end
+end
+
+@testset "MatrixBlock block_orth!" begin
+    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
+        A = rand(T, N, n)
+        A[:, n ÷ 2] = A[:, (n ÷ 2 + 1):end] * rand(T, n - n ÷ 2) # not of full rank
+        Q, B, = KrylovKit.block_orth!(MatrixBlock(copy(A)), tolerance(T))
+        @test length(Q) == n - 1
+        @test size(B) == (n - 1, n)
+        @test Q.data' * Q.data ≈ I
+        @test isapprox(Q.data * B, A; atol = tolerance(T))
+    end
+    r = normalize(rand(N))
+    X = hcat([b * r + 1.0e-16 * rand(N) for b in (1.0e-9, 1.0e-3, 1.0e-2)]...)
+    Q, = KrylovKit.block_orth!(MatrixBlock(X), tolerance(Float64))
+    @test length(Q) == 1
+end
+
+@testset "MatrixBlock block_reorthogonalize!" begin
+    @testset for T in (Float32, Float64, ComplexF32, ComplexF64)
+        Q, = KrylovKit.block_orth!(MatrixBlock(rand(T, N, 2n)), tolerance(T))
+        Q1, Q2 = MatrixBlock(Q.data[:, 1:n]), MatrixBlock(Q.data[:, (n + 1):(2n)])
+        V = KrylovKit.MatrixBlockBasis([Q1, Q2])
+        R = KrylovKit.block_reorthogonalize!(MatrixBlock(rand(T, N, n)), V)
+        @test norm(KrylovKit.block_inner(Q1, R)) < tolerance(T)
+        @test norm(KrylovKit.block_inner(Q2, R)) < tolerance(T)
+    end
+end

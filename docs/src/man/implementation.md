@@ -67,6 +67,18 @@ Additional procedure applied to the block is as follows:
 KrylovKit.block_reorthogonalize!
 ```
 
+A block can instead hold its vectors as the columns of one matrix-like object, in a `MatrixBlock`.
+The block Lanczos iteration then applies the linear map to the whole block at once and works with
+matrix products and dense factorizations of the block, through the following interface:
+```@docs
+KrylovKit.MatrixBlock
+KrylovKit.block_inner
+KrylovKit.block_mul!
+KrylovKit.block_mul
+KrylovKit.block_orth!
+KrylovKit.MatrixBlockBasis
+```
+
 
 
 ## Dense linear algebra

@@ -1,5 +1,5 @@
 function eigsolve(
-        A, x₀::Block{T}, howmany::Int, which::Selector, alg::BlockLanczos;
+        A, x₀::AbstractBlock, howmany::Int, which::Selector, alg::BlockLanczos;
         alg_rrule = Arnoldi(;
             tol = alg.tol,
             krylovdim = alg.krylovdim,
@@ -7,7 +7,7 @@ function eigsolve(
             eager = alg.eager,
             orth = alg.orth
         )
-    ) where {T}
+    )
     maxiter = alg.maxiter
     krylovdim = alg.krylovdim
     if howmany > krylovdim
@@ -19,7 +19,7 @@ function eigsolve(
     bs = length(x₀)
     iter = BlockLanczosIterator(A, x₀, krylovdim + bs, alg.orth, alg.qr_tol)
     fact = initialize(iter; verbosity = verbosity)  # Returns a BlockLanczosFactorization
-    numops = bs + 1 # Number of matrix-vector multiplications (for logging)
+    numops = bs + (x₀ isa Block) # Number of matrix-vector multiplications (for logging); a Block costs one extra in `initialize`
     numiter = 1
 
     converged = 0
@@ -47,7 +47,7 @@ function eigsolve(
             r = residual(fact)
             UU = view(U, (K - bs_R + 1):K, :)  # The last bs_R rows of U, used to compute the residuals
             normresiduals = let R = block_inner(r, r)
-                map(u -> sqrt(real(dot(u, R, u))), cols(UU))
+                map(u -> sqrt(max(real(dot(u, R, u)), 0)), cols(UU)) # (round-off can make it negative)
             end
             converged = 0
             while converged < K && normresiduals[converged + 1] <= tol
@@ -89,18 +89,8 @@ function eigsolve(
             fill!(BTD, zero(eltype(BTD)))
             Hkeep = view(H, 1:keep, 1:keep)
             BTD[1:keep, 1:keep] .= (Hkeep .+ Hkeep') ./ 2 # make exactly Hermitian
-            B = basis(fact)
-            basistransform!(B, view(U, :, 1:keep))
-
-            R_new = OrthonormalBasis(fact.R.vec[1:bs_R])
             view_H = view(H, (keep + 1):(keep + bs_R), (keep - bs_R + 1):keep)
-            basistransform!(R_new, view_H)
-            fact.R.vec[1:bs_R] = R_new[1:bs_R]
-
-            while length(fact) > keep
-                pop!(fact.V)
-                fact.k -= 1
-            end
+            shrink_basis!(fact, view(U, :, 1:keep), view_H)
             numiter += 1
         end
     end
@@ -108,19 +98,11 @@ function eigsolve(
     howmany′ = max(converged, min(howmany, length(D)))
     values = D[1:howmany′]
     U1 = view(U, :, 1:howmany′)
-    vectors = let V = basis(fact)
-        [V * u for u in cols(U1)]
-    end
+    vectors = ritzvectors(basis(fact), U1)
     bs_R = fact.R_size
     K = length(fact)
     U2 = view(U, (K - bs_R + 1):K, 1:howmany′)
-    R = fact.R
-    residuals = [zerovector(R[1]) for _ in 1:howmany′]
-    @inbounds for i in 1:howmany′
-        for j in 1:bs_R
-            residuals[i] = add!!(residuals[i], R[j], U2[j, i])
-        end
-    end
+    residuals = ritzresiduals(fact.R, U2, bs_R)
     normresiduals = normresiduals[1:howmany′]
 
     if (converged < howmany′) && verbosity >= WARN_LEVEL # all values are converged after an invariant subspace
@@ -138,3 +120,43 @@ function eigsolve(
     return values, vectors,
         ConvergenceInfo(converged, residuals, normresiduals, numiter, numops)
 end
+
+# the basis `V U` and residual `R H` of a thick restart that keeps `size(U, 2)` vectors
+function shrink_basis!(fact::BlockLanczosFactorization, U, H)
+    bs_R = size(H, 1)
+    basistransform!(basis(fact), U)
+    R_new = OrthonormalBasis(fact.R.vec[1:bs_R])
+    basistransform!(R_new, H)
+    fact.R.vec[1:bs_R] = R_new[1:bs_R]
+    while length(fact) > size(U, 2)
+        pop!(fact.V)
+        fact.k -= 1
+    end
+    return fact
+end
+# a MatrixBlock basis becomes two blocks, the last one of the residual's width as the next expansion needs
+function shrink_basis!(fact::MatrixBlockLanczosFactorization, U, H)
+    keep = size(U, 2)
+    bs_R = size(H, 1)
+    V = fact.V
+    blocks = [basis_mul(V, view(U, :, (keep - bs_R + 1):keep))]
+    keep > bs_R && pushfirst!(blocks, basis_mul(V, view(U, :, 1:(keep - bs_R))))
+    copy!(V.blocks, blocks)
+    fact.R = block_mul(fact.R, H)
+    fact.k = keep
+    return fact
+end
+
+ritzvectors(V::OrthonormalBasis, U) = [V * u for u in cols(U)]
+ritzvectors(V::MatrixBlockBasis, U) = basis_mul(V, U)
+
+function ritzresiduals(R::Block, U, bs_R)
+    residuals = [zerovector(R[1]) for _ in 1:size(U, 2)]
+    @inbounds for i in 1:size(U, 2)
+        for j in 1:bs_R
+            residuals[i] = add!!(residuals[i], R[j], U[j, i])
+        end
+    end
+    return residuals
+end
+ritzresiduals(R::MatrixBlock, U, bs_R) = block_mul(R, U)
