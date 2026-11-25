@@ -61,33 +61,27 @@ end
 
 const BLOCKSIZE = 4096
 
-# helper function to determine if a multithreaded approach should be used
-# this uses functionality beyond VectorInterface, but can be faster
-_use_multithreaded_array_kernel(y) = _use_multithreaded_array_kernel(typeof(y))
-_use_multithreaded_array_kernel(::Type) = false
-function _use_multithreaded_array_kernel(::Type{<:Array{T}}) where {T <: Number}
-    return isbitstype(T) && get_num_threads() > 1
-end
-function _use_multithreaded_array_kernel(::Type{<:OrthonormalBasis{T}}) where {T}
-    return _use_multithreaded_array_kernel(T)
-end
+abstract type BasisKernel end
+struct GenericKernel <: BasisKernel end
+struct StridedArrayKernel <: BasisKernel end
+struct DenseMatrixKernel <: BasisKernel end
+const VectorwiseKernel = Union{GenericKernel, StridedArrayKernel}
 
-# helper function to determine if operations on the whole basis should be done as dense
-# matrix operations, by gathering the basis vectors into the columns of a matrix
-# this is used for dense arrays for which launching a kernel per basis vector
-# and copying every overlap is expensive
-_use_dense_array_kernel(y) = _use_dense_array_kernel(typeof(y))
-_use_dense_array_kernel(::Type) = false
-function _use_dense_array_kernel(::Type{A}) where {T <: Number, A <: DenseArray{T}}
-    return isbitstype(T) && !(A <: Array)
+basiskernel(x) = basiskernel(typeof(x))
+basiskernel(::Type) = GenericKernel()
+function basiskernel(::Type{<:DenseArray{T}}) where {T <: Number}
+    return isbitstype(T) ? DenseMatrixKernel() : GenericKernel()
 end
-function _use_dense_array_kernel(::Type{<:OrthonormalBasis{T}}) where {T}
-    return _use_dense_array_kernel(T)
+function basiskernel(::Type{<:Array{T}}) where {T <: Number}
+    return isbitstype(T) ? StridedArrayKernel() : GenericKernel()
 end
-_use_dense_array_kernel(::OrthonormalBasis{T}, ::T) where {T} = _use_dense_array_kernel(T)
-_use_dense_array_kernel(::OrthonormalBasis, x) = false
+basiskernel(::Type{<:OrthonormalBasis{T}}) where {T} = basiskernel(T)
+basiskernel(::OrthonormalBasis{T}, ::T) where {T} = basiskernel(T)
+basiskernel(b::OrthonormalBasis, y) = _mixedkernel(basiskernel(b), basiskernel(y))
 
-# gather the basis vectors `b[r]` into the columns of a matrix similar to `V`
+_mixedkernel(::StridedArrayKernel, ::StridedArrayKernel) = StridedArrayKernel()
+_mixedkernel(::BasisKernel, ::BasisKernel) = GenericKernel()
+
 function _basis_matrix(b::OrthonormalBasis, r, V::AbstractVector)
     Q = similar(V, length(V), length(r))
     for (j, i) in enumerate(r)
@@ -113,11 +107,11 @@ function project!!(
         y::AbstractVector, b::OrthonormalBasis, x,
         α::Number = true, β::Number = false, r = Base.OneTo(length(b))
     )
-    # no specialized routine for IndexLinear x because reduction dimension is large dimension
     length(y) == length(r) || throw(DimensionMismatch())
-    if _use_dense_array_kernel(b, x)
-        return project_dense!(y, b, x, α, β, r)
-    end
+    return _project!!(basiskernel(b, x), y, b, x, α, β, r)
+end
+function _project!!(::BasisKernel, y, b, x, α, β, r)
+    # no specialized routine for IndexLinear x because reduction dimension is large dimension
     if get_num_threads() > 1
         @sync for J in splitrange(1:length(r), get_num_threads())
             Threads.@spawn for j in $J
@@ -143,9 +137,7 @@ function project!!(
     end
     return y
 end
-function project_dense!(
-        y::AbstractVector, b::OrthonormalBasis, x::DenseArray, α::Number, β::Number, r
-    )
+function _project!!(::DenseMatrixKernel, y, b, x, α, β, r)
     isempty(r) && return y
     xv = vec(x)
     Q = _basis_matrix(b, r, xv)
@@ -174,11 +166,9 @@ function unproject!!(
         y, b::OrthonormalBasis, x::AbstractVector,
         α::Number = true, β::Number = false, r = Base.OneTo(length(b))
     )
-    if _use_multithreaded_array_kernel(y)
-        return unproject_linear_multithreaded!(y, b, x, α, β, r)
-    elseif _use_dense_array_kernel(b, y)
-        return unproject_dense!(y, b, x, α, β, r)
-    end
+    return _unproject!!(basiskernel(b, y), y, b, x, α, β, r)
+end
+function _unproject!!(::BasisKernel, y, b, x, α, β, r)
     # general case: using only vector operations, i.e. axpy! (similar to BLAS level 1)
     length(x) == length(r) || throw(DimensionMismatch())
     if β == 0
@@ -190,6 +180,13 @@ function unproject!!(
         y = add!!(y, b[ri], α * x[i])
     end
     return y
+end
+function _unproject!!(::StridedArrayKernel, y, b, x, α, β, r)
+    if get_num_threads() > 1
+        return unproject_linear_multithreaded!(y, b, x, α, β, r)
+    else
+        return _unproject!!(GenericKernel(), y, b, x, α, β, r)
+    end
 end
 function unproject_linear_multithreaded!(
         y::AbstractArray, b::OrthonormalBasis{<:AbstractArray}, x::AbstractVector,
@@ -214,9 +211,7 @@ function unproject_linear_multithreaded!(
     end
     return y
 end
-function unproject_dense!(
-        y::DenseArray, b::OrthonormalBasis, x::AbstractVector, α::Number, β::Number, r
-    )
+function _unproject!!(::DenseMatrixKernel, y, b, x, α, β, r)
     length(x) == length(r) || throw(DimensionMismatch())
     yv = vec(y)
     if isempty(r)
@@ -267,7 +262,7 @@ It is the user's responsibility to make sure that the result is still an orthono
         b::OrthonormalBasis, y, x::AbstractVector,
         α::Number = true, β::Number = true, r = Base.OneTo(length(b))
     )
-    if _use_multithreaded_array_kernel(y)
+    if basiskernel(b, y) isa StridedArrayKernel && get_num_threads() > 1
         return rank1update_linear_multithreaded!(b, y, x, α, β, r)
     end
     # general case: using only vector operations, i.e. axpy! (similar to BLAS level 1)
@@ -345,11 +340,9 @@ and are stored in `b`, so the old basis vectors are thrown away. Note that, by d
 the subspace spanned by these basis vectors is exactly the same.
 """
 function basistransform!(b::OrthonormalBasis{T}, U::AbstractMatrix) where {T} # U should be unitary or isometric
-    if _use_multithreaded_array_kernel(b)
-        return basistransform_linear_multithreaded!(b, U)
-    elseif _use_dense_array_kernel(b)
-        return basistransform_dense!(b, U)
-    end
+    return _basistransform!(basiskernel(b), b, U)
+end
+function _basistransform!(::BasisKernel, b, U)
     m, n = size(U)
     m == length(b) || throw(DimensionMismatch())
 
@@ -376,6 +369,13 @@ function basistransform!(b::OrthonormalBasis{T}, U::AbstractMatrix) where {T} # 
         end
     end
     return b
+end
+function _basistransform!(::StridedArrayKernel, b, U)
+    if get_num_threads() > 1
+        return basistransform_linear_multithreaded!(b, U)
+    else
+        return _basistransform!(GenericKernel(), b, U)
+    end
 end
 
 function basistransform_linear_multithreaded!(
@@ -411,7 +411,7 @@ function basistransform_linear_multithreaded!(
     return b
 end
 
-function basistransform_dense!(b::OrthonormalBasis{<:DenseArray}, U::AbstractMatrix)
+function _basistransform!(::DenseMatrixKernel, b, U)
     m, n = size(U)
     m == length(b) || throw(DimensionMismatch())
     V = vec(b[1])
@@ -452,28 +452,37 @@ function orthogonalize!!(v::T, b::OrthonormalBasis{T}, alg::Orthogonalizer) wher
 end
 
 function orthogonalize!!(
-        v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::ClassicalGramSchmidt
+        v::T, b::OrthonormalBasis{T}, x::AbstractVector,
+        alg::Union{ClassicalGramSchmidt, ModifiedGramSchmidt}
     ) where {T}
-    if _use_dense_array_kernel(T)
-        isempty(b) && return (v, x)
-        d = _cgs_pass_dense!(vec(v), b)
-        # `x` may be a view (e.g. a Hessenberg column)
-        copyto!(view(x, 1:length(d)), Array(d))
-        return (v, x)
-    end
+    return _orthogonalize!!(basiskernel(T), v, b, x, alg)
+end
+function reorthogonalize!!(
+        v::T, b::OrthonormalBasis{T}, x::AbstractVector,
+        alg::Union{ClassicalGramSchmidt, ModifiedGramSchmidt}
+    ) where {T}
+    return _reorthogonalize!!(basiskernel(T), v, b, x, alg)
+end
+
+function _orthogonalize!!(::DenseMatrixKernel, v, b, x, alg)
+    isempty(b) && return (v, x)
+    d = _dense_pass!(vec(v), b, alg)
+    copyto!(view(x, 1:length(d)), Array(d))
+    return (v, x)
+end
+function _reorthogonalize!!(::DenseMatrixKernel, v, b, x, alg)
+    isempty(b) && return (v, x)
+    d = _dense_pass!(vec(v), b, alg)
+    view(x, 1:length(d)) .+= Array(d)
+    return (v, x)
+end
+
+function _orthogonalize!!(::VectorwiseKernel, v, b, x, ::ClassicalGramSchmidt)
     x = project!!(x, b, v)
     v = unproject!!(v, b, x, -1, 1)
     return (v, x)
 end
-function reorthogonalize!!(
-        v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::ClassicalGramSchmidt
-    ) where {T}
-    if _use_dense_array_kernel(T)
-        isempty(b) && return (v, x)
-        d = _cgs_pass_dense!(vec(v), b)
-        view(x, 1:length(d)) .+= Array(d)
-        return (v, x)
-    end
+function _reorthogonalize!!(::VectorwiseKernel, v, b, x, ::ClassicalGramSchmidt)
     s = similar(x) ## EXTRA ALLOCATION
     s = project!!(s, b, v)
     v = unproject!!(v, b, s, -1, 1)
@@ -500,14 +509,7 @@ function orthogonalize!!(
     return (v, x)
 end
 
-function orthogonalize!!(
-        v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::ModifiedGramSchmidt
-    ) where {T}
-    if _use_dense_array_kernel(T)
-        d = _mgs_pass_dense!(vec(v), b)
-        copyto!(view(x, 1:length(d)), Array(d))
-        return (v, x)
-    end
+function _orthogonalize!!(::VectorwiseKernel, v, b, x, ::ModifiedGramSchmidt)
     for (i, q) in enumerate(b)
         s = inner(q, v)
         v = add!!(v, q, -s)
@@ -515,14 +517,7 @@ function orthogonalize!!(
     end
     return (v, x)
 end
-function reorthogonalize!!(
-        v::T, b::OrthonormalBasis{T}, x::AbstractVector, ::ModifiedGramSchmidt
-    ) where {T}
-    if _use_dense_array_kernel(T)
-        d = _mgs_pass_dense!(vec(v), b)
-        view(x, 1:length(d)) .+= Array(d)
-        return (v, x)
-    end
+function _reorthogonalize!!(::VectorwiseKernel, v, b, x, ::ModifiedGramSchmidt)
     for (i, q) in enumerate(b)
         s = inner(q, v)
         v = add!!(v, q, -s)
@@ -550,24 +545,23 @@ function orthogonalize!!(
     return (v, x)
 end
 
-function _cgs_pass_dense!(w::AbstractVector, b::OrthonormalBasis)
+function _dense_pass!(w::AbstractVector, b::OrthonormalBasis, ::ClassicalGramSchmidt)
     Q = _basis_matrix(b, 1:length(b), w)
     d = similar(w, size(Q, 2))
     mul!(d, Q', w)
     mul!(w, Q, d, -1, 1)
     return d
 end
-function _mgs_pass_dense!(w::AbstractVector, b::OrthonormalBasis)
-    d = fill!(similar(w, length(b)), zero(eltype(w)))
+function _dense_pass!(w::AbstractVector, b::OrthonormalBasis, ::ModifiedGramSchmidt)
+    d = similar(w, length(b))
     for (i, q) in enumerate(b)
         qv = vec(q)
         di = view(d, i:i)
-        Base.mapreducedim!(identity, +, di, Broadcast.instantiate(Broadcast.broadcasted(_conjmul, qv, w)))
+        mul!(di, reshape(qv, :, 1)', w)
         w .-= di .* qv
     end
     return d
 end
-_conjmul(x, y) = conj(x) * y
 
 # Orthogonalization of a vector against a given normalized vector
 orthogonalize!!(v::T, q::T, alg::Orthogonalizer) where {T} = _orthogonalize!!(v, q, alg)

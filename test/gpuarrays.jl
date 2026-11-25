@@ -6,20 +6,6 @@ using KrylovKit: OrthonormalBasis, project!!, unproject!!, basistransform!,
 # JLArrays 0.1 wraps host arrays without copying them, so copy to keep the reference intact
 jl(x) = JLArray(copy(x))
 
-if VERSION < v"1.10"
-    # JLArrays 0.1, the last version supporting Julia < 1.10, reduces into `R.data`,
-    # which fails when `R` is a view
-    function JLArrays.GPUArrays.mapreducedim!(
-            f, op, R::SubArray{<:Any, <:Any, <:JLArray},
-            A::Union{AbstractArray, Broadcast.Broadcasted}; init = nothing
-        )
-        R′ = JLArray(Array(R))
-        JLArrays.GPUArrays.mapreducedim!(f, op, R′, A; init = init)
-        copyto!(R, R′)
-        return R
-    end
-end
-
 @testset "Orthogonalization against a GPU array basis ($T)" for T in (Float64, ComplexF64)
     rng = MersenneTwister(1234)
     m, k = 3N ÷ 2, 7
